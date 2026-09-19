@@ -31,7 +31,36 @@ same-redshift companion.
 `p_sameq` under a velocity window is small even for a perfect candidate. The
 package ranks candidates and reports evidence; it does not deliver "the
 probability this is a binary". Do not tune anything to make that number look
-larger.
+larger — and in particular **do not widen the window to raise it**, which
+changes the question rather than the answer.
+
+### Rank on `log_r_per_unit_z`, not on `p_sameq`
+
+Because the window is far narrower than the photometric redshift resolution, it
+enters as a pure multiplicative constant:
+
+```
+R = Sigma_Q(z0, m) p(c | Q, z0) / (Lambda_Q,total + lambda_bkg)     [1/redshift]
+
+p_sameq = R * dz_match_eff                                          (exactly)
+```
+
+The denominator carries no window dependence at all — `same_z` and `field_q`
+partition the quasar intensity, so their sum is the total whatever window is
+declared. `R` is therefore the window-free evidence, and any posterior follows
+from one multiplication.
+
+Consequences, all enforced by tests:
+
+- **`R` is the ranking statistic.** Two people can compare candidates without
+  agreeing on a window.
+- **Never quote `p_sameq` without `dz_match_eff` beside it.** They travel
+  together in every output row.
+- **Never integrate a velocity window on the redshift grid.** Δ*z* = 0.03 on a
+  grid of step 0.01 is two or three points, and the trapezoid rule of that is
+  noise. `RedshiftMatch.effective_width` gives the window area in closed form,
+  and the scorer switches to the closed-form path whenever the grid cannot
+  resolve the window (`RedshiftMatch.is_narrow_for`).
 
 ---
 
@@ -95,7 +124,13 @@ tests pass.
 9. **De-duplicate by sky position, not by identifier.** `zcat_primary` still
    leaves 9,577 repeated quasars in DESI DR1 (measured).
 10. **Every random procedure takes an explicit seed** from the run config.
-11. **Figures are PNG and live in `plots/`.** Write them with
+11. **Scope: cleanly deblended companions only, for now.** Every candidate
+    scored for science passes a `BlendPolicy` (separation floor, `fracflux`
+    limit). Blends are deferred to M7 and need image-level forced photometry,
+    not a looser threshold. A missing separation or `fracflux` counts as
+    blended: an object cannot be certified clean without the numbers that
+    would show it.
+12. **Figures are PNG and live in `plots/`.** Write them with
     `qso_pcolor.plotting.save_figure(fig, "name")`, which forces the format,
     creates subdirectories, and returns the path — do not call `savefig`
     directly with an ad-hoc path.
@@ -224,11 +259,16 @@ plus a one-page diagnostic per interesting candidate: observed colours with
 errors, the quasar locus at *z*₀, the local background density, the quasar-only
 redshift PDF, the Bayes factor, both posteriors, and every quality flag.
 
-### M7 — optional extensions, in this order
+### M7 — blends, and other extensions
 
-Gaia parallax/proper motion as a separate likelihood factor; the physical-pair
-clustering prior (externally supplied model, switchable off, reported separately
-from `p_sameq`); image-level forced photometry below the separation floor.
+Everything above assumes a cleanly deblended companion, enforced by
+`BlendPolicy`. Blended pairs are a separate problem and are addressed here, in
+this order:
+
+image-level forced photometry below the separation floor; Gaia parallax/proper
+motion as a separate likelihood factor; the physical-pair clustering prior
+(externally supplied model, switchable off, reported separately from
+`p_sameq`).
 
 ---
 
@@ -245,8 +285,10 @@ log_bayes_factor_qz_bkg     the most robust number here
 p_zmatch_given_qso          conditional on being a quasar at all
 z_phot_mode
 log_lambda_sameq, log_lambda_fieldq, log_lambda_bkg
+log_r_per_unit_z            window-free evidence; RANK ON THIS
+dz_match_eff                the window area that turns R into p_sameq
 p_sameq_vs_bkg              the two-class number; ignores field quasars
-p_sameq                     the three-class number; rank on this
+p_sameq                     = exp(log_r_per_unit_z) * dz_match_eff
 qso_ood_sigma               distance to the nearest training component
 background_local_weight     0 => the score came from the pooled model
 background_density_level    0 local, 1 parent, 2 global
@@ -255,8 +297,8 @@ n_bands_used, status, quality_flags, model_manifest_id
 
 `status` values in use: `ok`, `insufficient_photometry`,
 `no_prior_posterior_unavailable`, `qso_prior_empty_at_this_magnitude`,
-`primary_z_outside_model_support`. Add to this list rather than returning a
-silent number.
+`primary_z_outside_model_support`, `blended_not_scored`. Add to this list
+rather than returning a silent number.
 
 ---
 

@@ -77,17 +77,52 @@ intensity inside the window, so
 
     λ_fieldQ ≫ λ_sameQ  ⟹  P_sameQ ≲ 0.1–0.3.
 
-This is not a defect in the method; it is the honest answer. But it means:
+This is not a defect in the method; it is the honest answer. **The resolution is
+to stop treating the window as part of the model and treat it as the
+multiplicative constant it is.**
+
+Because the window is much narrower than the scale on which
+Σ_Q(*z*,*m*) *p*(**c**|*Q*,*z*) varies, the same-redshift intensity is
+
+    λ_sameQ = ΔZ_eff · Σ_Q(z0,m) · p(c | Q, z0),   ΔZ_eff = ∫ W(z|z0) dz
+
+and — this is the part that makes it clean — the *denominator* of the posterior
+carries no window dependence at all, because `same_z` and `field_q` partition
+the quasar intensity:
+
+    λ_sameQ + λ_fieldQ + λ_bkg = Λ_Q,total + λ_bkg    for any window.
+
+So defining
+
+    R ≡ Σ_Q(z0,m) p(c | Q, z0) / (Λ_Q,total + λ_bkg)     [units: 1/redshift]
+
+gives **p_sameq = R · ΔZ_eff exactly** — a linear relation, not an odds
+transform. `R` is the window-free evidence; the window is one multiplication
+applied at the end.
+
+Two practical consequences follow, and both are now enforced in code:
+
+- **Rank on `R`.** It needs no agreement about the window, and it separates the
+  cases by orders of magnitude where `p_sameq` is compressed into a narrow
+  range. On the synthetic universe: log *R* = +1.1 for an on-locus candidate,
+  −18.0 for a quasar at the wrong redshift, −37.7 for background colours.
+- **Never integrate a velocity window on the redshift grid.** ΔZ_eff = 0.03 on a
+  grid of step 0.01 spans two or three points, and the trapezoid rule of that is
+  numerical noise — it can silently return zero.
+  `RedshiftMatch.effective_width` computes the area in closed form, and the
+  scorer switches to the closed-form path whenever the grid cannot resolve the
+  window. Verified against a 20,000-point brute-force integral.
+
+It also means:
 
 1. **`P_sameQ` under a velocity window is a ranking statistic, not a
-   probability anyone should quote as "the chance this is a binary".** The
-   package reports it, and reports what window produced it, in every row.
-2. **Report the posterior at two window widths.** The physical one the user
-   cares about, and a photometric one (Δ*z* ≈ σ_z,phot) answering the question
-   colours can actually answer: "is this consistent with *z*₀ at the precision
-   the photometry allows?"
-3. **The prior-independent `log_bayes_factor_qz_bkg` is the most robust number
-   the package produces** and should lead the candidate report.
+   probability anyone should quote as "the chance this is a binary".** It never
+   appears without `dz_match_eff` beside it.
+2. **Widening the window to make the number look better changes the question,
+   not the answer.** With `R` reported separately there is no temptation to.
+3. **`log_bayes_factor_qz_bkg` remains the most prior-independent number the
+   package produces** and should lead the candidate report, with `R` as the
+   ranking key.
 
 Implemented: `RedshiftMatch` takes either a velocity or a Δ*z* window, and the
 scorer records the definition in every row.
@@ -178,6 +213,12 @@ own catalogue does not resolve them as two things. Two consequences:
    individually trustworthy. Catalogue-based scoring below that floor should
    return a status code, not a number. Image-level forced photometry is the
    only honest route there, and that is a separate project.
+
+   **Decided 2026-09-19:** the pipeline is being completed for cleanly
+   deblended companions first; blends are deferred to M7. `BlendPolicy`
+   enforces this rather than leaving it to memory — a candidate without a
+   separation and `fracflux` measurement is treated as blended, because it
+   cannot be certified clean without them.
 2. **Validation must be done at matched separation and matched `fracflux`.** A
    model validated on isolated quasars says nothing about performance on
    companions 4″ from a bright primary, which is the only case we care about.

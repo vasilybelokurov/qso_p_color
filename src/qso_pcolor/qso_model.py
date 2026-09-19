@@ -120,6 +120,37 @@ class RedshiftMatch:
             return ((z >= lo) & (z <= hi)).astype(float)
         return np.exp(-0.5 * ((z - z_primary) / s) ** 2)
 
+    def effective_width(self, z_primary: float) -> float:
+        """:math:`\\int W(z\\mid z_0)\\,\\mathrm{d}z`, in units of redshift.
+
+        Computed in closed form, never on a grid: the whole point of this
+        quantity is that a velocity window is far too narrow to integrate
+        reliably on any grid coarse enough to cover the quasar redshift range.
+
+        For a top hat of half-width *s* this is 2*s*; for a Gaussian of the same
+        1-sigma width it is :math:`\\sqrt{2\\pi}\\,s`.
+
+        The same-redshift intensity is proportional to this number, exactly in
+        the limit where the window is narrow compared with the scale on which
+        :math:`\\Sigma_Q(z,m)\\,p(\\mathbf{c}\\mid Q,z)` varies — which for a
+        velocity window it always is.  That is what makes the window a pure
+        multiplicative constant that can be factored out of any ranking.
+        """
+        s = float(np.hypot(self.half_width(z_primary), self.z_primary_err))
+        return 2.0 * s if self.kernel == "tophat" else float(np.sqrt(2.0 * np.pi) * s)
+
+    def is_narrow_for(self, z_grid: np.ndarray, z_primary: float, factor: float = 4.0) -> bool:
+        """True when ``z_grid`` cannot resolve the window, so integrating it would fail.
+
+        The criterion is numerical, not scientific: if the window is narrower
+        than a few grid steps, a trapezoidal integral of it is meaningless and
+        the closed-form narrow-window value must be used instead.  If the grid
+        *can* resolve the window, the integral is accurate and is used.
+        """
+        z_grid = np.asarray(z_grid, dtype=float)
+        step = float(np.median(np.diff(z_grid)))
+        return self.effective_width(z_primary) < factor * step
+
     def describe(self) -> dict:
         return {
             "half_width_kms": self.half_width_kms,

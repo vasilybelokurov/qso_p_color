@@ -384,3 +384,164 @@ def test_sliced_model_conditional_is_normalised(models):
         p = np.exp(lp).reshape(grid.size, grid.size)
         total = np.trapezoid(np.trapezoid(p, grid, axis=1), grid)
         assert total == pytest.approx(1.0, abs=2e-3)
+
+
+# -- the redshift window as a multiplicative constant ----------------------
+
+def test_effective_width_is_exact_for_both_kernels():
+    top = RedshiftMatch(dz_half_width=0.02)
+    gau = RedshiftMatch(dz_half_width=0.02, kernel="gaussian")
+    z = np.linspace(-1.0, 3.0, 200001)
+    assert top.effective_width(1.0) == pytest.approx(
+        np.trapezoid(top.weight(z, 1.0), z), rel=1e-3
+    )
+    assert gau.effective_width(1.0) == pytest.approx(
+        np.trapezoid(gau.weight(z, 1.0), z), rel=1e-4
+    )
+
+
+def test_r_per_unit_z_does_not_depend_on_the_window(models):
+    """The point of R: it ranks candidates without anyone agreeing on a window.
+
+    Three windows spanning a factor of 20 in width, all narrow compared with the
+    photometric redshift scale, must give the same R -- while p_sameq scales
+    with the window, as it should.
+    """
+    cov = np.array([[0.01, 0.0], [0.0, 0.01]])
+    x = qso_locus(np.array([1.4]))
+
+    rs, ps, widths = [], [], []
+    for kms in (250.0, 500.0, 2000.0):
+        s = run(models, x, cov, 20.0, 1.4, match=RedshiftMatch(half_width_kms=kms))[0]
+        rs.append(s.log_r_per_unit_z)
+        ps.append(s.p_sameq)
+        widths.append(s.dz_match_eff)
+
+    assert max(rs) - min(rs) < 0.01          # R is window-free to <1%
+    # p_sameq, by contrast, is proportional to the window width, as it must be.
+    assert ps[1] / ps[0] == pytest.approx(widths[1] / widths[0], rel=0.01)
+    assert ps[2] / ps[1] == pytest.approx(widths[2] / widths[1], rel=0.01)
+
+
+def test_posterior_is_recoverable_from_r_and_the_window(models):
+    """p_sameq = R * dz_eff, exactly -- a linear relation, not an odds transform."""
+    cov = np.array([[0.01, 0.0], [0.0, 0.01]])
+    for z0 in (0.9, 1.4, 2.2):
+        s = run(models, qso_locus(np.array([z0])), cov, 20.0, z0,
+                match=RedshiftMatch(half_width_kms=2000.0))[0]
+        assert np.exp(s.log_r_per_unit_z) * s.dz_match_eff == pytest.approx(
+            s.p_sameq, rel=1e-9
+        )
+
+
+def test_narrow_window_closed_form_agrees_with_a_resolved_integral(models):
+    """The closed form must match brute-force integration on a grid fine enough.
+
+    This is the check that the narrow-window shortcut is an approximation only
+    in the sense that it is more accurate than the alternative.
+    """
+    cov = np.array([[0.01, 0.0], [0.0, 0.01]])
+    x = qso_locus(np.array([1.4]))
+    match = RedshiftMatch(dz_half_width=0.02)
+
+    _, qso, bkg, qp, bd = models
+    common = dict(
+        z_primary=np.array([1.4]), l_deg=np.array([120.0]), b_deg=np.array([60.0]),
+        qso_model=qso, background_model=bkg, match=match,
+        qso_prior=qp, background_density=bd,
+    )
+    # Coarse grid: cannot resolve a dz = 0.04 window -> closed form is used.
+    coarse = score_candidates(
+        make_features(x, cov, 20.0), z_grid=np.linspace(0.31, 2.99, 200), **common
+    )[0]
+    # Fine grid: resolves it -> the trapezoidal integral is used instead.
+    fine = score_candidates(
+        make_features(x, cov, 20.0), z_grid=np.linspace(0.31, 2.99, 20000), **common
+    )[0]
+
+    assert not match.is_narrow_for(np.linspace(0.31, 2.99, 20000), 1.4)
+    assert match.is_narrow_for(np.linspace(0.31, 2.99, 200), 1.4)
+    assert coarse.p_sameq == pytest.approx(fine.p_sameq, rel=0.02)
+    assert coarse.log_r_per_unit_z == pytest.approx(fine.log_r_per_unit_z, abs=0.02)
+
+
+def test_velocity_window_survives_a_grid_that_cannot_resolve_it(models):
+    """A +/-2000 km/s window on a normal grid must not silently integrate to zero."""
+    cov = np.array([[0.01, 0.0], [0.0, 0.01]])
+    s = run(models, qso_locus(np.array([1.4])), cov, 20.0, 1.4,
+            match=RedshiftMatch(half_width_kms=2000.0))[0]
+    assert s.p_sameq > 0
+    assert np.isfinite(s.log_r_per_unit_z)
+    assert s.p_zmatch_given_qso > 0
+
+
+# -- blend policy ----------------------------------------------------------
+
+def test_blend_policy_excludes_close_companions(models):
+    from qso_pcolor.score import BlendPolicy
+
+    _, qso, bkg, qp, bd = models
+    x = np.repeat(qso_locus(np.array([1.4])), 3, axis=0)
+    cov = np.broadcast_to(np.eye(2) * 0.01, (3, 2, 2))
+    policy = BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2)
+
+    rows = score_candidates(
+        make_features(x, cov, 20.0),
+        z_primary=np.full(3, 1.4), l_deg=np.full(3, 120.0), b_deg=np.full(3, 60.0),
+        qso_model=qso, background_model=bkg,
+        match=RedshiftMatch(half_width_kms=2000.0),
+        qso_prior=qp, background_density=bd, z_grid=np.linspace(0.31, 2.99, 300),
+        blend_policy=policy,
+        separation_arcsec=np.array([1.5, 8.0, 8.0]),
+        fracflux=np.array([0.01, 0.01, 0.9]),
+    )
+    assert rows[0].status == "blended_not_scored"     # too close
+    assert rows[1].status == "ok"                     # clean
+    assert rows[2].status == "blended_not_scored"     # contaminated flux
+    assert np.isnan(rows[0].p_sameq) and np.isnan(rows[2].p_sameq)
+    assert "blended" in rows[0].quality_flags and "blended" in rows[2].quality_flags
+
+
+def test_missing_blend_information_counts_as_blended(models):
+    """We cannot certify an object is clean without the numbers that show it."""
+    from qso_pcolor.score import BlendPolicy
+
+    _, qso, bkg, qp, bd = models
+    policy = BlendPolicy(min_separation_arcsec=3.0)
+    rows = score_candidates(
+        make_features(qso_locus(np.array([1.4])), np.eye(2)[None] * 0.01, 20.0),
+        z_primary=np.array([1.4]), l_deg=np.array([120.0]), b_deg=np.array([60.0]),
+        qso_model=qso, background_model=bkg,
+        match=RedshiftMatch(half_width_kms=2000.0),
+        qso_prior=qp, background_density=bd, z_grid=np.linspace(0.31, 2.99, 300),
+        blend_policy=policy, separation_arcsec=None,
+    )
+    assert rows[0].status == "blended_not_scored"
+    assert np.isnan(np.array([np.nan if s is None else 0.0 for s in [None]])).all()
+
+
+def test_blend_policy_flag_mode_scores_but_marks(models):
+    from qso_pcolor.score import BlendPolicy
+
+    _, qso, bkg, qp, bd = models
+    policy = BlendPolicy(min_separation_arcsec=3.0, action="flag")
+    rows = score_candidates(
+        make_features(qso_locus(np.array([1.4])), np.eye(2)[None] * 0.01, 20.0),
+        z_primary=np.array([1.4]), l_deg=np.array([120.0]), b_deg=np.array([60.0]),
+        qso_model=qso, background_model=bkg,
+        match=RedshiftMatch(half_width_kms=2000.0),
+        qso_prior=qp, background_density=bd, z_grid=np.linspace(0.31, 2.99, 300),
+        blend_policy=policy, separation_arcsec=np.array([1.0]),
+    )
+    assert rows[0].status == "ok"
+    assert "blended" in rows[0].quality_flags
+    assert np.isfinite(rows[0].p_sameq)
+
+
+def test_blend_policy_requires_an_explicit_action():
+    from qso_pcolor.score import BlendPolicy
+
+    with pytest.raises(ValueError, match="action"):
+        BlendPolicy(min_separation_arcsec=3.0, action="ignore")
+    with pytest.raises(ValueError, match="positive"):
+        BlendPolicy(min_separation_arcsec=0.0)

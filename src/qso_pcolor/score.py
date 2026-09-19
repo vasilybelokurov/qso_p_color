@@ -47,9 +47,79 @@ from .features import FeatureSet
 from .priors import BackgroundSurfaceDensity, GridQSOPrior
 from .qso_model import RedshiftMatch, SlicedColourRedshiftModel
 
-__all__ = ["PairScore", "score_candidates", "DEFAULT_Z_GRID"]
+__all__ = ["PairScore", "BlendPolicy", "score_candidates", "DEFAULT_Z_GRID"]
 
 DEFAULT_Z_GRID = np.linspace(0.05, 5.0, 496)
+
+
+@dataclass(frozen=True)
+class BlendPolicy:
+    """Which companions are close enough to the primary to be untrustworthy.
+
+    Scope decision, recorded here so it is enforced rather than remembered: the
+    pipeline is being completed for **cleanly deblended** companions first.
+    Below a few arcseconds the Legacy Surveys model fit divides flux between
+    overlapping sources, so the two colour vectors are neither independent nor
+    individually reliable, and a probability computed from them is a statement
+    about the deblender rather than about the sky.  Blended pairs need
+    image-level forced photometry, which is a separate piece of work.
+
+    Both limits must be stated explicitly; there is no default, because a
+    separation floor changes which objects the reported probabilities apply to.
+
+    Parameters
+    ----------
+    min_separation_arcsec : float
+        Companions closer than this to the primary are not scored.
+    max_fracflux : float, optional
+        Upper limit on the reference-band ``fracflux`` — the fraction of the
+        source's flux contributed by *other* sources.  ``None`` disables the
+        check, which is appropriate only when the value is unavailable.
+    action : {'exclude', 'flag'}
+        ``'exclude'`` returns NaN scores with ``status='blended_not_scored'``.
+        ``'flag'`` scores the object anyway and records ``blended`` in
+        ``quality_flags`` — use it to study the blend regime, never to rank.
+    """
+
+    min_separation_arcsec: float
+    max_fracflux: float | None = None
+    action: str = "exclude"
+
+    def __post_init__(self) -> None:
+        if self.action not in ("exclude", "flag"):
+            raise ValueError("action must be 'exclude' or 'flag'")
+        if self.min_separation_arcsec <= 0:
+            raise ValueError("min_separation_arcsec must be positive")
+
+    def violations(
+        self,
+        separation_arcsec: np.ndarray | None,
+        fracflux: np.ndarray | None,
+        n: int,
+    ) -> np.ndarray:
+        """Boolean mask of companions this policy considers blended.
+
+        A missing measurement counts as a violation: we cannot certify that an
+        object is cleanly deblended without the numbers that would show it.
+        """
+        bad = np.zeros(n, dtype=bool)
+        if separation_arcsec is None:
+            return np.ones(n, dtype=bool)
+        sep = np.broadcast_to(np.asarray(separation_arcsec, float), (n,))
+        bad |= ~np.isfinite(sep) | (sep < self.min_separation_arcsec)
+        if self.max_fracflux is not None:
+            if fracflux is None:
+                return np.ones(n, dtype=bool)
+            ff = np.broadcast_to(np.asarray(fracflux, float), (n,))
+            bad |= ~np.isfinite(ff) | (ff > self.max_fracflux)
+        return bad
+
+    def describe(self) -> dict:
+        return {
+            "min_separation_arcsec": self.min_separation_arcsec,
+            "max_fracflux": self.max_fracflux,
+            "action": self.action,
+        }
 
 
 @dataclass
@@ -78,6 +148,15 @@ class PairScore:
     log_lambda_bkg: float
     p_sameq_vs_bkg: float
     p_sameq: float
+
+    # Window-free ranking statistic, log of R in units of 1/redshift: the
+    # same-redshift quasar intensity per unit redshift at z0, over the total
+    # intensity of every explanation.  Independent of the declared match window,
+    # so two candidates can be compared without anyone agreeing on one, and
+    #     p_sameq = R * dz_match_eff
+    # recovers the posterior for any window exactly.
+    log_r_per_unit_z: float
+    dz_match_eff: float
 
     # -- diagnostics
     qso_ood_sigma: float
@@ -115,6 +194,9 @@ def score_candidates(
     system: str | None = None,
     manifest_id: str = "",
     min_bands: int = 2,
+    blend_policy: "BlendPolicy | None" = None,
+    separation_arcsec: np.ndarray | None = None,
+    fracflux: np.ndarray | None = None,
 ) -> list[PairScore]:
     """Score a batch of companions against a batch of primary redshifts.
 
@@ -140,6 +222,15 @@ def score_candidates(
         Minimum number of usable feature dimensions.  Below this the object is
         returned with ``status='insufficient_photometry'`` and NaN scores,
         rather than being scored from one colour.
+    blend_policy : BlendPolicy, optional
+        Separation and ``fracflux`` limits below which catalogue photometry is
+        not trusted.  ``None`` scores everything and records nothing, which is
+        appropriate only for training or diagnostics — for real candidates,
+        state the policy.
+    separation_arcsec, fracflux : ndarray, shape (n,), optional
+        Angular separation from the primary and reference-band ``fracflux``.
+        Required by ``blend_policy``; a missing value counts as a violation,
+        because a companion cannot be certified clean without them.
 
     Returns
     -------
@@ -174,6 +265,11 @@ def score_candidates(
     z_grid = np.asarray(z_grid, dtype=float)
     n_bands = features.observed.sum(axis=1)
 
+    if blend_policy is not None:
+        blended = blend_policy.violations(separation_arcsec, fracflux, n)
+    else:
+        blended = np.zeros(n, dtype=bool)
+
     # log p(c | Q, z) on the whole grid, one pass over the slice models.
     log_slices = qso_model._log_p_slices(features.x, features.cov, features.observed)
     log_pq_grid = qso_model.log_p_colour_given_z(
@@ -202,6 +298,17 @@ def score_candidates(
         flags = [k for k, v in features.flags.items() if bool(np.atleast_1d(v)[i])]
         status = "ok"
 
+        if blended[i]:
+            flags = flags + ["blended"]
+            if blend_policy.action == "exclude":
+                out.append(
+                    _null_score(
+                        cid[i], pid[i], z_primary[i], features, sysname, i,
+                        "blended_not_scored", flags, manifest_id, int(n_bands[i]),
+                    )
+                )
+                continue
+
         if n_bands[i] < min_bands:
             out.append(
                 _null_score(
@@ -226,6 +333,8 @@ def score_candidates(
         log_bf = log_lq - float(log_pb[i])
 
         w_match = match.weight(z_grid, float(z_primary[i]))
+        dz_eff = match.effective_width(float(z_primary[i]))
+        narrow = match.is_narrow_for(z_grid, float(z_primary[i]))
 
         # p(z | c, Q) uses the quasar prior as its redshift prior when one is
         # available, and states a flat prior otherwise.
@@ -251,7 +360,12 @@ def score_candidates(
         post = np.where(np.isfinite(post), post, 0.0)
         norm = _trapz(post, z_grid)
         post = post / norm if norm > 0 else post
-        p_zmatch = float(_trapz(post * w_match, z_grid))
+        # Same narrow-window reasoning as for the intensities: a window the
+        # grid cannot resolve must be applied in closed form, not integrated.
+        if narrow:
+            p_zmatch = float(dz_eff * np.interp(z_primary[i], z_grid, post))
+        else:
+            p_zmatch = float(_trapz(post * w_match, z_grid))
         z_mode = float(z_grid[int(np.argmax(post))])
 
         ood = float(
@@ -266,6 +380,7 @@ def score_candidates(
         # -- intensities ---------------------------------------------------
         if qso_prior is None or background_density is None:
             log_lam_s = log_lam_f = log_lam_b = np.nan
+            log_r = np.nan
             p_vs_bkg = p_full = np.nan
             status = "no_prior_posterior_unavailable"
         else:
@@ -276,13 +391,47 @@ def score_candidates(
             # alone would overflow the background term.
             scale = max(float(log_pq_grid[i].max()), float(log_pb[i]))
             pq = np.exp(log_pq_grid[i] - scale)
-            s_rel = float(_trapz(w_match * sigma_q_grid * pq, z_grid))
-            f_rel = float(_trapz((1.0 - w_match) * sigma_q_grid * pq, z_grid))
+            total_q = float(_trapz(sigma_q_grid * pq, z_grid))
+
+            if narrow:
+                # Closed form.  A velocity window is orders of magnitude
+                # narrower than the grid can resolve, so integrating it
+                # numerically would be meaningless; instead evaluate the
+                # integrand at z0 and multiply by the exact window area.  The
+                # error is O((dz_window / sigma_z)^2), which for a velocity
+                # window is negligible.
+                sigma_q_z0 = float(qso_prior(np.array([z_primary[i]]),
+                                             float(features.ref_mag[i]))[0])
+                s_rel = dz_eff * sigma_q_z0 * float(np.exp(log_lq - scale))
+                f_rel = max(total_q - s_rel, 0.0)
+            else:
+                s_rel = float(_trapz(w_match * sigma_q_grid * pq, z_grid))
+                f_rel = max(total_q - s_rel, 0.0)
             b_rel = float(sigma_b[i]) * float(np.exp(float(log_pb[i]) - scale))
 
             denom = s_rel + f_rel + b_rel
             p_vs_bkg = s_rel / (s_rel + b_rel) if (s_rel + b_rel) > 0 else np.nan
             p_full = s_rel / denom if denom > 0 else np.nan
+
+            # The window-free ranking statistic,
+            #
+            #     R = Sigma_Q(z0,m) p(c|Q,z0) / (Lambda_Q,total + lambda_bkg),
+            #
+            # in units of 1/redshift.  The denominator does not depend on the
+            # window at all: same_z and field_q partition the quasar intensity,
+            # so lambda_sameq + lambda_fieldq is always the total, whatever
+            # window was declared.  Hence, in the narrow-window limit,
+            #
+            #     p_sameq = R * dz_eff
+            #
+            # exactly -- linear, not an odds transformation.  Rank on R; apply
+            # whatever window you want afterwards with one multiplication.
+            with np.errstate(divide="ignore"):
+                log_r = (
+                    float(np.log(s_rel) - np.log(dz_eff) - np.log(denom))
+                    if denom > 0 and s_rel > 0
+                    else -np.inf
+                )
 
             with np.errstate(divide="ignore"):
                 log_lam_s = float(np.log(s_rel) + scale)
@@ -306,6 +455,8 @@ def score_candidates(
                 log_lambda_sameq=log_lam_s,
                 log_lambda_fieldq=log_lam_f,
                 log_lambda_bkg=log_lam_b,
+                log_r_per_unit_z=log_r,
+                dz_match_eff=dz_eff,
                 p_sameq_vs_bkg=p_vs_bkg,
                 p_sameq=p_full,
                 qso_ood_sigma=ood,
@@ -336,6 +487,8 @@ def _null_score(cid, pid, zp, features, sysname, i, status, flags, manifest, nb)
         log_lambda_sameq=nan,
         log_lambda_fieldq=nan,
         log_lambda_bkg=nan,
+        log_r_per_unit_z=nan,
+        dz_match_eff=nan,
         p_sameq_vs_bkg=nan,
         p_sameq=nan,
         qso_ood_sigma=nan,

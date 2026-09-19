@@ -29,10 +29,15 @@ features:
 
 quality:
   maskbits: 0                  # applied identically to training and candidates
+
+blend_policy:
+  # Current scope: cleanly deblended companions only. Blends are M7 and need
+  # image-level forced photometry, not a looser threshold here.
   # Below this separation the Legacy Surveys deblend does not give two
   # independent measurements; see docs/REVIEW_OF_PLAN.md section 6.
   min_separation_arcsec: 3.0
-  max_fracflux_r: null         # choose from the validation sample, not by taste
+  max_fracflux: null           # choose from the validation sample, not by taste
+  action: exclude              # or 'flag', to study the blend regime
 
 qso_model:
   kind: sliced                 # or joint
@@ -62,8 +67,9 @@ priors:
   background_area_map: null    # usable area per HEALPix cell, after masking
 
 redshift_match:
-  # Report both.  The velocity window is the physical question; the dz window is
-  # the question broadband colours can actually answer.
+  # The window is a pure multiplicative constant: p_sameq = R * dz_match_eff.
+  # Rank on log_r_per_unit_z, which does not depend on any of this; the windows
+  # below only convert R into a posterior for a stated question.
   physical:
     mode: velocity_window
     half_width_kms: 2000.0
