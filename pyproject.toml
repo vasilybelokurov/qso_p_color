@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qso-pcolor"
+version = "0.1.0"
+description = "Colour-based probability that a companion of a known QSO is itself a QSO at the primary redshift"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "astropy>=7.0",
+    "pandas>=2.0",
+    "pyarrow>=15",
+    "healpy>=1.17",
+    "pyyaml>=6",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+wsdb = ["sqlutilpy>=0.26"]
+dev = ["pytest>=8", "pytest-cov"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::RuntimeWarning"]

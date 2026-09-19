@@ -1,0 +1,2 @@
+Figures live here, as PNG. Write them with qso_pcolor.plotting.save_figure,
+which enforces both the format and the location.

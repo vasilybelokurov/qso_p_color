@@ -1,0 +1,14 @@
+# Working notebook, deliberately local: it records machine state, timings and
+# dead ends that are noise in a shared history. tools/journal.py maintains it.
+JOURNAL.md
+
+__pycache__/
+*.egg-info/
+.pytest_cache/
+data/
+models/
+*.npz
+*.parquet
+
+# macOS
+.DS_Store

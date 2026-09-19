@@ -1,0 +1,314 @@
+# AGENTS.md — implementation brief for Claude Code / Codex CLI
+
+Read this before touching the repository. It is the working contract for
+`qso_pcolor`. `docs/REVIEW_OF_PLAN.md` explains *why* the design departs from
+`qso_binary_color_probability_plan.md` where it does; this file says *what to
+do*.
+
+---
+
+## 1. The question
+
+A quasar has a spectroscopic redshift *z*₀. A photometric companion sits a few
+arcseconds away. Using broadband photometry only, how strongly does the
+companion's colour support the hypothesis that it is itself a quasar at
+*z* ≈ *z*₀?
+
+Three hypotheses, never two:
+
+| symbol | meaning |
+|---|---|
+| `same_z` | quasar whose redshift matches *z*₀ under a declared window |
+| `field_q` | quasar at some other redshift |
+| `bkg` | anything else in the imaging catalogue at that brightness and sky position |
+
+Dropping `field_q` is the dominant failure mode: a real quasar at *z* = 2.6
+beats the stellar locus easily and would otherwise be scored as evidence for a
+same-redshift companion.
+
+**Know this before you start.** A ±2000 km s⁻¹ window at *z* = 1.4 is
+Δ*z* = 0.016; colours constrain a quasar redshift to σ_z ≈ 0.1–0.3. So
+`p_sameq` under a velocity window is small even for a perfect candidate. The
+package ranks candidates and reports evidence; it does not deliver "the
+probability this is a binary". Do not tune anything to make that number look
+larger.
+
+---
+
+## 2. Current state
+
+Working and tested (`pytest -q` → all green; run it before and after any change):
+
+```
+src/qso_pcolor/
+  gaussmix.py    batched log-densities, missing-dimension marginalisation,
+                 per-object noise convolution, joint conditioning
+  xd.py          extreme deconvolution (Bovy, Hogg & Roweis) in numpy,
+                 held-out selection of K
+  features.py    flux -> features with FULL covariance; relative-flux and
+                 asinh-colour transforms; dereddening
+  qso_model.py   redshift-conditional colour mixtures (default) + joint
+                 (colour, z) backend; RedshiftMatch
+  background.py  hierarchical (HEALPix cell, magnitude bin) background colours
+  priors.py      Sigma_B(m, l, b) and Sigma_Q(z, m)
+  score.py       the three-hypothesis scorer and PairScore output record
+  data.py        WSDB queries, cached to .npz
+  plotting.py    save_figure: every figure a PNG under plots/
+tools/journal.py          JOURNAL.md updater
+scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
+tests/                    55 tests; see section 7
+```
+
+Not yet built: the validation and calibration module, the diagnostic plots,
+the CLI, the configuration schema, and the real-data fits. Section 5 has the
+order.
+
+---
+
+## 3. Rules that are not negotiable
+
+These come from the science, and a change that breaks one is a bug even if the
+tests pass.
+
+1. **Never call a likelihood a probability.** `loglike_qso_zprimary` is
+   *p(colours | quasar at z₀)*. Field names must not blur this.
+2. **No scientific threshold in source code.** Redshift windows, magnitude
+   edges, HEALPix resolution, component counts, separation floors: configuration
+   or cross-validation. `RedshiftMatch` deliberately has no default and raises
+   without one.
+3. **Keep everything in log space.** Use `logsumexp`. Never form a covariance
+   inverse; use Cholesky factors and triangular solves.
+4. **Colour errors are correlated.** Any transform must return a full matrix.
+5. **A negative flux is a measurement.** Never clip, floor, or drop a band
+   because its flux is negative or low signal-to-noise. A band is unusable only
+   when the survey says so (`flux_ivar <= 0`, `nobs = 0`, mask bit), and that
+   goes into the `observed` mask, which is marginalised exactly.
+6. **Never mix photometric systems.** SDSS *ugriz*, LS DR9 *grz*, LS DR11 north
+   and LS DR11 south are four different systems. Models carry a system string
+   and the scorer raises on a mismatch.
+7. **No prior, no posterior.** If a defensible Σ_Q is unavailable, return the
+   Bayes factor and leave the posterior fields NaN with a status code. Never
+   substitute a spectroscopic class fraction.
+8. **Report evidence and posterior separately**, plus the out-of-distribution
+   score and the quality flags. A high posterior from contaminated photometry
+   must be distinguishable from a high posterior from clean photometry.
+9. **De-duplicate by sky position, not by identifier.** `zcat_primary` still
+   leaves 9,577 repeated quasars in DESI DR1 (measured).
+10. **Every random procedure takes an explicit seed** from the run config.
+11. **Figures are PNG and live in `plots/`.** Write them with
+    `qso_pcolor.plotting.save_figure(fig, "name")`, which forces the format,
+    creates subdirectories, and returns the path — do not call `savefig`
+    directly with an ad-hoc path.
+
+---
+
+## 4. Environment and house style
+
+```bash
+source ~/Work/venvs/.venv/bin/activate
+cd ~/Work/Code/qso_p_color          # symlink to the Dropbox copy; same directory
+pip install -e . --no-deps
+python -m pytest -q
+```
+
+- Python, numpy 2.5 / scipy 1.16 / astropy 8. `healpy` for sky cells.
+- NumPy-style docstrings that state **units** and **what the density is
+  normalised over**.
+- Type annotations on public functions. Vectorise; loops only where the
+  per-object covariance genuinely forces them.
+- WSDB access through `sqlutilpy` (`import sqlutilpy as sqlutil`), not psql, when
+  the result feeds numpy. Read `~/.claude/skills/wsdb/references/sqlutilpy.md`
+  first. Column names come **first** in `q3c_radial_query` and `q3c_join`, the
+  local list goes first in a join and the survey table second, and every pull is
+  cached to `.npz` via `qso_pcolor.data.cached_query`.
+- **`JOURNAL.md` is local and gitignored.** A post-commit hook appends an entry
+  for every commit (subject, body, diffstat, test state), so the mechanical
+  cadence is automatic. Install it once in a fresh clone:
+
+```bash
+python tools/journal.py hook-install
+```
+
+  The hook does *not* capture findings. After any substantive step — a fit that
+  produced a number, a choice settled by a measurement, a hypothesis abandoned —
+  add one explicitly:
+
+```bash
+python tools/journal.py add --what "..." --found "..." --next "..."
+```
+
+  Bypass with `QSO_JOURNAL_SKIP=1 git commit ...`, or skip the test run with
+  `QSO_JOURNAL_NO_TESTS=1`.
+
+---
+
+## 5. Work order
+
+Each milestone states what "done" means. Do not start one before the previous
+acceptance criteria pass.
+
+### M1 — labelled validation sample  ← **start here**
+
+The plan put this last. It goes first, because nothing downstream can be
+calibrated without it, and because it is cheap.
+
+```bash
+python scripts/build_pair_validation.py --out data/pairs_desi_dr1.npz
+```
+
+Expected yield at 3–20″ separation (measured 2026-09-18): ≈ 1,600 `same_z`,
+≈ 8,400 `field_q`, plus every confirmed star/galaxy companion.
+
+**Done when**: the file exists; the de-duplication report is in `JOURNAL.md`;
+counts are broken down by separation bin and by `fracflux_r`.
+
+### M2 — real quasar colour model, LS DR9 *grz* (+W1, W2)
+
+Training set from `qso_pcolor.data.fetch_desi_qso_training` — joined on
+`targetid`, so no crossmatch. Split by `release` (9010 south / 9011 north) and
+fit each separately.
+
+- Exclude the validation pairs from training (spatially blocked folds by
+  HEALPix group, `select_n_components(..., groups=...)`).
+- Choose the number of components and the redshift-slice width by held-out
+  predictive density, not by assertion.
+- Fit optical-only *and* optical+WISE variants; keep both.
+
+**Done when**: held-out log density is reported as a function of redshift and
+magnitude; a coverage test shows the fraction of held-out quasars whose
+spectroscopic redshift falls inside the nominal credible interval of
+`redshift_posterior`, and it is close to nominal.
+
+### M3 — background colour model and surface density
+
+Same footprint, same quality cuts, same photometric system as the candidates.
+`fetch_ls_background` with `maskbits = 0`; apply the identical cut to
+candidates, and use the **masked** area for Σ_B, not the nominal cone area.
+
+Tune the pooling constant `n0` with `tune_shrinkage` on held-out sky blocks.
+
+**Done when**: predicted versus observed counts agree by sky cell and magnitude;
+the local/parent/global fallback fraction is reported; held-out log density is
+plotted against |*b*| and magnitude.
+
+### M4 — Σ_Q and the posterior
+
+`EmpiricalQSOPrior.build` over a stated area. Default completeness 1, which
+makes `p_sameq` a lower bound — say so in the report rather than inventing a
+luminosity function.
+
+**Done when**: `test_bayes_factor_is_invariant_under_a_prior_shift` still
+passes on the real models, and every scored row carries both evidence and
+posterior fields.
+
+### M5 — calibration on the M1 sample
+
+This is the milestone that decides whether the method works.
+
+- Reliability curve, Brier score, log loss, precision–recall.
+- Stratified by separation, `fracflux_r`, reference magnitude, |*b*|, and
+  redshift — because prevalence changes strongly along all of them.
+- Compare `SlicedColourRedshiftModel` against `JointColourRedshiftModel` on
+  held-out likelihood, and settle that choice with the number.
+- Answer explicitly: does magnitude conditioning of the quasar model improve
+  held-out density? If not, leave it at one bin.
+
+**Done when**: a calibration report exists with those curves, and the answers to
+the two model-choice questions are recorded in `JOURNAL.md` with the numbers
+that settled them.
+
+### M6 — candidate scoring and reports
+
+CLI over `score_candidates`, Parquet output matching the contract in section 6,
+plus a one-page diagnostic per interesting candidate: observed colours with
+errors, the quasar locus at *z*₀, the local background density, the quasar-only
+redshift PDF, the Bayes factor, both posteriors, and every quality flag.
+
+### M7 — optional extensions, in this order
+
+Gaia parallax/proper motion as a separate likelihood factor; the physical-pair
+clustering prior (externally supplied model, switchable off, reported separately
+from `p_sameq`); image-level forced photometry below the separation floor.
+
+---
+
+## 6. Output contract
+
+Every scored row carries all of this. `PairScore` in `score.py` is the
+definition; do not return a bare probability.
+
+```
+candidate_id, primary_id, z_primary, ref_mag, photometric_system
+loglike_qso_zprimary        p(colours | Q, z0)          evidence, not probability
+loglike_bkg                 p(colours | background)
+log_bayes_factor_qz_bkg     the most robust number here
+p_zmatch_given_qso          conditional on being a quasar at all
+z_phot_mode
+log_lambda_sameq, log_lambda_fieldq, log_lambda_bkg
+p_sameq_vs_bkg              the two-class number; ignores field quasars
+p_sameq                     the three-class number; rank on this
+qso_ood_sigma               distance to the nearest training component
+background_local_weight     0 => the score came from the pooled model
+background_density_level    0 local, 1 parent, 2 global
+n_bands_used, status, quality_flags, model_manifest_id
+```
+
+`status` values in use: `ok`, `insufficient_photometry`,
+`no_prior_posterior_unavailable`, `qso_prior_empty_at_this_magnitude`,
+`primary_z_outside_model_support`. Add to this list rather than returning a
+silent number.
+
+---
+
+## 7. Testing
+
+`pytest -q` runs the suite. New numerical code needs a test that checks it
+against an *independent* route — quadrature, Monte Carlo, or a closed form —
+not against its own output.
+
+Existing patterns to follow:
+
+| file | what it pins down |
+|---|---|
+| `test_gaussmix.py` | analytic identities vs `scipy.integrate.quad` and `multivariate_normal` |
+| `test_xd.py` | deconvolution recovers the *intrinsic* width where a plain GMM recovers the broadened one |
+| `test_features.py` | Jacobian covariance vs Monte Carlo flux realisations |
+| `test_score.py` | posterior normalisation, prior-shift invariance, system-mismatch refusal, the velocity-window limitation |
+
+`filterwarnings = ["error::RuntimeWarning"]` is set on purpose: an overflow in
+an exponential is a bug, and it caught one during development. Do not relax it.
+
+Two tests document scientific facts rather than code behaviour, and must not be
+weakened to make a change pass:
+
+- `test_a_quasar_at_the_wrong_redshift_is_not_evidence_for_a_pair`
+- `test_a_velocity_window_is_far_narrower_than_any_colour_redshift`
+
+---
+
+## 8. Data on WSDB (verified 2026-09-18)
+
+| Purpose | Table | Note |
+|---|---|---|
+| Quasar training | `desi_dr1.zpix` ⋈ `desi_dr1.photometry` on `targetid` | 1,645,842 with `spectype='QSO'`, `zwarn=0`, `zcat_primary`; LS DR9 *grz*+W |
+| Independent quasars | `sdssdr16qso.main` | 750,414; `psfflux`, `psfflux_ivar`, `extinction` are *ugriz* arrays |
+| Background, candidates | `decals_dr9.main` | `release` 9010 south, 9011 north |
+| Deeper, adds *i* | `decals_dr11.main` | `release` 11010 south, 11011 north |
+
+DESI quasar targeting uses a random forest on these same Legacy Surveys colours,
+so the training set is *p(colours | Q, z, selected by DESI)*. Report held-out
+likelihood separately for the SDSS-selected sample, whose channels differ, and
+treat a large gap as a selection-bias warning rather than a curiosity.
+
+---
+
+## 9. If you get stuck
+
+- A number that looks too good is usually a leak: the same object in train and
+  validation, or a positional duplicate.
+- A likelihood that is enormous and negative is usually a feature-order
+  mismatch between the model's `labels` and the candidate's.
+- A posterior that will not move when the prior moves is a bug; a Bayes factor
+  that *does* move when only the prior moves is a worse one.
+- When the answer depends on a choice nobody has measured, measure it and put
+  the number in `JOURNAL.md`. Do not pick a default and move on.

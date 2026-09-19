@@ -1,0 +1,88 @@
+# Example configuration for the Legacy Surveys DR9 grz+WISE system.
+#
+# Nothing here has a default in the source code.  A value left null is a
+# declaration that it has not been chosen yet, and the code should refuse to run
+# rather than pick one, because every entry below changes what the reported
+# probability means.
+
+run:
+  seed: 0
+  manifest_id: ls_dr9_grzw_v1
+
+survey:
+  system: ls_dr9_grzw          # scorer raises if a model carries another string
+  bands: [g, r, z, w1, w2]
+  optical_only_bands: [g, r, z]
+  reference_band: r
+  qso_table: desi_dr1.photometry
+  background_table: decals_dr9.main
+  # 9010 = south (DECam), 9011 = north (BASS/MzLS).  Different photometric
+  # systems: fit and score them separately, never pooled.
+  release: 9010
+  deredden: true
+
+features:
+  mode: relative_flux          # or asinh_colour
+  min_ref_snr: 5.0             # below this the linearised covariance is flagged
+  min_usable_dims: 3
+  asinh_softening: null        # required only for mode: asinh_colour
+
+quality:
+  maskbits: 0                  # applied identically to training and candidates
+  # Below this separation the Legacy Surveys deblend does not give two
+  # independent measurements; see docs/REVIEW_OF_PLAN.md section 6.
+  min_separation_arcsec: 3.0
+  max_fracflux_r: null         # choose from the validation sample, not by taste
+
+qso_model:
+  kind: sliced                 # or joint
+  z_edges: null                # e.g. linspace(0.3, 4.0, 38); chosen by held-out density
+  slice_overlap: 0.5
+  n_components_grid: [4, 8, 12, 16, 24]
+  min_per_slice: 200
+  magnitude_edges: null        # null = no magnitude conditioning (v1 default)
+  regularization: 1.0e-6
+  max_iter: 500
+  tolerance: 1.0e-6
+
+background_model:
+  mode: background             # or star
+  mag_edges: null              # e.g. [17, 19, 20.5, 21.5, 22.5]
+  nside: 8
+  nside_parent: 2
+  n_components_grid: [6, 10, 16]
+  min_per_cell: 500
+  n0_grid: [100, 300, 1000, 3000]   # pooling constant, tuned on held-out sky blocks
+
+priors:
+  qso_mode: empirical
+  qso_area_deg2: null          # the area the quasar catalogue actually covers
+  qso_completeness: null       # null = 1, which makes p_sameq a LOWER BOUND
+  background_mode: imaging_counts
+  background_area_map: null    # usable area per HEALPix cell, after masking
+
+redshift_match:
+  # Report both.  The velocity window is the physical question; the dz window is
+  # the question broadband colours can actually answer.
+  physical:
+    mode: velocity_window
+    half_width_kms: 2000.0
+    kernel: tophat
+  photometric:
+    mode: dz_window
+    dz_half_width: 0.3
+    kernel: tophat
+  z_primary_err: 0.0
+
+inference:
+  include_field_qso: true      # turning this off makes p_sameq meaningless
+  z_grid: {min: 0.3, max: 4.0, n: 371}
+  use_wise: true               # also fit the optical-only model and compare
+  use_astrometry: false
+  use_morphology: false
+
+validation:
+  pair_sample: data/pairs_desi_dr1.npz
+  spatial_cv_nside: 2
+  n_folds: 4
+  stratify_by: [separation_arcsec, fracflux_r, ref_mag, abs_b, z_primary]
