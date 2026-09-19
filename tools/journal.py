@@ -89,6 +89,24 @@ def git_state() -> dict[str, str]:
     }
 
 
+_TRAILER_KEYS = ("co-authored-by", "signed-off-by", "reviewed-by", "acked-by")
+
+
+def _strip_trailers(body: str) -> str:
+    """Drop git trailers from a commit body.
+
+    Trailers are metadata for the shared history; in the journal they are noise
+    that pushes the actual content down the page.
+    """
+    lines = body.rstrip().splitlines()
+    while lines and (
+        not lines[-1].strip()
+        or lines[-1].split(":")[0].strip().lower() in _TRAILER_KEYS
+    ):
+        lines.pop()
+    return "\n".join(lines).strip()
+
+
 def last_commit() -> dict[str, str]:
     """Subject, body, diffstat and changed files of HEAD.
 
@@ -98,7 +116,8 @@ def last_commit() -> dict[str, str]:
     until it had already written a broken entry.
     """
     _, subject = _run(["git", "log", "-1", "--pretty=%s"])
-    _, body = _run(["git", "log", "-1", "--pretty=%b"])
+    _, raw_body = _run(["git", "log", "-1", "--pretty=%b"])
+    body = _strip_trailers(raw_body)
 
     code, files = _run(["git", "show", "--pretty=format:", "--name-only", "HEAD"])
     names = [f for f in files.splitlines() if f.strip()] if code == 0 else []
