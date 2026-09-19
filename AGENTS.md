@@ -271,6 +271,28 @@ plus a one-page diagnostic per interesting candidate: observed colours with
 errors, the quasar locus at *z*₀, the local background density, the quasar-only
 redshift PDF, the Bayes factor, both posteriors, and every quality flag.
 
+### M3a — two background modes, and comparing them
+
+`fit_background_model` (HEALPix hierarchy, amortised over a footprint) and
+`fit_local_background` (one cone around a single candidate) now both exist, and
+`compare_backgrounds` scores the same candidates under both and reports how much
+the choice moved each quantity. Use the hierarchy for a survey-wide scan and the
+local fit for specific candidates; disagreement between them is a diagnostic
+that the answer depends on the background assumption, not a failure.
+
+Both now **remove known quasars** (`drop_known_quasars`, DESI DR1 + SDSS DR16Q
+within 1 arcsec). This is not optional: measured on a 1-degree cone, known
+quasars are 1.0% of the background sample overall but **72% of it where
+log BF > 5** — the colour region a genuine companion occupies. Leaving them in
+made the background model learn the quasar locus and compete against itself,
+costing roughly 1.3 in log BF, comparable to the entire same-z versus
+wrong-z gap.
+
+Note what this exposes: removal handles only *observed* quasars, so the
+unobserved ones remain in the background unless `Sigma_Q` carries a
+spectroscopic completeness. Removing quasars and leaving `C = 1` is not
+self-consistent; that is now the binding reason to get a completeness.
+
 ### M6a — close out the external review
 
 `docs/reviews/2026-09-19-*` (local, gitignored) holds an independent Codex

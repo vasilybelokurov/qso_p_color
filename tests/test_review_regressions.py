@@ -19,6 +19,9 @@ from qso_pcolor.features import FeatureSet
 from qso_pcolor.score import score_candidates
 from qso_pcolor.xd import fit_xd
 
+# the synthetic-universe fixtures live in test_score.py
+from test_score import make_features, models, qso_locus  # noqa: F401
+
 BANDS = ("g", "r", "i", "z")
 
 
@@ -212,3 +215,62 @@ def test_model_marginal_quantiles_need_a_grid_that_spans_the_mixture():
 
     assert bad == pytest.approx(4.0, abs=1e-6)        # silently clamped
     assert good == pytest.approx(truth, rel=1e-3)
+
+
+# ---------------------------------------------------------- background scope
+
+def test_known_quasars_are_removed_from_the_background():
+    """Measured: quasars are 1% of the background overall but 72% of it at
+    quasar colours, so leaving them in makes the background compete with the
+    quasar locus using quasars."""
+    from qso_pcolor.data import drop_known_quasars
+
+    # 0.0001 deg = 0.36", inside the 1" radius; 0.001 deg = 3.6", outside it.
+    ra = np.array([180.0, 180.0001, 180.001, 181.0])
+    dec = np.zeros(4)
+    keep = drop_known_quasars(ra, dec, np.array([180.0]), np.array([0.0]))
+    assert list(keep) == [False, False, True, True]
+    # no quasars supplied -> nothing removed
+    assert drop_known_quasars(ra, dec, np.array([]), np.array([])).all()
+
+
+def test_compare_backgrounds_reports_how_much_the_choice_moved_the_answer(models):
+    """Two background models, same candidates: the deltas must be real numbers."""
+    from qso_pcolor.score import compare_backgrounds
+
+    _, qso, bkg, qp, bd = models
+    x = qso_locus(np.array([1.4]))
+    fs = make_features(x, np.array([[0.01, 0.0], [0.0, 0.01]]), 20.0)
+
+    # a second density that is deliberately 10x sparser
+    sparse = BackgroundSurfaceDensity(
+        bd.nside, bd.nside_parent, bd.mag_edges,
+        {k: v / 10.0 for k, v in bd.counts.items()}, dict(bd.area),
+    )
+    out = compare_backgrounds(
+        fs, models={"a": bkg, "b": bkg}, densities={"a": bd, "b": sparse},
+        l_deg=np.array([120.0]), b_deg=np.array([60.0]),
+        z_primary=np.array([1.4]), qso_model=qso,
+        match=RedshiftMatch(half_width_kms=2000.0), qso_prior=qp,
+        z_grid=np.linspace(0.31, 2.99, 300),
+    )
+    assert set(out["rows"]) == {"a", "b"}
+    # the colour likelihood is identical (same colour model) ...
+    assert out["deltas"]["loglike_bkg"][0] == pytest.approx(0.0, abs=1e-12)
+    # ... but a sparser background raises p_sameq, so the delta is non-zero
+    assert out["deltas"]["p_sameq"][0] > 0
+    assert np.isfinite(out["deltas"]["log_r_per_unit_z"][0])
+
+
+def test_mismatched_model_and_density_keys_are_rejected(models):
+    from qso_pcolor.score import compare_backgrounds
+
+    _, qso, bkg, qp, bd = models
+    with pytest.raises(ValueError, match="same keys"):
+        compare_backgrounds(
+            make_features(qso_locus(np.array([1.4])), np.eye(2)[None] * 0.01, 20.0),
+            models={"a": bkg}, densities={"b": bd},
+            l_deg=np.array([120.0]), b_deg=np.array([60.0]),
+            z_primary=np.array([1.4]), qso_model=qso,
+            match=RedshiftMatch(dz_half_width=0.1),
+        )

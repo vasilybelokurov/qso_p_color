@@ -48,6 +48,8 @@ __all__ = [
     "cached_query",
     "fetch_desi_qso_training",
     "fetch_ls_background",
+    "fetch_known_quasars",
+    "drop_known_quasars",
     "fetch_dr16q_training",
     "fetch_candidate_photometry",
     "galactic_from_equatorial",
@@ -269,6 +271,65 @@ def fetch_ls_background(
         "radius": radius_deg,
     }
     return cached_query(q, cache, refresh=refresh)
+
+
+_QSO_CONE_QUERY = """
+SELECT p.ra, p.dec
+FROM desi_dr1.zpix z
+JOIN desi_dr1.photometry p ON p.targetid = z.targetid
+WHERE z.spectype = 'QSO' AND z.zwarn = 0 AND z.zcat_primary
+  AND q3c_radial_query(p.ra, p.dec, %(ra)s, %(dec)s, %(radius)s)
+UNION ALL
+SELECT ra, dec
+FROM sdssdr16qso.main
+WHERE zwarning = 0
+  AND q3c_radial_query(ra, dec, %(ra)s, %(dec)s, %(radius)s)
+"""
+
+
+def fetch_known_quasars(
+    ra: float, dec: float, radius_deg: float, cache: str | Path | None = None
+) -> dict:
+    """Positions of every spectroscopically confirmed quasar in a cone.
+
+    Union of DESI DR1 and SDSS DR16Q.  Used to remove quasars from the
+    background sample, so that the ``field_q`` and ``bkg`` hypotheses are
+    disjoint as the formalism requires.
+
+    This removes only the quasars somebody has *observed*.  The rest stay in the
+    background, and are accounted for by the field-quasar term through
+    :math:`\\Sigma_Q` --- which is only correct if that prior carries a
+    spectroscopic completeness.
+    """
+    q = _QSO_CONE_QUERY % {"ra": ra, "dec": dec, "radius": radius_deg}
+    if cache is not None:
+        return cached_query(q, cache)
+    return _sqlutil().get(q, asDict=True)
+
+
+def drop_known_quasars(
+    ra: np.ndarray,
+    dec: np.ndarray,
+    qso_ra: np.ndarray,
+    qso_dec: np.ndarray,
+    radius_arcsec: float = 1.0,
+) -> np.ndarray:
+    """Boolean mask of catalogue sources that are *not* known quasars.
+
+    Measured on a one-degree cone at (180, 0): known quasars are 1.0% of the
+    background sample overall, but 72% of it in the colour region where a
+    same-redshift companion would sit.  Leaving them in makes the background
+    model compete against the quasar locus with itself.
+    """
+    from astropy.coordinates import SkyCoord
+    import astropy.units as u
+
+    if np.size(qso_ra) == 0:
+        return np.ones(np.size(ra), dtype=bool)
+    src = SkyCoord(np.asarray(ra) * u.deg, np.asarray(dec) * u.deg)
+    qso = SkyCoord(np.asarray(qso_ra) * u.deg, np.asarray(qso_dec) * u.deg)
+    _, sep, _ = src.match_to_catalog_sky(qso)
+    return sep.arcsec > radius_arcsec
 
 
 _CANDIDATE_QUERY = """

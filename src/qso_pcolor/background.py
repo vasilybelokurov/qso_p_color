@@ -62,6 +62,7 @@ from .xd import fit_xd
 __all__ = [
     "BackgroundColourModel",
     "fit_background_model",
+    "fit_local_background",
     "tune_shrinkage",
     "galactic_healpix",
 ]
@@ -370,6 +371,120 @@ def _group(cell_ids: np.ndarray, imag: np.ndarray):
     uniq, inverse = np.unique(key, axis=0, return_inverse=True)
     for u in range(uniq.shape[0]):
         yield (uniq[u, 0], uniq[u, 1]), inverse == u
+
+
+def fit_local_background(
+    ra: float,
+    dec: float,
+    radius_deg: float,
+    *,
+    transform,
+    bands: tuple[str, ...],
+    mag_edges: np.ndarray,
+    system: str,
+    table: str = "decals_dr9.main",
+    exclude_quasars: bool = True,
+    n_components: int = 8,
+    max_ref_mag: float | None = None,
+    cache: "str | Path | None" = None,
+    **fit_kwargs,
+):
+    r"""Fit a background model from the candidate's own neighbourhood.
+
+    The hierarchical model in :func:`fit_background_model` amortises one fit
+    over a whole footprint, which is what a survey-wide scan needs.  For a
+    handful of candidates the better answer is to fit where the candidate
+    actually is: the stellar population, the survey depth and the reddening are
+    then the candidate's own rather than a cell average, and the surveyed area
+    is exactly :math:`\pi R^2`, which removes the commonest way of getting
+    :math:`\Sigma_B` wrong.
+
+    Choose the radius for the number of sources needed.  At Legacy Surveys depth
+    away from the plane the density is of order $2\times10^4$ per square degree,
+    so $0.5^\circ$ gives some 15,000 sources --- ample for a mixture of this
+    size --- while staying local.
+
+    Returns
+    -------
+    model : BackgroundColourModel
+        Carrying a single cell, so every candidate in the cone uses this fit.
+    density : BackgroundSurfaceDensity
+        With the cone area, not a HEALPix pixel area.
+    info : dict
+        Counts, the fraction removed as known quasars, and the area, for the
+        provenance record.
+    """
+    from pathlib import Path
+
+    from .data import (
+        drop_known_quasars,
+        fetch_known_quasars,
+        fetch_ls_background,
+        galactic_from_equatorial,
+    )
+    from .features import deredden
+    from .priors import BackgroundSurfaceDensity
+
+    cache = Path(cache) if cache is not None else Path("data") / "local_bkg.npz"
+    r = fetch_ls_background(cache, ra=ra, dec=dec, radius_deg=radius_deg, table=table)
+    n_raw = int(np.size(r["ra"]))
+
+    keep = np.ones(n_raw, dtype=bool)
+    n_qso = 0
+    if exclude_quasars:
+        q = fetch_known_quasars(ra, dec, radius_deg,
+                                cache=cache.with_name("local_qso.npz"))
+        keep = drop_known_quasars(r["ra"], r["dec"], q["ra"], q["dec"])
+        n_qso = int((~keep).sum())
+
+    flux = np.stack([np.asarray(r[f"flux_{b}"], float) for b in bands], axis=1)[keep]
+    ivar = np.stack([np.asarray(r[f"flux_ivar_{b}"], float) for b in bands], axis=1)[keep]
+    tran = np.stack([np.asarray(r[f"mw_transmission_{b}"], float) for b in bands],
+                    axis=1)[keep]
+    f, v = deredden(flux, ivar, tran)
+    fs = transform(f, v, bands)
+
+    ok = fs.usable(min_dims=3) & np.isfinite(fs.ref_mag)
+    if max_ref_mag is not None:
+        ok &= fs.ref_mag < max_ref_mag
+    l, b = galactic_from_equatorial(np.asarray(r["ra"])[keep][ok],
+                                    np.asarray(r["dec"])[keep][ok])
+
+    mag_edges = np.asarray(mag_edges, dtype=float)
+    imag = np.clip(np.digitize(fs.ref_mag[ok], mag_edges) - 1, 0, mag_edges.size - 2)
+
+    # One mixture per magnitude bin, no sky subdivision: the cone IS the cell.
+    global_ = []
+    for mb in range(mag_edges.size - 1):
+        sel = imag == mb
+        if sel.sum() < 50:
+            raise ValueError(
+                f"magnitude bin {mb} has only {int(sel.sum())} local sources; "
+                f"widen radius_deg or coarsen mag_edges"
+            )
+        k = min(n_components, max(1, int(sel.sum()) // 50))
+        global_.append(
+            fit_xd(fs.x[ok][sel], fs.cov[ok][sel], n_components=k,
+                   observed=fs.observed[ok][sel], labels=fs.labels,
+                   **fit_kwargs).mixture
+        )
+
+    area = float(np.pi * radius_deg**2)
+    info = {
+        "ra": ra, "dec": dec, "radius_deg": radius_deg, "area_deg2": area,
+        "n_raw": n_raw, "n_known_quasars_removed": n_qso,
+        "quasar_fraction_removed": n_qso / n_raw if n_raw else 0.0,
+        "n_fitted": int(ok.sum()), "table": table,
+    }
+    model = BackgroundColourModel(
+        1, 1, mag_edges, {}, {}, global_, {}, {}, 1.0,
+        "background_local", system, fs.labels, meta=info,
+    )
+    density = BackgroundSurfaceDensity.from_catalogue(
+        fs.ref_mag[ok], l, b, mag_edges=mag_edges, nside=1, nside_parent=1,
+        total_area_deg2=area, meta=info,
+    )
+    return model, density, info
 
 
 def tune_shrinkage(

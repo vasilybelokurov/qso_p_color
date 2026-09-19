@@ -47,7 +47,13 @@ from .features import FeatureSet
 from .priors import BackgroundSurfaceDensity, GridQSOPrior
 from .qso_model import RedshiftMatch, SlicedColourRedshiftModel
 
-__all__ = ["PairScore", "BlendPolicy", "score_candidates", "DEFAULT_Z_GRID"]
+__all__ = [
+    "PairScore",
+    "BlendPolicy",
+    "score_candidates",
+    "compare_backgrounds",
+    "DEFAULT_Z_GRID",
+]
 
 DEFAULT_Z_GRID = np.linspace(0.05, 5.0, 496)
 
@@ -547,6 +553,72 @@ def score_candidates(
             )
         )
     return out
+
+
+def compare_backgrounds(
+    features: FeatureSet,
+    *,
+    models: dict,
+    densities: dict,
+    l_deg: np.ndarray,
+    b_deg: np.ndarray,
+    **score_kwargs,
+) -> dict:
+    """Score the same candidates under several background models and compare.
+
+    The hierarchical model and a locally fitted one answer the same question
+    with different amounts of locality: the first averages over a HEALPix cell,
+    the second uses only the candidate's own neighbourhood. They should agree
+    where the field is smooth and the cell is well populated, and disagree where
+    the local stellar density, depth or reddening departs from the cell average.
+    Disagreement is therefore a diagnostic, not a failure: it says the answer
+    depends on which background was assumed, and by how much.
+
+    Parameters
+    ----------
+    models, densities : dict
+        ``name -> BackgroundColourModel`` and ``name -> BackgroundSurfaceDensity``,
+        with matching keys. Every model must carry the candidates' feature
+        layout and photometric system.
+    **score_kwargs
+        Passed to :func:`score_candidates` unchanged (``qso_model``, ``match``,
+        ``qso_prior``, ``z_primary`` and the rest).
+
+    Returns
+    -------
+    dict
+        ``rows``   : ``name -> list[PairScore]``;
+        ``deltas`` : per-candidate differences of the quantities that matter,
+        each as ``max - min`` across the models, so a single number says how
+        much the choice of background moved the answer.
+    """
+    if set(models) != set(densities):
+        raise ValueError("models and densities must have the same keys")
+
+    rows = {}
+    for name, model in models.items():
+        rows[name] = score_candidates(
+            features, l_deg=l_deg, b_deg=b_deg, background_model=model,
+            background_density=densities[name], **score_kwargs,
+        )
+
+    names = list(models)
+    n = features.n_obs
+    fields = ("loglike_bkg", "log_bayes_factor_qz_bkg", "log_r_per_unit_z",
+              "p_sameq", "p_sameq_vs_bkg")
+    deltas = {}
+    for f in fields:
+        vals = np.array([[getattr(r, f) for r in rows[nm]] for nm in names], float)
+        with np.errstate(invalid="ignore"):
+            deltas[f] = np.nanmax(vals, axis=0) - np.nanmin(vals, axis=0)
+    deltas["log_sigma_bkg"] = np.array([
+        np.log(max(densities[names[0]](features.ref_mag[i:i+1], l_deg[i:i+1],
+                                       b_deg[i:i+1])[0], 1e-300))
+        - np.log(max(densities[names[-1]](features.ref_mag[i:i+1], l_deg[i:i+1],
+                                          b_deg[i:i+1])[0], 1e-300))
+        for i in range(n)
+    ])
+    return {"rows": rows, "deltas": deltas, "names": names}
 
 
 def _null_score(cid, pid, zp, features, sysname, i, status, flags, manifest, nb):
