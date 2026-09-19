@@ -98,7 +98,9 @@ catalogue detections avoids having to reconstruct what lies below the detection
 limit, though it still requires that the candidate cuts and the usable sky area
 match. Because this population changes across the sky and with depth, we fit it
 separately in patches of sky and in bins of brightness, falling back to coarser
-patches where a cell holds too few objects.
+patches where a cell holds too few objects. For scoring a handful of specific
+candidates there is a second and better option: fit the background from the
+candidate's own neighbourhood (\S\ref{sec:background}).
 
 One honest complication: this sample is not currently purged of quasars, so the
 ``quasar'' and ``everything else'' categories overlap and part of the quasar
@@ -487,16 +489,44 @@ applied to the candidates. No star/galaxy separation is imposed, because
 imposing one would require a selection function we do not have, whereas the
 unfiltered catalogue \emph{is} the population a chance projection draws from.
 
-\paragraph{A known violation of disjointness.} The formalism of
-\S\ref{sec:hypotheses} treats $\Hfield$ and $\Hbkg$ as mutually exclusive, but
-the background sample as currently built does not exclude spectroscopic
-quasars, so quasars are counted in both. They are a tiny fraction of all
-catalogue sources, which is \emph{not} an argument that the effect is small:
-what matters is their fraction in quasar-like colour space, which is exactly
-where the same-redshift hypothesis is being tested. Removing them requires a
-crossmatch against the quasar catalogue. Until that is done and the size of the
-effect measured, the background is over-dense at quasar colours and
-$p_{\rm same}$ is correspondingly conservative there.
+\paragraph{Known quasars are removed, and it matters more than it looks.} The
+formalism of \S\ref{sec:hypotheses} treats $\Hfield$ and $\Hbkg$ as mutually
+exclusive, so quasars must not appear in both. The tempting argument for
+ignoring this is that quasars are a tiny fraction of all catalogue sources. That
+is true and beside the point: what matters is their fraction \emph{in
+quasar-like colour space}, which is exactly where the same-redshift hypothesis
+is tested. Measured on a one-degree cone:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+$\log \mathrm{BF}$ (quasar at $z_0$ / background) & sources &
+known quasars \\
+\midrule
+$-40$ to $-10$ & $17{,}995$ & $0.1\%$ \\
+$-5$ to $-2$   & $6{,}026$  & $0.5\%$ \\
+$0$ to $+2$    & $978$      & $9.5\%$ \\
+$+2$ to $+5$   & $725$      & $31.2\%$ \\
+$+5$ to $+40$  & $272$      & $\mathbf{72.4\%}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Overall the sample is $1.0\%$ quasars; where a genuine companion would sit it is
+$72\%$. Left in, the background model learns the quasar locus and competes
+against the quasar hypothesis using quasars, costing roughly $1.3$ in
+$\log \mathrm{BF}$ --- comparable to the entire same-redshift versus
+wrong-redshift separation. Spectroscopic quasars from DESI DR1 and SDSS DR16Q
+are therefore matched within $1''$ and removed.
+
+This removes only the quasars somebody has \emph{observed}; unobserved ones
+remain, a residual of the same bias in the same direction. They are meant to be
+carried by the field-quasar term through $\Sq$, which requires a spectroscopic
+completeness. That completeness matters less than it might appear, because $\Sq$
+multiplies $\lambda_{\rm same}$ and $\lambda_{\rm field}$ alike: a uniform
+factor-two error moves $p_{\rm same}$ by about $13\%$, identically for every
+candidate at a given magnitude, so the ranking is untouched. It is a
+\emph{redshift-dependent} completeness that fails to cancel (\S\ref{sec:priors}).
 
 The density depends on position, through Galactic structure and reddening, and
 on magnitude, through which populations are reachable at a given depth. We
@@ -520,6 +550,25 @@ the nested scheme, so a parent cell is a bit shift,
 and in Galactic coordinates, which is the frame the structure lives in. Each
 scored object records the weight its own cell received, so a number that came
 from the pooled model is distinguishable from one that came from local data.
+
+\paragraph{Two ways to be local, and a comparison between them.} The hierarchy
+above amortises one set of fits over a whole footprint, which is what a
+survey-wide scan needs. For a handful of candidates the better answer is to fit
+the background in a cone around each one: the stellar population, the survey
+depth and the reddening are then the candidate's own rather than a cell average,
+and the surveyed area is exactly $\pi R^2$ --- which removes the commonest way
+of getting $\Sb$ wrong. At Legacy Surveys depth away from the plane the source
+density is of order $2\times10^4\,{\rm deg}^{-2}$, so a radius of $0.5^\circ$
+supplies some $15{,}000$ sources, ample for a mixture of this size while staying
+genuinely local.
+
+Both are implemented, and the same candidates can be scored under both. They
+should agree where the field is smooth and the cell is well populated, and
+disagree where the local density, depth or reddening departs from the cell
+average. The comparison reports, per candidate, how far apart the two put the
+colour likelihood, the Bayes factor, $R$ and the posteriors --- so a result that
+depends on which background was assumed is visible as such rather than
+presented as a single number.
 
 Figure~\ref{fig:densities} shows the two class-conditional densities in the same
 plane and the resulting colour Bayes factor. The populations overlap; the method
