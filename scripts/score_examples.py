@@ -261,14 +261,14 @@ def make_figure(qso, bkg, fq, iq, zq, fst, isx, rows, args):
                     bbox=dict(facecolor="white", edgecolor="none", alpha=0.85,
                               boxstyle="round,pad=0.25"))
             ax.set_xlim(-0.1, 2.0); ax.set_ylim(-0.1, 3.0)
+            ax.plot([], [], color=SERIES["same_z"], label="quasar at $z_0$")
+            ax.plot([], [], color=SERIES["background"], label="field")
+            ax.legend(loc="lower right", fontsize=6, framealpha=0.85,
+                      frameon=True, edgecolor="none", handlelength=1.3,
+                      borderpad=0.3, labelspacing=0.25)
             if row == 1:
                 ax.set_xlabel("$f_g/f_r$")
         axes[row, 0].set_ylabel(f"{tag}s\n$f_z/f_r$")
-    # Legend in the bottom-right panel, the emptiest corner of the grid.
-    axes[-1, -1].plot([], [], color=SERIES["same_z"], label="quasar model at $z_0$")
-    axes[-1, -1].plot([], [], color=SERIES["background"], label="field model")
-    axes[-1, -1].legend(loc="lower right", fontsize=7, framealpha=0.9,
-                        frameon=True, edgecolor="none")
     fig.suptitle("DECaLS colours only: W1 and W2 marginalised out, not dropped",
                  x=0.01, ha="left", fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
