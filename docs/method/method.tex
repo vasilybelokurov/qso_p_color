@@ -273,9 +273,11 @@ redshift-selection effect survives: a slice of finite width estimates the
 colour distribution averaged over the training redshifts \emph{within} that
 slice, so a strongly varying targeting rate inside a slice still biases it, and
 colour-dependent selection affects both this and the joint construction
-equally. Narrower slices reduce the residual at the cost of statistics. The redshift resolution becomes an explicit, tunable
-quantity, and the redshift prior is supplied separately and visibly as
-$\Sq(z,m)$. Figure~\ref{fig:slices} shows the fitted conditional at three
+equally. Narrower slices reduce the residual at the cost of statistics.
+
+What the slice construction does buy is that the redshift resolution becomes an
+explicit, tunable quantity, and that the redshift prior is supplied separately
+and visibly as $\Sq(z,m)$ rather than inherited. Figure~\ref{fig:slices} shows the fitted conditional at three
 redshifts.
 
 Both backends implement the same density interface, but they are not yet
@@ -319,6 +321,17 @@ applied to the candidates. No star/galaxy separation is imposed, because
 imposing one would require a selection function we do not have, whereas the
 unfiltered catalogue \emph{is} the population a chance projection draws from.
 
+\paragraph{A known violation of disjointness.} The formalism of
+\S\ref{sec:hypotheses} treats $\Hfield$ and $\Hbkg$ as mutually exclusive, but
+the background sample as currently built does not exclude spectroscopic
+quasars, so quasars are counted in both. They are a tiny fraction of all
+catalogue sources, which is \emph{not} an argument that the effect is small:
+what matters is their fraction in quasar-like colour space, which is exactly
+where the same-redshift hypothesis is being tested. Removing them requires a
+crossmatch against the quasar catalogue. Until that is done and the size of the
+effect measured, the background is over-dense at quasar colours and
+$p_{\rm same}$ is correspondingly conservative there.
+
 The density depends on position, through Galactic structure and reddening, and
 on magnitude, through which populations are reachable at a given depth. We
 therefore fit a deconvolved mixture per (HEALPix cell, magnitude bin) and pool
@@ -331,8 +344,13 @@ p = a_\ell\,p_{\rm cell} + (1-a_\ell)\bigl[
 \label{eq:hierarchy}
 \end{equation}
 %
-with the pooling constant $n_0$ tuned on held-out sky blocks rather than fixed
-in code. HEALPix is used in the nested scheme, so a parent cell is a bit shift,
+with a pooling constant $n_0$ that is \emph{intended} to be tuned on held-out
+sky blocks rather than fixed in code. It is not yet: the tuning routine holds
+out whole cells at the same resolution as the parent level, so every validation
+object falls back to the global model and its score carries no information about
+$n_0$. The figures in this note therefore use a fixed $n_0=500$, and the tuning
+must be repaired before any calibrated number depends on it. HEALPix is used in
+the nested scheme, so a parent cell is a bit shift,
 and in Galactic coordinates, which is the frame the structure lives in. Each
 scored object records the weight its own cell received, so a number that came
 from the pooled model is distinguishable from one that came from local data.
@@ -365,9 +383,8 @@ pipeline defaulted to the nominal HEALPix pixel area, $53.7\,{\rm deg}^2$ at
 nside~8, for a background cone of $3.14\,{\rm deg}^2$, understating $\Sb$ by a
 factor of $17$ and inflating every quasar posterior by the same factor. Cells
 that were surveyed but happen to hold no object in a magnitude bin must also
-stay in the denominator, or sparse bins are biased high. Using the nominal cell area instead would bias the density
-low wherever the footprint has holes --- and the masking is applied identically
-to the candidates, so the two are consistent by construction.
+stay in the denominator, or sparse bins are biased high. The masking is applied
+identically to the candidates, so the two are consistent by construction.
 
 \paragraph{Quasars.} $\Sq(z,m)$ requires more care, because a spectroscopic
 quasar catalogue's redshift histogram is a targeting selection function, not a
@@ -699,13 +716,12 @@ real quasars at that redshift ($|z-z_0|<0.05$), real quasars at other redshifts
 Two limits of this comparison: the ``same'' class extends to $2.7$ times the
 window half-width, so not all of it lies inside the window being scored; and
 nothing populates the gap between $0.05$ and $0.6$, which is where
-discrimination is genuinely hardest. The figure therefore shows dynamic range,
-not an operating characteristic. The quasar
-populations separate from the field by $\sim\!14$ natural logarithms, but from
-\emph{each other} by only $\sim\!2.3$: $grz+W1W2$ photometry identifies quasars
-far better than it locates them in redshift (\S\ref{sec:howmuch}). These
-objects were used in training, so the figure shows the statistic's dynamic
-range, not out-of-sample performance.}
+discrimination is genuinely hardest; and these objects were used in training.
+The quasar populations separate from the field by $\sim\!14$ natural logarithms
+but from \emph{each other} by only $\sim\!2.3$: $grz+W1W2$ photometry
+identifies quasars far better than it locates them in redshift
+(\S\ref{sec:howmuch}). The figure shows the statistic's dynamic range, not an
+operating characteristic.}
 \label{fig:separation}
 \end{figure}
 
@@ -716,7 +732,7 @@ Every candidate produces a record separating evidence from posterior, with a
 status code and quality flags rather than a silent number.
 
 \begin{center}
-\begin{tabular}{lp{10.2cm}}
+\begin{tabular}{lp{9.4cm}}
 \toprule
 \texttt{loglike\_qso\_zprimary} & $\log p(\cvec\mid Q,z_0)$; a likelihood, not a
 probability \\
@@ -725,18 +741,28 @@ probability \\
 surface densities \\
 \texttt{p\_zmatch\_given\_qso} & $P(z\in W\mid\cvec,Q)$; conditional on being a
 quasar at all \\
-\texttt{log\_r\_per\_unit\_z} & $\log R$ from \eqref{eq:R}; the window-free
-ranking statistic \\
-\texttt{dz\_match\_eff} & $\Delta Z_{\rm eff}$, so that
+\texttt{z\_phot\_mode} & mode of the quasar-only redshift posterior \\
+\texttt{log\_r\_per\_unit\_z} & $\log R$ from \eqref{eq:R}; the ranking
+statistic, window-free in the narrow limit (\S\ref{sec:window}) \\
+\texttt{dz\_match\_eff} & $\Delta Z_{\rm eff}$ \emph{actually used}, i.e. the
+window area inside the model's support, so that
 $p_{\rm same}=R\,\Delta Z_{\rm eff}$ \\
+\texttt{log\_lambda\_sameq}, \texttt{\_fieldq}, \texttt{\_bkg} &
+\eqref{eq:lam_same}--\eqref{eq:lam_bkg} in logs \\
 \texttt{p\_sameq} & \eqref{eq:posterior}, the three-hypothesis posterior \\
 \texttt{p\_sameq\_vs\_bkg} & the two-hypothesis number; ignores field quasars \\
 \texttt{qso\_ood\_sigma} & distance to the nearest training component, in
 $\sigma$ \\
 \texttt{background\_local\_weight} & $a_\ell$ from \eqref{eq:hierarchy}; zero
 means a pooled model \\
+\texttt{background\_density\_level} & 0 local, 1 parent, 2 global \\
+\texttt{n\_bands\_used} & usable feature dimensions for this object \\
 \texttt{status}, \texttt{quality\_flags} & why a value is missing, and what is
 suspect about one that is not \\
+identification & \texttt{candidate\_id}, \texttt{primary\_id},
+\texttt{ref\_mag}, \texttt{photometric\_system},
+\texttt{model\_manifest\_id} --- so a number can be traced back to the model
+and the data that produced it \\
 \bottomrule
 \end{tabular}
 \end{center}
