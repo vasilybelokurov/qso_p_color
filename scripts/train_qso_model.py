@@ -152,6 +152,9 @@ def main() -> None:
     ap.add_argument("--cache", type=Path, default=Path("data"))
     args = ap.parse_args()
 
+    import logging
+    logging.basicConfig(level=logging.INFO, format="  %(message)s")
+
     from qso_pcolor.background import galactic_healpix
     from qso_pcolor.data import galactic_from_equatorial
     from qso_pcolor.features import RelativeFluxTransform, deredden

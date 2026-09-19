@@ -44,6 +44,8 @@ Redshift densities are per unit ``z``.
 from __future__ import annotations
 
 import json
+import logging
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -59,6 +61,8 @@ __all__ = [
     "JointColourRedshiftModel",
     "fit_sliced_model",
 ]
+
+log = logging.getLogger(__name__)
 
 C_KM_S = 299792.458
 
@@ -503,6 +507,7 @@ def fit_sliced_model(
 
     mixtures: list[GaussianMixture] = []
     counts = np.zeros(centres.size)
+    t_start = time.time()
     for j in range(centres.size):
         w = z_edges[j + 1] - z_edges[j]
         lo = z_edges[j] - overlap * w
@@ -525,6 +530,13 @@ def fit_sliced_model(
             **fit_kwargs,
         )
         mixtures.append(res.mixture)
+        # A million-object fit takes hours; silence for that long makes a stall
+        # indistinguishable from progress.
+        log.info(
+            "slice %d/%d  z %.2f-%.2f  n=%d  K=%d  iters=%d  %s  [%.0f s elapsed]",
+            j + 1, centres.size, lo, hi, int(counts[j]), k, res.n_iter,
+            "converged" if res.converged else "hit max_iter", time.time() - t_start,
+        )
 
     return SlicedColourRedshiftModel(
         centres,
