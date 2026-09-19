@@ -229,8 +229,11 @@ SELECT ra, dec, release, type, maskbits,
 FROM {table}
 WHERE q3c_radial_query(ra, dec, %(ra)s, %(dec)s, %(radius)s)
   AND flux_ivar_r > 0
-  AND maskbits = 0
 """
+# NOTE: ``maskbits`` is returned but NOT filtered here. The caller applies the
+# cut, so that the masked fraction can be measured from the same pull and taken
+# out of the area -- filtering in SQL would leave no way to know how much sky
+# the cut removed.
 
 
 def fetch_ls_background(

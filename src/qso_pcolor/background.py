@@ -384,6 +384,7 @@ def fit_local_background(
     system: str,
     table: str = "decals_dr9.main",
     exclude_quasars: bool = True,
+    mask_fraction: float | None = None,
     n_components: int = 8,
     max_ref_mag: float | None = None,
     cache: "str | Path | None" = None,
@@ -429,13 +430,16 @@ def fit_local_background(
     r = fetch_ls_background(cache, ra=ra, dec=dec, radius_deg=radius_deg, table=table)
     n_raw = int(np.size(r["ra"]))
 
-    keep = np.ones(n_raw, dtype=bool)
+    maskbits = np.asarray(r.get("maskbits", np.zeros(n_raw)))
+    unmasked = maskbits == 0
+    keep = unmasked.copy()
     n_qso = 0
     if exclude_quasars:
         q = fetch_known_quasars(ra, dec, radius_deg,
                                 cache=cache.with_name("local_qso.npz"))
-        keep = drop_known_quasars(r["ra"], r["dec"], q["ra"], q["dec"])
-        n_qso = int((~keep).sum())
+        not_qso = drop_known_quasars(r["ra"], r["dec"], q["ra"], q["dec"])
+        n_qso = int((unmasked & ~not_qso).sum())
+        keep = unmasked & not_qso
 
     flux = np.stack([np.asarray(r[f"flux_{b}"], float) for b in bands], axis=1)[keep]
     ivar = np.stack([np.asarray(r[f"flux_ivar_{b}"], float) for b in bands], axis=1)[keep]
@@ -469,12 +473,28 @@ def fit_local_background(
                    **fit_kwargs).mixture
         )
 
-    area = float(np.pi * radius_deg**2)
+    # The cone query keeps only ``maskbits = 0`` sources, so the *counts* are
+    # masked but the nominal cone area is not. Dividing one by the other
+    # understates the background density and inflates every quasar posterior --
+    # the same class of error that once made Sigma_B 17x too small.
+    if mask_fraction is None:
+        # Estimate it from the data: what fraction of catalogue sources in this
+        # cone carry a mask bit. This is a proxy for area, and a biased one --
+        # masked regions sit around bright stars where the detection density is
+        # higher than average, so it tends to OVERstate the masked area and
+        # hence overstate Sigma_B. Supply a measured value where it matters.
+        mask_fraction = float(np.mean(~unmasked)) if n_raw else 0.0
+        mask_estimated = True
+    else:
+        mask_estimated = False
+    area = float(np.pi * radius_deg**2 * (1.0 - mask_fraction))
     info = {
         "ra": ra, "dec": dec, "radius_deg": radius_deg, "area_deg2": area,
         "n_raw": n_raw, "n_known_quasars_removed": n_qso,
         "quasar_fraction_removed": n_qso / n_raw if n_raw else 0.0,
         "n_fitted": int(ok.sum()), "table": table,
+        "mask_fraction": mask_fraction,
+        "mask_fraction_estimated_from_counts": mask_estimated,
     }
     model = BackgroundColourModel(
         1, 1, mag_edges, {}, {}, global_, {}, {}, 1.0,

@@ -305,6 +305,41 @@ the shape of `Sigma_Q` between inside and outside the window: intensities
 100 gives 1/102. So the completeness matters for the *shape*, not the level, and
 that is the form the caveat should take.
 
+### M2a — the classifier review (2026-09-19)
+
+An independent review of the classifier found five defects, all reproduced:
+
+- **The training script's "held-out" evaluation was not held out.** It fitted
+  every usable object and then sampled those same objects, so the
+  selection-channel comparison would have measured training density. Fixed:
+  whole nside=4 sky blocks are now reserved *before* fitting (`--holdout-frac`,
+  default 0.2) and the per-channel numbers come only from the reserved blocks.
+- **The saved models could not be combined**: the quasar model declared
+  `ls_dr9_south_grzw` and the background `ls_dr9_grzw`, which the scorer's own
+  system check rejects. Names are now release-aware everywhere.
+- **The local background divided masked counts by unmasked area** — the same
+  class of error as the 17x `Sigma_B` bug. The cone query now returns
+  `maskbits` unfiltered, the caller applies the cut, and the masked fraction
+  comes out of the area. Estimating it from source counts is biased (masked
+  regions sit around bright stars, where detections are denser), so the value
+  and the fact that it was estimated are both recorded.
+- **`--select-k` sampled only z ≈ 1.8**, capped at 40k objects, and so could not
+  choose K across 0.4 < z < 3.6. It now samples uniformly across the range.
+- **The figure script fitted its background without removing quasars.** Fixed.
+
+Design points taken from the same review, not yet acted on:
+
+- Make the *decision* binary — target-redshift quasar versus everything else —
+  while keeping all three components internally. Folding `field_q` into the
+  alternative is equivalent when the weights are right; dropping it is not.
+- The cheapest real test is not the close-pair sample: reserve spatial blocks,
+  then score withheld quasars inside and outside the window, withheld stars and
+  galaxies, **including quasars just outside the window**, stratified by
+  magnitude and error. Fig. 7 omits that hard-negative regime entirely.
+- Compare r-reference, z-reference and asinh on identical withheld objects by
+  classification loss versus reference S/N — not by raw predictive density,
+  which is not comparable across coordinate systems without the Jacobian.
+
 ### M6a — close out the external review
 
 `docs/reviews/2026-09-19-*` (local, gitignored) holds an independent Codex

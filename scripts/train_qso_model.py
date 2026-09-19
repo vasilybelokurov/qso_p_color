@@ -168,6 +168,9 @@ def main() -> None:
     ap.add_argument("--no-sdss", action="store_true")
     ap.add_argument("--max-objects", type=int, default=None,
                     help="subsample for a quick run; omit to use everything")
+    ap.add_argument("--holdout-frac", type=float, default=0.2,
+                    help="fraction of nside=4 sky blocks reserved before fitting")
+    ap.add_argument("--holdout-seed", type=int, default=0)
     ap.add_argument("--out", type=Path, default=Path("models"))
     ap.add_argument("--cache", type=Path, default=Path("data"))
     args = ap.parse_args()
@@ -233,11 +236,34 @@ def main() -> None:
     l, b = galactic_from_equatorial(ra[ok], dec[ok])
     groups = galactic_healpix(l, b, 4)          # spatial CV blocks
 
+    # Reserve whole sky blocks BEFORE fitting. An earlier version fitted every
+    # usable object and then sampled those same objects to report a "held-out"
+    # likelihood -- which measured training density, not generalisation, and
+    # would have made the selection-channel comparison meaningless.
+    rng_h = np.random.default_rng(args.holdout_seed)
+    blocks = np.unique(groups)
+    n_hold = max(1, int(round(args.holdout_frac * blocks.size)))
+    held_blocks = set(rng_h.choice(blocks, size=n_hold, replace=False).tolist())
+    is_held = np.array([g in held_blocks for g in groups])
+    print(f"  spatial holdout: {n_hold}/{blocks.size} nside=4 blocks, "
+          f"{int(is_held.sum()):,} objects ({100 * is_held.mean():.1f}%) reserved")
+
     n_comp = args.n_components
     scores = {}
     if args.select_k:
         print("\nchoosing K by spatially blocked held-out density")
-        sub = np.flatnonzero(np.abs(z[ok] - 1.8) < 0.1)[:40000]
+        # Sample across the whole redshift range, not one slice: the best K at
+        # z = 1.8 need not be the best at z = 0.5 or z = 3.
+        tr = np.flatnonzero(~is_held)
+        per_z, sub = 4000, []
+        for lo in np.arange(args.zmin, args.zmax, 0.4):
+            inb = tr[(z[ok][tr] >= lo) & (z[ok][tr] < lo + 0.4)]
+            if inb.size:
+                sub.append(np.random.default_rng(0).choice(
+                    inb, min(per_z, inb.size), replace=False))
+        sub = np.concatenate(sub)
+        print(f"  K selection on {sub.size:,} objects spanning "
+              f"{args.zmin}-{args.zmax}, blocked by nside=4 cell")
         n_comp, scores = select_n_components(
             fs.x[ok][sub], fs.cov[ok][sub], args.k_grid,
             observed=fs.observed[ok][sub], groups=groups[sub],
@@ -249,18 +275,22 @@ def main() -> None:
 
     print(f"\nfitting {args.n_slices} slices, K = {n_comp}")
     t0 = time.time()
+    fit_idx = np.flatnonzero(ok)[~is_held]
     model = fit_sliced_model(
-        fs.x[ok], fs.cov[ok], z[ok],
+        fs.x[fit_idx], fs.cov[fit_idx], z[fit_idx],
         z_edges=np.linspace(args.zmin, args.zmax, args.n_slices + 1),
-        observed=fs.observed[ok], n_components=n_comp, min_per_slice=500,
+        observed=fs.observed[fit_idx], n_components=n_comp, min_per_slice=500,
         overlap=0.5, system=f"ls_dr9_{args.system}_grzw", labels=fs.labels,
         seed=0, max_iter=300, tol=1e-6, regularization=1e-6,
         meta={
             "trained": time.strftime("%Y-%m-%d"),
             "release": rel,
-            "n_train": int(ok.sum()),
-            "n_desi": int((channel[ok] == "desi").sum()),
-            "n_sdss": int((channel[ok] == "sdss").sum()),
+            "n_train": int(fit_idx.size),
+            "n_holdout": int(is_held.sum()),
+            "holdout_frac": args.holdout_frac,
+            "holdout_nside": 4,
+            "n_desi": int((channel[ok][~is_held] == "desi").sum()),
+            "n_sdss": int((channel[ok][~is_held] == "sdss").sum()),
             "z_range": [args.zmin, args.zmax],
             "k_selection": scores or "fixed",
             "dedup_arcsec": 1.0,
@@ -278,8 +308,9 @@ def main() -> None:
     # DESI targeting bias matters. A large gap is a warning, not a curiosity.
     if not args.no_sdss and (channel[ok] == "sdss").any():
         print("\nheld-out mean log density by selection channel")
+        print("  (evaluated on the reserved spatial blocks only)")
         for tag in ("desi", "sdss"):
-            m = np.flatnonzero(channel[ok] == tag)
+            m = np.flatnonzero((channel[ok] == tag) & is_held)
             if m.size < 100:
                 continue
             rng = np.random.default_rng(0)

@@ -51,6 +51,10 @@ WHERE q3c_radial_query(ra, dec, {ra}, {dec}, {radius})
   AND maskbits = 0 AND flux_ivar_r > 0 AND flux_r > 0 AND flux_r < 250
 """
 
+# Release-aware: north (BASS/MzLS) and south (DECam) are different
+# photometric systems and their models must not be interchangeable.
+SYSTEM = "ls_dr9_south_grzw"
+
 Z_MIN, Z_MAX = 0.4, 3.6
 MAG_EDGES = np.array([17.0, 19.5, 20.5, 21.5, 22.5])
 
@@ -94,6 +98,8 @@ def load(args):
     tr = RelativeFluxTransform(reference_band="r", min_ref_snr=5.0)
     out = {}
     for key, r in (("q", q), ("b", b)):
+        if "maskbits" in r:
+            r = {k: np.asarray(v)[np.asarray(r["maskbits"]) == 0] for k, v in r.items()}
         f, v = deredden(stack(r, "flux_"), stack(r, "flux_ivar_"),
                         stack(r, "mw_transmission_"))
         fs = tr(f, v, BANDS)
@@ -138,19 +144,31 @@ def fit_models(d, args):
     qso = fit_sliced_model(
         q["feat"].x[okq], q["feat"].cov[okq], q["z"][okq], z_edges=z_edges,
         observed=q["feat"].observed[okq], n_components=args.n_components,
-        min_per_slice=150, overlap=0.5, system="ls_dr9_grzw",
+        min_per_slice=150, overlap=0.5, system=SYSTEM,
         labels=q["feat"].labels, seed=0, max_iter=200, regularization=1e-6,
     )
     print(f"  quasar model: {args.n_slices} slices, "
           f"{qso.n_train.astype(int).min()}-{qso.n_train.astype(int).max()} "
           f"objects each ({time.time() - t0:.0f} s)")
 
+    # Known quasars must come out of the background, or the background model
+    # learns the quasar locus: measured, they are 1% of the sample overall but
+    # 72% of it where log BF > 5.
+    from qso_pcolor.data import drop_known_quasars, fetch_known_quasars
+    qq = fetch_known_quasars(args.ra, args.dec, args.bkg_radius,
+                             cache=args.cache / "method_bkg_qso.npz")
+    notq = drop_known_quasars(b["raw"]["ra"], b["raw"]["dec"], qq["ra"], qq["dec"])
+    n_before = int(okb.sum())
+    okb = okb & notq
+    print(f"  background: removed {n_before - int(okb.sum()):,} known quasars "
+          f"({100 * (n_before - int(okb.sum())) / max(n_before, 1):.2f}%)")
+
     t0 = time.time()
     bkg = fit_background_model(
         b["feat"].x[okb], b["feat"].cov[okb], b["feat"].ref_mag[okb],
         b["l"][okb], b["b"][okb], mag_edges=MAG_EDGES, nside=8, nside_parent=2,
         observed=b["feat"].observed[okb], n_components=8, min_per_cell=800,
-        n0=500.0, system="ls_dr9_grzw", labels=b["feat"].labels, seed=0,
+        n0=500.0, system=SYSTEM, labels=b["feat"].labels, seed=0,
         max_iter=200, regularization=1e-6,
     )
     print(f"  background model ({time.time() - t0:.0f} s)")

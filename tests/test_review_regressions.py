@@ -274,3 +274,47 @@ def test_mismatched_model_and_density_keys_are_rejected(models):
             z_primary=np.array([1.4]), qso_model=qso,
             match=RedshiftMatch(dz_half_width=0.1),
         )
+
+
+# ------------------------------------------- classifier review, 2026-09-19
+
+def test_local_background_area_excludes_masked_sky():
+    """Masked counts divided by unmasked area understates Sigma_B.
+
+    The cone query keeps only maskbits == 0 sources. If the area is the full
+    pi R^2, the background looks sparser than it is and every quasar posterior
+    is inflated -- the same class of error as the 17x Sigma_B bug.
+    """
+    import inspect
+
+    from qso_pcolor import background, data
+
+    src = inspect.getsource(background.fit_local_background)
+    assert "mask_fraction" in src
+    assert "1.0 - mask_fraction" in src
+    # and the query must not pre-filter, or the fraction is unmeasurable
+    assert "AND maskbits = 0" not in data._LS_BACKGROUND_QUERY
+
+
+def test_training_holdout_is_reserved_before_fitting():
+    """The per-channel comparison must not evaluate on the training set."""
+    import pathlib
+
+    src = pathlib.Path("scripts/train_qso_model.py").read_text()
+    assert "is_held" in src and "held_blocks" in src
+    # fits on the complement of the holdout ...
+    assert "fit_idx = np.flatnonzero(ok)[~is_held]" in src
+    # ... and evaluates only on the holdout
+    assert "(channel[ok] == tag) & is_held" in src
+
+
+def test_photometric_system_names_are_release_aware():
+    """north and south are different systems; the names must say which."""
+    import pathlib
+
+    fig = pathlib.Path("scripts/make_method_figures.py").read_text()
+    train = pathlib.Path("scripts/train_qso_model.py").read_text()
+    assert 'SYSTEM = "ls_dr9_south_grzw"' in fig
+    assert 'f"ls_dr9_{args.system}_grzw"' in train
+    # the ambiguous name must not survive anywhere
+    assert '"ls_dr9_grzw"' not in fig
