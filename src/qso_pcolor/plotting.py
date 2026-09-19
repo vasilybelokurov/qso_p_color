@@ -19,7 +19,75 @@ from __future__ import annotations
 
 from pathlib import Path
 
-__all__ = ["PLOTS_DIR", "plot_path", "save_figure"]
+__all__ = [
+    "PLOTS_DIR",
+    "SEQUENTIAL_CMAP",
+    "SERIES",
+    "plot_path",
+    "save_figure",
+    "use_paper_style",
+]
+
+#: Categorical colours, in fixed assignment order.  Validated for colour-vision
+#: deficiency on the all-pairs list (worst CVD dE 9.2, worst normal-vision dE
+#: 24.0), which caps a scatter-type figure at these three.  Assign them to
+#: entities, never to rank, and never cycle past the third: a fourth category
+#: folds into "other" or becomes a separate panel.
+SERIES = {
+    "same_z": "#2a78d6",      # blue   - quasar at the primary redshift
+    "field_q": "#eb6834",     # orange - quasar at another redshift
+    "background": "#1baf7a",  # aqua   - everything else in the catalogue
+    "neutral": "#5c5c57",
+    "grid": "#d9d9d4",
+}
+
+#: Sequential ramp for redshift and other magnitude encodings.  Monotonic in
+#: lightness and colour-vision safe, which is what the light-to-dark rule is
+#: protecting; a rainbow map is never used, because its lightness is not
+#: monotonic and it invents category boundaries the data does not have.
+SEQUENTIAL_CMAP = "viridis"
+
+
+def use_paper_style() -> None:
+    """Set matplotlib defaults for figures destined for the LaTeX write-up.
+
+    Recessive axes and grid, thin marks, and a serif face that matches the
+    document body, so a figure does not shout over the text it illustrates.
+    Call once at the top of a figure script.
+    """
+    import matplotlib as mpl
+
+    mpl.rcParams.update({
+        "figure.dpi": 150,
+        "savefig.dpi": 150,
+        "font.family": "serif",
+        "font.serif": ["DejaVu Serif"],
+        "mathtext.fontset": "dejavuserif",
+        "font.size": 9,
+        "axes.titlesize": 10,
+        "axes.labelsize": 9,
+        "legend.fontsize": 8,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.edgecolor": "#8a8a85",
+        "axes.linewidth": 0.8,
+        "axes.grid": True,
+        "grid.color": SERIES["grid"],
+        "grid.linewidth": 0.5,
+        "grid.alpha": 0.8,
+        "xtick.color": "#8a8a85",
+        "ytick.color": "#8a8a85",
+        "xtick.labelcolor": "#2b2b28",
+        "ytick.labelcolor": "#2b2b28",
+        "text.color": "#2b2b28",
+        "axes.labelcolor": "#2b2b28",
+        "lines.linewidth": 1.4,
+        "legend.frameon": False,
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+    })
 
 #: Repository-level output directory for figures.
 PLOTS_DIR = Path(__file__).resolve().parents[2] / "plots"

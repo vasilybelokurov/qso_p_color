@@ -75,13 +75,18 @@ src/qso_pcolor/
   data.py        WSDB queries, cached to .npz
   plotting.py    save_figure: every figure a PNG under plots/
 plots/           all figures, PNG only
-scripts/         validation-sample builder, real-data smoke test
+scripts/         validation-sample builder, smoke test, method figures
+docs/method/     the method note (LaTeX -> PDF)
 tools/journal.py JOURNAL.md updater
 docs/            review of the original plan
 ```
 
 ## Where to read next
 
+- **`docs/method/method.pdf`** — the method note: the full derivation, the
+  three-hypothesis formalism, the window factorisation, and seven figures built
+  from real DESI/Legacy data. Build it with `make -C docs/method` after running
+  `python scripts/make_method_figures.py`.
 - **`AGENTS.md`** — the working contract: rules, milestones, output contract.
   Read this before changing anything.
 - **`docs/REVIEW_OF_PLAN.md`** — why the implementation departs from

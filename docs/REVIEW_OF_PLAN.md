@@ -286,6 +286,41 @@ test that did not check a correlated covariance with bands missing.
    *N* × *K* × *d*³/3, which is negligible at *d* ≈ 5 and matters only if the
    background model is ever scored over millions of rows.
 
+## 9a. Measured: how much discrimination the bands actually carry
+
+Added 2026-09-19, from the models fitted for the method note (79,865 DESI
+quasars, 261,831 Legacy DR9 sources, LS DR9 *grz*+W1W2).
+
+Scoring three real populations against a primary at *z*₀ = 1.8:
+
+| population | median log *R* |
+|---|---|
+| quasars at *z* ≈ *z*₀ | 0.0 |
+| quasars at other redshifts (\|*z*−*z*₀\| > 0.6) | −1.5 |
+| random catalogue sources | −11.5 |
+
+**The two gaps differ by nearly an order of magnitude in log.** Against the
+field population the statistic is decisive (a factor ~10⁵). Against quasars at
+the *wrong* redshift it is worth about a factor of 4.5.
+
+This is a statement about the information in *grz*+W1W2, not about the
+estimator: these bands identify quasars well and locate them in redshift only
+weakly. The measured photometric redshift width for a typical object is
+σ_z ≈ 0.29, and the fitted conditional loci at *z* = 0.9, 1.8 and 3.0 overlap
+substantially.
+
+Three consequences for the programme:
+
+1. **What the method delivers reliably is a quasar classification, not a
+   redshift match.** Expectations for `p_sameq` should be set accordingly.
+2. **The field-quasar hypothesis is the dominant competitor**, not a
+   refinement — which retrospectively justifies the three-hypothesis structure
+   more strongly than the original argument did.
+3. **Better redshift discrimination needs more information, not a better
+   estimator on the same bands**: a *u* band, a narrow band on a strong line,
+   variability, or spectroscopy. The likelihood is factorised so such a term
+   enters as another factor.
+
 ## 10. Worth adding
 
 - **Gaia astrometry as a separate likelihood factor** (§18 lists it as

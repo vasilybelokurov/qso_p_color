@@ -1,9 +1,15 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
 Read this before touching the repository. It is the working contract for
-`qso_pcolor`. `docs/REVIEW_OF_PLAN.md` explains *why* the design departs from
-`qso_binary_color_probability_plan.md` where it does; this file says *what to
-do*.
+`qso_pcolor`. `docs/method/method.tex` is the scientific write-up — the
+formalism, the derivations and the figures — and is the place to look for *why
+the method is what it is*. `docs/REVIEW_OF_PLAN.md` explains why the design
+departs from `qso_binary_color_probability_plan.md` where it does. This file
+says *what to do*.
+
+**If you change the method, update `docs/method/method.tex` in the same
+commit.** A write-up that describes a previous version of the code is worse
+than none.
 
 ---
 
@@ -85,6 +91,8 @@ src/qso_pcolor/
   plotting.py    save_figure: every figure a PNG under plots/
 tools/journal.py          JOURNAL.md updater
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
+scripts/make_method_figures.py     the seven figures for the method note
+docs/method/                       method.tex + Makefile -> method.pdf
 tests/                    55 tests; see section 7
 ```
 
