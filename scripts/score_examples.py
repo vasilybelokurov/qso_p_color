@@ -253,22 +253,23 @@ def make_figure(qso, bkg, fq, iq, zq, fst, isx, rows, args):
                         color="#2b2b28", mfc="white", mew=1.4, zorder=5, lw=1.2)
             ax.set_title(f"$z_0={z0:.2f}$,  $r={s.ref_mag:.1f}$", loc="left",
                          fontsize=8)
-            ax.text(0.04, 0.96,
+            # Bottom right: the top-left corner is where the field model's
+            # contours run, so the per-object numbers collided with them there.
+            ax.text(0.96, 0.04,
                     f"log BF {s.log_bayes_factor_qz_bkg:+.1f}\n"
                     f"$p_{{\\rm same}}$ {s.p_sameq:.1e}",
-                    transform=ax.transAxes, va="top", fontsize=7,
+                    transform=ax.transAxes, va="bottom", ha="right", fontsize=7.5,
                     color="#2b2b28",
                     bbox=dict(facecolor="white", edgecolor="none", alpha=0.85,
                               boxstyle="round,pad=0.25"))
             ax.set_xlim(-0.1, 2.0); ax.set_ylim(-0.1, 3.0)
-            ax.plot([], [], color=SERIES["same_z"], label="quasar at $z_0$")
-            ax.plot([], [], color=SERIES["background"], label="field")
-            ax.legend(loc="lower right", fontsize=6, framealpha=0.85,
-                      frameon=True, edgecolor="none", handlelength=1.3,
-                      borderpad=0.3, labelspacing=0.25)
             if row == 1:
                 ax.set_xlabel("$f_g/f_r$")
         axes[row, 0].set_ylabel(f"{tag}s\n$f_z/f_r$")
+    h = [plt.Line2D([], [], color=SERIES["same_z"]),
+         plt.Line2D([], [], color=SERIES["background"])]
+    fig.legend(h, ["quasar model at $z_0$", "field model"], loc="upper right",
+               ncol=2, fontsize=8, frameon=False, bbox_to_anchor=(0.995, 1.0))
     fig.suptitle("DECaLS colours only: W1 and W2 marginalised out, not dropped",
                  x=0.01, ha="left", fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
