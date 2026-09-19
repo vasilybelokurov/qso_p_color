@@ -288,10 +288,22 @@ made the background model learn the quasar locus and compete against itself,
 costing roughly 1.3 in log BF, comparable to the entire same-z versus
 wrong-z gap.
 
-Note what this exposes: removal handles only *observed* quasars, so the
-unobserved ones remain in the background unless `Sigma_Q` carries a
-spectroscopic completeness. Removing quasars and leaving `C = 1` is not
-self-consistent; that is now the binding reason to get a completeness.
+Removal handles only *observed* quasars, so the unobserved ones stay in the
+background. That is a residual of the same bias in the same direction, and worth
+measuring — but it is **not** a reason to block on obtaining a completeness, and
+an earlier version of this note said it was.
+
+The reason it is minor: `Sigma_Q` multiplies **both** `lambda_sameq` and
+`lambda_fieldq`, so a uniform completeness cancels between them and shifts them
+only against the background. A factor-two error in `C` moves `p_sameq` by about
+13%, identically for every candidate at a given magnitude, so the ranking is
+untouched. Compare the quasar removal above, worth ~1.3 in log BF.
+
+What does *not* cancel is **redshift-dependent** incompleteness, which changes
+the shape of `Sigma_Q` between inside and outside the window: intensities
+(1, 1, 1) give p = 1/3, while a correction multiplying only the field term by
+100 gives 1/102. So the completeness matters for the *shape*, not the level, and
+that is the form the caveat should take.
 
 ### M6a — close out the external review
 
