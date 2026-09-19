@@ -54,20 +54,42 @@ RELEASE = {"south": 9010, "north": 9011}
 # tight enough to be unambiguous at these densities and loose enough for the
 # astrometric differences between the two surveys.
 SDSS_MATCH_QUERY = """
-SELECT m.idx, m.zspec,
-       c.ra, c.dec, c.release,
-       c.flux_g, c.flux_r, c.flux_z, c.flux_w1, c.flux_w2,
-       c.flux_ivar_g, c.flux_ivar_r, c.flux_ivar_z,
-       c.flux_ivar_w1, c.flux_ivar_w2,
-       c.mw_transmission_g, c.mw_transmission_r, c.mw_transmission_z,
-       c.mw_transmission_w1, c.mw_transmission_w2,
-       q3c_dist(m.ra, m.dec, c.ra, c.dec) * 3600 AS sep_arcsec
+SELECT m.idx, m.zspec, x.*
 FROM mytmptable AS m
-JOIN decals_dr9.main AS c
-  ON q3c_join(m.ra, m.dec, c.ra, c.dec, 1.0/3600)
-WHERE c.maskbits = 0 AND c.flux_ivar_r > 0
-ORDER BY m.idx, sep_arcsec
+CROSS JOIN LATERAL (
+    SELECT c.ra, c.dec, c.release,
+           c.flux_g, c.flux_r, c.flux_z, c.flux_w1, c.flux_w2,
+           c.flux_ivar_g, c.flux_ivar_r, c.flux_ivar_z,
+           c.flux_ivar_w1, c.flux_ivar_w2,
+           c.mw_transmission_g, c.mw_transmission_r, c.mw_transmission_z,
+           c.mw_transmission_w1, c.mw_transmission_w2,
+           q3c_dist(c.ra, c.dec, m.ra, m.dec) * 3600 AS sep_arcsec
+    FROM decals_dr9.main AS c
+    WHERE q3c_radial_query(c.ra, c.dec, m.ra, m.dec, 1.0/3600)
+      AND c.maskbits = 0 AND c.flux_ivar_r > 0
+    ORDER BY q3c_dist(c.ra, c.dec, m.ra, m.dec)
+    LIMIT 1
+) AS x
 """
+# Why this shape, and not the obvious ``JOIN ... ON q3c_join(...)``:
+#
+# ``decals_dr9.main`` has 2.0e9 rows. Written as a plain join with the quality
+# cuts in the WHERE clause, the planner produces a sequential scan of that table
+# with the q3c condition demoted to a *join filter* -- measured, not guessed --
+# and the query cannot finish. Even without the cuts it drives the nested loop
+# from ``main``'s index rather than from our positions.
+#
+# The lateral form fixes it by making each of our objects the outer row and the
+# survey the inner lookup, so ``q3c_radial_query`` becomes an index condition on
+# ``main_q3c_ang2ipix_idx``. Note the argument order: the *indexed* table's
+# columns come first, the search centre second. Reversing them silently
+# disables the index.
+#
+# ``ORDER BY ... LIMIT 1`` inside the lateral takes the nearest match per input
+# without a global sort; an outer ``ORDER BY idx, sep`` would force the whole
+# result to be materialised and sorted before the first row is returned.
+#
+# Measured: 81 s for 20,000 positions, so about 40 minutes for DR16Q.
 
 
 def stack(r, prefix):
@@ -108,9 +130,7 @@ def load_sdss(cache: Path, zmin: float, zmax: float, refresh: bool = False) -> d
         (idx, q["ra"], q["dec"], q["zspec"]), ("idx", "ra", "dec", "zspec"),
         asDict=True, intNullVal=-1,
     )
-    # local_join returns every match; keep the nearest per input object.
-    first = np.concatenate([[True], np.diff(m["idx"]) != 0])
-    m = {k: v[first] for k, v in m.items()}
+    # The lateral LIMIT 1 already returns at most one row per input object.
     print(f"  SDSS DR16Q x LS DR9: {m['zspec'].size:,} matched "
           f"of {idx.size:,} ({time.time() - t0:.0f} s)")
     cache.parent.mkdir(parents=True, exist_ok=True)

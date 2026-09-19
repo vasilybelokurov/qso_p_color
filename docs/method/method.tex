@@ -924,15 +924,40 @@ The consequences for practice are concrete:
       the dominant competing explanation}, which is precisely why a
       quasar-versus-star calculation would be misleading here rather than
       merely incomplete.
-\item \textbf{Improving redshift discrimination plausibly requires more
-      information}: a $u$ band or a narrow band bracketing a strong line,
-      variability, or ultimately spectroscopy. This is a reading of
-      \eqref{eq:sigmaz} together with the injection test, not a proven bound ---
-      the numbers come from one untuned model on one sky patch, evaluated in
-      sample, and a difference between population medians establishes neither
-      purity nor an information limit. The modular likelihood structure is
-      designed so such a term can be added as a factor rather than by rewriting
-      the inference.
+\item \textbf{Improving redshift discrimination requires more information,
+      not more training data.} This was originally stated as an expectation from
+      \eqref{eq:sigmaz}. It has since been tested directly. Retraining on the
+      full southern sample --- $1{,}237{,}336$ quasars against $79{,}865$, with
+      $32$ redshift slices against $24$ and twice the mixture components ---
+      leaves the redshift posterior unchanged:
+
+      \begin{center}
+      \begin{tabular}{lccc}
+      \toprule
+      training set & median $\sigma_z$ & $16$--$84\%$ &
+      median $|z_{\rm post}-z_{\rm spec}|$ \\
+      \midrule
+      $79{,}865$, $K=6$     & $0.601$ & $0.36$--$0.75$ & $0.290$ \\
+      $1{,}237{,}336$, $K=12$ & $0.602$ & $0.35$--$0.76$ & $0.296$ \\
+      \bottomrule
+      \end{tabular}
+      \end{center}
+
+      The comparison favours the larger model if anything: the small one was
+      trained on a $452\,{\rm deg}^2$ cone, so about $95\%$ of the $1500$ test
+      quasars lay outside its training set, while all of them lay inside the
+      large one's. Fifteen times the data, evaluated with every advantage, moved
+      $\sigma_z$ by $0.001$. The redshift precision is therefore set by the
+      information in $grz+W1W2$, not by the size of the training sample or the
+      flexibility of the model. What would help is a band in which quasar colour
+      changes faster with redshift --- a $u$ band spanning the Lyman break, a
+      narrow band on a strong line --- or variability, or spectroscopy. The
+      modular likelihood structure is designed so such a term can be added as a
+      factor rather than by rewriting the inference.
+
+      This bears on the information content, not on classification performance:
+      the separations quoted above remain in-sample medians with the hardest
+      cases absent, and establish neither purity nor completeness.
 \end{itemize}
 
 \begin{figure}[t]
