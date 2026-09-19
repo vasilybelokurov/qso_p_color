@@ -48,6 +48,117 @@ identify quasars well and place them in redshift only weakly, which is the
 central practical constraint on the method.
 \end{abstract}
 
+\section*{The method in plain words}
+\addcontentsline{toc}{section}{The method in plain words}
+
+An orientation before the formalism. Everything asserted here is developed, and
+qualified, in the sections that follow.
+
+\paragraph{The question, and what is in scope.} We have a quasar whose redshift
+has been measured from a spectrum, and a neighbour a few arcseconds away for
+which we have only photometry --- a brightness in each of a handful of filters.
+We want to know whether that neighbour is also a quasar, at the same redshift.
+The pipeline scores only companions far enough from the primary that the survey
+photometry treats them as separate sources; closer pairs need image-level work
+that is not attempted here (\S\ref{sec:limitations}).
+
+\paragraph{How we learn what quasars look like.} We take the quasars DESI has
+observed spectroscopically --- about $80{,}000$ in the patch used for the
+figures --- and attach the brightnesses that the Legacy Surveys imaging measured
+for those same objects. The two catalogues share an identifier, so the
+photometry is attached by name rather than by position; removing objects that
+appear twice under different identifiers is a separate step
+(\S\ref{sec:validation}). That gives a cloud of points in colour space with a
+measured redshift attached to each. We fit a separate distribution in each of a
+set of \emph{overlapping} redshift slices, and blend the two neighbouring
+distributions according to where in between a given redshift falls. The result
+answers: \emph{if this object is a quasar at redshift $z$, how likely are these
+colours?}
+
+One property of that sample must be carried forward: DESI selects quasars for
+spectroscopy using a classifier built on these very colours. What we learn is
+therefore the colour distribution of quasars \emph{that DESI would target}, not
+of quasars in general.
+
+\paragraph{Why measurement error is handled explicitly.} Every measured colour
+carries an uncertainty, and those uncertainties are correlated between colours
+because the colours share bands. Fitting the observed cloud would give a locus
+broader than the true one, and would make unusual colours look less unusual than
+they are. So we fit the \emph{underlying} distribution, using each training
+object's full measurement covariance, and then --- when scoring a candidate ---
+add that candidate's own covariance back in. A noisy candidate is thus compared
+against an appropriately blurred locus, not against an artificially sharp one.
+
+\paragraph{What we use for the competing population.} Not stars alone. We take
+every source in the same imaging that passes the same quality cuts as the
+candidate, and model its colours the same way: stars, faint galaxies, blends,
+whatever the survey actually contains. The reason is that a chance neighbour is
+drawn from everything that is there. Estimating that population directly from
+catalogue detections avoids having to reconstruct what lies below the detection
+limit, though it still requires that the candidate cuts and the usable sky area
+match. Because this population changes across the sky and with depth, we fit it
+separately in patches of sky and in bins of brightness, falling back to coarser
+patches where a cell holds too few objects.
+
+One honest complication: this sample is not currently purged of quasars, so the
+``quasar'' and ``everything else'' categories overlap and part of the quasar
+population is counted twice. Their fraction among all sources is tiny, but that
+does not bound the effect where quasar colours live, which is the only place it
+matters. The size of it has not yet been measured (\S\ref{sec:background}).
+
+\paragraph{How the two are compared.} Two colour distributions alone cannot
+answer the question. They give the relative colour evidence --- useful, and
+reported --- but not a probability, because that also depends on how many
+objects of each kind exist at this brightness on this part of the sky. So each
+distribution is multiplied by a surface density: quasars per square degree per
+unit brightness \emph{per unit redshift}, and field sources per square degree per
+unit brightness. The quasar quantity is then summed over redshift, separately
+inside and outside the declared match window, which is what makes the two
+comparable. What come out are expected-count densities for three possibilities:
+
+\begin{itemize}
+\item a quasar at the primary's redshift,
+\item a quasar at some \emph{other} redshift,
+\item anything else in the imaging.
+\end{itemize}
+
+The middle one is not a refinement. A genuine quasar behind the primary at a
+quite different distance looks nothing like a star, so a two-way
+quasar-versus-star comparison would count it as evidence for a companion. For a
+pair search that is the main way of being wrong.
+
+\paragraph{Why the answer is a ranking rather than a verdict.} Colours locate a
+quasar in redshift only loosely: on our models the redshift posterior has a
+median standard deviation of about $0.6$, and is often multimodal. A physically
+motivated pair window of $\pm2000\kms$ spans about $0.037$ in redshift at
+$z=1.8$. The window is far narrower than the measurement, so only a small part
+of a candidate's redshift probability can ever fall inside it, and the resulting
+probability is correspondingly small. Strong colour evidence can therefore
+coexist with a small probability of falling inside such a narrow window; a small
+number is not by itself a verdict against the candidate.
+
+For that reason we report a statistic that the width of the window barely
+affects --- exactly so in the limit of a narrow window, approximately so in
+practice --- and convert it to a probability only at the end, for a window the
+user declares. Candidates are ordered by that statistic; spectroscopy decides.
+Note also that even a confident answer here is a statement about colours and
+populations, not about whether two quasars are physically bound: that needs a
+clustering model this pipeline deliberately leaves out.
+
+\paragraph{What the illustrative numbers do and do not show.} Applied to the
+sky patch used for the figures, the ranking statistic puts quasars far from the
+general field population, and same-redshift quasars only modestly above
+wrong-redshift ones --- medians differing by about $14$ and about $2.3$ natural
+logarithms respectively (\S\ref{sec:howmuch}). These are in-sample comparisons
+from one untuned model at one redshift, with the hardest intermediate cases
+absent, so they indicate the dynamic range available rather than any measured
+purity or completeness. Read at that level, they say that these filters identify
+quasars much better than they place them in redshift. Whether extra filters with
+a steeper colour--redshift dependence would improve matters is a reasonable
+expectation from \S\ref{sec:whatsets}, not something demonstrated here.
+
+\clearpage
+
 \section{The question, and the question that can be answered}
 \label{sec:question}
 
@@ -375,6 +486,15 @@ hypothesis, but the two loci are not disjoint.}
 \section{Surface densities}
 \label{sec:priors}
 
+The two surface densities must be measured over footprints whose selection and
+usable area are known, and the same cuts must be applied to the candidates. The
+illustration in this note does not fully meet that standard: for speed it draws
+quasars from a $12^\circ$ cone and background sources from a $1^\circ$ cone at
+the same centre, and applies a mask-bit cut without a mask-corrected area. Each
+density uses its own area, so the arithmetic is consistent, but matched
+selection and area should be read as requirements of the method rather than as
+properties these particular figures demonstrate.
+
 \paragraph{Background.} $\Sb(m,\ell,b)$ is estimated by counting the imaging
 catalogue into the same (cell, magnitude) bins and dividing by the \emph{usable}
 area after masking. That area must be supplied; the implementation refuses to
@@ -431,8 +551,12 @@ Measured on $1500$ real DESI quasars with the model of \S\ref{sec:qso}, the
 median posterior width $\sigma_z\approx0.6$ (16--84th percentile $0.36$--$0.78$; 68\% credible interval $\approx0.71$ wide). The median distance from the posterior mean to the
 spectroscopic redshift is $0.28$, so the point estimate is better than the
 posterior width alone suggests; but it is the \emph{width} that governs how
-much probability a narrow window can capture. The match window is therefore
-some sixteen times narrower than the measurement, not merely a few times.
+much probability a narrow window can capture. Rather than quote a ratio --- which
+would compare a standard deviation with a window width, two different summaries
+--- note the two numbers directly: at $z_0=1.8$ the window spans $0.037$ in
+redshift while the posterior has a standard deviation of $0.6$. For a unimodal
+posterior of that width, a window of that span captures of order two per cent of
+the probability.
 Figure~\ref{fig:window} shows this for three real quasars.
 
 The arithmetic consequence is unavoidable: almost all of a candidate's quasar
