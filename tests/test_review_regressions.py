@@ -188,3 +188,27 @@ def test_deserialisation_rejects_a_non_positive_definite_covariance():
         GaussianMixture.from_dict(
             {"weights": [1.0], "means": [[0.0]], "covs": [[[-1.0]]]}
         )
+
+
+def test_model_marginal_quantiles_need_a_grid_that_spans_the_mixture():
+    """A fixed quantile grid clipped the WISE features in a diagnostic figure.
+
+    Guards the general rule: a numerical quantile of a mixture must be taken on
+    a grid derived from the mixture, not on a guessed range. With a grid ending
+    at 4 the 84th percentile of a component at 10 silently returned 4.
+    """
+    from scipy.stats import norm
+
+    mix = GaussianMixture(np.array([1.0]), np.array([[10.0]]), np.array([[[4.0]]]))
+
+    def quantile(q, grid):
+        cdf = norm.cdf((grid - mix.means[0, 0]) / np.sqrt(mix.covs[0, 0, 0]))
+        return float(np.interp(q, cdf, grid))
+
+    truth = 10.0 + 2.0 * norm.ppf(0.84)
+    bad = quantile(0.84, np.linspace(-1.0, 4.0, 1200))
+    mu, sd = mix.means[0, 0], np.sqrt(mix.covs[0, 0, 0])
+    good = quantile(0.84, np.linspace(mu - 6 * sd, mu + 6 * sd, 4000))
+
+    assert bad == pytest.approx(4.0, abs=1e-6)        # silently clamped
+    assert good == pytest.approx(truth, rel=1e-3)

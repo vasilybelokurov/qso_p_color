@@ -388,7 +388,11 @@ equally. Narrower slices reduce the residual at the cost of statistics.
 
 What the slice construction does buy is that the redshift resolution becomes an
 explicit, tunable quantity, and that the redshift prior is supplied separately
-and visibly as $\Sq(z,m)$ rather than inherited. Figure~\ref{fig:slices} shows the fitted conditional at three
+and visibly as $\Sq(z,m)$ rather than inherited.
+
+Figure~\ref{fig:slices} shows the fitted conditional as contours in one plane at
+three redshifts; Figure~\ref{fig:modelz} shows the same model as a function of
+redshift, in each of the four features, against the data it was trained on. Figure~\ref{fig:slices} shows the fitted conditional at three
 redshifts.
 
 Both backends implement the same density interface, but they are not yet
@@ -411,6 +415,26 @@ density, while the points carry their measurement errors
 origin of the weak redshift discrimination quantified in
 \S\ref{sec:howmuch}.}
 \label{fig:slices}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../../plots/method/fig8_model_across_redshift.png}
+\caption{The fitted quasar model itself, over the whole trained redshift range
+and in every feature it uses. Grey is the training data; the blue band and line
+are the $16$--$84$th percentile and median of the \emph{model's} marginal
+distribution at each redshift, computed from the fitted mixtures; the dotted
+orange lines are the same percentiles of the data. Figure~\ref{fig:slices}
+shows this density as contours in one plane at three redshifts; this is the same
+object viewed as a function of redshift. The model tracks the non-monotonic
+motion of the locus in the optical features and the steady decline of the
+mid-infrared excess. Model and data intervals nearly coincide here because at
+these magnitudes the measurement errors are small compared with the intrinsic
+spread; the deconvolution is a small correction in this projection and a large
+one at the faint end (Figure~\ref{fig:deconv}). Reproducing the observed spread
+after adding each object's own errors back to draws from the model is a direct
+check that the fit is neither over- nor under-dispersed.}
+\label{fig:modelz}
 \end{figure}
 
 \subsection{Missing bands}

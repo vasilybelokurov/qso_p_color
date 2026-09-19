@@ -428,6 +428,92 @@ def fig_deconvolution(d, qso, okq):
     return path
 
 
+def fig_model_across_redshift(d, qso, okq):
+    """Fig 8: the fitted XD model itself, across all of redshift and every feature.
+
+    Figure 2 shows the model as contours in one plane at three redshifts. This
+    shows what was actually trained: a density that moves continuously with
+    redshift, in each of the four features the model uses. Plotting the model's
+    intrinsic interval against the data's observed interval also makes the
+    deconvolution visible in the place it matters -- the model band is narrower
+    than the scatter of the points it was fitted to.
+    """
+    import matplotlib.pyplot as plt
+    from scipy.stats import norm
+    from qso_pcolor.plotting import SERIES, save_figure
+
+    q = d["q"]
+    labels = qso.labels
+    zs = np.linspace(Z_MIN + 0.02, Z_MAX - 0.02, 120)
+
+    def model_quantiles(dim, qs=(0.16, 0.5, 0.84)):
+        """Quantiles of the model's marginal in one feature, versus redshift.
+
+        The grid must span the model, not a guessed range: the WISE relative
+        fluxes reach several tens, and a grid stopping at 4 silently clamped
+        their upper quantile, making the model look far tighter than it is.
+        """
+        out = np.zeros((zs.size, len(qs)))
+        mu_all = np.concatenate([m.means[:, dim] for m in qso.mixtures])
+        sd_all = np.concatenate([np.sqrt(m.covs[:, dim, dim]) for m in qso.mixtures])
+        grid = np.linspace((mu_all - 6 * sd_all).min(),
+                           (mu_all + 6 * sd_all).max(), 4000)
+        for i, z in enumerate(zs):
+            j = int(np.clip(np.searchsorted(qso.z_centres, z) - 1,
+                            0, qso.z_centres.size - 2))
+            lo, hi = qso.z_centres[j], qso.z_centres[j + 1]
+            f = (z - lo) / (hi - lo)
+            cdf = np.zeros_like(grid)
+            for mix, wgt in ((qso.mixtures[j], 1 - f), (qso.mixtures[j + 1], f)):
+                mu = mix.means[:, dim]
+                sd = np.sqrt(mix.covs[:, dim, dim])
+                cdf += wgt * (mix.weights[None, :] *
+                              norm.cdf((grid[:, None] - mu) / sd)).sum(axis=1)
+            out[i] = np.interp(qs, cdf, grid)
+        return out
+
+    fig, axes = plt.subplots(2, 2, figsize=(7.2, 5.0), sharex=True)
+    for dim, ax in enumerate(axes.ravel()):
+        sel = okq & np.isfinite(q["feat"].x[:, dim]) & q["feat"].observed[:, dim]
+        y = q["feat"].x[sel, dim]
+        zz = q["z"][sel]
+        lo_y, hi_y = np.percentile(y, [0.5, 99.0])
+        pad = 0.15 * (hi_y - lo_y)
+
+        ax.hexbin(zz, y, gridsize=70, extent=(Z_MIN, Z_MAX, lo_y - pad, hi_y + pad),
+                  bins="log", cmap="Greys", mincnt=1, linewidths=0)
+
+        # what the data look like, errors included
+        edges = np.linspace(Z_MIN, Z_MAX, 40)
+        cen = 0.5 * (edges[:-1] + edges[1:])
+        obs = np.array([
+            np.percentile(y[(zz >= a) & (zz < b)], [16, 84])
+            if ((zz >= a) & (zz < b)).sum() > 30 else [np.nan, np.nan]
+            for a, b in zip(edges[:-1], edges[1:])
+        ])
+        ax.plot(cen, obs[:, 0], color=SERIES["field_q"], lw=1.0, ls=":")
+        ax.plot(cen, obs[:, 1], color=SERIES["field_q"], lw=1.0, ls=":",
+                label="data, 16–84%" if dim == 0 else None)
+
+        # what the model says the intrinsic distribution is
+        mq = model_quantiles(dim)
+        ax.fill_between(zs, mq[:, 0], mq[:, 2], color=SERIES["same_z"], alpha=0.25,
+                        lw=0, label="model, 16–84%" if dim == 0 else None)
+        ax.plot(zs, mq[:, 1], color=SERIES["same_z"], lw=1.4,
+                label="model median" if dim == 0 else None)
+
+        ax.set_ylabel(f"$f_{{{labels[dim].split('/')[0]}}} / f_r$")
+        ax.set_ylim(lo_y - pad, hi_y + pad)
+        ax.set_xlim(Z_MIN, Z_MAX)
+        if dim >= 2:
+            ax.set_xlabel("redshift")
+    axes[0, 0].legend(loc="upper left", fontsize=7.5)
+    fig.suptitle("The fitted quasar model across redshift, in every feature it uses",
+                 x=0.02, ha="left", fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    return save_figure(fig, "method/fig8_model_across_redshift")
+
+
 def fig_window(d, qso, qp, bd, bkg, okq):
     """Fig 5: the redshift posterior against the velocity window. The key figure."""
     import matplotlib.pyplot as plt
@@ -646,6 +732,7 @@ def main() -> None:
         ("fig2", lambda: fig_slices(d, qso, okq)),
         ("fig3", lambda: fig_two_densities(d, qso, bkg, okb)),
         ("fig4", lambda: fig_deconvolution(d, qso, okq)),
+        ("fig8", lambda: fig_model_across_redshift(d, qso, okq)),
         ("fig5", lambda: fig_window(d, qso, qp, bd, bkg, okq)),
         ("fig6", lambda: fig_factorisation(d, qso, bkg, qp, bd, okq)),
         ("fig7", lambda: fig_separation(d, qso, bkg, qp, bd, okq, okb)),
