@@ -90,19 +90,27 @@ def git_state() -> dict[str, str]:
 
 
 def last_commit() -> dict[str, str]:
-    """Subject, body, diffstat and changed files of HEAD."""
+    """Subject, body, diffstat and changed files of HEAD.
+
+    Uses ``git show`` rather than ``git diff HEAD~1 HEAD`` throughout, because a
+    root commit has no parent and the ``HEAD~1`` form fails on it — which is
+    exactly the first commit anyone makes, so the failure would go unnoticed
+    until it had already written a broken entry.
+    """
     _, subject = _run(["git", "log", "-1", "--pretty=%s"])
     _, body = _run(["git", "log", "-1", "--pretty=%b"])
-    _, files = _run(["git", "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"])
-    _, stat = _run(["git", "diff", "--shortstat", "HEAD~1", "HEAD"])
-    if not stat:  # first commit has no parent
-        _, stat = _run(["git", "show", "--shortstat", "--oneline", "HEAD"])
-        stat = stat.splitlines()[-1] if stat else ""
+
+    code, files = _run(["git", "show", "--pretty=format:", "--name-only", "HEAD"])
+    names = [f for f in files.splitlines() if f.strip()] if code == 0 else []
+
+    code, stat = _run(["git", "show", "--pretty=format:", "--shortstat", "HEAD"])
+    lines = [ln.strip() for ln in stat.splitlines() if "changed" in ln] if code == 0 else []
+
     return {
         "subject": subject,
         "body": body,
-        "files": [f for f in files.splitlines() if f],
-        "stat": stat.strip(),
+        "files": names,
+        "stat": lines[0] if lines else "",
     }
 
 
