@@ -248,15 +248,46 @@ not; this is enforced by a unit test rather than by intention.
 
 The default feature vector divides each band's flux by a reference band,
 $r_j = f_j/f_a$, giving a representation of spectral shape that is independent
-of overall brightness. Fluxes, not magnitudes, are the natural variable: a faint
-source can legitimately have a \emph{negative} measured flux, which is a real
-measurement of a faint object and carries information about the spectral energy
-distribution. Converting to a magnitude would discard it, and replacing it with
-a limit or a clipped value would bias the locus. We therefore never clip, floor,
-or drop a band because its flux came out negative or low in signal-to-noise. A
-band is unusable only when the survey says so --- zero inverse variance, zero
-exposures, or a mask bit --- and that is expressed through an observed-dimension
-mask rather than by imputing a value.
+of overall brightness. Two reasons make fluxes rather than magnitudes the
+working variable.
+
+\paragraph{A faint source can have a negative measured flux.} That is a real
+measurement --- the true flux is small and the noise took it below zero --- and
+it carries information about the spectral energy distribution. Its magnitude is
+undefined. In the samples used here, $21\%$ of the background sources that enter
+the fit have at least one negative flux ratio, almost entirely in WISE
+($18.7\%$ in $f_{W2}/f_r$, $7.5\%$ in $f_{W1}/f_r$); the figure for quasars is
+$1.35\%$. Those are not marginal objects to be discarded: faintness in WISE is
+one of the strongest signals that something is \emph{not} a quasar, so dropping
+them, or replacing them with upper limits, would remove the most informative
+part of the competing population and bias the background model towards
+mid-infrared-bright sources. Working in flux ratios keeps them, and the
+observed-dimension mask is reserved for bands the survey itself declares
+unusable --- zero inverse variance, zero exposures, a mask bit --- never for a
+band that merely came out faint or negative.
+
+\paragraph{The errors are Gaussian in flux.} The imaging pipeline's noise model
+is Gaussian in flux, and every density in this package --- the mixture
+components, the error convolution, the extreme-deconvolution fit --- assumes
+Gaussian measurement errors. A logarithm makes that assumption false exactly
+where it matters, turning a symmetric flux error into a skewed, heavy-tailed
+magnitude error at low signal-to-noise. This is the same reasoning that led
+XDQSO to model relative fluxes \citep{bovy2011xdqso}.
+
+\paragraph{What the choice costs.} The denominator is itself noisy, so
+\eqref{eq:cov_relflux} is a linearisation that degrades once the reference band
+is not significantly positive; objects below a configurable reference
+signal-to-noise are flagged rather than silently trusted. At the depth used here
+that is rare --- $0.03\%$ of the fitted background and $0.31\%$ of the quasars
+--- but it would not be at a fainter limit. The more substantial cost is
+distributional: flux ratios have long positive tails, with
+$f_{W1}/f_r$ reaching several tens (Figure~\ref{fig:modelz}), and a Gaussian
+mixture needs more components to represent a heavy tail than it would in a
+compressed representation. The asinh (``luptitude'') colours implemented
+alongside are the natural alternative: they are finite for negative and zero
+flux, so they keep the first advantage, while compressing the tails. Which
+representation predicts held-out colours better has not been tested, and is one
+of the open questions.
 
 The covariance follows by the Jacobian. With independent band fluxes of variance
 $v_j$,
