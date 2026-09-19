@@ -43,7 +43,8 @@ the survey could not measure.
 ## The honest caveat, up front
 
 A ±2000 km s⁻¹ window at *z* = 1.4 is Δ*z* = 0.016. Broadband colours constrain
-a quasar redshift to σ_z ≈ 0.1–0.3. So `p_sameq` under a velocity window is
+a quasar redshift to a median σ_z ≈ 0.6 (measured). So `p_sameq` under a
+velocity window is
 small even for a candidate sitting exactly on the locus — most of the quasar
 intensity falls outside the window, and `field_q` takes it.
 

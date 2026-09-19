@@ -14,8 +14,8 @@ memory.
   probability — all correct, all implemented as specified.
 - **The plan omits its own binding limitation.** A ±2000 km/s window at
   *z* = 1.4 is Δ*z* = 0.016, while broadband colours pin a quasar redshift to
-  σ_z ≈ 0.1–0.3. So `P_sameQ` under a velocity window is ≲ 0.3 *even for an
-  object sitting exactly on the locus* — verified in
+  a median σ_z ≈ 0.6 (measured, §9a). So `P_sameQ` under a velocity window is
+  small *even for an object sitting exactly on the locus* — verified in
   `test_a_velocity_window_is_far_narrower_than_any_colour_redshift`. Colours
   rank candidates; they cannot establish a velocity-scale redshift match. This
   must be stated in the output contract, not discovered later.
@@ -67,8 +67,9 @@ At *z*₀ = 1.4, a ±2000 km s⁻¹ window is
 
     Δz = (1 + z0) Δv / c = 2.4 × 2000 / 299792.458 = 0.016
 
-Broadband quasar photometric redshifts are, at best, σ_z of order 0.1 and
-frequently multi-modal — that is the central result of the XDQSOz paper
+Broadband quasar photometric redshifts are much looser than the window and
+frequently multi-modal — measured on this model, a median posterior width of
+σ_z ≈ 0.6 (§9a) — that is the central result of the XDQSOz paper
 (Bovy et al. 2012, <https://arxiv.org/abs/1105.3975>), whose whole purpose was
 to produce a quasar redshift *PDF* rather than a point estimate. The window is
 therefore ~10× narrower than the measurement. The consequence is arithmetic:
@@ -306,8 +307,16 @@ the *wrong* redshift it is worth about a factor of 4.5.
 This is a statement about the information in *grz*+W1W2, not about the
 estimator: these bands identify quasars well and locate them in redshift only
 weakly. The measured photometric redshift width for a typical object is
-σ_z ≈ 0.29, and the fitted conditional loci at *z* = 0.9, 1.8 and 3.0 overlap
-substantially.
+a median σ_z ≈ 0.6 over 1500 quasars (16–84th percentile 0.36–0.78; 68% credible
+interval ≈ 0.71 wide), and the fitted conditional loci at *z* = 0.9, 1.8 and 3.0
+overlap substantially. The median distance from the posterior mean to the true
+redshift is 0.28 — the point estimate is better than the width implies, but it
+is the width that sets how much probability a narrow window can capture.
+
+These numbers come from the illustrative model in `scripts/make_method_figures.py`
+(one sky patch, 24 slices, 6 components, *grz*+W1W2, no magnitude conditioning,
+nothing held out). A tuned model may do better; treat them as the scale of the
+problem, not as the achievable limit.
 
 Three consequences for the programme:
 

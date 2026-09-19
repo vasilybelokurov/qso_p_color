@@ -78,6 +78,10 @@ redshift_match:
     mode: dz_window
     dz_half_width: 0.3
     kernel: tophat
+  # 1-sigma error on the PRIMARY's spectroscopic redshift, in dz. Negligible
+  # for a pipeline redshift (DESI median 0.0004); set it to the systemic
+  # uncertainty if the primary's redshift comes from broad lines. This is not
+  # the companion's photometric width, which is ~0.6 and is the real limit.
   z_primary_err: 0.0
 
 inference:

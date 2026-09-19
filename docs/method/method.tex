@@ -386,12 +386,16 @@ is
          = 2.4\times\frac{2000}{299792.458} = 0.016 .
 \end{equation}
 %
-Broadband colours constrain a quasar redshift to $\sigma_z$ of order $0.1$, and
-often to a multimodal distribution rather than a single peak --- which is why
-XDQSOz produces a redshift \emph{PDF} in the first place
-\citep{bovy2012xdqsoz}. The window is therefore roughly an order of magnitude
-narrower than the measurement. Figure~\ref{fig:window} shows this directly for
-three real quasars.
+Broadband colours constrain a quasar redshift far more loosely, and often to a
+multimodal distribution rather than a single peak --- which is why XDQSOz
+produces a redshift \emph{PDF} in the first place \citep{bovy2012xdqsoz}.
+Measured on $1500$ real DESI quasars with the model of \S\ref{sec:qso}, the
+median posterior width $\sigma_z\approx0.6$ (16--84th percentile $0.36$--$0.78$; 68\% credible interval $\approx0.71$ wide). The median distance from the posterior mean to the
+spectroscopic redshift is $0.28$, so the point estimate is better than the
+posterior width alone suggests; but it is the \emph{width} that governs how
+much probability a narrow window can capture. The match window is therefore
+some sixteen times narrower than the measurement, not merely a few times.
+Figure~\ref{fig:window} shows this for three real quasars.
 
 The arithmetic consequence is unavoidable: almost all of a candidate's quasar
 intensity falls outside the window, so
@@ -407,10 +411,90 @@ and it means the question as posed is not the one colours can answer.
 real DESI quasars with $z_{\rm spec}\approx1.8$, showing the width and the
 secondary solutions that broadband colours cannot resolve. \emph{Bottom:} the
 same posterior with a $\pm2000\kms$ window drawn to scale. The window is the
-narrow orange band. Integrating that band against this posterior is what
+narrow orange band. The width quoted on the panel is for \emph{this} object,
+which is better constrained than most; across $1500$ quasars the median width
+is $\sigma_z\approx0.6$ (\S\ref{sec:window}). Integrating that band against this posterior is what
 $p_{\rm same}$ does, and it is why the resulting number is small.}
 \label{fig:window}
 \end{figure}
+
+\subsection{Which uncertainty is the problem}
+\label{sec:whichsigma}
+
+It is worth being explicit about \emph{whose} redshift is uncertain, because
+the two quantities differ by three orders of magnitude and only one of them
+matters.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+ & $\Delta z$ at $z=1.8$ & relative \\
+\midrule
+primary's spectroscopic error        & $0.0004$ & $1\times$ \\
+$\pm2000\kms$ window (half-width)    & $0.019$  & $49\times$ \\
+companion's photometric width        & $0.6$    & $1579\times$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The primary is a spectroscopic object: the median DESI DR1 quasar redshift
+error is $0.0004$, or $43\kms$. It is known some $1600$ times better than the
+companion, and contributes essentially nothing to the blur. The entire
+difficulty sits on the companion, which has no spectrum. A perfectly known
+primary redshift does not help, because it is not the uncertain quantity.
+
+What the primary's precision \emph{does} buy is that
+$p(\cvec\mid Q,z_0)$ is evaluated at a sharp point rather than marginalised
+over a second unknown redshift. That is a real simplification, and it is what
+makes the calculation tractable at all. The primary's error enters only as a
+quadrature broadening of the window, worth $0.02\%$ at these numbers.
+
+One caveat for practice: the $43\kms$ above is a \emph{pipeline statistical}
+error. Quasar systemic redshifts derived from broad lines, and C\,\textsc{iv}
+in particular, carry known systematic offsets that are a non-trivial fraction
+of a pair window. Where the window matters, \texttt{z\_primary\_err} should be
+set to a systemic uncertainty measured for the redshift estimator actually
+used, not to the pipeline value.
+
+\subsection{What sets the companion's width}
+\label{sec:whatsets}
+
+To first order,
+%
+\begin{equation}
+\sigma_z \;\approx\;
+\frac{\text{scatter of colour at fixed } z}
+     {\left|\mathrm{d}(\text{colour})/\mathrm{d}z\right|} ,
+\label{eq:sigmaz}
+\end{equation}
+%
+a ratio between how fast the locus moves and how wide it is. Measured on our
+quasars near $z=1.8$:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+colour & $|\mathrm{d}C/\mathrm{d}z|$ & scatter at fixed $z$ & implied $\sigma_z$ \\
+\midrule
+$g-r$ & $0.356$ & $0.219$ & $0.62$ \\
+$r-z$ & $0.402$ & $0.229$ & $0.57$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Combining the two as if independent gives $0.42$; the full posteriors give
+$0.60$, the difference being the correlation between colours and the
+multimodality created where the locus doubles back on itself.
+
+The practical reading of \eqref{eq:sigmaz} is that the denominator, not the
+numerator, is the lever. At bright magnitudes the scatter is dominated by
+\emph{intrinsic} quasar-to-quasar diversity rather than measurement error ---
+which is exactly what the injection test of Figure~\ref{fig:deconv}
+establishes, with an intrinsic $\sigma_0=0.119$ in $f_g/f_r$ where the
+measurement error is negligible. Deeper imaging in the same bands therefore
+buys little. Improving the redshift constraint requires bands in which quasar
+colour changes \emph{faster} with redshift: a $u$ band spanning the Lyman
+break, or a narrow band tracking a strong emission line.
 
 \subsection{Factorising the window out}
 
@@ -523,7 +607,7 @@ That asymmetry is not a defect of the estimator; it is a statement about the
 information content of $grz+W1W2$ photometry. These bands identify quasars
 very well and locate them in redshift only weakly --- which is visible directly
 in Figure~\ref{fig:slices}, where the conditional loci at $z=0.9$, $1.8$ and
-$3.0$ overlap substantially, and in the $\sigma_z\approx0.29$ of
+$3.0$ overlap substantially, and in the posterior widths of
 Figure~\ref{fig:window}.
 
 The consequences for practice are concrete:

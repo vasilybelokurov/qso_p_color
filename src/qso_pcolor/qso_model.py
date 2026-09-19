@@ -79,8 +79,16 @@ class RedshiftMatch:
     dz_half_width : float, optional
         Half-width directly in redshift.
     z_primary_err : float
-        1-sigma uncertainty on the primary redshift.  It is added in quadrature
-        to the window when ``kernel='gaussian'`` and ignored for a top hat.
+        1-sigma uncertainty on the primary redshift, added in quadrature to the
+        half-width for **both** kernels.  Note that for a spectroscopic primary
+        this is almost always negligible: DESI DR1 quasar redshifts have a
+        median pipeline error of 0.0004 (43 km/s), against a 2000 km/s window of
+        0.037.  Set it to the *systemic* redshift uncertainty rather than the
+        pipeline value if broad-line redshifts are involved, since those carry
+        offsets large enough to matter at the scale of a pair window.  It has
+        nothing to do with the width of the *companion's* photometric redshift,
+        which is larger by three orders of magnitude and is what actually limits
+        the method.
     kernel : {'tophat', 'gaussian'}
         Shape of the match weight over redshift.
     """

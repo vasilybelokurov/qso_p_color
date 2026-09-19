@@ -33,7 +33,8 @@ beats the stellar locus easily and would otherwise be scored as evidence for a
 same-redshift companion.
 
 **Know this before you start.** A ±2000 km s⁻¹ window at *z* = 1.4 is
-Δ*z* = 0.016; colours constrain a quasar redshift to σ_z ≈ 0.1–0.3. So
+Δ*z* = 0.016; colours constrain a quasar redshift to a median σ_z ≈ 0.6
+(measured, `docs/REVIEW_OF_PLAN.md` §9a). So
 `p_sameq` under a velocity window is small even for a perfect candidate. The
 package ranks candidates and reports evidence; it does not deliver "the
 probability this is a binary". Do not tune anything to make that number look

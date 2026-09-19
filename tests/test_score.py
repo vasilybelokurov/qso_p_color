@@ -545,3 +545,30 @@ def test_blend_policy_requires_an_explicit_action():
         BlendPolicy(min_separation_arcsec=3.0, action="ignore")
     with pytest.raises(ValueError, match="positive"):
         BlendPolicy(min_separation_arcsec=0.0)
+
+
+def test_primary_redshift_error_broadens_both_kernels():
+    """z_primary_err is added in quadrature for a top hat as well as a Gaussian.
+
+    The class docstring once claimed it applied only to the Gaussian, while the
+    code applied it to both; this pins the actual behaviour.
+    """
+    for kernel in ("tophat", "gaussian"):
+        sharp = RedshiftMatch(dz_half_width=0.02, kernel=kernel)
+        blunt = RedshiftMatch(dz_half_width=0.02, z_primary_err=0.02, kernel=kernel)
+        # quadrature: sqrt(0.02^2 + 0.02^2) = 0.02*sqrt(2)
+        assert blunt.effective_width(1.0) == pytest.approx(
+            sharp.effective_width(1.0) * np.sqrt(2.0), rel=1e-12
+        )
+        z = np.linspace(0.5, 1.5, 200001)
+        assert np.trapezoid(blunt.weight(z, 1.0), z) == pytest.approx(
+            blunt.effective_width(1.0), rel=1e-3
+        )
+
+
+def test_a_spectroscopic_primary_error_is_negligible_against_a_pair_window():
+    """The measured DESI scale, asserted so the claim in the docs stays true."""
+    desi_zerr = 0.0004                       # median DESI DR1 quasar pipeline error
+    m = RedshiftMatch(half_width_kms=2000.0, z_primary_err=desi_zerr)
+    bare = RedshiftMatch(half_width_kms=2000.0)
+    assert m.effective_width(1.8) / bare.effective_width(1.8) < 1.001
