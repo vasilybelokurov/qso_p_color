@@ -8,10 +8,19 @@ definitions are supported behind one interface:
 
 ``mode='background'`` (default)
     Every catalogue source passing the same photometric quality definition as
-    the candidates, minus known quasars.  This is what a chance projection next
-    to the primary actually draws from — stars, compact galaxies, and whatever
-    else the imaging contains — and it needs no selection function, because it
-    *is* the population being counted.
+    the candidates.  This is what a chance projection next to the primary
+    actually draws from — stars, compact galaxies, and whatever else the imaging
+    contains — and it needs no selection function, because it *is* the
+    population being counted.
+
+    **Known approximation.**  :func:`qso_pcolor.data.fetch_ls_background` does
+    *not* remove spectroscopic quasars, so ``field_q`` and ``bkg`` are not
+    strictly disjoint and quasars are counted in both.  Quasars are a tiny
+    fraction of all sources, but that does not bound the contamination *in
+    quasar-like colour space*, which is the only place it matters.  Removing
+    them needs a crossmatch against the quasar catalogue; until that is done and
+    the size of the effect measured, treat the background as slightly
+    over-dense at quasar colours, which makes ``p_sameq`` conservative there.
 
 ``mode='star'``
     An explicitly purified stellar sample (Gaia astrometry, or spectroscopic

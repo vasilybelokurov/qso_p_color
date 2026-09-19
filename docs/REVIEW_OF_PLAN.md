@@ -296,13 +296,19 @@ Scoring three real populations against a primary at *z*₀ = 1.8:
 
 | population | median log *R* |
 |---|---|
-| quasars at *z* ≈ *z*₀ | 0.0 |
-| quasars at other redshifts (\|*z*−*z*₀\| > 0.6) | −1.5 |
-| random catalogue sources | −11.5 |
+| quasars at *z* ≈ *z*₀ | −0.3 |
+| quasars at other redshifts (\|*z*−*z*₀\| > 0.6) | −2.6 |
+| random catalogue sources | −14.3 |
 
 **The two gaps differ by nearly an order of magnitude in log.** Against the
-field population the statistic is decisive (a factor ~10⁵). Against quasars at
-the *wrong* redshift it is worth about a factor of 4.5.
+field population the statistic is decisive (a factor ~10⁶). Against quasars at
+the *wrong* redshift it is worth about a factor of 10.
+
+(These replace 0.0 / −1.5 / −11.5, published before the external review of
+2026-09-19 found that the background surface density used a full HEALPix pixel
+area, 53.71 deg², for a 1-degree cone of 3.14 deg² — understating Σ_B by 17× and
+inflating every quasar posterior by the same factor. The qualitative conclusion
+is unchanged and slightly strengthened.)
 
 This is a statement about the information in *grz*+W1W2, not about the
 estimator: these bands identify quasars well and locate them in redshift only

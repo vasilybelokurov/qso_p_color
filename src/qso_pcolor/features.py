@@ -257,6 +257,13 @@ class AsinhColourTransform(FeatureTransform):
         b = np.array([self.softening[x] for x in bands], dtype=float)
         band_ok = np.isfinite(flux) & np.isfinite(var) & (var > 0)
 
+        # Substitute a finite placeholder in unusable bands *before* the colour
+        # matrix multiply.  A NaN there would propagate through 0 * NaN into
+        # every colour, including ones built only from good bands, and those
+        # colours would still be flagged observed.
+        flux = np.where(band_ok, flux, 0.0)
+        var = np.where(band_ok, var, 0.0)
+
         m = 22.5 - _2P5_OVER_LN10 * (np.arcsinh(flux / (2 * b)) + np.log(b))
         # dm/df = -(2.5/ln10) / sqrt(4 b^2 + f^2)
         dmdf = -_2P5_OVER_LN10 / np.sqrt(4 * b**2 + flux**2)

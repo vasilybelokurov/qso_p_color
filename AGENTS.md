@@ -237,9 +237,12 @@ plotted against |*b*| and magnitude.
 
 ### M4 — Σ_Q and the posterior
 
-`EmpiricalQSOPrior.build` over a stated area. Default completeness 1, which
-makes `p_sameq` a lower bound — say so in the report rather than inventing a
-luminosity function.
+`EmpiricalQSOPrior.build` over a stated area. Default completeness 1 — a
+declared, reproducible choice, **not** a conservative one. It makes `p_sameq` a
+lower bound only if completeness is redshift-independent; if completeness is
+worse away from `z0` than at it, correcting it raises the field term more and
+the posterior falls. Say that in the report rather than inventing a luminosity
+function.
 
 **Done when**: `test_bayes_factor_is_invariant_under_a_prior_shift` still
 passes on the real models, and every scored row carries both evidence and
@@ -267,6 +270,23 @@ CLI over `score_candidates`, Parquet output matching the contract in section 6,
 plus a one-page diagnostic per interesting candidate: observed colours with
 errors, the quasar locus at *z*₀, the local background density, the quasar-only
 redshift PDF, the Bayes factor, both posteriors, and every quality flag.
+
+### M6a — close out the external review
+
+`docs/reviews/2026-09-19-*` (local, gitignored) holds an independent Codex
+review of the pipeline and the note. Every checkable finding was reproduced and
+all were fixed except the two below, which are recorded rather than done:
+
+- **The background sample still contains quasars**, so `field_q` and `bkg` are
+  not strictly disjoint. Needs a crossmatch, and the size of the effect
+  measured *in quasar-like colour space* — "quasars are rare" does not bound it.
+- **`tune_shrinkage` cannot see `n0`.** It holds out whole nside=2 cells, which
+  is also the default parent resolution, so every validation object falls back
+  to the global model and carries no information about the pooling constant.
+  Hold out at a finer resolution than the parent, or tune on cells rather than
+  objects.
+
+`tests/test_review_regressions.py` pins every defect that was fixed.
 
 ### M7 — blends, and other extensions
 

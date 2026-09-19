@@ -113,20 +113,41 @@ class RedshiftMatch:
         return float((1.0 + z_primary) * self.half_width_kms / C_KM_S)
 
     def weight(self, z: np.ndarray, z_primary: float) -> np.ndarray:
-        """Match weight in [0, 1] over a redshift grid.
+        """Match weight over a redshift grid.  The weight is a selection
+        function, not a normalised density: it multiplies the quasar intensity
+        inside the same-redshift integral.
 
-        A top hat gives a hard window; a Gaussian gives a kernel of the same
-        1-sigma width, both broadened by ``z_primary_err``.  The weight is a
-        *selection* function, not a normalised density: it multiplies the
-        quasar intensity inside the same-redshift integral.
+        With ``z_primary_err = 0`` a top hat is a hard window and a Gaussian is
+        a kernel of the stated 1-sigma width.
+
+        A non-zero ``z_primary_err`` **marginalises** the window over the
+        primary's redshift error, which *smooths* it while preserving its area:
+
+        .. math::
+            \\tilde W(z) = \\int W(z\\mid z_0')\\,
+                \\mathcal{N}(z_0'\\mid z_0,\\sigma^2)\\,\\mathrm{d}z_0' .
+
+        For a top hat this is a difference of normal CDFs; for a Gaussian it is
+        a wider Gaussian with a correspondingly lower peak.  An earlier version
+        instead replaced the half-width by ``hypot(s, sigma)``, which *increased*
+        the window area -- so a less certain primary produced a larger expected
+        number of same-redshift quasars.  That is backwards: uncertainty about
+        where the window sits cannot create companions.
         """
+        from scipy.stats import norm
+
         z = np.asarray(z, dtype=float)
         w = self.half_width(z_primary)
-        s = float(np.hypot(w, self.z_primary_err))
+        sig = float(self.z_primary_err)
         if self.kernel == "tophat":
-            lo, hi = z_primary - s, z_primary + s
-            return ((z >= lo) & (z <= hi)).astype(float)
-        return np.exp(-0.5 * ((z - z_primary) / s) ** 2)
+            if sig <= 0:
+                return ((z >= z_primary - w) & (z <= z_primary + w)).astype(float)
+            return norm.cdf((z - z_primary + w) / sig) - norm.cdf(
+                (z - z_primary - w) / sig
+            )
+        s = float(np.hypot(w, sig))
+        # Preserve the area sqrt(2 pi) w of the unsmoothed Gaussian window.
+        return (w / s) * np.exp(-0.5 * ((z - z_primary) / s) ** 2)
 
     def effective_width(self, z_primary: float) -> float:
         """:math:`\\int W(z\\mid z_0)\\,\\mathrm{d}z`, in units of redshift.
@@ -136,7 +157,9 @@ class RedshiftMatch:
         reliably on any grid coarse enough to cover the quasar redshift range.
 
         For a top hat of half-width *s* this is 2*s*; for a Gaussian of the same
-        1-sigma width it is :math:`\\sqrt{2\\pi}\\,s`.
+        1-sigma width it is :math:`\\sqrt{2\\pi}\\,s`.  It does **not** depend on
+        ``z_primary_err``, because marginalising over the primary's redshift
+        error smooths the window without changing its area.
 
         The same-redshift intensity is proportional to this number, exactly in
         the limit where the window is narrow compared with the scale on which
@@ -144,8 +167,8 @@ class RedshiftMatch:
         velocity window it always is.  That is what makes the window a pure
         multiplicative constant that can be factored out of any ranking.
         """
-        s = float(np.hypot(self.half_width(z_primary), self.z_primary_err))
-        return 2.0 * s if self.kernel == "tophat" else float(np.sqrt(2.0 * np.pi) * s)
+        w = self.half_width(z_primary)
+        return 2.0 * w if self.kernel == "tophat" else float(np.sqrt(2.0 * np.pi) * w)
 
     def is_narrow_for(self, z_grid: np.ndarray, z_primary: float, factor: float = 4.0) -> bool:
         """True when ``z_grid`` cannot resolve the window, so integrating it would fail.
@@ -271,6 +294,11 @@ class SlicedColourRedshiftModel:
         out = np.logaddexp(a, b)
         assert out.shape == (n, z.size)
         return out
+
+    @property
+    def support(self) -> tuple[float, float]:
+        """Redshift range over which the model is trained, as (low, high)."""
+        return float(self.z_centres[0]), float(self.z_centres[-1])
 
     def in_support(self, z: np.ndarray) -> np.ndarray:
         """True where ``z`` lies inside the trained redshift range."""

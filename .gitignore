@@ -12,3 +12,6 @@ models/
 
 # macOS
 .DS_Store
+
+# External review reports (local working material, like JOURNAL.md)
+docs/reviews/

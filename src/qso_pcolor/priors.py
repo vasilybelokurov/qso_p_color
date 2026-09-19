@@ -15,11 +15,23 @@ intensities per unit (colour, magnitude) volume per square degree.
 Honesty rule
 ------------
 :class:`EmpiricalQSOPrior` divides observed spectroscopic counts by a
-completeness :math:`C(z,m) \\le 1`.  The default ``C = 1`` *understates* the true
-quasar density, so the resulting ``p_sameq`` is a **lower bound** under this
-model.  That is a defensible default; inventing a completeness curve is not.  If
-no defensible prior exists at all, the scorer is expected to return Bayes factors
-and leave the posterior fields null rather than fabricate one.
+completeness :math:`C(z,m) \\le 1`.  The default is ``C = 1``, which understates
+the quasar density everywhere.
+
+**That does not make ``p_sameq`` a lower bound**, and an earlier version of this
+docstring wrongly said it did.  The bound holds only if the true completeness is
+*independent of redshift*, so that correcting it scales
+:math:`\\lambda_{\\rm same}` and :math:`\\lambda_{\\rm field}` by the same factor
+and only the fixed background term dilutes.  If completeness is worse away from
+:math:`z_0` than at it, correcting it raises the field term more than the
+same-redshift term and the posterior *falls*.  A concrete case: intensities
+``(same, field, bkg) = (1, 1, 1)`` give ``p = 1/3``; a correction that leaves the
+same-redshift term alone but multiplies the field term by 100 gives ``p = 1/102``.
+
+So ``C = 1`` is a declared, reproducible default, not a conservative one.  Where
+the posterior matters, supply a completeness.  If no defensible prior exists at
+all, the scorer returns Bayes factors and leaves the posterior fields null
+rather than fabricating one.
 """
 
 from __future__ import annotations
@@ -115,20 +127,28 @@ class BackgroundSurfaceDensity:
         return out, lvl
 
     def _parent_totals(self, ppix: int, mb: int) -> tuple[float, float]:
-        tot_c, tot_a = 0.0, 0.0
-        for (pix, b), c in self.counts.items():
-            if b != mb:
-                continue
-            if _parent_pix(np.array([pix]), self.nside, self.nside_parent)[0] == ppix:
-                tot_c += c
-                tot_a += self.area.get(pix, 0.0)
+        """Counts and area of a parent cell.
+
+        The area sums over every *surveyed* child cell, including those with no
+        object in this magnitude bin.  Summing only over cells that happen to
+        contain an object would drop real, empty survey area from the
+        denominator and bias sparse bins high.
+        """
+        tot_c = sum(
+            c for (pix, b), c in self.counts.items()
+            if b == mb
+            and _parent_pix(np.array([pix]), self.nside, self.nside_parent)[0] == ppix
+        )
+        tot_a = sum(
+            a for pix, a in self.area.items()
+            if _parent_pix(np.array([pix]), self.nside, self.nside_parent)[0] == ppix
+        )
         return tot_c, tot_a
 
     def _global(self, mb: int) -> float:
+        """Global density in a magnitude bin, over the whole surveyed area."""
         tot_c = sum(c for (p, b), c in self.counts.items() if b == mb)
-        tot_a = sum(
-            self.area.get(p, 0.0) for (p, b) in self.counts if b == mb
-        )
+        tot_a = sum(self.area.values())
         dm = float(np.diff(self.mag_edges)[mb])
         return tot_c / tot_a / dm if tot_a > 0 else 0.0
 
@@ -143,15 +163,17 @@ class BackgroundSurfaceDensity:
         nside: int = 8,
         nside_parent: int = 2,
         area_per_pixel: dict[int, float] | None = None,
+        total_area_deg2: float | None = None,
         meta: dict | None = None,
     ) -> "BackgroundSurfaceDensity":
         """Count a catalogue into (cell, magnitude) bins.
 
-        ``area_per_pixel`` should give the *usable* area of each cell.  When it
-        is omitted the nominal HEALPix pixel area is used for every cell that
-        contains at least one object, which assumes complete, unmasked coverage
-        — an assumption that is recorded in ``meta`` and is wrong wherever the
-        footprint has holes.
+        Exactly one of ``area_per_pixel`` (usable area per cell, after masking)
+        or ``total_area_deg2`` (the surveyed area, divided among occupied cells
+        in proportion to their counts) must be supplied.  There is no default:
+        assuming a full HEALPix pixel understates the density by the ratio of
+        pixel area to surveyed area, which inflates every quasar posterior by
+        the same factor.
         """
         import healpy as hp
 
@@ -164,13 +186,29 @@ class BackgroundSurfaceDensity:
         for p, b in zip(ipix[inside], imag[inside]):
             counts[(int(p), int(b))] = counts.get((int(p), int(b)), 0.0) + 1.0
 
-        if area_per_pixel is None:
-            nominal = hp.nside2pixarea(nside, degrees=True)
-            area = {int(p): nominal for p in np.unique(ipix[inside])}
-            assumed = True
-        else:
+        if area_per_pixel is not None:
             area = {int(k): float(v) for k, v in area_per_pixel.items()}
             assumed = False
+        elif total_area_deg2 is not None:
+            # Spread a known surveyed area across the occupied cells in
+            # proportion to how many objects each holds.  This is right when the
+            # catalogue covers one contiguous region (a cone, a brick) that does
+            # not fill its HEALPix cells.
+            n_by_pix: dict[int, float] = {}
+            for p in ipix[inside]:
+                n_by_pix[int(p)] = n_by_pix.get(int(p), 0.0) + 1.0
+            n_tot = sum(n_by_pix.values())
+            area = {p: total_area_deg2 * n / n_tot for p, n in n_by_pix.items()}
+            assumed = False
+        else:
+            raise ValueError(
+                "supply area_per_pixel or total_area_deg2. Assuming a full "
+                "HEALPix pixel is almost always wrong -- a 1 deg cone covers "
+                f"{np.pi:.2f} deg^2 while an nside={nside} pixel is "
+                f"{hp.nside2pixarea(nside, degrees=True):.1f} deg^2, which would "
+                "understate the background density by that ratio and inflate "
+                "every quasar posterior."
+            )
 
         return cls(
             nside,
@@ -178,7 +216,7 @@ class BackgroundSurfaceDensity:
             mag_edges,
             counts,
             area,
-            meta={"area_assumed_full_pixel": assumed, **(meta or {})},
+            meta={"area_assumed": assumed, **(meta or {})},
         )
 
     def to_dict(self) -> dict:
@@ -238,14 +276,21 @@ class GridQSOPrior:
             raise ValueError("surface densities must be non-negative")
 
     def __call__(self, z: np.ndarray, ref_mag: float) -> np.ndarray:
-        """Density at redshifts ``z`` and a single reference magnitude."""
+        """Density at redshifts ``z`` and a single reference magnitude.
+
+        Zero outside the tabulated range in **either** variable.  ``np.interp``
+        clamps by default, which would silently extrapolate a magnitude far
+        outside the grid at the edge value while :meth:`in_support` reported it
+        as unsupported; the two must agree.
+        """
         z = np.atleast_1d(np.asarray(z, dtype=float))
+        if not (self.mag_centres[0] <= ref_mag <= self.mag_centres[-1]):
+            return np.zeros_like(z)
         col = np.array(
             [np.interp(ref_mag, self.mag_centres, self.sigma[j]) for j in range(
                 self.z_centres.size)]
         )
-        out = np.interp(z, self.z_centres, col, left=0.0, right=0.0)
-        return out
+        return np.interp(z, self.z_centres, col, left=0.0, right=0.0)
 
     def in_support(self, z: np.ndarray, ref_mag: float) -> np.ndarray:
         z = np.asarray(z, dtype=float)
@@ -290,7 +335,8 @@ class EmpiricalQSOPrior:
 
     with ``A`` the survey area in deg^2 and ``C`` the spectroscopic completeness
     (targeting times redshift success).  ``C`` defaults to 1, which makes the
-    density a lower bound and hence ``p_sameq`` a lower bound.
+    density a lower bound.  That does **not** make ``p_sameq`` a lower bound
+    unless the completeness is redshift-independent -- see the module docstring.
 
     This estimate is only as good as ``A`` and ``C``.  A quasar catalogue's raw
     redshift histogram is *not* the quasar redshift distribution: it is the

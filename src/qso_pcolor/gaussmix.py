@@ -31,6 +31,7 @@ from scipy.special import logsumexp
 
 __all__ = [
     "GaussianMixture",
+    "assert_positive_definite",
     "log_gauss_batch",
     "condition_joint",
 ]
@@ -131,6 +132,10 @@ class GaussianMixture:
             raise ValueError("inconsistent mixture shapes")
         if v.shape[1] != v.shape[2]:
             raise ValueError("covariances must be square")
+        # numpy's Cholesky reads only the lower triangle, so an asymmetric
+        # matrix would be silently accepted and quietly reinterpreted.
+        if not np.allclose(v, np.swapaxes(v, -1, -2), atol=1e-10, rtol=1e-8):
+            raise ValueError("covariances must be symmetric")
         if not np.isclose(w.sum(), 1.0, atol=1e-8):
             raise ValueError(f"weights must sum to 1, got {w.sum()!r}")
         if self.labels and len(self.labels) != mu.shape[1]:
@@ -313,10 +318,14 @@ class GaussianMixture:
 
     @classmethod
     def from_dict(cls, d: dict) -> "GaussianMixture":
+        covs = np.asarray(d["covs"], float)
+        # A serialised model is data from disk: check it here rather than
+        # discovering a corrupt covariance as a NaN likelihood much later.
+        assert_positive_definite(covs, "deserialised covariance")
         return cls(
             np.asarray(d["weights"], float),
             np.asarray(d["means"], float),
-            np.asarray(d["covs"], float),
+            covs,
             labels=tuple(d.get("labels", ())),
         )
 

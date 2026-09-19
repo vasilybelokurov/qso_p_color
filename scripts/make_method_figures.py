@@ -160,9 +160,14 @@ def fit_models(d, args):
         area_deg2=np.pi * args.qso_radius**2,
         z_edges=z_edges, mag_edges=MAG_EDGES,
     )
+    # The surveyed area is the background CONE, not the HEALPix cells it falls
+    # in.  An nside=8 pixel is 53.7 deg^2 against a 1 deg cone of 3.14 deg^2:
+    # assuming the pixel understated Sigma_B by 17x and inflated every quasar
+    # posterior by the same factor.
     bd = BackgroundSurfaceDensity.from_catalogue(
         b["feat"].ref_mag[okb], b["l"][okb], b["b"][okb],
         mag_edges=MAG_EDGES, nside=8, nside_parent=2,
+        total_area_deg2=np.pi * args.bkg_radius**2,
     )
     for obj, key in ((qso, "qso"), (bkg, "bkg"), (qp, "qp"), (bd, "bd")):
         obj.save(paths[key])

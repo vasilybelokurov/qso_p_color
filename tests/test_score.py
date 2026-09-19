@@ -79,6 +79,7 @@ def models():
     bkg_density = BackgroundSurfaceDensity.from_catalogue(
         u["mag_b"], u["l_b"], u["b_b"],
         mag_edges=np.array([19.0, 20.0, 21.0]), nside=4, nside_parent=1,
+        total_area_deg2=1000.0,
     )
     return u, qso, bkg, qso_prior, bkg_density
 
@@ -331,13 +332,35 @@ def test_redshift_match_definitions_are_explicit():
     assert m.describe()["kernel"] == "tophat"
 
 
-def test_gaussian_match_kernel_is_broadened_by_the_primary_error():
-    narrow = RedshiftMatch(dz_half_width=0.01, kernel="gaussian")
-    wide = RedshiftMatch(dz_half_width=0.01, z_primary_err=0.05, kernel="gaussian")
-    z = np.linspace(0.9, 1.1, 501)
-    assert np.trapezoid(wide.weight(z, 1.0), z) > 3 * np.trapezoid(
-        narrow.weight(z, 1.0), z
-    )
+def test_primary_redshift_error_smooths_the_window_without_changing_its_area():
+    """Marginalising over the primary's error must conserve the window area.
+
+    An earlier version widened the window by quadrature, so a *less* certain
+    primary produced a *larger* expected number of same-redshift quasars. That
+    is backwards: uncertainty about where the window sits cannot create
+    companions. The correct operation is a convolution, which smooths the edges
+    and leaves the integral alone.
+    """
+    z = np.linspace(0.0, 2.0, 400001)
+    for kernel in ("tophat", "gaussian"):
+        sharp = RedshiftMatch(dz_half_width=0.02, kernel=kernel)
+        blurred = RedshiftMatch(dz_half_width=0.02, z_primary_err=0.03, kernel=kernel)
+
+        a_sharp = np.trapezoid(sharp.weight(z, 1.0), z)
+        a_blur = np.trapezoid(blurred.weight(z, 1.0), z)
+        # rel=1e-3 because the *sharp* top hat is the inaccurate one here: a
+        # sampled hard edge quantises to the grid step, which is exactly the
+        # artefact the scorer's window sub-grid exists to avoid.
+        assert a_blur == pytest.approx(a_sharp, rel=1e-3)
+        # ... and effective_width, the closed form, agrees with both.
+        assert blurred.effective_width(1.0) == pytest.approx(a_sharp, rel=1e-3)
+        assert blurred.effective_width(1.0) == sharp.effective_width(1.0)
+
+        # The shape really did change: mass moved out of the core into the wings.
+        core = np.abs(z - 1.0) < 0.02
+        assert np.trapezoid(blurred.weight(z, 1.0)[core], z[core]) < np.trapezoid(
+            sharp.weight(z, 1.0)[core], z[core]
+        )
 
 
 # -- serialisation ---------------------------------------------------------
@@ -547,23 +570,12 @@ def test_blend_policy_requires_an_explicit_action():
         BlendPolicy(min_separation_arcsec=0.0)
 
 
-def test_primary_redshift_error_broadens_both_kernels():
-    """z_primary_err is added in quadrature for a top hat as well as a Gaussian.
-
-    The class docstring once claimed it applied only to the Gaussian, while the
-    code applied it to both; this pins the actual behaviour.
-    """
-    for kernel in ("tophat", "gaussian"):
-        sharp = RedshiftMatch(dz_half_width=0.02, kernel=kernel)
-        blunt = RedshiftMatch(dz_half_width=0.02, z_primary_err=0.02, kernel=kernel)
-        # quadrature: sqrt(0.02^2 + 0.02^2) = 0.02*sqrt(2)
-        assert blunt.effective_width(1.0) == pytest.approx(
-            sharp.effective_width(1.0) * np.sqrt(2.0), rel=1e-12
-        )
+def test_effective_width_is_the_closed_form_of_the_sampled_window():
+    for kernel, expect in (("tophat", 0.04), ("gaussian", 0.02 * np.sqrt(2 * np.pi))):
+        m = RedshiftMatch(dz_half_width=0.02, kernel=kernel)
+        assert m.effective_width(1.0) == pytest.approx(expect, rel=1e-12)
         z = np.linspace(0.5, 1.5, 200001)
-        assert np.trapezoid(blunt.weight(z, 1.0), z) == pytest.approx(
-            blunt.effective_width(1.0), rel=1e-3
-        )
+        assert np.trapezoid(m.weight(z, 1.0), z) == pytest.approx(expect, rel=1e-3)
 
 
 def test_a_spectroscopic_primary_error_is_negligible_against_a_pair_window():

@@ -185,6 +185,7 @@ def fit_xd(
         # Accumulators for the M step.
         acc_q = np.zeros(k)
         acc_mu = np.zeros((k, d))
+        acc_dmu = np.zeros((k, d))
         acc_v = np.zeros((k, d, d))
         total_ll = 0.0
 
@@ -221,7 +222,13 @@ def fit_xd(
             acc_q += qw.sum(axis=0)
             acc_mu += np.einsum("mk,mkd->kd", qw, b)
             acc_v += np.einsum("mk,mkde->kde", qw, bmat)
-            acc_v += np.einsum("mk,mkd,mke->kde", qw, b, b)
+            # Second moment about the *current* mean rather than about zero.
+            # Accumulating E[bb^T] and subtracting mu mu^T later loses all
+            # precision when |mu| greatly exceeds the spread: for data at
+            # 1e8 +/- 1 it returned a variance of 0 instead of 1.
+            db = b - mix.means[None, :, :]
+            acc_v += np.einsum("mk,mkd,mke->kde", qw, db, db)
+            acc_dmu += np.einsum("mk,mkd->kd", qw, db)
 
         if acc_q.sum() <= 0:
             raise RuntimeError("EM collapsed: total responsibility is zero")
@@ -231,14 +238,19 @@ def fit_xd(
         if not alive.all():
             log.warning("dropping %d empty component(s)", int((~alive).sum()))
         new_means = np.where(
-            alive[:, None], acc_mu / np.maximum(acc_q, 1e-300)[:, None], mix.means
+            alive[:, None],
+            mix.means + acc_dmu / np.maximum(acc_q, 1e-300)[:, None],
+            mix.means,
         )
         new_covs = np.empty_like(acc_v)
         for j in range(k):
             if not alive[j]:
                 new_covs[j] = mix.covs[j]
                 continue
-            c = acc_v[j] / acc_q[j] - np.outer(new_means[j], new_means[j])
+            # acc_v holds sum q (B + (b - mu_old)(b - mu_old)^T); shifting the
+            # centre from mu_old to mu_new is an exact rank-one correction.
+            shift = acc_dmu[j] / acc_q[j]
+            c = acc_v[j] / acc_q[j] - np.outer(shift, shift)
             c = 0.5 * (c + c.T)
             if regularization:
                 c = c + regularization * np.eye(d)
@@ -254,10 +266,17 @@ def fit_xd(
             break
         prev = mean_ll
 
+    final = GaussianMixture(mix.weights, mix.means, mix.covs, labels=labels)
+    # The likelihood accumulated inside the loop belongs to the mixture *before*
+    # that iteration's M step, so reporting it would describe a model we are not
+    # returning.  Recompute it for the model we actually hand back.
+    final_ll = float(
+        (w_i * final.log_prob(x, cov, observed=obs)).sum() / w_i.sum()
+    )
     return XDFitResult(
-        mixture=GaussianMixture(mix.weights, mix.means, mix.covs, labels=labels),
+        mixture=final,
         n_iter=it,
-        mean_loglike=float(prev),
+        mean_loglike=final_ll,
         converged=converged,
         history=history,
     )

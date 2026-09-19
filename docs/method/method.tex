@@ -268,14 +268,22 @@ w = \frac{z-z_j}{z_{j+1}-z_j}.
 %
 Because each $p_j$ is normalised over colour space, \eqref{eq:slices} is a
 normalised density for any $z$, and the training sample's redshift distribution
-cannot leak into it. The redshift resolution becomes an explicit, tunable
+\emph{between} slices cannot leak into it. It does not follow that no
+redshift-selection effect survives: a slice of finite width estimates the
+colour distribution averaged over the training redshifts \emph{within} that
+slice, so a strongly varying targeting rate inside a slice still biases it, and
+colour-dependent selection affects both this and the joint construction
+equally. Narrower slices reduce the residual at the cost of statistics. The redshift resolution becomes an explicit, tunable
 quantity, and the redshift prior is supplied separately and visibly as
 $\Sq(z,m)$. Figure~\ref{fig:slices} shows the fitted conditional at three
 redshifts.
 
-Both backends are implemented behind one interface. Which predicts held-out
-quasar colours better is an empirical question, to be settled by measurement
-rather than by the argument above.
+Both backends implement the same density interface, but they are not yet
+interchangeable in the scorer, which calls a slice-specific method to reuse
+precomputed per-slice densities. Using the joint model for candidate scoring
+needs that path generalised first. Which predicts held-out quasar colours better
+remains an empirical question, to be settled by measurement rather than by the
+argument above.
 
 \begin{figure}[t]
 \centering
@@ -351,7 +359,13 @@ hypothesis, but the two loci are not disjoint.}
 
 \paragraph{Background.} $\Sb(m,\ell,b)$ is estimated by counting the imaging
 catalogue into the same (cell, magnitude) bins and dividing by the \emph{usable}
-area after masking. Using the nominal cell area instead would bias the density
+area after masking. That area must be supplied; the implementation refuses to
+run without it. The reason is not pedantry: an earlier version of the figure
+pipeline defaulted to the nominal HEALPix pixel area, $53.7\,{\rm deg}^2$ at
+nside~8, for a background cone of $3.14\,{\rm deg}^2$, understating $\Sb$ by a
+factor of $17$ and inflating every quasar posterior by the same factor. Cells
+that were surveyed but happen to hold no object in a magnitude bin must also
+stay in the denominator, or sparse bins are biased high. Using the nominal cell area instead would bias the density
 low wherever the footprint has holes --- and the masking is applied identically
 to the candidates, so the two are consistent by construction.
 
@@ -365,9 +379,16 @@ quasar population. We estimate
 \end{equation}
 %
 with $A$ the surveyed area and $C\le1$ the spectroscopic completeness. The
-default is $C=1$, which \emph{understates} the quasar density and therefore
-makes $p_{\rm same}$ a lower bound. That is a defensible default; inventing a
-completeness curve is not. Where no defensible prior exists at all, the
+default is $C=1$, which understates the quasar density everywhere.
+
+That does \emph{not} make $p_{\rm same}$ a lower bound, and an earlier version
+of this note wrongly said it did. The bound holds only if completeness is
+independent of redshift, so that correcting it scales $\lambda_{\rm same}$ and
+$\lambda_{\rm field}$ together and only the fixed background dilutes. If
+completeness is worse away from $z_0$ than at it, correcting it raises the field
+term more and the posterior \emph{falls}: intensities $(1,1,1)$ give $1/3$,
+while a correction that multiplies only the field term by $100$ gives $1/102$.
+$C=1$ is a declared, reproducible default, not a conservative one. Where no defensible prior exists at all, the
 implementation returns the Bayes factor and leaves the posterior fields null
 with a status code, rather than substituting a class fraction.
 
@@ -413,8 +434,11 @@ secondary solutions that broadband colours cannot resolve. \emph{Bottom:} the
 same posterior with a $\pm2000\kms$ window drawn to scale. The window is the
 narrow orange band. The width quoted on the panel is for \emph{this} object,
 which is better constrained than most; across $1500$ quasars the median width
-is $\sigma_z\approx0.6$ (\S\ref{sec:window}). Integrating that band against this posterior is what
-$p_{\rm same}$ does, and it is why the resulting number is small.}
+is $\sigma_z\approx0.6$ (\S\ref{sec:window}). Note that this is the quasar-only posterior under a \emph{flat} redshift
+prior; $p_{\rm same}$ integrates the same window against
+$\Sigma_Q(z,m)\,p(\cvec\mid Q,z)$ instead. The panel shows the scale of the
+mismatch between window and measurement, which is what makes $p_{\rm same}$
+small, not the quantity itself.}
 \label{fig:window}
 \end{figure}
 
@@ -446,8 +470,12 @@ primary redshift does not help, because it is not the uncertain quantity.
 What the primary's precision \emph{does} buy is that
 $p(\cvec\mid Q,z_0)$ is evaluated at a sharp point rather than marginalised
 over a second unknown redshift. That is a real simplification, and it is what
-makes the calculation tractable at all. The primary's error enters only as a
-quadrature broadening of the window, worth $0.02\%$ at these numbers.
+makes the calculation tractable at all. The primary's error enters by \emph{marginalising} the window over it, which
+smooths the window's edges while conserving its area; a top hat becomes a
+difference of normal CDFs. An earlier implementation instead replaced the
+half-width by $\sqrt{s^2+\sigma_{\rm primary}^2}$, which increased the area, so
+a less certain primary produced a larger expected number of same-redshift
+quasars --- uncertainty about where the window sits cannot create companions.
 
 One caveat for practice: the $43\kms$ above is a \emph{pipeline statistical}
 error. Quasar systemic redshifts derived from broad lines, and C\,\textsc{iv}
@@ -544,9 +572,37 @@ p_{\rm same} = R\;\Delta Z_{\rm eff},
 \label{eq:linear}
 \end{equation}
 %
-a linear relation, not an odds transformation. $R$ carries no window dependence
-whatsoever; the window is one multiplication applied at the end.
-Figure~\ref{fig:factorisation} verifies both halves of this on a real object.
+a linear relation, not an odds transformation.
+
+Two cautions about what this does and does not establish, both of which an
+earlier version of this note got wrong.
+
+First, \eqref{eq:partition} is exact, but \eqref{eq:narrow} is an
+approximation. Writing $f(z)=\Sigma_Q(z,m)p(\cvec\mid Q,z)$, the exact
+statement is
+%
+\begin{equation}
+p_{\rm same}
+= R(z_0)\,\Delta Z_{\rm eff}
++ \frac{\int W(z)\,[f(z)-f(z_0)]\,\dd z}{D},
+\qquad D = \int f\,\dd z + \lambda_{\rm bkg},
+\end{equation}
+%
+so the linear relation holds to the extent that $f$ is flat across the window.
+The leading relative correction is $f''(z_0)s^2/[6f(z_0)]$ for a top hat. Calling
+that $O((s/\sigma_z)^2)$ assumes the posterior width measures local curvature,
+which a multimodal posterior need not satisfy; at a cusp --- and both the
+likelihood and the prior are interpolated piecewise-linearly --- the error is
+instead $O(s)$.
+
+Second, in the implementation $R$ is computed as the \emph{window-averaged}
+intensity, $R = p_{\rm same}/\Delta Z_{\rm eff}$. Equation~\eqref{eq:linear}
+therefore holds for the reported number \emph{by construction}; it is a
+definition, not a derived result. The substantive claim is the separate one that
+$R$ does not depend on the window, and that holds only in the narrow limit.
+Figure~\ref{fig:factorisation} tests it on a real object: over a factor of ten
+in window width $R$ moves by well under a per cent. For a window comparable to
+$\sigma_z$ it is a genuine average and does vary.
 
 \begin{figure}[t]
 \centering
@@ -569,13 +625,16 @@ window stops being narrow compared with $\sigma_z$ and the approximation in
 \item \textbf{Never quote $p_{\rm same}$ without its window.} The two travel
       together in every output row, as \texttt{p\_sameq} and
       \texttt{dz\_match\_eff}.
-\item \textbf{Never integrate a velocity window numerically on a redshift
-      grid.} $\Delta Z_{\rm eff}=0.03$ on a grid of step $0.01$ spans two or
-      three points; a trapezoidal integral of that is numerical noise and can
-      silently return zero. The implementation computes the window area in
-      closed form and switches to \eqref{eq:narrow} whenever the grid cannot
-      resolve the window, using the direct integral when it can. The two agree
-      where both are valid.
+\item \textbf{Never integrate a velocity window on the main redshift grid.}
+      $\Delta Z_{\rm eff}=0.03$ on a grid of step $0.01$ spans two or three
+      points, and a sampled top hat there quantises the answer in units of the
+      grid step --- up to $20\%$ in the regime this project works in. An
+      earlier implementation switched between that integral and the closed form
+      \eqref{eq:narrow} on a grid-resolution test, which merely chose between
+      two inaccurate branches and also counted window area lying outside the
+      trained redshift range. The window integral is now done on its own dense
+      sub-grid, over the intersection of the window with the model's support:
+      one path, exact at any width, with no invented area at the edges.
 \item \textbf{Widening the window does not improve the answer.} It changes the
       question. With $R$ reported separately there is no incentive to.
 \end{enumerate}
@@ -592,16 +651,16 @@ expectations for the whole programme.
 \toprule
 population & median $\log R$ \\
 \midrule
-quasars at $z\approx z_0$        & $0.0$ \\
-quasars at other redshifts       & $-1.5$ \\
-random catalogue sources         & $-11.5$ \\
+quasars at $z\approx z_0$        & $-0.3$ \\
+quasars at other redshifts       & $-2.6$ \\
+random catalogue sources         & $-14.3$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 Two very different gaps. Against the field population the statistic is
-decisive: a factor of $e^{11.5}\approx10^{5}$. Against \emph{quasars at the
-wrong redshift} it is worth only a factor of about $4.5$.
+decisive: $e^{14.0}\approx10^{6}$. Against \emph{quasars at the wrong
+redshift} it is worth a factor of about $10$.
 
 That asymmetry is not a defect of the estimator; it is a statement about the
 information content of $grz+W1W2$ photometry. These bands identify quasars
@@ -620,19 +679,28 @@ The consequences for practice are concrete:
       the dominant competing explanation}, which is precisely why a
       quasar-versus-star calculation would be misleading here rather than
       merely incomplete.
-\item \textbf{Improving redshift discrimination requires more information},
-      not a better estimator on the same bands: a $u$ band or a narrow band
-      bracketing a strong line, variability, or ultimately spectroscopy. The
-      modular likelihood structure is designed so such a term is added as a
-      factor rather than by rewriting the inference.
+\item \textbf{Improving redshift discrimination plausibly requires more
+      information}: a $u$ band or a narrow band bracketing a strong line,
+      variability, or ultimately spectroscopy. This is a reading of
+      \eqref{eq:sigmaz} together with the injection test, not a proven bound ---
+      the numbers come from one untuned model on one sky patch, evaluated in
+      sample, and a difference between population medians establishes neither
+      purity nor an information limit. The modular likelihood structure is
+      designed so such a term can be added as a factor rather than by rewriting
+      the inference.
 \end{itemize}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.74\textwidth]{../../plots/method/fig7_separation.png}
 \caption{The ranking statistic evaluated against a primary at $z_0=1.8$, for
-real quasars at that redshift, real quasars at other redshifts ($|z-z_0|>0.6$),
-and random catalogue sources. Vertical lines mark the medians. The quasar
+real quasars at that redshift ($|z-z_0|<0.05$), real quasars at other redshifts
+($|z-z_0|>0.6$), and random catalogue sources. Vertical lines mark the medians.
+Two limits of this comparison: the ``same'' class extends to $2.7$ times the
+window half-width, so not all of it lies inside the window being scored; and
+nothing populates the gap between $0.05$ and $0.6$, which is where
+discrimination is genuinely hardest. The figure therefore shows dynamic range,
+not an operating characteristic. The quasar
 populations separate from the field by $\sim\!11$ natural logarithms, but from
 \emph{each other} by only $\sim\!1.5$: $grz+W1W2$ photometry identifies quasars
 far better than it locates them in redshift (\S\ref{sec:howmuch}). These
@@ -680,8 +748,14 @@ Nothing above is evidence that the method works. That requires a labelled
 sample, and one exists: pairs in which \emph{both} members have spectra. Around
 each spectroscopic quasar we take every companion that also has a spectrum and
 label it by what that spectrum says --- a quasar at the same redshift, a quasar
-at a different redshift, or something else. Because the labels come from
-spectroscopy, they are independent of the colours being scored.
+at a different redshift, or something else. The \emph{labels} are spectroscopic and so independent of the colours being
+scored. The \emph{inclusion} of an object in the sample is not: DESI targets
+quasars with a classifier built on these very photometric features, so the
+labelled set is a colour-selected subset of the sky. Stratifying by magnitude
+and latitude does not correct targeting, fibre assignment or redshift-success
+selection, and calibration measured on this sample transfers only to candidates
+drawn the same way. Quantifying that is part of the validation, not a caveat to
+be noted and passed over.
 
 From DESI DR1, at separations of $3$--$20''$, this yields approximately $1600$
 confirmed same-redshift pairs and $8400$ projected quasar--quasar pairs, plus
