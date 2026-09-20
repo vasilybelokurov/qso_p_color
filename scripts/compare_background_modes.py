@@ -43,26 +43,33 @@ B_BINS = [(10, 20), (20, 30), (30, 45), (45, 60), (60, 90)]
 
 def draw_cones(n_total, seed, per_bin):
     """Stratified in |b| and split between the centre- and anticentre-facing
-    hemispheres, inside the DECaLS-south footprint where DESI/SDSS observed."""
+    hemispheres, inside the DECaLS-south footprint where DESI/SDSS observed.
+
+    Quotas that the footprint cannot fill (there is almost no sky below
+    |b| = 20 deg) are left short rather than forced; the caller sees fewer
+    cones, and the summary table shows how many landed in each bin.
+    """
     from qso_pcolor.data import galactic_from_equatorial
 
     rng = np.random.default_rng(seed)
+    n_cand = 20000
+    ra = np.where(rng.random(n_cand) < 0.5, rng.uniform(130, 250, n_cand),
+                  rng.uniform(335, 400, n_cand) % 360)
+    dec = rng.uniform(-8, 25, n_cand)
+    l, b = galactic_from_equatorial(ra, dec)          # one vectorised conversion
     quota = {(bi, hemi): per_bin for bi in range(len(B_BINS)) for hemi in (0, 1)}
     out = []
-    tries = 0
-    while any(v > 0 for v in quota.values()) and tries < 200000:
-        tries += 1
-        a = float(rng.choice([rng.uniform(130, 250), rng.uniform(335, 400) % 360]))
-        d = float(rng.uniform(-8, 25))
-        l, b = galactic_from_equatorial(np.array([a]), np.array([d]))
-        l, b = float(l[0]), float(b[0])
-        bi = next((i for i, (lo, hi) in enumerate(B_BINS) if lo <= abs(b) < hi), None)
+    for a, d, li, bi_ in zip(ra, dec, l, b):
+        bi = next((i for i, (lo, hi) in enumerate(B_BINS) if lo <= abs(bi_) < hi), None)
         if bi is None:
             continue
-        hemi = 0 if (l < 90 or l > 270) else 1     # 0: towards the centre, 1: anticentre
+        hemi = 0 if (li < 90 or li > 270) else 1      # 0: towards the centre, 1: anticentre
         if quota[(bi, hemi)] > 0:
             quota[(bi, hemi)] -= 1
-            out.append({"ra": a, "dec": d, "l": l, "b": b, "hemi": hemi, "b_bin": bi})
+            out.append({"ra": float(a), "dec": float(d), "l": float(li), "b": float(bi_),
+                        "hemi": hemi, "b_bin": bi})
+        if not any(quota.values()):
+            break
     return out
 
 

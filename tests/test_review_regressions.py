@@ -728,17 +728,24 @@ def test_validation_figure_name_is_not_shadowed():
 
 def test_background_mode_cones_are_stratified_and_in_footprint():
     """The global-vs-local comparison must sample both hemispheres and every
-    latitude bin it claims to, inside the southern footprint."""
+    latitude bin the footprint can supply, inside the southern footprint.
+
+    The footprint has almost no sky below |b| = 20 deg, so that bin may come
+    back short; every other (bin, hemisphere) quota must be filled.
+    """
     import sys, pathlib
     sys.path.insert(0, str(pathlib.Path("scripts").resolve()))
     from compare_background_modes import B_BINS, draw_cones
 
     cones = draw_cones(40, seed=0, per_bin=2)
-    assert len(cones) == 2 * 2 * len(B_BINS)
-    for bi in range(len(B_BINS)):
+    for bi, (lo, hi) in enumerate(B_BINS):
         for hemi in (0, 1):
-            assert sum(1 for c in cones if c["b_bin"] == bi and c["hemi"] == hemi) == 2
+            n = sum(1 for c in cones if c["b_bin"] == bi and c["hemi"] == hemi)
+            if lo >= 20:
+                assert n == 2, (lo, hi, hemi, n)
+            assert n <= 2
     for c in cones:
         lo, hi = B_BINS[c["b_bin"]]
         assert lo <= abs(c["b"]) < hi
+        assert c["hemi"] == (0 if (c["l"] < 90 or c["l"] > 270) else 1)
         assert -8 <= c["dec"] <= 25 and (130 <= c["ra"] <= 250 or c["ra"] >= 335 or c["ra"] <= 40)
