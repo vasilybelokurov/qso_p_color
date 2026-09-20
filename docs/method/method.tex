@@ -1030,11 +1030,28 @@ $W1$ and $W2$ marginalised out exactly through the observed-dimension mask
 rather than dropped. WISE carries most of the quasar/star discrimination, so
 this shows what the optical colours alone can do.
 
-Each object is treated as a separate problem. The quasars are drawn from the
-model's \emph{reserved} spatial blocks, so none was used in fitting, and the
-field sources come one from each of five independent random fields --- not five
-from one patch, which would share a single stellar environment and be a random
-sample of nothing. Every object then gets its \emph{own} local stellar model,
+Each object is treated as a separate problem. The field sources come one from
+each of five independent random fields --- not five from one patch, which would
+share a single stellar environment and be a random sample of nothing.
+
+\paragraph{A provenance correction.} The quasars in this figure were selected
+by a script that re-derived the model's spatial holdout rather than reading it,
+and re-derived it from a different sample (DESI alone, without de-duplication
+or the quality cut), which yields $78$ candidate blocks where training had
+$81$. Since \texttt{choice} is a function of the array it is given, the same
+seed over a different block list is a different draw: seven of its sixteen
+blocks were training blocks. \textbf{Three of the five quasars plotted here
+therefore lie in blocks that were used in fitting.} We measured what that is
+worth rather than assuming: comparing $\log p(\mathbf{c}\,|\,Q,z_{\rm spec})$
+for in-sample against genuinely held-out quasars, matched in redshift and
+reference magnitude over $45$ cells, gives an in-minus-out difference of
+$+0.018$~nats. Against the $\log B \sim 5$--$15$ of these panels that is
+negligible --- with $\sim\!10^2$ objects per free parameter per slice, an
+object's own contribution to the density at its own location is not resolvable
+--- so the numbers below are what they would have been either way. The split
+is now recorded in the model file --- the seed and the sixteen block IDs --- and
+read rather than reconstructed, so the claim and the figure cannot diverge
+again. Every object then gets its \emph{own} local stellar model,
 fitted in a $0.5^\circ$ cone centred on it with known quasars removed and the
 masked area taken out of the density. The panels show three contours: the
 quasar model at that object's target redshift, the stellar model fitted
@@ -1045,7 +1062,9 @@ object.
 \centering
 \includegraphics[width=\textwidth]{../../plots/examples/optical_only_examples.png}
 \caption{Ten real objects scored on DECaLS colours alone. \emph{Top:} five
-quasars from the model's reserved blocks. \emph{Bottom:} five point sources,
+DESI DR1 quasars; three of the five fall in blocks used for fitting, for the
+reason given in the text, which shifts their colour densities by $+0.018$~nats
+against $\log B \sim 5$--$15$. \emph{Bottom:} five point sources,
 each from a different random field. Contours are the quasar model at $z_0$
 (blue), the stellar model averaged over the footprint (orange, dashed) and the
 stellar model fitted in this object's own neighbourhood (green). Panel titles

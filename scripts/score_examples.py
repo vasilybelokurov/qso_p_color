@@ -19,6 +19,7 @@ them was used in fitting.
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -194,18 +195,32 @@ def main() -> None:
     zq = np.asarray(r["zspec"])[sel]
     lq, bq = galactic_from_equatorial(np.asarray(r["ra"])[sel],
                                       np.asarray(r["dec"])[sel])
-    blocks = galactic_healpix(lq, bq, 4)
-    rh = np.random.default_rng(qso.meta.get("holdout_seed", 0))
-    ub = np.unique(blocks)
-    nh = max(1, int(round(qso.meta.get("holdout_frac", 0.2) * ub.size)))
-    held = set(rh.choice(ub, size=nh, replace=False).tolist())
-    is_held = np.array([g in held for g in blocks])
+    # READ the holdout, never re-derive it. Re-deriving is what went wrong
+    # before: this script rebuilt the block list from DESI alone, without
+    # de-duplication or the quality cut, getting 78 candidate blocks where
+    # training had 81. np.random.choice over a different array is a different
+    # draw however equal the seed, so 7 of its 16 "reserved" blocks were
+    # training blocks and 52% of the objects it called held out had been
+    # fitted. Holdout membership is a property of the *block*, so the block
+    # list is the only thing needed -- this sample need not match training's.
+    held = qso.meta.get("holdout_blocks") or qso.meta.get("holdout_blocks_recovered")
+    if not held:
+        raise SystemExit(
+            f"{args.model} records no holdout_blocks. Re-deriving the split "
+            "here is exactly the bug this replaces; run\n"
+            "    python scripts/recover_holdout_blocks.py --model "
+            f"{args.model}\nto recover and record it, or retrain."
+        )
+    held = set(int(x) for x in held)
+    blocks = galactic_healpix(lq, bq, int(qso.meta.get("holdout_nside", 4)))
+    is_held = np.isin(blocks, list(held))
 
     okq = (fq.usable(min_dims=3) & np.isfinite(fq.ref_mag) & is_held
            & (fq.ref_mag > 19.0) & (fq.ref_mag < 21.5))
     iq = rng.choice(np.flatnonzero(okq), args.n, replace=False)
-    print(f"  {args.n} quasars drawn from the {nh} reserved blocks "
-          f"(never used in fitting)")
+    src = "recorded" if "holdout_blocks" in qso.meta else "recovered"
+    print(f"  {args.n} quasars drawn from the {len(held)} reserved blocks "
+          f"({src} in the model file; never used in fitting)")
 
     # ---- five point sources, from five RANDOM places on the sky ----------
     # Not five from one cone: the field population varies across the sky, so
@@ -256,7 +271,16 @@ def main() -> None:
     mdir = Path("models") / "examples"
     mdir.mkdir(parents=True, exist_ok=True)
     for j, (ora, odec) in enumerate(zip(obj_ra, obj_dec)):
-        mp, dp = mdir / f"local_{j:02d}.json", mdir / f"localdens_{j:02d}.json"
+        # Key the fitted model on WHAT was fitted, not on the loop index. Keyed
+        # on j, changing --seed draws different objects and silently reloads the
+        # previous run's cones -- scoring each candidate against someone else's
+        # sky. This mirrors qso_pcolor.data.cached_query, which hashes the query
+        # text for the same reason.
+        tag = hashlib.sha1(repr((
+            round(float(ora), 6), round(float(odec), 6), float(args.radius),
+            qso.system, MAG_EDGES.tolist(), 8, 22.5,
+        )).encode()).hexdigest()[:10]
+        mp, dp = mdir / f"local_{tag}.json", mdir / f"localdens_{tag}.json"
         if mp.exists() and dp.exists() and not args.refit:
             from qso_pcolor.background import BackgroundColourModel
             from qso_pcolor.priors import BackgroundSurfaceDensity
@@ -269,7 +293,7 @@ def main() -> None:
             float(ora), float(odec), args.radius, transform=tr, bands=BANDS,
             mag_edges=MAG_EDGES, system=qso.system, n_components=8,
             max_ref_mag=22.5,
-            cache=Path("data") / f"example_bkg_{j:02d}.npz",
+            cache=Path("data") / f"example_bkg_{tag}.npz",
             seed=0, max_iter=300, regularization=1e-6,
         )
         bkg_j.save(mp); bd_j.save(dp)

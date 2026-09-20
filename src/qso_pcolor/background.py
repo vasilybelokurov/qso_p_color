@@ -50,6 +50,7 @@ HEALPix is used in the NESTED scheme so the parent cell is a bit shift, and in
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -59,6 +60,8 @@ import numpy as np
 from .gaussmix import GaussianMixture
 from .xd import fit_xd
 
+log = logging.getLogger(__name__)
+
 __all__ = [
     "BackgroundColourModel",
     "fit_background_model",
@@ -66,6 +69,15 @@ __all__ = [
     "tune_shrinkage",
     "galactic_healpix",
 ]
+
+
+# Legacy Surveys ``release`` codes by photometric system. 9010 is DECaLS
+# (south), 9011 BASS/MzLS (north); they are different systems, not two halves of
+# one, which is why a model carries its system and the scorer refuses to mix.
+_RELEASE_FOR_SYSTEM = {
+    "ls_dr9_south_grzw": 9010,
+    "ls_dr9_north_grzw": 9011,
+}
 
 
 def galactic_healpix(l_deg: np.ndarray, b_deg: np.ndarray, nside: int) -> np.ndarray:
@@ -429,6 +441,28 @@ def fit_local_background(
     cache = Path(cache) if cache is not None else Path("data") / "local_bkg.npz"
     r = fetch_ls_background(cache, ra=ra, dec=dec, radius_deg=radius_deg, table=table)
     n_raw = int(np.size(r["ra"]))
+
+    # ``system`` is a label the caller chose; the scorer compares labels, so a
+    # wrong one silently certifies data it does not describe. North (BASS/MzLS)
+    # and south (DECaLS) are different photometric systems, and a cone near the
+    # boundary returns both. Check the label against what the query returned,
+    # here, where the data is -- not downstream, where only the label survives.
+    rel = np.asarray(r.get("release", []), int)
+    if rel.size:
+        want = _RELEASE_FOR_SYSTEM.get(system)
+        present = sorted(int(x) for x in np.unique(rel))
+        if want is None:
+            log.warning(
+                "system %r has no known release; cone returned releases %s, "
+                "which are not being checked", system, present,
+            )
+        elif present != [want]:
+            raise ValueError(
+                f"photometric system mismatch: system={system!r} implies "
+                f"release {want}, but this cone at ({ra}, {dec}) returned "
+                f"release(s) {present}. A mixed or wrong-hemisphere cone cannot "
+                f"be labelled with one system; fit north and south separately."
+            )
 
     maskbits = np.asarray(r.get("maskbits", np.zeros(n_raw)))
     unmasked = maskbits == 0

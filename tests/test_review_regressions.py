@@ -318,3 +318,118 @@ def test_photometric_system_names_are_release_aware():
     assert 'f"ls_dr9_{args.system}_grzw"' in train
     # the ambiguous name must not survive anywhere
     assert '"ls_dr9_grzw"' not in fig
+
+
+# ------------------------------------- package-state review, 2026-09-20
+
+def test_model_file_records_its_holdout_split():
+    """A split that is re-derived by each consumer gets re-derived differently.
+
+    ``score_examples.py`` rebuilt the nside=4 block list from DESI alone,
+    without de-duplication or the quality cut: 78 candidate blocks where
+    training had 81. ``np.random.choice`` is a function of the array it is
+    given, so the same seed over a different list is a different draw -- 7 of
+    its 16 "reserved" blocks were training blocks and 52% of the objects it
+    called held out had been fitted. The cure is to record the split.
+    """
+    import json
+    import pathlib
+
+    meta = json.loads(pathlib.Path("models/qso_south_full.json").read_text())["meta"]
+    blocks = meta.get("holdout_blocks") or meta.get("holdout_blocks_recovered")
+    assert blocks, "the shipped model must record its holdout block IDs"
+    assert "holdout_seed" in meta
+    # the recorded list must be consistent with the recorded fractions
+    n_total = meta.get("n_blocks_total") or meta["holdout_recovery"]["n_blocks_total"]
+    assert len(blocks) == max(1, round(meta["holdout_frac"] * n_total))
+    assert len(set(blocks)) == len(blocks)
+
+
+def test_training_records_the_split_not_just_the_recipe():
+    """New models must carry the split natively, not need recovering."""
+    import pathlib
+
+    src = pathlib.Path("scripts/train_qso_model.py").read_text()
+    assert '"holdout_seed": args.holdout_seed' in src
+    assert '"holdout_blocks": sorted(int(x) for x in held_blocks)' in src
+
+
+def test_examples_read_the_holdout_and_never_redraw_it():
+    """The bug was a re-draw; assert the re-draw is gone, not merely fixed."""
+    import pathlib
+
+    src = pathlib.Path("scripts/score_examples.py").read_text()
+    assert 'qso.meta.get("holdout_blocks")' in src
+    # no seeded draw over a block list anywhere in this script
+    assert "rh.choice" not in src and "rh = np.random.default_rng" not in src
+    # and it must refuse rather than guess when the model does not record one
+    assert "records no holdout_blocks" in src
+
+
+def test_example_background_cache_is_keyed_on_content():
+    """Keyed on the loop index, --seed silently reused the previous cones."""
+    import pathlib
+
+    src = pathlib.Path("scripts/score_examples.py").read_text()
+    assert 'local_{j:02d}.json' not in src
+    assert 'example_bkg_{j:02d}.npz' not in src
+    assert "hashlib.sha1" in src and "local_{tag}.json" in src
+
+
+def test_local_background_rejects_wrong_or_mixed_release():
+    """``system`` is a caller-supplied label; the data must be checked too.
+
+    The scorer compares model labels, so labelling a northern or mixed cone
+    with the southern system name certifies data it does not describe.
+    """
+    import numpy as np
+    import pytest
+
+    from qso_pcolor import background
+
+    rows = {"ra": np.array([180.0, 180.1]), "dec": np.array([0.0, 0.1]),
+            "release": np.array([9010, 9011]), "maskbits": np.zeros(2)}
+    monkey = background.__dict__
+    orig = monkey.get("fit_local_background")
+    assert orig is not None
+
+    import qso_pcolor.data as data
+
+    saved = data.fetch_ls_background
+    data.fetch_ls_background = lambda *a, **k: rows
+    try:
+        with pytest.raises(ValueError, match="photometric system mismatch"):
+            background.fit_local_background(
+                180.0, 0.0, 0.5, transform=None, bands=("g", "r", "z"),
+                mag_edges=np.array([17.0, 22.5]), system="ls_dr9_south_grzw",
+            )
+        # a pure northern cone labelled north is fine as far as this check goes
+        rows["release"] = np.array([9011, 9011])
+        with pytest.raises(ValueError, match="photometric system mismatch"):
+            background.fit_local_background(
+                180.0, 0.0, 0.5, transform=None, bands=("g", "r", "z"),
+                mag_edges=np.array([17.0, 22.5]), system="ls_dr9_south_grzw",
+            )
+    finally:
+        data.fetch_ls_background = saved
+
+
+def test_readme_matches_the_shipped_model():
+    """The README described 1.24 M DESI quasars; a third of them are SDSS."""
+    import json
+    import pathlib
+
+    meta = json.loads(pathlib.Path("models/qso_south_full.json").read_text())["meta"]
+    readme = pathlib.Path("README.md").read_text()
+    for key in ("n_train", "n_desi", "n_sdss", "n_holdout"):
+        assert f"{meta[key]:,}" in readme, f"README does not state {key}"
+    assert "1.24 M DESI" not in readme
+
+
+def test_readme_install_includes_the_extras_it_then_uses():
+    """pip install -e . installs neither pytest nor sqlutilpy."""
+    import pathlib
+
+    readme = pathlib.Path("README.md").read_text()
+    assert 'pip install -e ".[dev,wsdb]"' in readme
+    assert "\npip install -e .\n" not in readme

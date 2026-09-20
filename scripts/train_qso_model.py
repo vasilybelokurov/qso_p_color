@@ -289,6 +289,15 @@ def main() -> None:
             "n_holdout": int(is_held.sum()),
             "holdout_frac": args.holdout_frac,
             "holdout_nside": 4,
+            # Record the split itself, not just the recipe for it. An earlier
+            # version stored only frac and nside, so every consumer had to
+            # re-derive the draw -- and score_examples.py re-derived it from a
+            # different sample, calling 52% of the training set "reserved".
+            # np.random.choice is a function of the input array, so the same
+            # seed over a different block list is a different split.
+            "holdout_seed": args.holdout_seed,
+            "holdout_blocks": sorted(int(x) for x in held_blocks),
+            "n_blocks_total": int(blocks.size),
             "n_desi": int((channel[ok][~is_held] == "desi").sum()),
             "n_sdss": int((channel[ok][~is_held] == "sdss").sum()),
             "z_range": [args.zmin, args.zmax],

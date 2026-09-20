@@ -92,9 +92,11 @@ src/qso_pcolor/
   plotting.py    save_figure: every figure a PNG under plots/
 tools/journal.py          JOURNAL.md updater
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
-scripts/make_method_figures.py     the seven figures for the method note
+scripts/make_method_figures.py     figures 1-8 for the method note
+scripts/score_examples.py          figure 9: ten real objects, local backgrounds
+scripts/recover_holdout_blocks.py  recover a trained model's spatial holdout
 docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    55 tests; see section 7
+tests/                    98 tests; see section 7
 ```
 
 Not yet built: the validation and calibration module, the diagnostic plots,
@@ -356,6 +358,50 @@ all were fixed except the two below, which are recorded rather than done:
   objects.
 
 `tests/test_review_regressions.py` pins every defect that was fixed.
+
+### M6b — close out the package-state review (2026-09-20)
+
+A second Codex pass assessed the repository as a handover artefact. Every
+checkable finding was reproduced; `/tmp/codex_state.md` (local) has the
+original. **Batch 1, done:**
+
+- **The holdout split was re-derived, not recorded.** `train_qso_model.py`
+  stored `holdout_frac` and `holdout_nside` but neither the seed nor the block
+  IDs, so `score_examples.py` re-derived the draw from a different sample
+  (DESI-only, no de-duplication, no quality cut): 78 candidate blocks against
+  training's 81, 7 of 16 blocks shared, 52 % of "reserved" objects actually
+  fitted, and 3 of the 5 quasars in fig. 9 trained on. Measured cost: **+0.018
+  nats** in-sample versus held-out, matched in (z, r-mag) over 45 cells,
+  against log B ~ 5-15 — negligible, so the numbers stand and only the claim
+  was wrong. `holdout_seed` + `holdout_blocks` are now written at training
+  time; `scripts/recover_holdout_blocks.py` recovered them for the shipped
+  model and verified the replay against all four recorded counts; consumers
+  read the list and refuse rather than guess.
+- README's model description (said 1.24 M DESI; a third of the sample is SDSS),
+  install extras, test count, and example (l, b).
+- Local background caches keyed on (ra, dec, radius, system, bins), not on the
+  loop index — `--seed` used to silently reuse the previous run's cones.
+- `fit_local_background` now checks the returned `release` against the `system`
+  label it is asked to stamp, instead of certifying whatever it was handed.
+
+**Deferred, with reasons:**
+
+- **Redshift normalisation integrates outside model support.** `DEFAULT_Z_GRID`
+  spans 0.05-5.0, the model 0.45-3.55, and `log_p_colour_given_z` clamps, so
+  edge slices repeat. Measured: **7.1 %** of the no-prior normalisation for the
+  README candidate lies outside support. Affects `p_zmatch_given_qso`, not the
+  Bayes factor. Needs a decision — clip the grid to support and flag, or
+  renormalise — and it moves published numbers. *Batch 2.*
+- **Training quality cuts differ by channel.** The SDSS match requires
+  `maskbits = 0`; the DESI branch returns `maskbits` and never applies it. One
+  third of the training set is mask-clean, two thirds is not. Needs a retrain.
+- **K is selected on the wrong model.** `--select-k` pools 0.4 < z < 3.6 into
+  one sample, fits a single *unconditional* mixture, and uses that K in all 32
+  conditional slices. Not held-out selection of the deployed model. Needs a
+  retrain; do it with the `maskbits` fix.
+- `allow_pickle=True` and non-atomic writes in `data.cached_query`; the README
+  offering `log_bayes_factor_qz_bkg` as an alternative ranking statistic when it
+  contains no `field_q` term. Both cheap; folded into batch 2.
 
 ### M7 — blends, and other extensions
 
