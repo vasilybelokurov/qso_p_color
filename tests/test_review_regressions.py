@@ -484,3 +484,96 @@ def test_extension_is_recorded_as_provenance():
     assert ext["slices_added_low"] + ext["slices_added_high"] == 11
     assert len(ext["k_selection_per_new_slice"]) == 11
     assert len(q.meta["per_slice"]) == 43
+
+
+# ---------------------------------------- batch 2 review fixes, 2026-09-20
+
+def test_redshift_normalisation_stops_at_the_model_support():
+    """Outside support the model replays its edge slice; do not integrate it.
+
+    Normalising over a grid wider than the trained range makes
+    p_zmatch_given_qso depend on where the grid happens to stop.
+    """
+    import pathlib
+
+    src = pathlib.Path("src/qso_pcolor/score.py").read_text()
+    assert "in_sup = qso_model.in_support(z_grid)" in src
+    assert "post = np.where(in_sup, post, 0.0)" in src
+    # and the discarded share must be reported, not silently dropped
+    assert "frac_norm_outside_support" in src
+    assert "colours_explained_only_outside_model_redshift_support" in src
+
+
+def test_scorer_reports_the_discarded_normalisation():
+    """End to end: the diagnostic must equal an independent calculation."""
+    from qso_pcolor.qso_model import SlicedColourRedshiftModel
+    from qso_pcolor.score import DEFAULT_Z_GRID
+    from qso_pcolor.features import RelativeFluxTransform, deredden
+
+    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    tr = RelativeFluxTransform(reference_band="r")
+    f, v = deredden(np.array([[1.9, 2.6, 3.1, 11.0, 14.0]]),
+                    np.array([[120.0, 150.0, 60.0, 8.0, 3.0]]),
+                    np.array([[0.97, 0.98, 0.99, 1.0, 1.0]]))
+    feat = tr(f, v, ("g", "r", "z", "w1", "w2"))
+    lp = q.log_p_colour_given_z(feat.x, feat.cov, DEFAULT_Z_GRID,
+                                observed=feat.observed)[0]
+    p = np.exp(lp - lp.max())
+    frac = 1 - (np.trapezoid(p * q.in_support(DEFAULT_Z_GRID), DEFAULT_Z_GRID)
+                / np.trapezoid(p, DEFAULT_Z_GRID))
+    # the shipped model's support covers 0.15-4.35, so this is small but nonzero
+    assert 0.0 < frac < 0.05, frac
+
+
+def test_sdss_training_cache_is_keyed_on_its_query():
+    """Checking only that the file exists reused the sample across z limits."""
+    import pathlib
+
+    src = pathlib.Path("scripts/train_qso_model.py").read_text()
+    assert "hashlib.sha1((positions_q + SDSS_MATCH_QUERY).encode())" in src
+    assert "if cache.exists() and not refresh:\n        with np.load" not in src
+
+
+def test_caches_are_written_atomically_and_not_blindly_unpickled():
+    """A truncated cache is worse than none; the next run loads and proceeds."""
+    import pathlib
+
+    src = pathlib.Path("src/qso_pcolor/data.py").read_text()
+    assert "os.replace(tmp, path)" in src
+    # the plain load must be tried before the unpickling fallback (compare the
+    # two np.load CALLS; the docstring mentions allow_pickle earlier than both)
+    assert (src.index("with np.load(path) as z")
+            < src.index("with np.load(path, allow_pickle=True) as z"))
+    # and nothing else in the module may unpickle unconditionally
+    assert src.count("np.load(") == 2
+
+
+def test_npz_helpers_round_trip_and_leave_no_temp_file(tmp_path):
+    import numpy as _np
+
+    from qso_pcolor.data import _load_npz, _save_npz
+
+    dest = tmp_path / "sub" / "c.npz"
+    _save_npz(dest, a=_np.arange(5.0), _query=_np.array("SELECT 1"))
+    assert dest.exists()
+    assert not list(tmp_path.glob("**/.*tmp.npz")), "temp file left behind"
+    got = _load_npz(dest)
+    assert set(got) == {"a"} and _np.allclose(got["a"], _np.arange(5.0))
+
+
+def test_makefile_depends_on_the_examples_figure():
+    """A wildcard over plots/method alone misses figure 9."""
+    import pathlib
+
+    mk = pathlib.Path("docs/method/Makefile").read_text()
+    assert "plots/examples/*.png" in mk
+    assert "scripts/score_examples.py" in mk
+
+
+def test_readme_does_not_offer_the_bayes_factor_as_a_ranking_statistic():
+    """It has no field_q term, so it cannot order same-z against wrong-z."""
+    import pathlib
+
+    readme = pathlib.Path("README.md").read_text()
+    assert "`log_r_per_unit_z` or `log_bayes_factor_qz_bkg`" not in readme
+    assert "**not** an alternative ranking statistic" in readme

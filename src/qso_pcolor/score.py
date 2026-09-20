@@ -165,6 +165,14 @@ class PairScore:
     dz_match_eff: float
 
     # -- diagnostics
+    # Share of the redshift normalisation that the integration grid would have
+    # taken from outside the model's trained range, where log_p_colour_given_z
+    # clamps and replays the edge slice.  The scorer excludes that region, so
+    # this is what was DISCARDED, not what was used: a large value means this
+    # candidate's colours are best explained at a redshift the model has never
+    # seen, and p_zmatch_given_qso is conditional on a range that may exclude
+    # the truth.
+    frac_norm_outside_support: float
     qso_ood_sigma: float
     background_local_weight: float
     background_density_level: int
@@ -419,7 +427,29 @@ def score_candidates(
             continue
         shift = float(np.nanmax(log_post[np.isfinite(log_post)]))
         post = np.where(np.isfinite(log_post), np.exp(log_post - shift), 0.0)
+
+        # Integrate only where the model is defined.  Outside its support
+        # ``log_p_colour_given_z`` clamps its interpolation index and returns
+        # the nearest edge slice, so a wider grid does not extend the model --
+        # it replays one slice over a region it never measured, and normalising
+        # over that makes p_zmatch_given_qso depend on where the grid happens to
+        # stop.  Measured before the range was widened, that fiction carried
+        # 7.1% of the normalisation for the README candidate; after widening to
+        # 0.15 < z < 4.35 it is 2.25%, which is smaller but no more real.
+        in_sup = qso_model.in_support(z_grid)
+        norm_all = _trapz(post, z_grid)
+        post = np.where(in_sup, post, 0.0)
         norm = _trapz(post, z_grid)
+        frac_out = float(1.0 - norm / norm_all) if norm_all > 0 else float("nan")
+        if norm <= 0:
+            out.append(
+                _null_score(
+                    cid[i], pid[i], z_primary[i], features, sysname, i,
+                    "colours_explained_only_outside_model_redshift_support",
+                    flags, manifest_id, int(n_bands[i]),
+                )
+            )
+            continue
         z_mode = float(z_grid[int(np.argmax(post))])
 
         # Numerator on the window sub-grid, denominator on the main grid, both
@@ -536,6 +566,7 @@ def score_candidates(
                 log_bayes_factor_qz_bkg=log_bf,
                 p_zmatch_given_qso=p_zmatch,
                 z_phot_mode=z_mode,
+                frac_norm_outside_support=frac_out,
                 log_lambda_sameq=log_lam_s,
                 log_lambda_fieldq=log_lam_f,
                 log_lambda_bkg=log_lam_b,
@@ -633,6 +664,7 @@ def _null_score(cid, pid, zp, features, sysname, i, status, flags, manifest, nb)
         loglike_bkg=nan,
         log_bayes_factor_qz_bkg=nan,
         p_zmatch_given_qso=nan,
+        frac_norm_outside_support=nan,
         z_phot_mode=nan,
         log_lambda_sameq=nan,
         log_lambda_fieldq=nan,

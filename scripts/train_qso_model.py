@@ -40,6 +40,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -111,18 +112,25 @@ def load_sdss(cache: Path, zmin: float, zmax: float, refresh: bool = False) -> d
 
     from qso_pcolor.data import cached_query
 
+    from qso_pcolor.data import _load_npz, _save_npz
+
+    # Key this cache on what produced it, like every other cache here. Checking
+    # only that the file exists meant changing --zmin/--zmax silently reused the
+    # previous sample: the positions query was hash-keyed, but the match result
+    # it fed was not, so the hash protected the wrong half of the operation.
+    positions_q = (
+        f"SELECT ra, dec, z AS zspec FROM sdssdr16qso.main "
+        f"WHERE z > {zmin} AND z < {zmax} AND zwarning = 0"
+    )
+    digest = hashlib.sha1((positions_q + SDSS_MATCH_QUERY).encode()).hexdigest()[:10]
     cache = Path(cache)
+    cache = cache.with_name(f"{cache.stem}_{digest}.npz")
     if cache.exists() and not refresh:
-        with np.load(cache, allow_pickle=True) as z:
-            out = {k: z[k] for k in z.files}
+        out = _load_npz(cache)
         print(f"  SDSS DR16Q x LS DR9: {out['zspec'].size:,} (cached)")
         return out
 
-    q = cached_query(
-        f"SELECT ra, dec, z AS zspec FROM sdssdr16qso.main "
-        f"WHERE z > {zmin} AND z < {zmax} AND zwarning = 0",
-        cache.with_name("dr16q_positions.npz"),
-    )
+    q = cached_query(positions_q, cache.with_name("dr16q_positions.npz"))
     idx = np.arange(q["ra"].size, dtype=np.int64)
     t0 = time.time()
     m = sqlutil.local_join(
@@ -133,8 +141,7 @@ def load_sdss(cache: Path, zmin: float, zmax: float, refresh: bool = False) -> d
     # The lateral LIMIT 1 already returns at most one row per input object.
     print(f"  SDSS DR16Q x LS DR9: {m['zspec'].size:,} matched "
           f"of {idx.size:,} ({time.time() - t0:.0f} s)")
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(cache, **m)
+    _save_npz(cache, **m)
     return m
 
 

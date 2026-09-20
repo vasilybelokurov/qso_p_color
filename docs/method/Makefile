@@ -4,7 +4,10 @@
 
 TEX  := method.tex
 PDF  := method.pdf
-FIGS := $(wildcard ../../plots/method/*.png)
+# Figure 9 lives under plots/examples/ and is made by a different script, so a
+# wildcard over plots/method/ alone silently stops the PDF rebuilding when it
+# changes.
+FIGS := $(wildcard ../../plots/method/*.png) $(wildcard ../../plots/examples/*.png)
 
 .PHONY: all clean figures watch
 
@@ -15,6 +18,7 @@ $(PDF): $(TEX) $(FIGS)
 
 figures:
 	cd ../.. && python scripts/make_method_figures.py
+	cd ../.. && python scripts/score_examples.py
 
 watch:
 	latexmk -pdf -pvc -interaction=nonstopmode $(TEX)

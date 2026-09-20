@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -109,15 +110,57 @@ def cached_query(query: str, cache: str | Path, *, refresh: bool = False, **kw) 
         cache = cache.with_name(f"{cache.name}_{digest}.npz")
 
     if cache.exists() and not refresh:
-        with np.load(cache, allow_pickle=True) as z:
-            return {k: z[k] for k in z.files if not k.startswith("_")}
+        return _load_npz(cache)
 
     t0 = time.time()
     res = _sqlutil().get(query, asDict=True, **kw)
     log.info("query returned %d rows in %.1f s", len(next(iter(res.values()))), time.time() - t0)
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(cache, _query=np.array(query), **res)
+    _save_npz(cache, _query=np.array(query), **res)
     return res
+
+
+def _load_npz(path: Path) -> dict:
+    """Read a cache, unpickling only when the file genuinely needs it.
+
+    ``allow_pickle=True`` on every load turns any ``.npz`` under ``data/`` into
+    an arbitrary-code-execution vector: a cache copied from a colleague, or a
+    stale file in a shared scratch directory, executes on read.  Almost every
+    cache here is plain numeric arrays, so try the safe path first and fall back
+    only for the object-dtype columns (string columns from ``sqlutilpy``) that
+    actually require it.
+    """
+    try:
+        with np.load(path) as z:
+            return {k: z[k] for k in z.files if not k.startswith("_")}
+    except ValueError as exc:
+        if "allow_pickle" not in str(exc):
+            raise
+        log.warning(
+            "%s contains object arrays and is being unpickled; only load caches "
+            "this process wrote, or that you trust as much as code", path,
+        )
+        with np.load(path, allow_pickle=True) as z:
+            return {k: z[k] for k in z.files if not k.startswith("_")}
+
+
+def _save_npz(path: Path, **arrays) -> None:
+    """Write a cache atomically.
+
+    ``np.savez_compressed`` straight to the destination leaves a truncated file
+    if the process is interrupted or two runs write at once -- and a truncated
+    cache is worse than no cache, because the next run loads it and proceeds.
+    Write beside the target and rename; ``os.replace`` is atomic within a
+    filesystem.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp.npz")
+    try:
+        np.savez_compressed(tmp, **arrays)
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
 
 
 def galactic_from_equatorial(ra: np.ndarray, dec: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

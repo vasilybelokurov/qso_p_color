@@ -22,7 +22,7 @@ calculation cannot tell a genuine companion from a foreground quasar at
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 101 tests. The quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 108 tests. The quasar colour model,
 trained on 1,116,464 spectroscopic quasars — 931,563 DESI DR1 and 184,901 SDSS
 DR16Q — with 20 % of nside=4 sky blocks reserved before fitting. The
 prior-independent Bayes factor.
@@ -30,8 +30,16 @@ prior-independent Bayes factor.
 **What is not.** There is **no calibration**. The labelled close-pair sample
 (`scripts/build_pair_validation.py`) has never been run, so no reliability
 curve, precision–recall or completeness figure exists. Rank candidates by
-`log_r_per_unit_z` or `log_bayes_factor_qz_bkg`; do not read `p_sameq` as a
-calibrated probability.
+`log_r_per_unit_z`; do not read `p_sameq` as a calibrated probability.
+
+`log_bayes_factor_qz_bkg` is **not** an alternative ranking statistic. It
+compares "a quasar at *z*₀" against "background" and contains no `field_q`
+term, so it is evidence against the imaging population and nothing more — a
+foreground quasar at *z* = 2.6 scores superbly on it. That is the exact failure
+mode the three-hypothesis framing exists to catch. Use it to reject boring
+objects, not to order interesting ones. Ranking needs a prior; without one the
+package returns NaN for `log_r_per_unit_z` rather than substituting something
+that looks similar.
 
 **Known open issues**, all recorded in `AGENTS.md`:
 
@@ -61,7 +69,7 @@ calibrated probability.
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 101 tests, ~45 s
+python -m pytest -q                          # 108 tests, ~45 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -122,8 +130,10 @@ one the recommended way (global and isotropic, normalised to the observed
 coverage plateau).
 
 Every row also carries `log_r_per_unit_z` (the ranking statistic),
-`dz_match_eff`, the three log intensities, an out-of-distribution score, quality
-flags and a status code. §10 of the method note lists them all.
+`dz_match_eff`, the three log intensities, an out-of-distribution score,
+`frac_norm_outside_support` (how much of the redshift normalisation the scorer
+discarded as lying outside the trained range), quality flags and a status code.
+§10 of the method note lists them all.
 
 ### Things that will bite you
 
@@ -132,6 +142,8 @@ flags and a status code. §10 of the method note lists them all.
 - **Reading `p_sameq` as "probability of a binary".** A ±2000 km/s window is
   Δ*z* = 0.037 against a photometric redshift width of ~0.6, so `p_sameq` stays
   small even for a perfect candidate. Rank on `log_r_per_unit_z`.
+- **Ranking on the Bayes factor.** See above: it has no `field_q` term, so it
+  cannot tell a companion from a foreground quasar.
 - **Feeding it blended pairs.** Below ~3″ the survey photometry does not give two
   independent measurements. `BlendPolicy` exists to refuse them, not to
   down-weight them.

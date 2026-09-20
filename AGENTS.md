@@ -384,14 +384,32 @@ original. **Batch 1, done:**
 - `fit_local_background` now checks the returned `release` against the `system`
   label it is asked to stamp, instead of certifying whatever it was handed.
 
-**Deferred, with reasons:**
+**Batch 2, done (2026-09-20):**
 
-- **Redshift normalisation integrates outside model support.** `DEFAULT_Z_GRID`
-  spans 0.05-5.0, the model 0.45-3.55, and `log_p_colour_given_z` clamps, so
-  edge slices repeat. Measured: **7.1 %** of the no-prior normalisation for the
-  README candidate lies outside support. Affects `p_zmatch_given_qso`, not the
-  Bayes factor. Needs a decision — clip the grid to support and flag, or
-  renormalise — and it moves published numbers. *Batch 2.*
+- **The scorer no longer integrates outside model support.** `DEFAULT_Z_GRID`
+  spans 0.05-5.0; the model now 0.15-4.35. `log_p_colour_given_z` clamps
+  outside its range, so a wider grid replays the edge slice rather than
+  extending the model, and `p_zmatch_given_qso` then depended on where the grid
+  happened to stop. The grid is masked to `in_support` and the discarded share
+  is reported as `frac_norm_outside_support` — a large value now means the
+  candidate's colours are best explained at a redshift the model has never
+  seen. Measured for the README candidate: 7.08 % before the range was widened,
+  2.25 % after, 0 % integrated either way now.
+- **`log_bayes_factor_qz_bkg` is no longer offered as a ranking statistic.** It
+  contains no `field_q` term, so a foreground quasar at z = 2.6 scores superbly
+  on it — the exact failure the three-hypothesis framing exists to catch.
+- **`load_sdss` is keyed on its query.** The positions query was hash-keyed but
+  the match result it fed was not, so the hash protected the wrong half and
+  changed `--zmin/--zmax` silently reused the old sample.
+- **Caches write atomically** (`os.replace`) and are loaded without
+  `allow_pickle` unless the file genuinely needs it, with a warning when it
+  does. A truncated cache is worse than none: the next run loads it and
+  proceeds.
+- **The Makefile depends on figure 9**, which lives under `plots/examples/` and
+  was missed by the `plots/method/*.png` wildcard.
+
+**Still deferred:**
+
 - **Training quality cuts differ by channel.** The SDSS match requires
   `maskbits = 0`; the DESI branch returns `maskbits` and never applies it. One
   third of the training set is mask-clean, two thirds is not. Needs a retrain.
