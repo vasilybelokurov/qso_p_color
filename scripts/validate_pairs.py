@@ -108,9 +108,13 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pairs", type=Path, default=Path("data/pairs_desi_dr1.npz"))
     ap.add_argument("--model", type=Path, default=Path("models/qso_south_full.json"))
-    ap.add_argument("--background", type=Path, default=Path("models/examples/global.json"))
+    ap.add_argument("--background", type=Path,
+                    default=Path("models/background_south_global.json"),
+                    help="the shipped footprint-average background (all source "
+                         "types). The PSF-only eight-field model used for the "
+                         "first validation is models/examples/global.json")
     ap.add_argument("--background-density", type=Path,
-                    default=Path("models/examples/globaldens.json"))
+                    default=Path("models/background_density_south_global.json"))
     ap.add_argument("--plateau", type=float, default=240.0,
                     help="quasar density per deg^2 for Sigma_Q, as in score_examples")
     ap.add_argument("--min-sep", type=float, default=3.0)

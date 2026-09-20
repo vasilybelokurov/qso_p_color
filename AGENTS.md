@@ -491,9 +491,19 @@ Findings, in order of consequence:
   This IS the physical-pair clustering excess that M7 deliberately leaves out
   of the scorer — first measurement of it. Not yet known whether it reaches 1
   beyond 30″; extending to 60–120″ is the next run.
-- **Galaxies are the contaminant, not stars.** Stars: AUC 0.98. DESI-targeted
-  galaxies: AUC 0.81, 10.5 % above the same_z median — but only 3.1 % are PSF
-  against 91–94 % of quasars. A morphology gate is the cheapest gain available.
+- **~~Galaxies are the contaminant~~ — RETRACTED 2026-09-20 evening.** That
+  result (AUC 0.81, 10.5 % above the same_z median) came from validating
+  against the examples figure's eight-field background, which was fitted to
+  `type = 'PSF'` sources only: a background with no galaxies in it cannot
+  recognise a galaxy as background. Against the shipped all-source background
+  (`scripts/build_global_background.py`) the same galaxies give AUC **0.96**
+  and **0.3 %** above the median; stars 0.98 / 0.4 %. The quasar-vs-quasar
+  AUC by log R moved 0.84 → 0.81 (denser background in R's denominator);
+  by p_zmatch, which no background enters, unchanged at 0.86; calibration
+  table unchanged. Morphology stays useful as a *flag*, not a gate. The
+  general lesson is the design principle in the note: the background must be
+  built from everything a chance neighbour can be, with no selection the
+  candidates do not share.
 - **Bayes factor vs log R: 0.76 vs 0.84.** Earlier text said the BF "cannot"
   separate the classes; it can, worse. Wording corrected in README and note.
 - **Bug found and fixed:** `GridQSOPrior.__call__` tested magnitude against

@@ -22,7 +22,7 @@ calculation cannot tell a genuine companion from a foreground quasar at
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 114 tests. The quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 116 tests. The quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -33,10 +33,10 @@ labelled companions at 3–30″, held-out and full samples agree to 0.01):
 
 | question | result |
 |---|---|
-| same-*z* quasar vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **AUC 0.84** |
-| same, ranked by the Bayes factor alone | AUC 0.75 |
-| quasar vs spectroscopic star, by Bayes factor | **AUC 0.98**; 0.5 % of stars above the median same-*z* quasar |
-| quasar vs spectroscopic galaxy, by Bayes factor | AUC 0.80; 10.7 % above — but 97 % of them are resolved (`type ≠ PSF`) |
+| same-*z* quasar vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **AUC 0.81** (0.86 by `p_zmatch_given_qso` alone) |
+| same, ranked by the Bayes factor alone | AUC 0.76 |
+| quasar vs spectroscopic star, by Bayes factor | **AUC 0.98**; 0.4 % of stars above the median same-*z* quasar |
+| quasar vs spectroscopic galaxy, by Bayes factor | **AUC 0.96**; 0.3 % above |
 | `p_zmatch_given_qso` calibration | right in shape, **low by 3.3× (20–30″) to 9.9× (3–5″)** |
 
 That last row is not a bug: the scorer assumes the companion's redshift is drawn
@@ -48,7 +48,7 @@ without that factor.
 `log_bayes_factor_qz_bkg` is **not** an alternative ranking statistic. It
 compares "a quasar at *z*₀" against "background" and has no `field_q` term.
 Measured: it separates same-*z* from wrong-*z* quasars with AUC 0.76 against
-0.84 for `log_r_per_unit_z` — worse, not useless, because p(c | Q, *z*₀) is
+0.81 for `log_r_per_unit_z` — worse, not useless, because p(c | Q, *z*₀) is
 itself redshift-dependent. Use it to reject stars, not to order candidates.
 Ranking needs a prior; without one the package returns NaN for
 `log_r_per_unit_z` rather than substituting something that looks similar.
@@ -81,7 +81,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 114 tests, ~45 s
+python -m pytest -q                          # 116 tests, ~45 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -94,17 +94,25 @@ that use the committed model will run.
 
 ---
 
-## Scoring a candidate
+## Scoring a candidate — offline, straight from a clone
+
+Everything the scorer needs ships in `models/`: the quasar colour model, a
+footprint-average background colour model with its surface density, and the
+quasar surface density. No database access is required for this.
 
 ```python
 import numpy as np
-from qso_pcolor.background import fit_local_background
+from qso_pcolor.background import BackgroundColourModel
 from qso_pcolor.features import RelativeFluxTransform, deredden
+from qso_pcolor.priors import BackgroundSurfaceDensity, GridQSOPrior
 from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
 from qso_pcolor.score import BlendPolicy, score_candidates
 
 BANDS = ("g", "r", "z", "w1", "w2")
-qso = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+qso   = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+bkg   = BackgroundColourModel.load("models/background_south_global.json")
+dens  = BackgroundSurfaceDensity.load("models/background_density_south_global.json")
+prior = GridQSOPrior.load("models/sigma_q_south.json")
 tr = RelativeFluxTransform(reference_band="r")
 
 # Legacy Surveys fluxes, inverse variances and transmissions (nanomaggies)
@@ -114,7 +122,37 @@ trans = np.array([[0.97, 0.98, 0.99, 1.0, 1.0]])
 f, v = deredden(flux, ivar, trans)
 feat = tr(f, v, BANDS)
 
-# the field population in the candidate's OWN neighbourhood
+rows = score_candidates(
+    feat, z_primary=np.array([1.8]),
+    l_deg=np.array([276.337]), b_deg=np.array([60.189]),   # (RA,Dec)=(180,0)
+    qso_model=qso, background_model=bkg, background_density=dens,
+    qso_prior=prior, match=RedshiftMatch(half_width_kms=2000.0),
+    blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
+    separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
+)
+s = rows[0]
+print(s.log_bayes_factor_qz_bkg)   # +3.42   evidence: quasar at z0 vs background
+print(s.log_r_per_unit_z)          # -2.52   the ranking statistic
+print(s.p_sameq)                   # 3.0e-03 posterior for the ±2000 km/s window
+print(s.status)                    # 'ok'
+```
+
+`tests/test_shipped_models.py` is this example, executed; if the numbers drift
+the suite fails. The shipped background is a footprint average from eight
+0.5° fields at |b| > 32° (provenance in the file's `meta`). It is the right
+default when you have no database and a candidate at high latitude; it is not
+local, and the next example shows what local buys.
+
+## Scoring a candidate — with a local background (needs WSDB)
+
+Same candidate, but the field population is fitted in the candidate's own 0.5°
+neighbourhood. The Bayes factor moves from +3.42 to +4.91: the background at
+(180°, 0°) is sparser in this part of colour space than the footprint average,
+and the scorer says so.
+
+```python
+from qso_pcolor.background import fit_local_background
+
 bkg, dens, info = fit_local_background(
     ra=180.0, dec=0.0, radius_deg=0.5, transform=tr, bands=BANDS,
     mag_edges=np.array([17.0, 19.5, 20.5, 21.5, 22.5]),
@@ -123,23 +161,18 @@ bkg, dens, info = fit_local_background(
 
 rows = score_candidates(
     feat, z_primary=np.array([1.8]),
-    l_deg=np.array([276.337]), b_deg=np.array([60.189]),   # (RA,Dec)=(180,0)
+    l_deg=np.array([276.337]), b_deg=np.array([60.189]),
     qso_model=qso, background_model=bkg, background_density=dens,
-    match=RedshiftMatch(half_width_kms=2000.0),
+    qso_prior=prior, match=RedshiftMatch(half_width_kms=2000.0),
     blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
     separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
 )
-s = rows[0]
-print(s.log_bayes_factor_qz_bkg)   # +4.91
-print(s.status)                    # 'no_prior_posterior_unavailable'
-print(s.p_sameq)                   # nan — see below
+print(rows[0].log_bayes_factor_qz_bkg)   # +4.91
 ```
 
-`p_sameq` is `nan` here **by design**: no `qso_prior` was supplied, so the
-package returns the prior-independent evidence rather than inventing a
-posterior. Pass a `GridQSOPrior` to get one — `scripts/score_examples.py` builds
-one the recommended way (global and isotropic, normalised to the observed
-coverage plateau).
+Leave out `qso_prior` and `p_sameq` and `log_r_per_unit_z` come back `nan` with
+`status='no_prior_posterior_unavailable'` — **by design**: the package returns
+the prior-independent evidence rather than inventing a posterior.
 
 Every row also carries `log_r_per_unit_z` (the ranking statistic),
 `dz_match_eff`, the three log intensities, an out-of-distribution score,
@@ -154,11 +187,12 @@ discarded as lying outside the trained range), quality flags and a status code.
 - **Reading `p_sameq` as "probability of a binary".** A ±2000 km/s window is
   Δ*z* = 0.037 against a photometric redshift width of ~0.6, so `p_sameq` stays
   small even for a perfect candidate. Rank on `log_r_per_unit_z`.
-- **Ranking on the Bayes factor.** See above: AUC 0.76 against 0.84.
-- **Galaxy contaminants.** The scorer is colour-only. Spectroscopic galaxies
-  that DESI targeted overlap the quasar locus (AUC 0.81), but 97 % of them are
-  resolved. Gate on Legacy Surveys `type == 'PSF'` and you lose 6–9 % of
-  quasars, mostly at low *z*.
+- **Ranking on the Bayes factor.** See above: AUC 0.76 against 0.81.
+- **A background model with no galaxies in it.** The first validation used an
+  eight-field background fitted to `type = 'PSF'` sources only, and reported
+  galaxies as a serious contaminant (AUC 0.80, 10.7 % above the same-*z*
+  median). With the shipped all-source background those numbers are 0.96 and
+  0.3 %. The background must contain everything a chance neighbour can be.
 - **Feeding it blended pairs.** Below ~3″ the survey photometry does not give two
   independent measurements. `BlendPolicy` exists to refuse them, not to
   down-weight them.
@@ -175,6 +209,7 @@ discarded as lying outside the trained range), quality flags and a status code.
 | `scripts/build_pair_validation.py` | labelled close-pair sample from DESI DR1 (579,572 companions with spectra) |
 | `scripts/validate_pairs.py` | the validation: ROC, reliability, contaminants by spectype, figure |
 | `scripts/make_method_figures.py` | the method note's figures |
+| `scripts/build_global_background.py` | the shipped footprint-average background, with provenance |
 | `scripts/recover_holdout_blocks.py` | recover a trained model's spatial holdout and record it |
 | `scripts/extend_qso_model_redshift.py` | widen a trained model's redshift range by appending slices |
 | `scripts/check_redshift_extension.py` | did that extension buy anything? (measured: +1.9 nats) |
@@ -189,7 +224,16 @@ discarded as lying outside the trained range), quality flags and a status code.
 
 ## Models and data
 
-`models/qso_south_full.json` is committed: 1,106,986 training quasars
+Four files are committed, and together they are everything the scorer needs:
+
+| file | what |
+|---|---|
+| `models/qso_south_full.json` | the quasar colour–redshift model |
+| `models/background_south_global.json` | footprint-average background colour model (all source types, `maskbits = 0`, known quasars removed) |
+| `models/background_density_south_global.json` | its surface density Σ_B, mask-corrected area |
+| `models/sigma_q_south.json` | the quasar surface density Σ_Q(z, m), global and isotropic |
+
+`models/qso_south_full.json` is 1,106,986 training quasars
 (917,489 DESI DR1 + 189,497 SDSS DR16Q, de-duplicated at 1″, `maskbits = 0` on
 both channels), Legacy Surveys DR9 south (`release` 9010), 43 redshift slices
 covering 0.15 < z < 4.35 trained natively over 0.1–4.4. K = 20 where a slice

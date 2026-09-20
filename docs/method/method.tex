@@ -48,8 +48,9 @@ same-redshift from wrong-redshift quasars by only about $2.6$: these bands
 identify quasars well and place them in redshift only weakly, which is the
 central practical constraint on the method. Tested against $52{,}099$
 companions with their own DESI spectra, the statistic ranks a same-redshift
-quasar above a wrong-redshift one with AUC $0.84$, separates quasars from
-stars with AUC $0.98$, and under-predicts the same-redshift probability by a
+quasar above a wrong-redshift one with AUC $0.81$, separates quasars from
+stars with AUC $0.98$ and from galaxies with $0.96$, and under-predicts the
+same-redshift probability by a
 factor that falls from $9.8$ at $3$--$5''$ to $3.3$ at $20$--$30''$ --- the
 signature of quasar clustering, which the scorer deliberately omits and which
 this measurement is the first to size.
@@ -177,11 +178,11 @@ Telling quasars from stars works very well: fewer than one star in a hundred
 scores as high as a typical same-redshift quasar. Telling a quasar at the
 \emph{same} redshift from one at a \emph{different} redshift works moderately:
 ranked by the statistic, a genuine same-redshift partner beats a random
-wrong-redshift quasar $84\%$ of the time --- real information, and more than the
-blur of $0.6$ in redshift led us to expect. Galaxies, not stars, are the
-contaminant: some faint blue galaxies that DESI targeted look quasar-like in
-these colours, but almost all of them are visibly extended in the imaging, so a
-simple point-source check removes them. And the probability the scorer reports
+wrong-redshift quasar $81\%$ of the time --- real information, and more than the
+blur of $0.6$ in redshift led us to expect. Neither stars nor galaxies are a
+serious contaminant once the ``everything else'' model really contains
+everything: an early version of this test used a background built from point
+sources only and wrongly blamed galaxies. And the probability the scorer reports
 is too small --- by about three times for wide pairs and about ten times for the
 closest --- not because of an error but because it assumes the companion is a
 random nearby object, and real quasar pairs are not random: quasars cluster.
@@ -1294,10 +1295,13 @@ photometry, primaries inside the model's redshift support and usable
 photometry, and subsampling the \textsf{non\_qso} class to $30{,}000$, leaves
 $54{,}710$ companions, of which $52{,}099$ were scored (the remainder are
 brighter than the $r=17$ edge of the quasar surface-density grid, and $97\%$
-of those are stars). One global background model --- the eight-field fit of
-\S\ref{sec:examples} --- was used for every pair; the comparisons below are
-quasar against quasar, where the background cancels, and the quasar/background
-separation is large enough that its fine structure does not enter. Every number
+of those are stars). One footprint-average background model was used for
+every pair: the shipped one, fitted to \emph{every} catalogue source --- PSF and
+extended alike --- from eight fully covered $0.5^\circ$ fields at $|b|>32^\circ$,
+with masked regions and known quasars removed
+(\texttt{scripts/build\_global\_background.py}; provenance in the file). The
+quasar-against-quasar comparisons below do not depend on it; the
+quasar-against-field ones do, as the paragraph on the first run shows. Every number
 was computed both for all pairs and for the $14{,}746$ whose companion lies in
 the sixteen reserved sky blocks; the two agree to the second decimal
 throughout, as the $+0.018$~nats in-sample effect of \S\ref{sec:examples}
@@ -1320,7 +1324,8 @@ clustering that the scorer deliberately does not model.}
 
 \paragraph{Redshift discrimination.} Ranking quasar companions by
 $\log R$, the AUC for \textsf{same\_z} against \textsf{field\_q} is
-$\mathbf{0.84}$; by $p(z\in W\,|\,\cvec,Q)$ alone it is $0.86$. The colours carry
+$\mathbf{0.81}$; by $p(z\in W\,|\,\cvec,Q)$ alone --- the pure quasar-hypothesis
+ranking, which no background enters --- it is $0.86$. The colours carry
 real redshift information at the $\pm 3000$~km\,s$^{-1}$ level, which
 \S\ref{sec:whatsets} argued from $\sigma_z\approx0.6$ they would only weakly.
 This is the first direct measurement of it. Ranking by the two-hypothesis Bayes
@@ -1328,21 +1333,29 @@ factor instead gives $0.76$: clearly worse, because it has no field-quasar
 term, but not useless, because $p(\cvec\,|\,Q,z_0)$ is itself
 redshift-dependent. Earlier drafts of this note and of the README said the
 Bayes factor ``cannot'' separate the two classes; the measured statement is
-that it does so with AUC $0.76$ against $0.84$.
+that it does so with AUC $0.76$ against $0.81$.
 
 \paragraph{The quasar finder.} Against spectroscopic stars the Bayes factor
-has AUC $\mathbf{0.98}$, and $0.6\%$ of stars exceed the median same-redshift
+has AUC $\mathbf{0.98}$, and $0.4\%$ of stars exceed the median same-redshift
 quasar --- the ``factor $10^6$'' separation of \S\ref{sec:examples} in action.
-Against spectroscopic galaxies it has AUC $0.81$ and $10.5\%$ exceed that
-median. These are not random galaxies: they are objects DESI chose to observe
-(emission-line, luminous-red and bright galaxies), and a third of them are
-blue enough in $grz$ and faint enough in WISE to sit under the quasar locus.
-They are also resolved: $3.1\%$ of the spectroscopic galaxies have Legacy
-Surveys morphology \textsf{PSF}, against $91$--$94\%$ of the quasars and
-$99\%$ of the stars. A morphology gate would remove $97\%$ of this contaminant
-class at a cost of $6$--$9\%$ of quasars (the loss concentrated at low redshift,
-where the host is resolved). The scorer is colour-only by design; this is the
-cheapest improvement available to it.
+Against spectroscopic galaxies it has AUC $\mathbf{0.96}$ and $0.3\%$ exceed
+that median. Neither class is a serious contaminant.
+
+\paragraph{What the first run got wrong, and why it matters.} The first run of
+this validation used the eight-field background of \S\ref{sec:examples}, which
+was fitted to \textsf{PSF} sources only --- appropriate for a figure about
+point sources, wrong as a general background --- and reported galaxies as the
+contaminant: AUC $0.80$, with $10.7\%$ above the same-redshift median. A
+background model with no galaxies in it cannot recognise a galaxy as
+background. With the shipped all-source model the same galaxies come out at
+$0.96$ and $0.3\%$. The quasar-against-quasar numbers barely moved ($\log R$
+AUC $0.84\to0.81$, because a denser background enters the denominator of $R$
+for quasars too), and the calibration table did not move at all. The lesson is
+the one \S\ref{sec:background} states as a design principle: the field model
+must be built from everything a chance neighbour can be, with no selection the
+candidates do not share. The spectroscopic galaxies are still resolved ($3.1\%$
+\textsf{PSF} against $91$--$94\%$ of quasars), so morphology remains useful
+evidence and is reported as a flag; it is no longer needed as a gate.
 
 \paragraph{Calibration, and what the miscalibration measures.} The predicted
 $p(z\in W\,|\,\cvec,Q)$ is low by a factor of $4$--$5$ across three decades of
@@ -1420,16 +1433,15 @@ prediction by $9.8\times$ at $3$--$5''$, falling to $3.3\times$ at $20$--$30''$.
 A user who wants a probability multiplies the odds by that factor for their
 separation; the ranking statistic is unaffected.
 
-\paragraph{Galaxies are the contaminant, not stars.} Colour alone separates
-quasars from spectroscopic stars with AUC $0.98$ but from the galaxies DESI
-targeted with only $0.81$; a tenth of those galaxies score above the median
-same-redshift quasar. They are, however, resolved: $3\%$ are \textsf{PSF} in
-the Legacy Surveys morphology, against $91$--$94\%$ of quasars. The scorer is
-colour-only by design and does not use morphology; a \textsf{PSF} gate upstream
-of it removes $97\%$ of this class at a cost of $6$--$9\%$ of quasars,
-concentrated at low redshift where the host is resolved. That gate, and the
-clustering factor above, are the two cheapest improvements available, and
-neither requires retraining.
+\paragraph{The background must contain everything.} Colour alone separates
+quasars from spectroscopic stars with AUC $0.98$ and from the galaxies DESI
+targeted with $0.96$ --- but only when the background model was fitted to all
+source types. Fitted to point sources alone, the same test reported galaxies as
+a serious contaminant (\S\ref{sec:validation-results}). Any selection applied to
+the background sample that the candidates do not share is a bias in the Bayes
+factor, and this is the clearest example we have measured. Morphology remains
+useful evidence ($3\%$ of those galaxies are \textsf{PSF} against $91$--$94\%$
+of quasars) and is reported as a flag rather than used as a gate.
 
 \paragraph{Unused evidence.} Gaia parallax and proper motion settle the question
 outright for bright companions and are available in the same catalogue; WISE
