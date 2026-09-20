@@ -633,6 +633,14 @@ Cache fitted models to disk (`--refit` to rebuild). Re-running minutes of EM to
 move a text label wastes time and invites stale-cache errors when the
 underlying selection changes.
 
+### 8b. Never commit behind a pipe
+
+`python -m pytest -q 2>&1 | tail -1 && git commit ...` commits when **tail**
+succeeds, which is always. On 2026-09-20 a failing test went into `495731b`
+this way. Run the suite to a file or capture `$?` / `${PIPESTATUS[0]}` and
+branch on that; the commit step must see pytest's exit status, not the
+pager's.
+
 ## 9. If you get stuck
 
 - A number that looks too good is usually a leak: the same object in train and
