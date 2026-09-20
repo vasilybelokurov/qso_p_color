@@ -433,3 +433,54 @@ def test_readme_install_includes_the_extras_it_then_uses():
     readme = pathlib.Path("README.md").read_text()
     assert 'pip install -e ".[dev,wsdb]"' in readme
     assert "\npip install -e .\n" not in readme
+
+
+# ------------------------------- redshift-range extension, 2026-09-20
+
+def test_shipped_model_covers_the_extended_redshift_range():
+    """Outside support the model replays its edge slice as though measured.
+
+    The original 0.4 < z < 3.6 was a default, not a data limit: 3.3% of DESI
+    DR1 quasars sit below it and 1.1% above. Eleven slices were appended.
+    """
+    from qso_pcolor.qso_model import SlicedColourRedshiftModel
+
+    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    lo, hi = q.support
+    assert lo <= 0.15 + 1e-9 and hi >= 4.35 - 1e-9
+    assert len(q.mixtures) == q.z_centres.size == 43
+    # the grid must stay uniform across the join, or the interpolation in
+    # log_p_colour_given_z is inconsistent either side of the old boundary
+    d = np.diff(q.z_centres)
+    assert np.allclose(d, d[0]), "slice spacing is not uniform after splicing"
+
+
+def test_sparse_slices_did_not_get_the_core_slice_K():
+    """893 objects with K=20 is ~3 per free parameter; the core has ~117.
+
+    ``min_per_slice`` is a don't-crash fallback, not a quality criterion, so K
+    is selected per appended slice by held-out density instead of asserted.
+    """
+    from qso_pcolor.qso_model import SlicedColourRedshiftModel
+
+    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    per = {round(float(r["z"]), 2): r for r in q.meta["per_slice"]}
+    core = [r["k"] for z, r in per.items() if 0.45 <= z <= 3.55]
+    assert set(core) == {20}, "the original slices must be untouched"
+    # the sparsest appended slices must carry fewer components than the core
+    assert per[4.35]["k"] < 20 and per[4.25]["k"] < 20
+    # and K must not increase as objects run out
+    hi = [per[z]["k"] for z in sorted(per) if z > 3.55]
+    assert all(a >= b for a, b in zip(hi, hi[1:])), f"K not monotone at high z: {hi}"
+
+
+def test_extension_is_recorded_as_provenance():
+    """A reader must be able to tell appended slices from originally trained."""
+    from qso_pcolor.qso_model import SlicedColourRedshiftModel
+
+    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    ext = q.meta["extended"]
+    assert ext["previous_support"] == [0.45, 3.55]
+    assert ext["slices_added_low"] + ext["slices_added_high"] == 11
+    assert len(ext["k_selection_per_new_slice"]) == 11
+    assert len(q.meta["per_slice"]) == 43

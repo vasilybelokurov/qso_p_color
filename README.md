@@ -22,7 +22,7 @@ calculation cannot tell a genuine companion from a foreground quasar at
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 98 tests. The quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 101 tests. The quasar colour model,
 trained on 1,116,464 spectroscopic quasars — 931,563 DESI DR1 and 184,901 SDSS
 DR16Q — with 20 % of nside=4 sky blocks reserved before fitting. The
 prior-independent Bayes factor.
@@ -45,9 +45,10 @@ calibrated probability.
 - Blends are out of scope: `BlendPolicy` refuses companions below a stated
   separation rather than scoring them badly — and only when you pass one.
 - `p_zmatch_given_qso` normalises over a redshift grid wider than the model's
-  support (0.05–5.0 against 0.45–3.55), where the edge slices repeat. Measured:
-  7.1 % of that normalisation is extrapolated for the example below. The Bayes
-  factor is unaffected.
+  support (0.05–5.0 against 0.15–4.35), where the edge slices repeat. Measured:
+  2.25 % of that normalisation is extrapolated for the example below — down
+  from 7.1 % before the range was widened, but not zero. The Bayes factor is
+  unaffected.
 - The training sample's quality cuts differ by channel: the SDSS third requires
   `maskbits = 0`, the DESI two-thirds does not. And `--select-k` picks K from a
   redshift-pooled *unconditional* mixture, then uses it in all 32 conditional
@@ -60,7 +61,7 @@ calibrated probability.
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 98 tests, ~40 s
+python -m pytest -q                          # 101 tests, ~45 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -147,6 +148,8 @@ flags and a status code. §10 of the method note lists them all.
 | `scripts/build_pair_validation.py` | labelled close-pair sample from DESI DR1 — **not yet run** |
 | `scripts/make_method_figures.py` | the method note's figures |
 | `scripts/recover_holdout_blocks.py` | recover a trained model's spatial holdout and record it |
+| `scripts/extend_qso_model_redshift.py` | widen a trained model's redshift range by appending slices |
+| `scripts/check_redshift_extension.py` | did that extension buy anything? (measured: +1.9 nats) |
 | `scripts/check_em_convergence.py` | does the EM iteration cap matter? (measured: no) |
 | `scripts/smoke_real_data.py` | end-to-end plumbing check against live WSDB |
 | `tools/journal.py` | JOURNAL.md updater; `hook-install` journals every commit |
@@ -160,13 +163,24 @@ flags and a status code. §10 of the method note lists them all.
 
 `models/qso_south_full.json` is committed: 1,116,464 training quasars
 (931,563 DESI DR1 + 184,901 SDSS DR16Q, de-duplicated at 1″), Legacy Surveys
-DR9 south (`release` 9010), 32 redshift slices × 20 components. 16 of the 81
+DR9 south (`release` 9010), 43 redshift slices covering 0.15 < z < 4.35, with K
+chosen per slice (20 in the well-populated core, falling to 4 in the sparsest
+high-redshift slice). 16 of the 81
 populated nside=4 sky blocks were reserved before fitting, holding out 343,704
 objects (23.5 % of the sample; the 20 % is a fraction of *blocks*, not of
 objects). Those 16 block IDs and the seed are recorded in the file's `meta`, so
 downstream code reads the split instead of re-deriving it — re-deriving it is
 what produced a figure caption claiming five held-out quasars when three of
 them were in the fit. Enough to score candidates without retraining.
+
+The range was widened from the original 0.4–3.6 by *appending* 11 slices
+(`scripts/extend_qso_model_redshift.py`), which leaves the original 32 mixtures
+bit-identical and reuses the recorded holdout. Measured on 15,552 held-out
+quasars outside the old range, log p(c | Q, z_spec) improves by **+1.90 nats**
+on average (78 % of objects), rising from +0.1 nats just beyond the old edge to
++5.0 at z ≈ 4.3 — the shape you expect if a real deficiency is being repaired
+rather than noise absorbed. `scripts/check_redshift_extension.py` reruns that
+comparison.
 
 Everything else is derived and gitignored. Rebuilding needs **WSDB access**
 (`sqlutilpy`, credentials via `PGUSER` / `PGHOST` / `~/.pgpass`):

@@ -480,6 +480,69 @@ actually measured. The practical consequence is that a candidate lacking one
 band is still scored, with correspondingly weaker discrimination, rather than
 being dropped or given a survey-median colour.
 
+\subsection{The trained redshift range, and extending it}
+\label{sec:zrange}
+
+A sliced model is defined only where it has slices. Outside them
+\texttt{log\_p\_colour\_given\_z} clamps its interpolation index, so it returns
+the nearest edge slice rather than refusing --- convenient, but it means an
+out-of-range redshift is answered with a density that was measured somewhere
+else. Any quantity normalised over a redshift grid wider than the trained range
+therefore integrates part fiction. For the worked candidate of
+\S\ref{sec:examples} that was $7.1\%$ of the normalisation of
+$p(z \in W \,|\, \cvec, Q)$.
+
+The original range, $0.4 < z < 3.6$, was a default rather than a property of the
+data: $3.3\%$ of DESI DR1 quasars lie below it and $1.1\%$ above. Because the
+model is a list of \emph{independent} per-slice mixtures, the range can be
+widened by fitting new slices and appending them --- the existing mixtures are
+untouched, and with the spatial holdout now recorded in the model file the new
+slices use the identical split. Eleven slices were added on the same $0.1$ grid,
+three below and eight above, giving support $0.15 < z < 4.35$ and $43$ slices.
+
+Two things had to be got right. First, homogeneity: the new slices use the same
+transform, reference-band signal-to-noise floor, release, de-duplication, quality
+cuts, EM settings and seed as the old ones, so they differ in redshift and in
+nothing else --- a selection change at the join would appear later as a feature
+of quasar colour. Second, $K$: the existing slices carry some $35{,}000$ objects
+for $K = 20$, about $117$ per free parameter, whereas the sparsest new slice has
+$893$. Taking $K = 20$ there would be about three objects per parameter. $K$ was
+therefore chosen per new slice by spatially blocked held-out density, and falls
+from $20$ through $12$ and $8$ to $4$ as the slices thin.
+
+Whether this bought anything is a measurable question, and the answer is not
+assumed. Comparing $\log p(\cvec \,|\, Q, z_{\rm spec})$ under the old and new
+models for $15{,}552$ quasars in the \emph{reserved} blocks, which neither model
+was fitted on:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+redshift & $n$ & mean gain (nats) \\
+\midrule
+$0.00$--$0.20$ & $1{,}252$ & $+4.83$ \\
+$0.20$--$0.40$ & $7{,}890$ & $+1.90$ \\
+$0.40$--$0.60$ & $2{,}311$ & $+0.12$ \\
+$3.40$--$3.60$ & $447$     & $+0.18$ \\
+$3.60$--$3.80$ & $1{,}610$ & $+1.21$ \\
+$3.80$--$4.00$ & $1{,}159$ & $+2.24$ \\
+$4.00$--$4.20$ & $630$     & $+3.67$ \\
+$4.20$--$4.40$ & $253$     & $+5.01$ \\
+\midrule
+overall        & $15{,}552$ & $+1.90$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$77.9\%$ of objects improve. The shape matters more than the mean: the gain is
+$\sim\!0.1$ nats immediately outside the old boundary, where replaying the edge
+slice is very nearly right, and grows monotonically with distance from it. That
+is the signature of a real deficiency being repaired rather than of extra
+parameters absorbing noise --- extra parameters would not know where the old
+boundary was. The extrapolated share of the normalisation falls from $7.1\%$ to
+$2.25\%$ for the same candidate; the residual is why the scorer should still
+decline to integrate outside its support.
+
 \section{The background model}
 \label{sec:background}
 
@@ -929,7 +992,9 @@ The consequences for practice are concrete:
       \eqref{eq:sigmaz}. It has since been tested directly. Retraining on the
       full southern sample --- $1{,}237{,}336$ quasars against $79{,}865$, with
       $32$ redshift slices against $24$ and twice the mixture components ---
-      leaves the redshift posterior unchanged:
+      leaves the redshift posterior unchanged. (Those are the two runs of that
+      experiment; the model shipped today is a later one again, described in
+      \S\ref{sec:slices}.)
 
       \begin{center}
       \begin{tabular}{lccc}

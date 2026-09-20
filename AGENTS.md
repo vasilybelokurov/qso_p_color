@@ -403,6 +403,37 @@ original. **Batch 1, done:**
   offering `log_bayes_factor_qz_bkg` as an alternative ranking statistic when it
   contains no `field_q` term. Both cheap; folded into batch 2.
 
+### M6c — redshift range extended (2026-09-20)
+
+The trained range 0.4 < z < 3.6 was a default, not a data limit. Outside it
+`log_p_colour_given_z` clamps and replays the edge slice, so 7.1 % of the
+no-prior redshift normalisation for the README candidate was fiction.
+
+`scripts/extend_qso_model_redshift.py` widens a trained model by **appending**
+slices: the existing mixtures are untouched, the recorded holdout is reused, and
+the run takes ~35 min instead of a 4 h retrain. 11 slices added (3 below, 8
+above) → 43 slices, support **0.15–4.35**.
+
+Two constraints, both load-bearing:
+
+- **Homogeneity.** New slices use the same transform, S/N floor, release,
+  de-duplication, quality cuts, EM settings and seed. A selection change at the
+  join (e.g. applying the `maskbits` fix to only the new slices) would later
+  read as a feature of quasar colour. Selection changes belong to a retrain.
+- **K per slice.** The core slices have ~35,000 objects for K=20 (~117 per free
+  parameter); the sparsest new slice has 893 (~3 per parameter). K is chosen per
+  appended slice by spatially blocked held-out density and falls 20 → 12 → 8 → 4.
+  `min_per_slice` is a don't-crash fallback, not a quality criterion — do not
+  use it as one.
+
+Measured, not assumed (`scripts/check_redshift_extension.py`): on 15,552
+quasars in the reserved blocks, mean gain **+1.90 nats**, 77.9 % improved,
+rising monotonically from +0.1 nats just outside the old edge to +5.0 at
+z ≈ 4.3. That shape is the signature of a repaired deficiency — extra
+parameters absorbing noise would not know where the old boundary was.
+Out-of-support normalisation 7.1 % → 2.25 %, so the grid clip in batch 2 is
+still wanted as a safety net.
+
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by
