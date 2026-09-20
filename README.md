@@ -22,7 +22,7 @@ calculation cannot tell a genuine companion from a foreground quasar at
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 116 tests. The quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 117 tests. The quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -81,7 +81,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 116 tests, ~45 s
+python -m pytest -q                          # 117 tests, ~45 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -139,9 +139,15 @@ print(s.status)                    # 'ok'
 
 `tests/test_shipped_models.py` is this example, executed; if the numbers drift
 the suite fails. The shipped background is a footprint average from eight
-0.5° fields at |b| > 32° (provenance in the file's `meta`). It is the right
-default when you have no database and a candidate at high latitude; it is not
-local, and the next example shows what local buys.
+0.5° fields at |b| > 32° (provenance in the file's `meta`).
+
+**Global or local?** Measured in 30 cones from |b| = 20° to 78°
+(`scripts/compare_background_modes.py`): above |b| ≈ 45° the local model is
+indistinguishable from the shipped one; between 20° and 45° it describes the
+field better by 0.1–0.2 nats per object, but neither the false-positive rate
+nor the quasar scores move by more than ~0.1 nat. **Use the shipped global
+model by default.** Fit a local one for |b| ≲ 25°, for fields denser than
+~3×10⁴ sources/deg², or when a candidate's neighbourhood is known to be odd.
 
 ## Scoring a candidate — with a local background (needs WSDB)
 
@@ -210,6 +216,7 @@ discarded as lying outside the trained range), quality flags and a status code.
 | `scripts/validate_pairs.py` | the validation: ROC, reliability, contaminants by spectype, figure |
 | `scripts/make_method_figures.py` | the method note's figures |
 | `scripts/build_global_background.py` | the shipped footprint-average background, with provenance |
+| `scripts/compare_background_modes.py` | global vs local field model in 30 cones: when does local matter? (measured: |b| ≲ 25°) |
 | `scripts/recover_holdout_blocks.py` | recover a trained model's spatial holdout and record it |
 | `scripts/extend_qso_model_redshift.py` | widen a trained model's redshift range by appending slices |
 | `scripts/check_redshift_extension.py` | did that extension buy anything? (measured: +1.9 nats) |

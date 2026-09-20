@@ -703,6 +703,73 @@ hypothesis, but the two loci are not disjoint.}
 \label{fig:densities}
 \end{figure}
 
+\subsection{Global versus local, measured}
+\label{sec:bkg-modes}
+
+The scorer accepts either the shipped footprint-average field model or one
+fitted in the candidate's own $0.5^\circ$ cone. The first needs no database;
+the second does. Which to use is a measurable question
+(\texttt{scripts/compare\_background\_modes.py}, 2026-09-20): in $30$ fully
+covered cones stratified in Galactic latitude from $|b|=20^\circ$ to $78^\circ$
+and split between the centre- and anticentre-facing hemispheres, each cone's
+sources were divided $80/20$, the local model fitted on the $80\%$, and three
+things compared on the held-out $20\%$ and on the DESI quasars in the cone.
+
+\begin{center}
+\begin{tabular}{crrrrr}
+\toprule
+$|b|$ & cones & \multicolumn{1}{c}{field: local $-$ global} & FPR global & FPR local & quasars: $\Delta\log R$ \\
+      &       & \multicolumn{1}{c}{(held-out nats)} & & & (median) \\
+\midrule
+$20^\circ$--$30^\circ$ & $6$ & $+0.08$ (max $+0.21$) & $0.015$ & $0.015$ & $+0.09$ \\
+$30^\circ$--$45^\circ$ & $8$ & $+0.08$ (max $+0.21$) & $0.022$ & $0.023$ & $+0.07$ \\
+$45^\circ$--$60^\circ$ & $8$ & $+0.01$ (max $+0.08$) & $0.026$ & $0.026$ & $+0.09$ \\
+$60^\circ$--$90^\circ$ & $8$ & $\phantom{+}0.00$ (max $+0.05$) & $0.025$ & $0.025$ & $+0.10$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../../plots/validation/background_modes.png}
+\caption{Global against local field model in $30$ cones. \emph{Left:} held-out
+log density of each cone's own field sources, local minus global. \emph{Centre:}
+fraction of held-out field sources with $\log\mathrm{BF}>0$ against a primary at
+$z_0=1.8$, under each model. \emph{Right:} median shift in $\log R$ for the DESI
+quasars in the cone. Orange: cones facing the Galactic centre; blue:
+anticentre.}
+\label{fig:bkg-modes}
+\end{figure}
+
+Three findings. First, above $|b|\approx45^\circ$ the local model is
+indistinguishable from the global one: it describes the field no better (in
+several cones slightly worse, as a $14{,}000$-object fit against a
+$125{,}000$-object one should), and it changes neither the false-positive rate
+nor the quasar scores. Second, between $20^\circ$ and $45^\circ$, and in the
+densest cones ($\gtrsim 3\times10^4$ sources per square degree), the local model
+does describe the field better --- by $0.1$ to $0.2$~nats per object --- but that
+information does not reach the decisions: the false-positive rate is unchanged
+within its scatter and the quasar $\log R$ moves by a tenth of a nat. Third,
+the false-positive rate \emph{rises} with latitude, from $0.015$ at $|b|<30^\circ$
+to $0.03$ at $|b|>60^\circ$, in both models alike: at low latitude the field is
+dominated by stars, which are easy; at high latitude the faint field is
+increasingly galaxies, a few of which sit under the quasar locus.
+
+The local model also shifts $\log R$ upward by $\sim\!0.1$~nats at every
+latitude. That is a property of small-sample mixtures rather than of the sky: a
+model fitted to $\sim\!1.4\times10^4$ objects with eight components per magnitude
+bin places less mass in the sparse tails where quasars sit than the global
+model does, so it underestimates $p(\cvec\,|\,B)$ there. The size is negligible
+against the decision scale, but its sign is worth knowing.
+
+The rule this gives is simple. Within the DECaLS-south footprint, which has
+almost no sky below $|b|=20^\circ$, the shipped global model is the right
+default everywhere; the local fit is a refinement worth at most $0.2$~nats,
+justified for $|b|\lesssim25^\circ$, for cones denser than $\sim\!3\times10^4$
+sources per square degree, or wherever a candidate's neighbourhood is known to
+be unusual. Whether the picture changes toward the plane cannot be measured
+with this imaging, which does not go there.
+
 \section{Surface densities}
 \label{sec:priors}
 

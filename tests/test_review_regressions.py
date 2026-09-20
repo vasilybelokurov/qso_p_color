@@ -724,3 +724,21 @@ def test_validation_figure_name_is_not_shadowed():
     assert "def make_figure(label, scored, in_held, logr, logbf, pz, report, fig_name=" in src
     assert "save_figure(fig, fig_name)" in src
     assert "save_figure(fig, name)" not in src
+
+
+def test_background_mode_cones_are_stratified_and_in_footprint():
+    """The global-vs-local comparison must sample both hemispheres and every
+    latitude bin it claims to, inside the southern footprint."""
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path("scripts").resolve()))
+    from compare_background_modes import B_BINS, draw_cones
+
+    cones = draw_cones(40, seed=0, per_bin=2)
+    assert len(cones) == 2 * 2 * len(B_BINS)
+    for bi in range(len(B_BINS)):
+        for hemi in (0, 1):
+            assert sum(1 for c in cones if c["b_bin"] == bi and c["hemi"] == hemi) == 2
+    for c in cones:
+        lo, hi = B_BINS[c["b_bin"]]
+        assert lo <= abs(c["b"]) < hi
+        assert -8 <= c["dec"] <= 25 and (130 <= c["ra"] <= 250 or c["ra"] >= 335 or c["ra"] <= 40)

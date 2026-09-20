@@ -518,6 +518,20 @@ blends < 3″; north.
 but nothing here says it is urgent. The larger scientific gains are the
 morphology gate and the clustering factor, neither of which needs a retrain.
 
+### M3b — global vs local background, measured (2026-09-20)
+
+30 fully covered 0.5° cones, |b| 20–78°, both hemispheres, each split 80/20;
+local model fitted on the 80 %. Held-out field log density local − global:
++0.08 nats at |b| 20–45° (max +0.21, in the densest cones), +0.01 at 45–60°,
+0.00 above 60°. False-positive rate (log BF > 0 at z0 = 1.8): identical under
+both models at every latitude — and it RISES with |b| (0.015 → 0.03) because
+the high-latitude faint field is galaxies. Quasar log R shifts +0.1 nat under
+local at all latitudes: small-sample mixtures put less mass in the tails where
+quasars sit, so they underestimate p(c|B) there. **Rule: shipped global model
+by default; local for |b| ≲ 25°, densities ≳ 3e4/deg², or odd neighbourhoods.**
+The footprint cannot test the plane. Figure: plots/validation/background_modes.png;
+per-cone table: data/background_modes.json (local).
+
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by
