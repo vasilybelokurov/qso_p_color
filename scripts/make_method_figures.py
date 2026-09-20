@@ -55,7 +55,9 @@ WHERE q3c_radial_query(ra, dec, {ra}, {dec}, {radius})
 # photometric systems and their models must not be interchangeable.
 SYSTEM = "ls_dr9_south_grzw"
 
-Z_MIN, Z_MAX = 0.4, 3.6
+# The shipped model is trained over 0.1-4.4 (slice centres 0.15-4.35); the
+# illustrative cone sample and the prior grid cover the same range.
+Z_MIN, Z_MAX = 0.1, 4.4
 MAG_EDGES = np.array([17.0, 19.5, 20.5, 21.5, 22.5])
 
 
@@ -130,26 +132,41 @@ def fit_models(d, args):
     okq = q["ok"]
     okb = b["ok"] & (b["feat"].ref_mag < MAG_EDGES[-1])
 
-    if all(p.exists() for p in paths.values()) and not args.refit:
-        print("  reusing cached models (pass --refit to rebuild)")
-        return (
-            SlicedColourRedshiftModel.load(paths["qso"]),
-            BackgroundColourModel.load(paths["bkg"]),
-            GridQSOPrior.load(paths["qp"]),
-            BackgroundSurfaceDensity.load(paths["bd"]),
-            okq, okb,
+    # -- the quasar model: shipped by default ---------------------------------
+    # Until 2026-09-20 every figure showed a 6-component model fitted on this
+    # 12-degree cone, while the captions said "the fitted quasar model". The
+    # figures now depict the model that ships unless --fit-own-model is given.
+    if not args.fit_own_model:
+        qso = SlicedColourRedshiftModel.load(args.qso_model)
+        print(f"  quasar model: {args.qso_model} ({len(qso.mixtures)} slices, "
+              f"support {qso.support[0]:.2f}-{qso.support[1]:.2f}, "
+              f"{int(qso.meta.get('n_train', 0)):,} training quasars)")
+        others = [paths[k] for k in ("bkg", "qp", "bd")]
+        if all(p.exists() for p in others) and not args.refit:
+            print("  reusing cached cone background and prior (pass --refit to rebuild)")
+            return (qso, BackgroundColourModel.load(paths["bkg"]),
+                    GridQSOPrior.load(paths["qp"]), BackgroundSurfaceDensity.load(paths["bd"]),
+                    okq, okb)
+    else:
+        if all(p.exists() for p in paths.values()) and not args.refit:
+            print("  reusing cached cone models (pass --refit to rebuild)")
+            return (
+                SlicedColourRedshiftModel.load(paths["qso"]),
+                BackgroundColourModel.load(paths["bkg"]),
+                GridQSOPrior.load(paths["qp"]),
+                BackgroundSurfaceDensity.load(paths["bd"]),
+                okq, okb,
+            )
+        t0 = time.time()
+        qso = fit_sliced_model(
+            q["feat"].x[okq], q["feat"].cov[okq], q["z"][okq], z_edges=z_edges,
+            observed=q["feat"].observed[okq], n_components=args.n_components,
+            min_per_slice=150, overlap=0.5, system=SYSTEM,
+            labels=q["feat"].labels, seed=0, max_iter=200, regularization=1e-6,
         )
-
-    t0 = time.time()
-    qso = fit_sliced_model(
-        q["feat"].x[okq], q["feat"].cov[okq], q["z"][okq], z_edges=z_edges,
-        observed=q["feat"].observed[okq], n_components=args.n_components,
-        min_per_slice=150, overlap=0.5, system=SYSTEM,
-        labels=q["feat"].labels, seed=0, max_iter=200, regularization=1e-6,
-    )
-    print(f"  quasar model: {args.n_slices} slices, "
-          f"{qso.n_train.astype(int).min()}-{qso.n_train.astype(int).max()} "
-          f"objects each ({time.time() - t0:.0f} s)")
+        print(f"  quasar model: {args.n_slices} slices, "
+              f"{qso.n_train.astype(int).min()}-{qso.n_train.astype(int).max()} "
+              f"objects each ({time.time() - t0:.0f} s)")
 
     # Known quasars must come out of the background, or the background model
     # learns the quasar locus: measured, they are 1% of the sample overall but
@@ -187,7 +204,8 @@ def fit_models(d, args):
         mag_edges=MAG_EDGES, nside=8, nside_parent=2,
         total_area_deg2=np.pi * args.bkg_radius**2,
     )
-    for obj, key in ((qso, "qso"), (bkg, "bkg"), (qp, "qp"), (bd, "bd")):
+    to_save = [(bkg, "bkg"), (qp, "qp"), (bd, "bd")] + ([(qso, "qso")] if args.fit_own_model else [])
+    for obj, key in to_save:
         obj.save(paths[key])
     return qso, bkg, qp, bd, okq, okb
 
@@ -676,9 +694,22 @@ def fig_separation(d, qso, bkg, qp, bd, okq, okb):
                           fs.labels, {}), src["l"][idx], src["b"][idx]
 
     # Quasars whose own redshift matches z0 (true same_z), quasars far from it
-    # (field_q), and random catalogue sources (background).
-    i_same = rng.choice(np.flatnonzero(okq & (np.abs(q["z"] - z0) < 0.05)), 400)
-    i_field = rng.choice(np.flatnonzero(okq & (np.abs(q["z"] - z0) > 0.6)), 400)
+    # (field_q), and random catalogue sources (background). When the model
+    # records its reserved sky blocks, draw the quasars from those only, so the
+    # figure is out-of-sample rather than a picture of the training set.
+    held = qso.meta.get("holdout_blocks") or qso.meta.get("holdout_blocks_recovered")
+    pool = okq.copy()
+    if held:
+        from qso_pcolor.background import galactic_healpix
+        pool &= np.isin(galactic_healpix(q["l"], q["b"], int(qso.meta.get("holdout_nside", 4))),
+                        [int(h) for h in held])
+        print(f"    quasars drawn from the model's {len(held)} reserved blocks: "
+              f"{int(pool.sum()):,} available in this cone")
+    if pool.sum() < 800:
+        print("    (too few reserved-block quasars in this cone; using all -- in-sample)")
+        pool = okq
+    i_same = rng.choice(np.flatnonzero(pool & (np.abs(q["z"] - z0) < 0.05)), 400)
+    i_field = rng.choice(np.flatnonzero(pool & (np.abs(q["z"] - z0) > 0.6)), 400)
     i_bkg = rng.choice(
         np.flatnonzero(okb & (b["feat"].ref_mag > 19.5) & (b["feat"].ref_mag < 21.5)),
         400,
@@ -730,7 +761,15 @@ def main() -> None:
     ap.add_argument("--n-components", type=int, default=6)
     ap.add_argument("--cache", type=Path, default=Path("data"))
     ap.add_argument("--refit", action="store_true",
-                    help="rebuild the models instead of loading models/method_*.json")
+                    help="rebuild the cone-fitted models instead of loading models/method_*.json")
+    ap.add_argument("--qso-model", type=Path, default=Path("models/qso_south_full.json"),
+                    help="the quasar model the figures depict: the SHIPPED model by "
+                         "default, so that figures captioned 'the fitted model' show "
+                         "the model that ships")
+    ap.add_argument("--fit-own-model", action="store_true",
+                    help="instead fit a small illustrative quasar model on the cone "
+                         "sample (the pre-2026-09-20 behaviour); figures then show "
+                         "that, not the shipped model")
     ap.add_argument("--only", nargs="*", default=None,
                     help="regenerate only these figures, e.g. --only fig4 fig7")
     args = ap.parse_args()

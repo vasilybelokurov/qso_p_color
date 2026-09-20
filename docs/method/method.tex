@@ -41,9 +41,10 @@ We show that the redshift-match window enters the answer as a pure
 multiplicative constant, derive the window-free statistic $R$ that follows from
 that, and explain why $R$ rather than a posterior probability is the quantity to
 rank on. All figures are built from DESI DR1 spectroscopy and Legacy Surveys
-DR9 imaging. Applied to those data, the statistic separates quasars from the
+DR9 imaging, and the quasar model they depict is the one that ships with the
+code. Applied to held-out quasars, the statistic separates quasars from the
 field population by about fourteen natural logarithms but separates
-same-redshift from wrong-redshift quasars by only about two: these bands
+same-redshift from wrong-redshift quasars by only about $2.6$: these bands
 identify quasars well and place them in redshift only weakly, which is the
 central practical constraint on the method. Tested against $52{,}099$
 companions with their own DESI spectra, the statistic ranks a same-redshift
@@ -158,11 +159,11 @@ measures how large that missing piece is.
 \paragraph{What the illustrative numbers do and do not show.} Applied to the
 sky patch used for the figures, the ranking statistic puts quasars far from the
 general field population, and same-redshift quasars only modestly above
-wrong-redshift ones --- medians differing by about $14$ and about $2.3$ natural
-logarithms respectively (\S\ref{sec:howmuch}). These are in-sample comparisons
-from one untuned model at one redshift, with the hardest intermediate cases
-absent, so they indicate the dynamic range available rather than any measured
-purity or completeness. Read at that level, they say that these filters identify
+wrong-redshift ones --- medians differing by about $14$ and about $2.6$ natural
+logarithms respectively (\S\ref{sec:howmuch}). The quasars in that comparison
+lie in sky blocks the model never saw, but it is one redshift with the hardest
+intermediate cases absent, so it indicates the dynamic range available rather
+than any measured purity or completeness. Read at that level, they say that these filters identify
 quasars much better than they place them in redshift. Whether extra filters with
 a steeper colour--redshift dependence would improve matters is a reasonable
 expectation from \S\ref{sec:whatsets}, not something demonstrated here.
@@ -403,9 +404,9 @@ intrinsic one. Gaussian noise of known size is then added and the models
 refitted. \emph{Left:} at $\sigma_{\rm add}=\sigma_0$ the deconvolved mixture
 (blue) recovers the pre-injection truth (dashed) while the ordinary mixture
 (orange) is visibly broadened. \emph{Right:} the ordinary mixture follows
-$\sqrt{\sigma_0^2+\sigma_{\rm add}^2}$ exactly, as it must, reaching $0.267$ at
+$\sqrt{\sigma_0^2+\sigma_{\rm add}^2}$ exactly, as it must, reaching $0.266$ at
 $\sigma_{\rm add}=2\sigma_0$; extreme deconvolution stays flat, returning
-$0.127$ --- within $7\%$ of the truth after the observed width has more than
+$0.122$ --- within $3\%$ of the truth after the observed width has more than
 doubled.}
 \label{fig:deconv}
 \end{figure}
@@ -706,9 +707,11 @@ hypothesis, but the two loci are not disjoint.}
 
 The two surface densities must be measured over footprints whose selection and
 usable area are known, and the same cuts must be applied to the candidates. The
-illustration in this note does not fully meet that standard: for speed it draws
-quasars from a $12^\circ$ cone and background sources from a $1^\circ$ cone at
-the same centre, and applies a mask-bit cut without a mask-corrected area. Each
+illustration in this note does not fully meet that standard: the quasar
+\emph{colour} model is the shipped one, but for speed the surface densities and
+the background colour model are built from a $12^\circ$ cone of quasars and a
+$1^\circ$ cone of field sources at the same centre, with a mask-bit cut and no
+mask-corrected area. Each
 density uses its own area, so the arithmetic is consistent, but matched
 selection and area should be read as requirements of the method rather than as
 properties these particular figures demonstrate.
@@ -1011,15 +1014,17 @@ expectations for the whole programme.
 population & median $\log R$ \\
 \midrule
 quasars at $z\approx z_0$        & $-0.3$ \\
-quasars at other redshifts       & $-2.6$ \\
-random catalogue sources         & $-14.3$ \\
+quasars at other redshifts       & $-2.9$ \\
+random catalogue sources         & $-14.2$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 Two very different gaps. Against the field population the statistic is
-decisive: $e^{14.0}\approx10^{6}$. Against \emph{quasars at the wrong
-redshift} it is worth a factor of about $10$.
+decisive: $e^{13.9}\approx10^{6}$. Against \emph{quasars at the wrong
+redshift} it is worth a factor of about $14$ ($e^{2.6}$). The quasars here are
+from the model's reserved sky blocks; the shipped model of \S\ref{sec:zrange}
+is the one evaluated.
 
 That asymmetry is not a defect of the estimator; it is a statement about the
 information content of $grz+W1W2$ photometry. These bands identify quasars
@@ -1085,9 +1090,11 @@ real quasars at that redshift ($|z-z_0|<0.05$), real quasars at other redshifts
 Two limits of this comparison: the ``same'' class extends to $2.7$ times the
 window half-width, so not all of it lies inside the window being scored; and
 nothing populates the gap between $0.05$ and $0.6$, which is where
-discrimination is genuinely hardest; and these objects were used in training.
-The quasar populations separate from the field by $\sim\!14$ natural logarithms
-but from \emph{each other} by only $\sim\!2.3$: $grz+W1W2$ photometry
+discrimination is genuinely hardest. The quasars are drawn from the sixteen sky
+blocks the model reserved before fitting ($21{,}826$ available in this cone),
+so the comparison is out of sample. The quasar populations separate from the
+field by $\sim\!14$ natural logarithms but from \emph{each other} by only
+$\sim\!2.6$: $grz+W1W2$ photometry
 identifies quasars far better than it locates them in redshift
 (\S\ref{sec:howmuch}). The figure shows the statistic's dynamic range, not an
 operating characteristic.}
