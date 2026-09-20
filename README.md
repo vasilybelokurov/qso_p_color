@@ -22,24 +22,35 @@ calculation cannot tell a genuine companion from a foreground quasar at
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 108 tests. The quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 110 tests. The quasar colour model,
 trained on 1,116,464 spectroscopic quasars — 931,563 DESI DR1 and 184,901 SDSS
 DR16Q — with 20 % of nside=4 sky blocks reserved before fitting. The
 prior-independent Bayes factor.
 
-**What is not.** There is **no calibration**. The labelled close-pair sample
-(`scripts/build_pair_validation.py`) has never been run, so no reliability
-curve, precision–recall or completeness figure exists. Rank candidates by
-`log_r_per_unit_z`; do not read `p_sameq` as a calibrated probability.
+**What is measured** (`scripts/validate_pairs.py`, 52,099 spectroscopically
+labelled companions at 3–30″, held-out and full samples agree to 0.01):
+
+| question | result |
+|---|---|
+| same-*z* quasar vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **AUC 0.84** |
+| same, ranked by the Bayes factor alone | AUC 0.76 |
+| quasar vs spectroscopic star, by Bayes factor | **AUC 0.98**; 0.6 % of stars above the median same-*z* quasar |
+| quasar vs spectroscopic galaxy, by Bayes factor | AUC 0.81; 10.5 % above — but 97 % of them are resolved (`type ≠ PSF`) |
+| `p_zmatch_given_qso` calibration | right in shape, **low by 3.3× (20–30″) to 9.8× (3–5″)** |
+
+That last row is not a bug: the scorer assumes the companion's redshift is drawn
+from the field, and physical pairs cluster. The factor is the measured
+clustering excess; multiply the odds by it if you want a probability at a given
+separation. Rank on `log_r_per_unit_z`; do not read `p_sameq` as calibrated
+without that factor.
 
 `log_bayes_factor_qz_bkg` is **not** an alternative ranking statistic. It
-compares "a quasar at *z*₀" against "background" and contains no `field_q`
-term, so it is evidence against the imaging population and nothing more — a
-foreground quasar at *z* = 2.6 scores superbly on it. That is the exact failure
-mode the three-hypothesis framing exists to catch. Use it to reject boring
-objects, not to order interesting ones. Ranking needs a prior; without one the
-package returns NaN for `log_r_per_unit_z` rather than substituting something
-that looks similar.
+compares "a quasar at *z*₀" against "background" and has no `field_q` term.
+Measured: it separates same-*z* from wrong-*z* quasars with AUC 0.76 against
+0.84 for `log_r_per_unit_z` — worse, not useless, because p(c | Q, *z*₀) is
+itself redshift-dependent. Use it to reject stars, not to order candidates.
+Ranking needs a prior; without one the package returns NaN for
+`log_r_per_unit_z` rather than substituting something that looks similar.
 
 **Known open issues**, all recorded in `AGENTS.md`:
 
@@ -69,7 +80,7 @@ that looks similar.
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 108 tests, ~45 s
+python -m pytest -q                          # 110 tests, ~45 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -142,8 +153,11 @@ discarded as lying outside the trained range), quality flags and a status code.
 - **Reading `p_sameq` as "probability of a binary".** A ±2000 km/s window is
   Δ*z* = 0.037 against a photometric redshift width of ~0.6, so `p_sameq` stays
   small even for a perfect candidate. Rank on `log_r_per_unit_z`.
-- **Ranking on the Bayes factor.** See above: it has no `field_q` term, so it
-  cannot tell a companion from a foreground quasar.
+- **Ranking on the Bayes factor.** See above: AUC 0.76 against 0.84.
+- **Galaxy contaminants.** The scorer is colour-only. Spectroscopic galaxies
+  that DESI targeted overlap the quasar locus (AUC 0.81), but 97 % of them are
+  resolved. Gate on Legacy Surveys `type == 'PSF'` and you lose 6–9 % of
+  quasars, mostly at low *z*.
 - **Feeding it blended pairs.** Below ~3″ the survey photometry does not give two
   independent measurements. `BlendPolicy` exists to refuse them, not to
   down-weight them.
@@ -157,7 +171,8 @@ discarded as lying outside the trained range), quality flags and a status code.
 | `src/qso_pcolor/` | the package: mixtures, extreme deconvolution, features, models, priors, scorer |
 | `scripts/train_qso_model.py` | train the quasar colour model (DESI ± SDSS, spatial holdout, K selection) |
 | `scripts/score_examples.py` | worked example: 10 real objects, per-object local backgrounds, figure |
-| `scripts/build_pair_validation.py` | labelled close-pair sample from DESI DR1 — **not yet run** |
+| `scripts/build_pair_validation.py` | labelled close-pair sample from DESI DR1 (579,572 companions with spectra) |
+| `scripts/validate_pairs.py` | the validation: ROC, reliability, contaminants by spectype, figure |
 | `scripts/make_method_figures.py` | the method note's figures |
 | `scripts/recover_holdout_blocks.py` | recover a trained model's spatial holdout and record it |
 | `scripts/extend_qso_model_redshift.py` | widen a trained model's redshift range by appending slices |

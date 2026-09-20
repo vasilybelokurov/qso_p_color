@@ -577,3 +577,59 @@ def test_readme_does_not_offer_the_bayes_factor_as_a_ranking_statistic():
     readme = pathlib.Path("README.md").read_text()
     assert "`log_r_per_unit_z` or `log_bayes_factor_qz_bkg`" not in readme
     assert "**not** an alternative ranking statistic" in readme
+
+
+# ---------------------------------------- pair validation, 2026-09-20
+
+def test_grid_prior_support_is_the_bin_edges_not_the_centres():
+    """The outer half of the first and last magnitude bins was refused.
+
+    Edges 17-22.5 give centres 18.25-22.0; testing the magnitude against the
+    centres nulled 17 <= r < 18.25 and 22 < r < 22.5 -- 20% of the validation
+    sample -- with status 'qso_prior_empty_at_this_magnitude'.
+    """
+    from qso_pcolor.priors import EmpiricalQSOPrior
+
+    rng = np.random.default_rng(0)
+    z = rng.uniform(0.5, 3.0, 20000)
+    m = rng.uniform(17.0, 22.5, 20000)
+    pr = EmpiricalQSOPrior.build(z, m, area_deg2=100.0,
+                                 z_edges=np.linspace(0.5, 3.0, 11),
+                                 mag_edges=np.array([17.0, 19.5, 20.5, 21.5, 22.5]))
+    zg = np.linspace(0.5, 3.0, 30)
+    for mag in (17.0, 17.5, 18.0, 22.1, 22.49):          # inside the edges
+        assert (pr(zg, mag) > 0).all(), f"refused r={mag} inside the grid"
+        assert pr.in_support(zg, mag).all()
+    for mag in (16.99, 22.51):                             # outside
+        assert (pr(zg, mag) == 0).all()
+        assert not pr.in_support(zg, mag).any()
+    # redshift: positive edge to edge, zero beyond
+    assert (pr(np.array([0.5, 3.0]), 20.0) > 0).all()
+    assert (pr(np.array([0.49, 3.01]), 20.0) == 0).all()
+    # round trip keeps the edges
+    from qso_pcolor.priors import GridQSOPrior
+    back = GridQSOPrior.from_dict(pr.to_dict())
+    assert np.allclose(back.mag_edges, pr.mag_edges) and np.allclose(back.z_edges, pr.z_edges)
+    # an old file without edges reconstructs them from the centres
+    d = pr.to_dict(); d.pop("mag_edges"); d.pop("z_edges")
+    old = GridQSOPrior.from_dict(d)
+    assert np.allclose(old.z_edges, pr.z_edges)
+
+
+def test_validation_helpers_behave():
+    """auc_rank: separable -> 1, identical -> 0.5, ties -> 0.5; reliability bins."""
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path("scripts").resolve()))
+    from validate_pairs import auc_rank, reliability
+
+    assert auc_rank(np.array([3., 4., 5.]), np.array([0., 1., 2.])) == 1.0
+    assert auc_rank(np.array([0., 1., 2.]), np.array([3., 4., 5.])) == 0.0
+    assert abs(auc_rank(np.ones(50), np.ones(50)) - 0.5) < 1e-12
+    rng = np.random.default_rng(0)
+    a = rng.normal(size=5000); b = rng.normal(size=5000)
+    assert abs(auc_rank(a, b) - 0.5) < 0.02
+    # NaNs are dropped, not counted
+    assert auc_rank(np.array([3., np.nan]), np.array([0.])) == 1.0
+    rows = reliability(np.array([0.1] * 30 + [0.5] * 30), np.array([0] * 27 + [1] * 3 + [1] * 15 + [0] * 15),
+                       np.array([0.0, 0.3, 1.0]))
+    assert len(rows) == 2 and abs(rows[0][1] - 0.1) < 1e-9 and abs(rows[1][1] - 0.5) < 1e-9

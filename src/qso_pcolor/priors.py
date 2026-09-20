@@ -252,6 +252,15 @@ class BackgroundSurfaceDensity:
         return cls.from_dict(json.loads(Path(path).read_text()))
 
 
+def _edges_from_centres(c: np.ndarray) -> np.ndarray:
+    """Bin edges from centres: interior midpoints, outer ends extended by half a bin."""
+    c = np.asarray(c, dtype=float)
+    if c.size == 1:
+        return np.array([c[0] - 0.5, c[0] + 0.5])
+    mid = 0.5 * (c[:-1] + c[1:])
+    return np.concatenate([[c[0] - (mid[0] - c[0])], mid, [c[-1] + (c[-1] - mid[-1])]])
+
+
 @dataclass
 class GridQSOPrior:
     """:math:`\\Sigma_Q(z, m)` tabulated on a grid, with bilinear interpolation.
@@ -265,6 +274,15 @@ class GridQSOPrior:
     mag_centres: np.ndarray
     sigma: np.ndarray  # shape (n_z, n_mag)
     meta: dict = field(default_factory=dict)
+    # The support is the histogram's EDGES, not its centres.  An earlier version
+    # tested ``mag_centres[0] <= m <= mag_centres[-1]`` and so refused every
+    # object in the outer half of the first and last magnitude bins as
+    # "outside the grid" -- with edges 17-22.5 and centres 18.25-22.0 that was
+    # 17 <= r < 18.25 and 22 < r < 22.5, i.e. 20% of a validation sample
+    # (measured 2026-09-20: 11,069 of 54,710 companions), nulled with a status
+    # that said the prior was empty when it was not.
+    z_edges: np.ndarray | None = None
+    mag_edges: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         self.z_centres = np.asarray(self.z_centres, dtype=float)
@@ -274,31 +292,50 @@ class GridQSOPrior:
             raise ValueError("sigma must have shape (n_z, n_mag)")
         if (self.sigma < 0).any():
             raise ValueError("surface densities must be non-negative")
+        # Edges not supplied (older files): reconstruct as midpoints, extended
+        # by half a bin at each end.  Exact for a uniform grid, which is what
+        # ``EmpiricalQSOPrior.build`` produces in z; magnitude bins may be
+        # non-uniform, so ``build`` passes the real edges through.
+        self.z_edges = (np.asarray(self.z_edges, float) if self.z_edges is not None
+                        else _edges_from_centres(self.z_centres))
+        self.mag_edges = (np.asarray(self.mag_edges, float) if self.mag_edges is not None
+                          else _edges_from_centres(self.mag_centres))
+        for name, e, c in (("z", self.z_edges, self.z_centres),
+                           ("mag", self.mag_edges, self.mag_centres)):
+            if e.size != c.size + 1 or (np.diff(e) <= 0).any():
+                raise ValueError(f"{name}_edges must be ascending with one more entry than centres")
+            if (c < e[:-1]).any() or (c > e[1:]).any():
+                raise ValueError(f"{name}_centres must lie inside their bins")
 
     def __call__(self, z: np.ndarray, ref_mag: float) -> np.ndarray:
         """Density at redshifts ``z`` and a single reference magnitude.
 
-        Zero outside the tabulated range in **either** variable.  ``np.interp``
-        clamps by default, which would silently extrapolate a magnitude far
-        outside the grid at the edge value while :meth:`in_support` reported it
-        as unsupported; the two must agree.
+        Interpolated linearly between bin centres; constant at the outer
+        centre's value across the outer half-bins, so that the whole tabulated
+        range -- edge to edge -- returns a positive density; **zero** beyond the
+        edges, where the model genuinely knows of no quasars.  The same edges
+        define :meth:`in_support`, so the two agree.
         """
         z = np.atleast_1d(np.asarray(z, dtype=float))
-        if not (self.mag_centres[0] <= ref_mag <= self.mag_centres[-1]):
+        if not (self.mag_edges[0] <= ref_mag <= self.mag_edges[-1]):
             return np.zeros_like(z)
+        # np.interp clamps in magnitude -- that is the desired behaviour INSIDE
+        # the edges, and the test above has already excluded outside.
         col = np.array(
             [np.interp(ref_mag, self.mag_centres, self.sigma[j]) for j in range(
                 self.z_centres.size)]
         )
-        return np.interp(z, self.z_centres, col, left=0.0, right=0.0)
+        out = np.interp(z, self.z_centres, col)          # clamps to outer centres
+        inside = (z >= self.z_edges[0]) & (z <= self.z_edges[-1])
+        return np.where(inside, out, 0.0)
 
     def in_support(self, z: np.ndarray, ref_mag: float) -> np.ndarray:
         z = np.asarray(z, dtype=float)
         return (
-            (z >= self.z_centres[0])
-            & (z <= self.z_centres[-1])
-            & (ref_mag >= self.mag_centres[0])
-            & (ref_mag <= self.mag_centres[-1])
+            (z >= self.z_edges[0])
+            & (z <= self.z_edges[-1])
+            & (ref_mag >= self.mag_edges[0])
+            & (ref_mag <= self.mag_edges[-1])
         )
 
     def to_dict(self) -> dict:
@@ -307,6 +344,8 @@ class GridQSOPrior:
             "z_centres": self.z_centres.tolist(),
             "mag_centres": self.mag_centres.tolist(),
             "sigma": self.sigma.tolist(),
+            "z_edges": self.z_edges.tolist(),
+            "mag_edges": self.mag_edges.tolist(),
             "meta": self.meta,
         }
 
@@ -317,6 +356,8 @@ class GridQSOPrior:
             np.asarray(d["mag_centres"], float),
             np.asarray(d["sigma"], float),
             d.get("meta", {}),
+            z_edges=None if d.get("z_edges") is None else np.asarray(d["z_edges"], float),
+            mag_edges=None if d.get("mag_edges") is None else np.asarray(d["mag_edges"], float),
         )
 
     def save(self, path: str | Path) -> None:
@@ -389,6 +430,8 @@ class EmpiricalQSOPrior:
             0.5 * (z_edges[:-1] + z_edges[1:]),
             0.5 * (mag_edges[:-1] + mag_edges[1:]),
             sigma,
+            z_edges=z_edges,
+            mag_edges=mag_edges,
             meta={
                 "area_deg2": area_deg2,
                 "completeness_supplied": completeness is not None,

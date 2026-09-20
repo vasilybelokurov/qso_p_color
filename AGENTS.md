@@ -452,6 +452,42 @@ parameters absorbing noise would not know where the old boundary was.
 Out-of-support normalisation 7.1 % → 2.25 %, so the grid clip in batch 2 is
 still wanted as a safety net.
 
+### M1 — done: the pair validation (2026-09-20)
+
+`build_pair_validation.py` rewritten around an index-driven search (the
+original pulled 20.4 M spectra; a joined query planned as two Seq Scans; split
+into pair search → spectra by targetid it runs in 4 min). `validate_pairs.py`
+scores every companion and reports on all pairs and on the reserved blocks;
+they agree to 0.01 everywhere.
+
+Findings, in order of consequence:
+
+- **The colours DO carry redshift information at ±3000 km/s:** AUC 0.84
+  (same_z vs field_q, by log R). The note had argued from σ_z ≈ 0.6 that it
+  would be weak. Measured, it is useful.
+- **Calibration is off by a separation-dependent factor: 9.8× at 3–5″ falling
+  to 3.3× at 20–30″.** Shape is right (AUC 0.86 by p_zmatch alone), only the
+  normalisation is short, and a scorer bug would not know about separation.
+  This IS the physical-pair clustering excess that M7 deliberately leaves out
+  of the scorer — first measurement of it. Not yet known whether it reaches 1
+  beyond 30″; extending to 60–120″ is the next run.
+- **Galaxies are the contaminant, not stars.** Stars: AUC 0.98. DESI-targeted
+  galaxies: AUC 0.81, 10.5 % above the same_z median — but only 3.1 % are PSF
+  against 91–94 % of quasars. A morphology gate is the cheapest gain available.
+- **Bayes factor vs log R: 0.76 vs 0.84.** Earlier text said the BF "cannot"
+  separate the classes; it can, worse. Wording corrected in README and note.
+- **Bug found and fixed:** `GridQSOPrior.__call__` tested magnitude against
+  bin *centres* not *edges*, refusing 17 ≤ r < 18.25 and 22 < r < 22.5 — 20 %
+  of the sample — as "prior empty". Edges now stored and used. Test pinned.
+
+Not done, and why: per-candidate local backgrounds (days of cones for 5e4
+pairs, and the quasar-vs-quasar comparisons do not use the background);
+blends < 3″; north.
+
+**Consequence for the retrain:** it can go ahead on its own merits (maskbits),
+but nothing here says it is urgent. The larger scientific gains are the
+morphology gate and the clustering factor, neither of which needs a retrain.
+
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by

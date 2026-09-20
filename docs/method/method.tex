@@ -1231,6 +1231,113 @@ held-out likelihood separately on an independently selected sample --- SDSS
 DR16Q \citep{lyke2020dr16q}, whose targeting channels differ --- and to treat a
 large gap as a selection-bias warning rather than a curiosity.
 
+\subsection{Results}
+\label{sec:validation-results}
+
+The sample was built and the scorer run on it on 2026-09-20
+(\texttt{scripts/build\_pair\_validation.py}, \texttt{scripts/validate\_pairs.py}).
+From $1{,}645{,}842$ DESI DR1 quasar primaries, $579{,}572$ companions at
+$3$--$30''$ have a usable DR1 spectrum: $4{,}954$ \textsf{same\_z}, $38{,}714$
+\textsf{field\_q} and $535{,}904$ \textsf{non\_qso}. Restricting to southern
+photometry, primaries inside the model's redshift support and usable
+photometry, and subsampling the \textsf{non\_qso} class to $30{,}000$, leaves
+$54{,}710$ companions, of which $52{,}099$ were scored (the remainder are
+brighter than the $r=17$ edge of the quasar surface-density grid, and $97\%$
+of those are stars). One global background model --- the eight-field fit of
+\S\ref{sec:examples} --- was used for every pair; the comparisons below are
+quasar against quasar, where the background cancels, and the quasar/background
+separation is large enough that its fine structure does not enter. Every number
+was computed both for all pairs and for the $14{,}746$ whose companion lies in
+the sixteen reserved sky blocks; the two agree to the second decimal
+throughout, as the $+0.018$~nats in-sample effect of \S\ref{sec:examples}
+predicts, and only the held-out values are quoted.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../../plots/validation/pair_validation.png}
+\caption{Validation on spectroscopically labelled pairs. \emph{Left:} ROC for
+same-redshift against wrong-redshift quasar companions, ranked three ways.
+\emph{Centre:} the Bayes factor against background for the three classes; the
+\textsf{non\_qso} class is bimodal because it mixes stars (left peak) with the
+galaxies DESI targeted (right peak, overlapping the quasars). \emph{Right:}
+reliability of $p(z\in W\,|\,\cvec,Q)$ among quasar companions. The points lie
+on a line parallel to the diagonal: the predicted probability is right in
+shape and low by a constant factor, which is the signature of physical
+clustering that the scorer deliberately does not model.}
+\label{fig:validation}
+\end{figure}
+
+\paragraph{Redshift discrimination.} Ranking quasar companions by
+$\log R$, the AUC for \textsf{same\_z} against \textsf{field\_q} is
+$\mathbf{0.84}$; by $p(z\in W\,|\,\cvec,Q)$ alone it is $0.86$. The colours carry
+real redshift information at the $\pm 3000$~km\,s$^{-1}$ level, which
+\S\ref{sec:whatsets} argued from $\sigma_z\approx0.6$ they would only weakly.
+This is the first direct measurement of it. Ranking by the two-hypothesis Bayes
+factor instead gives $0.76$: clearly worse, because it has no field-quasar
+term, but not useless, because $p(\cvec\,|\,Q,z_0)$ is itself
+redshift-dependent. Earlier drafts of this note and of the README said the
+Bayes factor ``cannot'' separate the two classes; the measured statement is
+that it does so with AUC $0.76$ against $0.84$.
+
+\paragraph{The quasar finder.} Against spectroscopic stars the Bayes factor
+has AUC $\mathbf{0.98}$, and $0.6\%$ of stars exceed the median same-redshift
+quasar --- the ``factor $10^6$'' separation of \S\ref{sec:examples} in action.
+Against spectroscopic galaxies it has AUC $0.81$ and $10.5\%$ exceed that
+median. These are not random galaxies: they are objects DESI chose to observe
+(emission-line, luminous-red and bright galaxies), and a third of them are
+blue enough in $grz$ and faint enough in WISE to sit under the quasar locus.
+They are also resolved: $3.1\%$ of the spectroscopic galaxies have Legacy
+Surveys morphology \textsf{PSF}, against $91$--$94\%$ of the quasars and
+$99\%$ of the stars. A morphology gate would remove $97\%$ of this contaminant
+class at a cost of $6$--$9\%$ of quasars (the loss concentrated at low redshift,
+where the host is resolved). The scorer is colour-only by design; this is the
+cheapest improvement available to it.
+
+\paragraph{Calibration, and what the miscalibration measures.} The predicted
+$p(z\in W\,|\,\cvec,Q)$ is low by a factor of $4$--$5$ across three decades of
+predicted probability (Figure~\ref{fig:validation}, right). That factor is not
+constant in separation:
+
+\begin{center}
+\begin{tabular}{crccc}
+\toprule
+separation & $n$ & mean predicted & empirical & ratio \\
+\midrule
+$3$--$5''$   & $742$    & $0.039$ & $0.380$ & $9.8$ \\
+$5$--$10''$  & $2{,}950$  & $0.032$ & $0.237$ & $7.5$ \\
+$10$--$20''$ & $10{,}605$ & $0.025$ & $0.125$ & $4.9$ \\
+$20$--$30''$ & $17{,}229$ & $0.023$ & $0.074$ & $3.3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A defect in the scorer would give a ratio independent of separation. A
+monotonic fall with separation is what physical clustering gives: the scorer
+assumes the companion's redshift is drawn from the field distribution
+$\Sigma_Q(z)$, but quasars cluster, so a companion at $3''$ (about $25$~kpc at
+$z\sim1.5$) has an excess probability of sharing the primary's redshift that
+the field prior does not contain. The shape of the predicted probability is
+right --- the ranking AUC of $0.86$ says so --- and only its normalisation is
+short, by an amount that is the projected quasar--quasar correlation
+integrated over the $\pm3000$~km\,s$^{-1}$ window. That excess was
+deliberately left out of the scorer (\S\ref{sec:limitations}, and
+\texttt{AGENTS.md} M7) so that the ranking statistic would carry no
+cosmological assumption; this measurement is the first estimate of it, and a
+user who wants a probability rather than a ranking should multiply the odds by
+the factor in the table for their separation. Whether the ratio reaches unity
+beyond $30''$ ($\sim 250$~kpc) is not yet measured; extending the search to
+$60$--$120''$ would settle it and is the obvious next run.
+
+\paragraph{A defect this exercise found.} On the first run a quarter of the
+companions were refused with the status ``quasar prior empty at this
+magnitude''. They were not outside the grid: \texttt{GridQSOPrior} tested the
+magnitude against the bin \emph{centres} ($18.25$--$22.0$) rather than the
+\emph{edges} ($17$--$22.5$), refusing the outer half of the first and last
+bins. $11{,}069$ of $54{,}710$ companions were nulled by it. The prior now
+carries its edges, is constant across the outer half-bins, and is zero only
+beyond them; the numbers above are from the corrected run, and the fix changed
+no AUC by more than $0.01$.
+
 \section{Scope and limitations}
 \label{sec:limitations}
 
