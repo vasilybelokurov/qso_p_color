@@ -122,6 +122,9 @@ def main() -> None:
                          "~5e5 and the sanity check needs nothing like that many")
     ap.add_argument("--out", type=Path, default=Path("data/pair_validation_results.npz"))
     ap.add_argument("--report", type=Path, default=Path("data/pair_validation_report.json"))
+    ap.add_argument("--figure", type=str, default="validation/pair_validation",
+                    help="figure name under plots/; change it when validating a "
+                         "candidate model so the shipped model's figure survives")
     args = ap.parse_args()
 
     import sys
@@ -302,7 +305,7 @@ def main() -> None:
                         ref_mag=feat.ref_mag)
     args.report.write_text(json.dumps(report, indent=1))
     print(f"\nwrote {args.out} and {args.report}")
-    make_figure(label, scored, in_held, logr, logbf, pz, report)
+    make_figure(label, scored, in_held, logr, logbf, pz, report, args.figure)
 
 
 def _subset(fs, mask):
@@ -319,7 +322,7 @@ def _subset(fs, mask):
     return type(fs)(**kw)
 
 
-def make_figure(label, scored, in_held, logr, logbf, pz, report):
+def make_figure(label, scored, in_held, logr, logbf, pz, report, fig_name="validation/pair_validation"):
     import matplotlib.pyplot as plt
 
     from qso_pcolor.plotting import SERIES, save_figure, use_paper_style
@@ -376,7 +379,9 @@ def make_figure(label, scored, in_held, logr, logbf, pz, report):
     ax.set_title("is the redshift probability calibrated?")
     ax.legend(loc="upper left", fontsize=8)
 
-    path = save_figure(fig, "validation/pair_validation")
+    # NOT `name`: the reliability loop above reuses that identifier, and the
+    # figure once landed at plots/held_out.png because of it
+    path = save_figure(fig, fig_name)
     print(f"wrote {path}")
 
 

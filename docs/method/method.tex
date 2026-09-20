@@ -571,6 +571,29 @@ boundary was. The extrapolated share of the normalisation falls from $7.1\%$ to
 $2.25\%$ for the same candidate; the residual is why the scorer should still
 decline to integrate outside its support.
 
+\paragraph{Superseded by a native retrain.} The appended model served for one
+day. On 2026-09-20 the whole model was retrained over $0.1<z<4.4$ in one pass,
+with three changes and no others: the Legacy Surveys \texttt{maskbits}
+quality cut applied to the DESI channel as it always was to the SDSS channel,
+the background model and the candidates ($69{,}987$ DESI quasars, $5.4\%$,
+removed --- mostly in WISE bright-star halos); $K$ fixed at $20$ where a slice
+has at least $10{,}000$ objects and chosen per slice by held-out density below
+that; and the sixteen reserved sky blocks \emph{read} from the previous model
+rather than redrawn, so the two could be compared on identical held-out
+objects. The result is the model shipped with this note: $1{,}106{,}986$
+training quasars ($917{,}489$ DESI, $189{,}497$ SDSS), $43$ slices, $K$ from
+$20$ down to $4$.
+
+What the retrain changed is measured, not assumed. On $40{,}000$ identical
+mask-clean held-out quasars the new and appended models agree to
+$+0.0008$~nats; every validation statistic of \S\ref{sec:validation-results}
+moved by at most $0.006$ in AUC, and the calibration ratios are identical to
+two decimals. The mechanism the cut addresses is real --- masked quasars sit
+$0.85$~nats below the clean locus under the old model, so their colours are
+genuinely contaminated --- but at $5.4\%$ of the sample they had not moved the
+fit. The retrain bought a consistent sample and a complete provenance record,
+not accuracy. We record that so that nobody expects otherwise from the next one.
+
 \section{The background model}
 \label{sec:background}
 
@@ -1131,37 +1154,22 @@ Each object is treated as a separate problem. The field sources come one from
 each of five independent random fields --- not five from one patch, which would
 share a single stellar environment and be a random sample of nothing.
 
-\paragraph{A provenance correction.} The quasars in this figure were selected
-by a script that re-derived the model's spatial holdout rather than reading it,
-and re-derived it from a different sample (DESI alone, without de-duplication
-or the quality cut), which yields $78$ candidate blocks where training had
-$81$. Since \texttt{choice} is a function of the array it is given, the same
-seed over a different block list is a different draw: seven of its sixteen
-blocks were training blocks. \textbf{Three of the five quasars plotted here
-therefore lie in blocks that were used in fitting.} We measured what that is
-worth rather than assuming: comparing $\log p(\mathbf{c}\,|\,Q,z_{\rm spec})$
-for in-sample against genuinely held-out quasars, matched in redshift and
-reference magnitude over $45$ cells, gives an in-minus-out difference of
-$+0.018$~nats. Against the $\log B \sim 5$--$15$ of these panels that is
-negligible --- with $\sim\!10^2$ objects per free parameter per slice, an
-object's own contribution to the density at its own location is not resolvable
---- so the numbers below are what they would have been either way. The split
-is now recorded in the model file --- the seed and the sixteen block IDs --- and
-read rather than reconstructed, so the claim and the figure cannot diverge
-again. Every object then gets its \emph{own} local stellar model,
-fitted in a $0.5^\circ$ cone centred on it with known quasars removed and the
-masked area taken out of the density. The panels show three contours: the
-quasar model at that object's target redshift, the stellar model fitted
-globally across the southern footprint, and the stellar model local to that
-object.
+\paragraph{Provenance.} The quasars are drawn from the sixteen sky blocks
+recorded in the model file as reserved before fitting, so none was used in
+training. An earlier version of this figure could not make that claim: the
+script re-derived the holdout from a different sample instead of reading it,
+and three of its five quasars turned out to be training objects (a $+0.018$~nat
+effect on their densities, measured, so the numbers were right but the caption
+was not). The split is now written by the training run and read by every
+consumer, and the figure was regenerated from the retrained model of
+\S\ref{sec:zrange}.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{../../plots/examples/optical_only_examples.png}
 \caption{Ten real objects scored on DECaLS colours alone. \emph{Top:} five
-DESI DR1 quasars; three of the five fall in blocks used for fitting, for the
-reason given in the text, which shifts their colour densities by $+0.018$~nats
-against $\log B \sim 5$--$15$. \emph{Bottom:} five point sources,
+DESI DR1 quasars from the model's reserved sky blocks, never used in fitting.
+\emph{Bottom:} five point sources,
 each from a different random field. Contours are the quasar model at $z_0$
 (blue), the stellar model averaged over the footprint (orange, dashed) and the
 stellar model fitted in this object's own neighbourhood (green). Panel titles
@@ -1173,47 +1181,50 @@ probability, so an object outside it is not thereby improbable.}
 \end{figure}
 
 \begin{center}
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
- & $z_0$ & $r$ & $\log \mathrm{BF}$ & $p_{\rm same}$ \\
+ & $z_0$ & $r$ & $\log \mathrm{BF}$ & $\log R$ & $p_{\rm same}$ \\
 \midrule
-quasars & $1.42$ & $19.2$ & $+6.4$ & $5.4\times10^{-2}$ \\
-        & $2.23$ & $20.3$ & $+7.5$ & $3.3\times10^{-2}$ \\
-        & $1.84$ & $21.2$ & $+4.0$ & $9.5\times10^{-3}$ \\
-        & $0.62$ & $21.1$ & $+4.8$ & $3.1\times10^{-3}$ \\
-        & $2.85$ & $19.7$ & $\mathbf{-0.6}$ & $2.6\times10^{-5}$ \\
+quasars & $3.49$ & $21.2$ & $+3.7$ & $-3.8$ & $1.4\times10^{-3}$ \\
+        & $3.58$ & $21.0$ & $+6.3$ & $-1.3$ & $1.7\times10^{-2}$ \\
+        & $2.29$ & $20.8$ & $+4.1$ & $-1.7$ & $8.0\times10^{-3}$ \\
+        & $1.60$ & $21.2$ & $+5.4$ & $-0.5$ & $2.0\times10^{-2}$ \\
+        & $2.88$ & $20.0$ & $+3.6$ & $-3.8$ & $1.1\times10^{-3}$ \\
 \midrule
-field   & $1.84$ & $21.3$ & $-12.2$ & $1.2\times10^{-9}$ \\
-        & $0.62$ & $19.5$ & $-4.2$  & $1.1\times10^{-6}$ \\
-        & $2.23$ & $20.5$ & $-7.1$  & $1.5\times10^{-7}$ \\
-        & $0.62$ & $19.3$ & $-6.1$  & $1.9\times10^{-7}$ \\
-        & $0.62$ & $20.8$ & $-3.8$  & $1.8\times10^{-6}$ \\
+field   & $2.29$ & $21.3$ & $-10.6$ & $-16.0$ & $4.7\times10^{-9}$ \\
+        & $1.60$ & $19.5$ & $-4.6$  & $-9.9$  & $1.8\times10^{-6}$ \\
+        & $3.58$ & $20.5$ & $-4.6$  & $-12.4$ & $2.5\times10^{-7}$ \\
+        & $1.60$ & $19.3$ & $-3.1$  & $-8.3$  & $8.9\times10^{-6}$ \\
+        & $1.60$ & $20.8$ & $\mathbf{-1.0}$ & $-5.8$ & $1.1\times10^{-4}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Four of the five quasars separate cleanly, and all five field sources do. Three
-things in the figure are worth more than that headline.
+All five quasars separate from the field, by $3.6$ to $6.3$ natural logarithms,
+and all five field sources fall below zero, the closest at $-1.0$. Three things
+in the figure are worth more than that headline.
 
-\paragraph{The one failure is the expected one.} The quasar at $z=2.85$ returns
-$\log\mathrm{BF}=-0.6$: its panel shows it sitting where the quasar locus
-crosses the stellar sequence. At that redshift the optical colours of a quasar
-and of a star coincide, and no amount of modelling recovers a distinction the
-photometry does not contain. This is precisely the degeneracy $W1-W2$ exists to
-break, and the clearest single argument for not running optical-only in
-production.
+\paragraph{The weakest cases are the expected ones.} The quasar at $z=2.88$ is
+the least separated ($\log\mathrm{BF}=+3.6$): its panel shows it where the
+quasar locus crosses the stellar sequence, the redshift at which optical quasar
+and star colours coincide, and an earlier draw of this figure had a $z=2.85$
+quasar come out at $-0.6$ for the same reason. The point source at
+$\log\mathrm{BF}=-1.0$ is the mirror image, a star sitting on the quasar locus
+at $z_0=1.6$. Neither is a modelling failure; both are the degeneracy that
+$W1-W2$ exists to break, and the clearest single argument for not running
+optical-only in production.
 
 \paragraph{The local and global stellar models agree here.} Green and orange
 track each other closely in all ten panels. These sightlines are all at
-$|b|>25^\circ$, where the field population is not varying rapidly, so the local
+$|b|>27^\circ$, where the field population is not varying rapidly, so the local
 fit \emph{confirms} the footprint average rather than overturning it. That is a
 useful negative result, and one only visible because both were drawn. It should
 not be generalised to low latitude, where the per-object fit is expected to
 matter and has not been tested.
 
 \paragraph{$p_{\rm same}$ is small even when the evidence is strong.} The best
-object here has $\log\mathrm{BF}=+7.5$ --- odds of about $1800$ to $1$ on colour
-alone --- and still only $p_{\rm same}=0.03$, because the $\pm2000\kms$ window
+object here has $\log\mathrm{BF}=+6.3$ --- odds of about $550$ to $1$ on colour
+alone --- and still only $p_{\rm same}=0.017$, because the $\pm2000\kms$ window
 captures a few per cent of a redshift posterior that is an order of magnitude
 wider (\S\ref{sec:window}). The Bayes factor and the ranking are what carry the
 information; the posterior carries the window.
@@ -1360,6 +1371,11 @@ user who wants a probability rather than a ranking should multiply the odds by
 the factor in the table for their separation. Whether the ratio reaches unity
 beyond $30''$ ($\sim 250$~kpc) is not yet measured; extending the search to
 $60$--$120''$ would settle it and is the obvious next run.
+
+\paragraph{These numbers survive the retrain.} The validation was rerun on the
+retrained model of \S\ref{sec:zrange}; no AUC moved by more than $0.006$ and
+the calibration table is unchanged at the precision shown. The figure and the
+numbers quoted are from the retrained model.
 
 \paragraph{A defect this exercise found.} On the first run a quarter of the
 companions were refused with the status ``quasar prior empty at this

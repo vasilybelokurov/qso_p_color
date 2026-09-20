@@ -403,13 +403,23 @@ def test_local_background_rejects_wrong_or_mixed_release():
                 180.0, 0.0, 0.5, transform=None, bands=("g", "r", "z"),
                 mag_edges=np.array([17.0, 22.5]), system="ls_dr9_south_grzw",
             )
-        # a pure northern cone labelled north is fine as far as this check goes
+        # a pure northern cone labelled south must also be refused
         rows["release"] = np.array([9011, 9011])
         with pytest.raises(ValueError, match="photometric system mismatch"):
             background.fit_local_background(
                 180.0, 0.0, 0.5, transform=None, bands=("g", "r", "z"),
                 mag_edges=np.array([17.0, 22.5]), system="ls_dr9_south_grzw",
             )
+        # 9012 is DECam too (a reprocessed southern brick) and must pass the
+        # release check; it then fails later on the None transform, which is
+        # how we know the check itself let it through
+        rows["release"] = np.array([9010, 9012])
+        with pytest.raises(Exception) as ei:
+            background.fit_local_background(
+                180.0, 0.0, 0.5, transform=None, bands=("g", "r", "z"),
+                mag_edges=np.array([17.0, 22.5]), system="ls_dr9_south_grzw",
+            )
+        assert "photometric system mismatch" not in str(ei.value)
     finally:
         data.fetch_ls_background = saved
 
@@ -458,32 +468,37 @@ def test_shipped_model_covers_the_extended_redshift_range():
 def test_sparse_slices_did_not_get_the_core_slice_K():
     """893 objects with K=20 is ~3 per free parameter; the core has ~117.
 
-    ``min_per_slice`` is a don't-crash fallback, not a quality criterion, so K
-    is selected per appended slice by held-out density instead of asserted.
+    K = n_components where a slice has >= select_below_n objects (measured: no
+    held-out gain available there) and is selected per slice below that.
     """
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
     q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
-    per = {round(float(r["z"]), 2): r for r in q.meta["per_slice"]}
-    core = [r["k"] for z, r in per.items() if 0.45 <= z <= 3.55]
-    assert set(core) == {20}, "the original slices must be untouched"
-    # the sparsest appended slices must carry fewer components than the core
-    assert per[4.35]["k"] < 20 and per[4.25]["k"] < 20
-    # and K must not increase as objects run out
-    hi = [per[z]["k"] for z in sorted(per) if z > 3.55]
-    assert all(a >= b for a, b in zip(hi, hi[1:])), f"K not monotone at high z: {hi}"
+    rule = q.meta["k_rule"]
+    for r in q.meta["per_slice"]:
+        if r["n"] >= rule["select_below_n"]:
+            assert r["k"] == rule["fixed_k"] and "k_scores" not in r, r
+        else:
+            assert "k_scores" in r and r["k"] <= rule["fixed_k"], r
+            assert r["k"] in rule["grid"]
+    ks = [r["k"] for r in q.meta["per_slice"]]
+    assert ks[-1] < rule["fixed_k"], "the sparsest slice must not carry the core K"
+    # the recorded K matches the fitted mixtures
+    assert all(m.n_components == r["k"] for m, r in zip(q.mixtures, q.meta["per_slice"]))
 
 
-def test_extension_is_recorded_as_provenance():
-    """A reader must be able to tell appended slices from originally trained."""
+def test_retrained_model_records_selection_and_provenance():
+    """maskbits applied, holdout read not drawn, validity ranges present."""
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
     q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
-    ext = q.meta["extended"]
-    assert ext["previous_support"] == [0.45, 3.55]
-    assert ext["slices_added_low"] + ext["slices_added_high"] == 11
-    assert len(ext["k_selection_per_new_slice"]) == 11
-    assert len(q.meta["per_slice"]) == 43
+    m = q.meta
+    assert m["maskbits_cut_applied"] is True and m["n_masked_removed"] > 0
+    assert m["holdout_source"].startswith("read from")
+    assert len(m["holdout_blocks"]) == 16 and m["n_blocks_total"] == 81
+    assert m["n_train"] == m["n_desi"] + m["n_sdss"]
+    assert set(m["validity"]) == {"ref_mag_1_50_99", "min_ref_snr", "min_dims"}
+    assert len(m["per_slice"]) == q.z_centres.size == 43
 
 
 # ---------------------------------------- batch 2 review fixes, 2026-09-20
@@ -698,3 +713,14 @@ def test_training_script_applies_maskbits_reads_holdout_and_never_overwrites():
     # the shipped file cannot be clobbered by a training run
     assert "refusing to overwrite the shipped model" in src
     assert 'f"qso_{args.system}_full.json"' not in src
+
+
+def test_validation_figure_name_is_not_shadowed():
+    """make_figure's loop variable `name` once overwrote the figure-name parameter,
+    sending the plot to plots/held_out.png."""
+    import pathlib
+
+    src = pathlib.Path("scripts/validate_pairs.py").read_text()
+    assert "def make_figure(label, scored, in_held, logr, logbf, pz, report, fig_name=" in src
+    assert "save_figure(fig, fig_name)" in src
+    assert "save_figure(fig, name)" not in src

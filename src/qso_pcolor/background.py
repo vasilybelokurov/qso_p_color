@@ -74,9 +74,13 @@ __all__ = [
 # Legacy Surveys ``release`` codes by photometric system. 9010 is DECaLS
 # (south), 9011 BASS/MzLS (north); they are different systems, not two halves of
 # one, which is why a model carries its system and the scorer refuses to mix.
-_RELEASE_FOR_SYSTEM = {
-    "ls_dr9_south_grzw": 9010,
-    "ls_dr9_north_grzw": 9011,
+# 9012 is also DECam: measured 2026-09-20 in a 0.5 deg cone at (327.7, +7.5),
+# 577 such sources sat in one brick (3273p080) at dec 7.88-7.96 with DECam
+# nobs_grz alongside 69,165 release-9010 sources -- a reprocessed southern
+# brick, not another camera. It belongs with the south.
+_RELEASES_FOR_SYSTEM = {
+    "ls_dr9_south_grzw": {9010, 9012},
+    "ls_dr9_north_grzw": {9011},
 }
 
 
@@ -449,18 +453,18 @@ def fit_local_background(
     # here, where the data is -- not downstream, where only the label survives.
     rel = np.asarray(r.get("release", []), int)
     if rel.size:
-        want = _RELEASE_FOR_SYSTEM.get(system)
+        want = _RELEASES_FOR_SYSTEM.get(system)
         present = sorted(int(x) for x in np.unique(rel))
         if want is None:
             log.warning(
                 "system %r has no known release; cone returned releases %s, "
                 "which are not being checked", system, present,
             )
-        elif present != [want]:
+        elif not set(present) <= want:
             raise ValueError(
-                f"photometric system mismatch: system={system!r} implies "
-                f"release {want}, but this cone at ({ra}, {dec}) returned "
-                f"release(s) {present}. A mixed or wrong-hemisphere cone cannot "
+                f"photometric system mismatch: system={system!r} admits "
+                f"release(s) {sorted(want)}, but this cone at ({ra}, {dec}) "
+                f"returned {present}. A mixed or wrong-hemisphere cone cannot "
                 f"be labelled with one system; fit north and south separately."
             )
 

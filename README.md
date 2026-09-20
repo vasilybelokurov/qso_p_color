@@ -22,9 +22,10 @@ calculation cannot tell a genuine companion from a foreground quasar at
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 110 tests. The quasar colour model,
-trained on 1,116,464 spectroscopic quasars — 931,563 DESI DR1 and 184,901 SDSS
-DR16Q — with 20 % of nside=4 sky blocks reserved before fitting. The
+(quadrature, Monte Carlo, closed forms) by 114 tests. The quasar colour model,
+trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
+DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
+fitting. The
 prior-independent Bayes factor.
 
 **What is measured** (`scripts/validate_pairs.py`, 52,099 spectroscopically
@@ -33,10 +34,10 @@ labelled companions at 3–30″, held-out and full samples agree to 0.01):
 | question | result |
 |---|---|
 | same-*z* quasar vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **AUC 0.84** |
-| same, ranked by the Bayes factor alone | AUC 0.76 |
-| quasar vs spectroscopic star, by Bayes factor | **AUC 0.98**; 0.6 % of stars above the median same-*z* quasar |
-| quasar vs spectroscopic galaxy, by Bayes factor | AUC 0.81; 10.5 % above — but 97 % of them are resolved (`type ≠ PSF`) |
-| `p_zmatch_given_qso` calibration | right in shape, **low by 3.3× (20–30″) to 9.8× (3–5″)** |
+| same, ranked by the Bayes factor alone | AUC 0.75 |
+| quasar vs spectroscopic star, by Bayes factor | **AUC 0.98**; 0.5 % of stars above the median same-*z* quasar |
+| quasar vs spectroscopic galaxy, by Bayes factor | AUC 0.80; 10.7 % above — but 97 % of them are resolved (`type ≠ PSF`) |
+| `p_zmatch_given_qso` calibration | right in shape, **low by 3.3× (20–30″) to 9.9× (3–5″)** |
 
 That last row is not a bug: the scorer assumes the companion's redshift is drawn
 from the field, and physical pairs cluster. The factor is the measured
@@ -68,10 +69,10 @@ Ranking needs a prior; without one the package returns NaN for
   2.25 % of that normalisation is extrapolated for the example below — down
   from 7.1 % before the range was widened, but not zero. The Bayes factor is
   unaffected.
-- The training sample's quality cuts differ by channel: the SDSS third requires
-  `maskbits = 0`, the DESI two-thirds does not. And `--select-k` picks K from a
-  redshift-pooled *unconditional* mixture, then uses it in all 32 conditional
-  slices. Both need a retrain to fix.
+- Only the southern model is validated end to end. `p_zmatch_given_qso` is
+  conditional on the companion being a quasar *inside the trained range*; a
+  candidate whose colours are best explained beyond z ≈ 4.4 is reported via
+  `frac_norm_outside_support`, not scored as if it were inside.
 
 ---
 
@@ -80,7 +81,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 110 tests, ~45 s
+python -m pytest -q                          # 114 tests, ~45 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -188,26 +189,27 @@ discarded as lying outside the trained range), quality flags and a status code.
 
 ## Models and data
 
-`models/qso_south_full.json` is committed: 1,116,464 training quasars
-(931,563 DESI DR1 + 184,901 SDSS DR16Q, de-duplicated at 1″), Legacy Surveys
-DR9 south (`release` 9010), 43 redshift slices covering 0.15 < z < 4.35, with K
-chosen per slice (20 in the well-populated core, falling to 4 in the sparsest
-high-redshift slice). 16 of the 81
-populated nside=4 sky blocks were reserved before fitting, holding out 343,704
-objects (23.5 % of the sample; the 20 % is a fraction of *blocks*, not of
-objects). Those 16 block IDs and the seed are recorded in the file's `meta`, so
+`models/qso_south_full.json` is committed: 1,106,986 training quasars
+(917,489 DESI DR1 + 189,497 SDSS DR16Q, de-duplicated at 1″, `maskbits = 0` on
+both channels), Legacy Surveys DR9 south (`release` 9010), 43 redshift slices
+covering 0.15 < z < 4.35 trained natively over 0.1–4.4. K = 20 where a slice
+has ≥ 10,000 objects; below that K is chosen per slice by held-out density
+(12, 8 and 4 at the high-redshift end). 16 of the 81 populated nside=4 sky
+blocks were reserved before fitting, holding out 338,170 objects (23.4 % of the
+sample; the 20 % is a fraction of *blocks*, not of objects). Those 16 block IDs and the seed are recorded in the file's `meta`, so
 downstream code reads the split instead of re-deriving it — re-deriving it is
 what produced a figure caption claiming five held-out quasars when three of
 them were in the fit. Enough to score candidates without retraining.
 
-The range was widened from the original 0.4–3.6 by *appending* 11 slices
-(`scripts/extend_qso_model_redshift.py`), which leaves the original 32 mixtures
-bit-identical and reuses the recorded holdout. Measured on 15,552 held-out
-quasars outside the old range, log p(c | Q, z_spec) improves by **+1.90 nats**
-on average (78 % of objects), rising from +0.1 nats just beyond the old edge to
-+5.0 at z ≈ 4.3 — the shape you expect if a real deficiency is being repaired
-rather than noise absorbed. `scripts/check_redshift_extension.py` reruns that
-comparison.
+History: the range was first widened from 0.4–3.6 by *appending* 11 slices
+(`scripts/extend_qso_model_redshift.py`; +1.90 nats on 15,552 held-out quasars
+outside the old range), then the whole model was retrained natively on
+2026-09-20 with the `maskbits` cut applied to both channels and the same 16
+holdout blocks read in. On 40,000 identical mask-clean held-out quasars the
+retrained and appended models agree to +0.0008 nats; the validation AUCs moved
+by ≤ 0.006. The retrain bought consistency and provenance, not accuracy — as
+expected once we measured that masked quasars sit 0.85 nats off the clean
+locus but are only 5.4 % of the sample.
 
 Everything else is derived and gitignored. Rebuilding needs **WSDB access**
 (`sqlutilpy`, credentials via `PGUSER` / `PGHOST` / `~/.pgpass`):
@@ -225,10 +227,6 @@ that guarantee: `data/dr16q_ls.npz` (written by `train_qso_model.load_sdss`,
 which checks only that the file exists, so changed redshift limits reuse the old
 sample) and the fitted `models/method_*.json`, which reload unless `--refit` is
 passed.
-
-The committed `plots/examples/optical_only_examples.png` predates the holdout
-fix, so `score_examples.py` now selects a different five quasars than the ones
-in it; §9 of the method note says so explicitly.
 
 ## Conventions
 

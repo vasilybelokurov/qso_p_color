@@ -408,7 +408,27 @@ original. **Batch 1, done:**
 - **The Makefile depends on figure 9**, which lives under `plots/examples/` and
   was missed by the `plots/method/*.png` wildcard.
 
-**Still deferred:**
+**Retrain done (2026-09-20, 4.3 h):** `maskbits = 0` on both channels
+(69,987 DESI quasars, 5.41 %, removed), native 0.1–4.4 in 43 slices, K = 20
+where n ≥ 10,000 and selected per slice below (12/8/4 at high z), the 16
+holdout blocks READ from the previous model, output to a dated file and
+promoted only after `validate_pairs.py` passed. Result: on 40,000 identical
+mask-clean held-out quasars the new and old models agree to **+0.0008 nats**;
+every validation AUC moved by ≤ 0.006; calibration ratios identical to two
+decimals. Masked quasars really are different — 0.85 nats below the clean
+locus under the old model — but at 5.4 % of the sample they did not move the
+fit. **The retrain bought consistency and provenance, not accuracy.** Recorded
+so nobody expects otherwise from a rerun.
+
+**Found while promoting (2026-09-20):** Legacy Surveys release **9012** is
+DECam photometry too — reprocessed southern bricks (e.g. `3273p080`, 577
+sources in one 0.5° cone beside 69,165 at 9010). `fit_local_background` now
+admits {9010, 9012} for the south. The DESI training cache holds **9,628
+release-9012 quasars (0.7 %)** that `train_qso_model.py` excludes with
+`release == 9010`; consistent treatment would include them. Not worth a
+retrain on its own — fold into the next one.
+
+**Historical, now resolved by the retrain:**
 
 - **Training quality cuts differ by channel.** The SDSS match requires
   `maskbits = 0`; the DESI branch returns `maskbits` and never applies it. One
