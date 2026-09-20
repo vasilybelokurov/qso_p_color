@@ -442,6 +442,22 @@ treat a large gap as a selection-bias warning rather than a curiosity.
 
 ---
 
+## 8a. Before reporting anything done
+
+Open the artifact and check it against the request, verbatim. Scripts that
+*select* things -- which objects, which fields, which models -- are science
+code, not presentation: verify the selection is what was asked for, not merely
+that the code ran without error.
+
+Failures from 2026-09-19 that this rule would have caught: quasars scored
+against a stellar model fitted 159 degrees away; five "random" field objects
+all drawn from one 0.5 degree cone; axis limits that silently dropped 29% of
+the plotted population.
+
+Cache fitted models to disk (`--refit` to rebuild). Re-running minutes of EM to
+move a text label wastes time and invites stale-cache errors when the
+underlying selection changes.
+
 ## 9. If you get stuck
 
 - A number that looks too good is usually a leak: the same object in train and

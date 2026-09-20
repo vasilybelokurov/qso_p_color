@@ -1020,6 +1020,95 @@ and the data that produced it \\
 \end{tabular}
 \end{center}
 
+\section{A worked example on ten real objects}
+\label{sec:examples}
+
+Figure~\ref{fig:examples} applies the classifier to five spectroscopic quasars
+and five point-like field sources, and draws the densities each one is judged
+against. It is deliberately the hard case: \textbf{DECaLS bands only}, with
+$W1$ and $W2$ marginalised out exactly through the observed-dimension mask
+rather than dropped. WISE carries most of the quasar/star discrimination, so
+this shows what the optical colours alone can do.
+
+Each object is treated as a separate problem. The quasars are drawn from the
+model's \emph{reserved} spatial blocks, so none was used in fitting, and the
+field sources come one from each of five independent random fields --- not five
+from one patch, which would share a single stellar environment and be a random
+sample of nothing. Every object then gets its \emph{own} local stellar model,
+fitted in a $0.5^\circ$ cone centred on it with known quasars removed and the
+masked area taken out of the density. The panels show three contours: the
+quasar model at that object's target redshift, the stellar model fitted
+globally across the southern footprint, and the stellar model local to that
+object.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../../plots/examples/optical_only_examples.png}
+\caption{Ten real objects scored on DECaLS colours alone. \emph{Top:} five
+quasars from the model's reserved blocks. \emph{Bottom:} five point sources,
+each from a different random field. Contours are the quasar model at $z_0$
+(blue), the stellar model averaged over the footprint (orange, dashed) and the
+stellar model fitted in this object's own neighbourhood (green). Panel titles
+give the target redshift, reference magnitude and Galactic coordinates; the
+measured object is the open circle with its error bars. Note that the outermost
+contour is drawn at $5\%$ of peak density, \emph{not} at an enclosed
+probability, so an object outside it is not thereby improbable.}
+\label{fig:examples}
+\end{figure}
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+ & $z_0$ & $r$ & $\log \mathrm{BF}$ & $p_{\rm same}$ \\
+\midrule
+quasars & $1.42$ & $19.2$ & $+6.4$ & $5.4\times10^{-2}$ \\
+        & $2.23$ & $20.3$ & $+7.5$ & $3.3\times10^{-2}$ \\
+        & $1.84$ & $21.2$ & $+4.0$ & $9.5\times10^{-3}$ \\
+        & $0.62$ & $21.1$ & $+4.8$ & $3.1\times10^{-3}$ \\
+        & $2.85$ & $19.7$ & $\mathbf{-0.6}$ & $2.6\times10^{-5}$ \\
+\midrule
+field   & $1.84$ & $21.3$ & $-12.2$ & $1.2\times10^{-9}$ \\
+        & $0.62$ & $19.5$ & $-4.2$  & $1.1\times10^{-6}$ \\
+        & $2.23$ & $20.5$ & $-7.1$  & $1.5\times10^{-7}$ \\
+        & $0.62$ & $19.3$ & $-6.1$  & $1.9\times10^{-7}$ \\
+        & $0.62$ & $20.8$ & $-3.8$  & $1.8\times10^{-6}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Four of the five quasars separate cleanly, and all five field sources do. Three
+things in the figure are worth more than that headline.
+
+\paragraph{The one failure is the expected one.} The quasar at $z=2.85$ returns
+$\log\mathrm{BF}=-0.6$: its panel shows it sitting where the quasar locus
+crosses the stellar sequence. At that redshift the optical colours of a quasar
+and of a star coincide, and no amount of modelling recovers a distinction the
+photometry does not contain. This is precisely the degeneracy $W1-W2$ exists to
+break, and the clearest single argument for not running optical-only in
+production.
+
+\paragraph{The local and global stellar models agree here.} Green and orange
+track each other closely in all ten panels. These sightlines are all at
+$|b|>25^\circ$, where the field population is not varying rapidly, so the local
+fit \emph{confirms} the footprint average rather than overturning it. That is a
+useful negative result, and one only visible because both were drawn. It should
+not be generalised to low latitude, where the per-object fit is expected to
+matter and has not been tested.
+
+\paragraph{$p_{\rm same}$ is small even when the evidence is strong.} The best
+object here has $\log\mathrm{BF}=+7.5$ --- odds of about $1800$ to $1$ on colour
+alone --- and still only $p_{\rm same}=0.03$, because the $\pm2000\kms$ window
+captures a few per cent of a redshift posterior that is an order of magnitude
+wider (\S\ref{sec:window}). The Bayes factor and the ranking are what carry the
+information; the posterior carries the window.
+
+\paragraph{A known defect visible in the figure.} Small contour fragments appear
+near the origin in several panels, and a stray tick near $(0.3, 4.6)$ in one.
+These belong to the \emph{global} stellar model and mark a mixture component
+sitting where essentially no real sources are. They do not affect the local
+models or any number in the table, but they indicate a stray component in that
+fit which has not been chased down.
+
 \section{Validation design}
 \label{sec:validation}
 

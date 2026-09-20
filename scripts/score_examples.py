@@ -95,6 +95,63 @@ def build_sigma_q(zmin, zmax, plateau_per_deg2):
     return prior
 
 
+def fit_global_background(transform, bands, mag_edges, system, n_cones=8,
+                          radius=0.5, seed=0):
+    """One stellar model averaged over widely separated fields.
+
+    The local model describes the candidate's own neighbourhood; this one
+    describes the southern footprint as a whole. Comparing them shows how much
+    the answer depends on where you look.
+    """
+    import numpy as np
+    from pathlib import Path
+
+    from qso_pcolor.background import fit_background_model
+    from qso_pcolor.data import (cached_query, drop_known_quasars,
+                                 fetch_known_quasars, galactic_from_equatorial)
+    from qso_pcolor.features import deredden
+    from qso_pcolor.priors import BackgroundSurfaceDensity
+    from qso_pcolor.xd import fit_xd
+
+    rng = np.random.default_rng(seed)
+    centres = [(float(a), float(d)) for a, d in
+               zip(rng.uniform(140, 350, n_cones), rng.uniform(-15, 15, n_cones))]
+    X, V, O, M, L, B, area = [], [], [], [], [], [], 0.0
+    for i, (a, d) in enumerate(centres):
+        r = cached_query(
+            STAR_QUERY % {"ra": a, "dec": d, "radius": radius,
+                          "mlo": 17.0, "mhi": 22.5},
+            Path("data") / f"global_bkg_{i:02d}.npz")
+        if r["ra"].size < 100:
+            continue
+        q = fetch_known_quasars(a, d, radius,
+                                cache=Path("data") / f"global_qso_{i:02d}.npz")
+        keep = drop_known_quasars(r["ra"], r["dec"], q["ra"], q["dec"])
+        f, v = deredden(stack(r, "flux_")[keep], stack(r, "flux_ivar_")[keep],
+                        stack(r, "mw_transmission_")[keep])
+        fs = transform(f, v, bands)
+        ok = fs.usable(min_dims=3) & np.isfinite(fs.ref_mag) & (fs.ref_mag < 22.5)
+        l, b = galactic_from_equatorial(r["ra"][keep][ok], r["dec"][keep][ok])
+        X.append(fs.x[ok]); V.append(fs.cov[ok]); O.append(fs.observed[ok])
+        M.append(fs.ref_mag[ok])
+        L.append(l); B.append(b); area += np.pi * radius**2
+    X = np.concatenate(X); V = np.concatenate(V); O = np.concatenate(O)
+    M = np.concatenate(M); L = np.concatenate(L); B = np.concatenate(B)
+    print(f"  global stellar model: {X.shape[0]:,} sources from {len(centres)} "
+          f"fields across the south, {area:.1f} deg^2")
+    model = fit_background_model(
+        X, V, M, L, B, mag_edges=mag_edges, nside=1, nside_parent=1,
+        observed=O,                              # bands the survey could not measure
+        n_components=8, min_per_cell=10**9,      # global level only
+        n0=500.0, system=system, labels=transform(
+            np.ones((1, len(bands))), np.ones((1, len(bands))), bands).labels,
+        seed=0, max_iter=300, regularization=1e-6)
+    dens = BackgroundSurfaceDensity.from_catalogue(
+        M, L, B, mag_edges=mag_edges, nside=1, nside_parent=1,
+        total_area_deg2=area)
+    return model, dens
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--ra", type=float, default=180.0)
@@ -105,6 +162,9 @@ def main() -> None:
                     help="true quasar density per deg^2 from the coverage plateau")
     ap.add_argument("--model", type=Path, default=Path("models/qso_south_full.json"))
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--refit", action="store_true",
+                    help="rebuild the background models instead of "
+                         "loading models/examples/*.json")
     args = ap.parse_args()
 
     import logging
@@ -147,34 +207,88 @@ def main() -> None:
     print(f"  {args.n} quasars drawn from the {nh} reserved blocks "
           f"(never used in fitting)")
 
-    # ---- five point sources from the same cone ---------------------------
-    st = cached_query(
-        STAR_QUERY % {"ra": args.ra, "dec": args.dec, "radius": args.radius,
-                      "mlo": 19.0, "mhi": 21.5},
-        Path("data") / "example_stars.npz",
-    )
-    qq = fetch_known_quasars(args.ra, args.dec, args.radius,
-                             cache=Path("data") / "example_qso.npz")
-    notq = drop_known_quasars(st["ra"], st["dec"], qq["ra"], qq["dec"])
+    # ---- five point sources, from five RANDOM places on the sky ----------
+    # Not five from one cone: the field population varies across the sky, so
+    # five objects from a single 0.5 deg patch share one stellar environment
+    # and are not a random sample of anything.
+    star_ra, star_dec, star_rows = [], [], []
+    tries = 0
+    while len(star_ra) < args.n and tries < 40:
+        tries += 1
+        a = float(rng.uniform(150.0, 340.0))
+        d = float(rng.uniform(-12.0, 12.0))
+        rs = cached_query(
+            STAR_QUERY % {"ra": a, "dec": d, "radius": 0.15,
+                          "mlo": 19.0, "mhi": 21.5},
+            Path("data") / f"example_star_field_{len(star_ra):02d}.npz")
+        if rs["ra"].size < 50:
+            continue
+        qs = fetch_known_quasars(a, d, 0.15,
+                                 cache=Path("data") / f"example_starq_{len(star_ra):02d}.npz")
+        nq = drop_known_quasars(rs["ra"], rs["dec"], qs["ra"], qs["dec"])
+        fsr, vsr = deredden(stack(rs, "flux_"), stack(rs, "flux_ivar_"),
+                            stack(rs, "mw_transmission_"))
+        fse = tr(fsr, vsr, BANDS)
+        good = np.flatnonzero(fse.usable(min_dims=3) & np.isfinite(fse.ref_mag) & nq)
+        if good.size == 0:
+            continue
+        pick = int(rng.choice(good))
+        star_ra.append(float(rs["ra"][pick])); star_dec.append(float(rs["dec"][pick]))
+        star_rows.append({k: np.asarray(v)[pick : pick + 1] for k, v in rs.items()})
+    st = {k: np.concatenate([r[k] for r in star_rows]) for k in star_rows[0]}
     fsr, vsr = deredden(stack(st, "flux_"), stack(st, "flux_ivar_"),
                         stack(st, "mw_transmission_"))
     fst = tr(fsr, vsr, BANDS)
-    oks = fst.usable(min_dims=3) & np.isfinite(fst.ref_mag) & notq
-    isx = rng.choice(np.flatnonzero(oks), args.n, replace=False)
-    print(f"  {args.n} PSF sources from a {args.radius} deg cone, "
-          f"{int((~notq).sum())} known quasars excluded")
+    isx = np.arange(len(star_ra))
+    print(f"  {args.n} PSF sources, one from each of {args.n} random fields "
+          f"across the south")
 
-    # ---- local background, quasars removed -------------------------------
-    bkg, bdens, info = fit_local_background(
-        args.ra, args.dec, args.radius, transform=tr, bands=BANDS,
-        mag_edges=MAG_EDGES, system=qso.system, n_components=8,
-        max_ref_mag=22.5, cache=Path("data") / "example_bkg.npz",
-        seed=0, max_iter=300, regularization=1e-6,
-    )
-    print(f"  background: {info['n_fitted']:,} sources, "
-          f"{info['n_known_quasars_removed']:,} quasars removed, "
-          f"mask fraction {info['mask_fraction']:.3f}, "
-          f"area {info['area_deg2']:.3f} deg^2")
+    # ---- one local background PER OBJECT ---------------------------------
+    # The candidates are scattered across the footprint, so a single cone's
+    # field population is the wrong one for all but the object it was fitted
+    # around: different stellar density, depth and reddening. Each object gets
+    # a background fitted in its own neighbourhood, which is what the local
+    # mode is for.
+    print(f"\n  fitting one {args.radius} deg background cone per object")
+    obj_ra = np.concatenate([np.asarray(r["ra"])[sel][iq], st["ra"][isx]])
+    obj_dec = np.concatenate([np.asarray(r["dec"])[sel][iq], st["dec"][isx]])
+    backgrounds = []
+    mdir = Path("models") / "examples"
+    mdir.mkdir(parents=True, exist_ok=True)
+    for j, (ora, odec) in enumerate(zip(obj_ra, obj_dec)):
+        mp, dp = mdir / f"local_{j:02d}.json", mdir / f"localdens_{j:02d}.json"
+        if mp.exists() and dp.exists() and not args.refit:
+            from qso_pcolor.background import BackgroundColourModel
+            from qso_pcolor.priors import BackgroundSurfaceDensity
+            bkg_j = BackgroundColourModel.load(mp)
+            bd_j = BackgroundSurfaceDensity.load(dp)
+            backgrounds.append((bkg_j, bd_j, bkg_j.meta))
+            print(f"    {j+1:2d}  ({ora:7.3f},{odec:+7.3f})  cached")
+            continue
+        bkg_j, bd_j, info_j = fit_local_background(
+            float(ora), float(odec), args.radius, transform=tr, bands=BANDS,
+            mag_edges=MAG_EDGES, system=qso.system, n_components=8,
+            max_ref_mag=22.5,
+            cache=Path("data") / f"example_bkg_{j:02d}.npz",
+            seed=0, max_iter=300, regularization=1e-6,
+        )
+        bkg_j.save(mp); bd_j.save(dp)
+        backgrounds.append((bkg_j, bd_j, info_j))
+        print(f"    {j+1:2d}  ({ora:7.3f},{odec:+7.3f})  "
+              f"{info_j['n_fitted']:6,d} sources, "
+              f"{info_j['n_known_quasars_removed']:3d} quasars out, "
+              f"mask {info_j['mask_fraction']:.3f}")
+
+    gmp, gdp = Path("models/examples/global.json"), Path("models/examples/globaldens.json")
+    if gmp.exists() and gdp.exists() and not args.refit:
+        from qso_pcolor.background import BackgroundColourModel
+        from qso_pcolor.priors import BackgroundSurfaceDensity
+        gbkg, gdens = BackgroundColourModel.load(gmp), BackgroundSurfaceDensity.load(gdp)
+        print("  global stellar model: cached")
+    else:
+        gbkg, gdens = fit_global_background(tr, BANDS, MAG_EDGES, qso.system)
+        gmp.parent.mkdir(parents=True, exist_ok=True)
+        gbkg.save(gmp); gdens.save(gdp)
 
     prior = build_sigma_q(0.4, 3.6, args.plateau)
 
@@ -187,18 +301,26 @@ def main() -> None:
 
     match = RedshiftMatch(half_width_kms=2000.0)
     zgrid = np.linspace(0.46, 3.54, 400)
+    lsx, bsx = galactic_from_equatorial(st["ra"][isx], st["dec"][isx])
+    z_for_psf = rng.choice(zq[iq], args.n)
     rows = {}
+    j = 0
     for tag, fs, idx, zt, ll, bb in (
         ("quasar", fq, iq, zq[iq], lq[iq], bq[iq]),
-        ("PSF source", fst, isx, rng.choice(zq[iq], args.n), *galactic_from_equatorial(
-            st["ra"][isx], st["dec"][isx])),
+        ("PSF source", fst, isx, z_for_psf, lsx, bsx),
     ):
-        rows[tag] = score_candidates(
-            optical_only(fs, idx), z_primary=np.atleast_1d(zt),
-            l_deg=np.atleast_1d(ll), b_deg=np.atleast_1d(bb),
-            qso_model=qso, background_model=bkg, match=match,
-            qso_prior=prior, background_density=bdens, z_grid=zgrid, min_bands=2,
-        )
+        out = []
+        for k in range(len(idx)):
+            bkg_j, bd_j, _ = backgrounds[j]; j += 1
+            out += score_candidates(
+                optical_only(fs, idx[k : k + 1]),
+                z_primary=np.atleast_1d(zt[k]),
+                l_deg=np.atleast_1d(ll[k]), b_deg=np.atleast_1d(bb[k]),
+                qso_model=qso, background_model=bkg_j, match=match,
+                qso_prior=prior, background_density=bd_j,
+                z_grid=zgrid, min_bands=2,
+            )
+        rows[tag] = out
 
     print(f"\n{'':4s} {'target z':>9s} {'r':>6s} {'log BF':>8s} {'log R':>8s} "
           f"{'p_sameq':>9s} {'p_z|Q':>7s}")
@@ -209,10 +331,11 @@ def main() -> None:
                   f"{s.log_bayes_factor_qz_bkg:+8.2f} {s.log_r_per_unit_z:+8.2f} "
                   f"{s.p_sameq:9.2e} {s.p_zmatch_given_qso:7.3f}")
 
-    make_figure(qso, bkg, fq, iq, zq[iq], fst, isx, rows, args)
+    gal = (np.concatenate([lq[iq], lsx]), np.concatenate([bq[iq], bsx]))
+    make_figure(qso, backgrounds, gbkg, fq, iq, zq[iq], fst, isx, rows, gal, args)
 
 
-def make_figure(qso, bkg, fq, iq, zq, fst, isx, rows, args):
+def make_figure(qso, backgrounds, gbkg, fq, iq, zq, fst, isx, rows, gal, args):
     """Two rows of panels: the models, in the plane the decision is made in."""
     import matplotlib.pyplot as plt
     from qso_pcolor.plotting import SERIES, save_figure, use_paper_style
@@ -226,7 +349,20 @@ def make_figure(qso, bkg, fq, iq, zq, fst, isx, rows, args):
     obs = np.zeros((XX.size, 4), dtype=bool)
     obs[:, OPTICAL] = True
 
-    fig, axes = plt.subplots(2, args.n, figsize=(2.6 * args.n, 5.6),
+    # Limits from the data: fixed limits silently dropped points off-scale.
+    allx = np.concatenate([fq.x[iq, 0], fst.x[isx, 0]])
+    ally = np.concatenate([fq.x[iq, 1], fst.x[isx, 1]])
+    xlo, xhi = min(-0.1, allx.min() - 0.2), max(2.0, allx.max() + 0.2)
+    ylo, yhi = min(-0.1, ally.min() - 0.2), max(3.0, ally.max() + 0.3)
+    gx = np.linspace(xlo, xhi, 200)
+    gy = np.linspace(ylo, yhi, 200)
+    XX, YY = np.meshgrid(gx, gy, indexing="ij")
+    pts = np.full((XX.size, 4), np.nan)
+    pts[:, 0], pts[:, 1] = XX.ravel(), YY.ravel()
+    obs = np.zeros((XX.size, 4), dtype=bool)
+    obs[:, OPTICAL] = True
+
+    fig, axes = plt.subplots(2, args.n, figsize=(2.8 * args.n, 5.8),
                              sharex=True, sharey=True)
     for row, (tag, fs, idx, zt) in enumerate(
         (("quasar", fq, iq, zq),
@@ -236,25 +372,32 @@ def make_figure(qso, bkg, fq, iq, zq, fst, isx, rows, args):
             ax = axes[row, k]
             s = rows[tag][k]
             z0 = float(zt[k])
+            lbkg = backgrounds[row * args.n + k][0]
 
             lq_ = qso.log_p_colour_given_z(pts, None, np.array([z0]),
                                            observed=obs)[:, 0]
-            lb_ = bkg.log_prob(pts, None, np.full(XX.size, s.ref_mag),
-                               np.full(XX.size, 0.0), np.full(XX.size, 60.0),
-                               observed=obs)
-            for lp, key in ((lq_, "same_z"), (lb_, "background")):
-                P = np.exp(lp - lp.max()).reshape(XX.shape)
+            lg_ = gbkg.log_prob(pts, None, np.full(XX.size, s.ref_mag),
+                                np.zeros(XX.size), np.full(XX.size, 60.0),
+                                observed=obs)
+            ll_ = lbkg.log_prob(pts, None, np.full(XX.size, s.ref_mag),
+                                np.zeros(XX.size), np.full(XX.size, 60.0),
+                                observed=obs)
+            for lp, key, ls in ((lq_, "same_z", "-"),
+                                ("global", "field_q", "--"),
+                                (ll_, "background", "-")):
+                arr = lg_ if isinstance(lp, str) else lp
+                P = np.exp(arr - arr.max()).reshape(XX.shape)
                 ax.contour(gx, gy, P.T, levels=[0.05, 0.3, 0.8],
-                           colors=SERIES[key], linewidths=1.0)
+                           colors=SERIES[key], linewidths=1.0, linestyles=ls)
 
             x0, y0 = fs.x[idx[k], 0], fs.x[idx[k], 1]
             sx = np.sqrt(fs.cov[idx[k], 0, 0]); sy = np.sqrt(fs.cov[idx[k], 1, 1])
             ax.errorbar(x0, y0, xerr=sx, yerr=sy, fmt="o", ms=5,
                         color="#2b2b28", mfc="white", mew=1.4, zorder=5, lw=1.2)
-            ax.set_title(f"$z_0={z0:.2f}$,  $r={s.ref_mag:.1f}$", loc="left",
-                         fontsize=8)
-            # Bottom right: the top-left corner is where the field model's
-            # contours run, so the per-object numbers collided with them there.
+            gl, gb = gal[0][row * args.n + k], gal[1][row * args.n + k]
+            ax.set_title(f"$z_0={z0:.2f}$,  $r={s.ref_mag:.1f}$\n"
+                         f"$\\ell={gl:.1f}^\\circ$, $b={gb:+.1f}^\\circ$",
+                         loc="left", fontsize=8)
             ax.text(0.96, 0.04,
                     f"log BF {s.log_bayes_factor_qz_bkg:+.1f}\n"
                     f"$p_{{\\rm same}}$ {s.p_sameq:.1e}",
@@ -262,14 +405,18 @@ def make_figure(qso, bkg, fq, iq, zq, fst, isx, rows, args):
                     color="#2b2b28",
                     bbox=dict(facecolor="white", edgecolor="none", alpha=0.85,
                               boxstyle="round,pad=0.25"))
-            ax.set_xlim(-0.1, 2.0); ax.set_ylim(-0.1, 3.0)
+            ax.set_xlim(xlo, xhi); ax.set_ylim(ylo, yhi)
             if row == 1:
                 ax.set_xlabel("$f_g/f_r$")
         axes[row, 0].set_ylabel(f"{tag}s\n$f_z/f_r$")
+
     h = [plt.Line2D([], [], color=SERIES["same_z"]),
+         plt.Line2D([], [], color=SERIES["field_q"], ls="--"),
          plt.Line2D([], [], color=SERIES["background"])]
-    fig.legend(h, ["quasar model at $z_0$", "field model"], loc="upper right",
-               ncol=2, fontsize=8, frameon=False, bbox_to_anchor=(0.995, 1.0))
+    fig.legend(h, ["quasar model at $z_0$", "stellar model, global",
+                   "stellar model, local to this object"],
+               loc="upper right", ncol=3, fontsize=8, frameon=False,
+               bbox_to_anchor=(0.995, 1.0))
     fig.suptitle("DECaLS colours only: W1 and W2 marginalised out, not dropped",
                  x=0.01, ha="left", fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
