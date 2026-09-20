@@ -7,6 +7,8 @@ __pycache__/
 .pytest_cache/
 data/
 models/
+# ...except the trained quasar model, so the repo is usable without a 4-hour refit
+!models/qso_south_full.json
 *.npz
 *.parquet
 
