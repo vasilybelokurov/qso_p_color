@@ -45,7 +45,13 @@ DR9 imaging. Applied to those data, the statistic separates quasars from the
 field population by about fourteen natural logarithms but separates
 same-redshift from wrong-redshift quasars by only about two: these bands
 identify quasars well and place them in redshift only weakly, which is the
-central practical constraint on the method.
+central practical constraint on the method. Tested against $52{,}099$
+companions with their own DESI spectra, the statistic ranks a same-redshift
+quasar above a wrong-redshift one with AUC $0.84$, separates quasars from
+stars with AUC $0.98$, and under-predicts the same-redshift probability by a
+factor that falls from $9.8$ at $3$--$5''$ to $3.3$ at $20$--$30''$ --- the
+signature of quasar clustering, which the scorer deliberately omits and which
+this measurement is the first to size.
 \end{abstract}
 
 \section*{The method in plain words}
@@ -63,8 +69,9 @@ photometry treats them as separate sources; closer pairs need image-level work
 that is not attempted here (\S\ref{sec:limitations}).
 
 \paragraph{How we learn what quasars look like.} We take the quasars DESI has
-observed spectroscopically --- about $80{,}000$ in the patch used for the
-figures --- and attach the brightnesses that the Legacy Surveys imaging measured
+observed spectroscopically --- about $1.1$ million across the southern
+footprint, with a fifth of the sky held back to test on --- and attach the
+brightnesses that the Legacy Surveys imaging measured
 for those same objects. The two catalogues share an identifier, so the
 photometry is attached by name rather than by position; removing objects that
 appear twice under different identifiers is a separate step
@@ -145,7 +152,8 @@ practice --- and convert it to a probability only at the end, for a window the
 user declares. Candidates are ordered by that statistic; spectroscopy decides.
 Note also that even a confident answer here is a statement about colours and
 populations, not about whether two quasars are physically bound: that needs a
-clustering model this pipeline deliberately leaves out.
+clustering model this pipeline deliberately leaves out. The validation below
+measures how large that missing piece is.
 
 \paragraph{What the illustrative numbers do and do not show.} Applied to the
 sky patch used for the figures, the ranking statistic puts quasars far from the
@@ -158,6 +166,26 @@ purity or completeness. Read at that level, they say that these filters identify
 quasars much better than they place them in redshift. Whether extra filters with
 a steeper colour--redshift dependence would improve matters is a reasonable
 expectation from \S\ref{sec:whatsets}, not something demonstrated here.
+
+\paragraph{What the test against the truth shows.} Those were in-sample
+illustrations. The real test (\S\ref{sec:validation-results}) uses about
+$52{,}000$ objects that lie within $30''$ of a known quasar \emph{and} have a
+DESI spectrum of their own, so we know what each one is; the scorer is asked to
+guess from colours alone and checked against the answer. Four things came out.
+Telling quasars from stars works very well: fewer than one star in a hundred
+scores as high as a typical same-redshift quasar. Telling a quasar at the
+\emph{same} redshift from one at a \emph{different} redshift works moderately:
+ranked by the statistic, a genuine same-redshift partner beats a random
+wrong-redshift quasar $84\%$ of the time --- real information, and more than the
+blur of $0.6$ in redshift led us to expect. Galaxies, not stars, are the
+contaminant: some faint blue galaxies that DESI targeted look quasar-like in
+these colours, but almost all of them are visibly extended in the imaging, so a
+simple point-source check removes them. And the probability the scorer reports
+is too small --- by about three times for wide pairs and about ten times for the
+closest --- not because of an error but because it assumes the companion is a
+random nearby object, and real quasar pairs are not random: quasars cluster.
+The factor by which it is too small \emph{is} that clustering, measured here
+for the first time in this context.
 
 \clearpage
 
@@ -1058,7 +1086,11 @@ probability \\
 \texttt{log\_bayes\_factor\_qz\_bkg} & \eqref{eq:bf}; independent of both
 surface densities \\
 \texttt{p\_zmatch\_given\_qso} & $P(z\in W\mid\cvec,Q)$; conditional on being a
-quasar at all \\
+quasar at all, normalised over the model's trained redshift range only \\
+\texttt{frac\_norm\_outside\_support} & share of that normalisation the
+integration grid would have taken from outside the trained range, where the
+model can only repeat its edge slice; it is \emph{discarded}, and a large value
+means the colours are best explained at a redshift the model has not seen \\
 \texttt{z\_phot\_mode} & mode of the quasar-only redshift posterior \\
 \texttt{log\_r\_per\_unit\_z} & $\log R$ from \eqref{eq:R}; the ranking
 statistic, window-free in the narrow limit (\S\ref{sec:window}) \\
@@ -1193,11 +1225,12 @@ sitting where essentially no real sources are. They do not affect the local
 models or any number in the table, but they indicate a stray component in that
 fit which has not been chased down.
 
-\section{Validation design}
+\section{Validation: design and results}
 \label{sec:validation}
 
 Nothing above is evidence that the method works. That requires a labelled
-sample, and one exists: pairs in which \emph{both} members have spectra. Around
+sample, and one exists: pairs in which \emph{both} members have spectra.
+\S\ref{sec:validation-results} reports what it shows. Around
 each spectroscopic quasar we take every companion that also has a spectrum and
 label it by what that spectrum says --- a quasar at the same redshift, a quasar
 at a different redshift, or something else. The \emph{labels} are spectroscopic and so independent of the colours being
@@ -1357,7 +1390,23 @@ calculation additionally requires conditioning the quasar intensity on angular
 separation from the primary through small-scale quasar clustering
 \citep{hennawi2006,eftekharzadeh2017}. That layer is deliberately separate, must
 come from an externally specified measurement used inside its documented regime,
-and must be reported separately from the photometric posterior.
+and must be reported separately from the photometric posterior. Its size is now
+measured rather than assumed (\S\ref{sec:validation-results}): among quasar
+companions the same-redshift fraction exceeds the scorer's field-prior
+prediction by $9.8\times$ at $3$--$5''$, falling to $3.3\times$ at $20$--$30''$.
+A user who wants a probability multiplies the odds by that factor for their
+separation; the ranking statistic is unaffected.
+
+\paragraph{Galaxies are the contaminant, not stars.} Colour alone separates
+quasars from spectroscopic stars with AUC $0.98$ but from the galaxies DESI
+targeted with only $0.81$; a tenth of those galaxies score above the median
+same-redshift quasar. They are, however, resolved: $3\%$ are \textsf{PSF} in
+the Legacy Surveys morphology, against $91$--$94\%$ of quasars. The scorer is
+colour-only by design and does not use morphology; a \textsf{PSF} gate upstream
+of it removes $97\%$ of this class at a cost of $6$--$9\%$ of quasars,
+concentrated at low redshift where the host is resolved. That gate, and the
+clustering factor above, are the two cheapest improvements available, and
+neither requires retraining.
 
 \paragraph{Unused evidence.} Gaia parallax and proper motion settle the question
 outright for bright companions and are available in the same catalogue; WISE
