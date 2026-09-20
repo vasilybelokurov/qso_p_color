@@ -633,3 +633,68 @@ def test_validation_helpers_behave():
     rows = reliability(np.array([0.1] * 30 + [0.5] * 30), np.array([0] * 27 + [1] * 3 + [1] * 15 + [0] * 15),
                        np.array([0.0, 0.3, 1.0]))
     assert len(rows) == 2 and abs(rows[0][1] - 0.1) < 1e-9 and abs(rows[1][1] - 0.5) < 1e-9
+
+
+# ------------------------------------------------- retrain design, 2026-09-20
+
+def test_fit_sliced_model_selects_k_only_where_sparse_and_records_it():
+    """K asserted where n is large, selected by held-out density where small.
+
+    Synthetic: a dense slice of 3,000 objects and a sparse one of 150, both
+    drawn from a 2-component mixture with tiny noise. With select_k below_n =
+    1,000 the dense slice keeps n_components and the sparse one is selected; it
+    should not choose the top of the grid for 150 objects.
+    """
+    from qso_pcolor.qso_model import fit_sliced_model
+
+    rng = np.random.default_rng(3)
+    def draw(n):
+        comp = rng.random(n) < 0.5
+        x = np.where(comp[:, None], rng.normal([0, 0], 0.3, (n, 2)),
+                     rng.normal([3, 3], 0.3, (n, 2)))
+        return x
+    x = np.vstack([draw(3000), draw(150)])
+    z = np.concatenate([rng.uniform(1.0, 1.1, 3000), rng.uniform(1.1, 1.2, 150)])
+    cov = np.tile(np.eye(2) * 1e-4, (x.shape[0], 1, 1))
+    groups = rng.integers(0, 6, x.shape[0])
+    m = fit_sliced_model(
+        x, cov, z, z_edges=np.array([1.0, 1.1, 1.2]), n_components=8,
+        min_per_slice=50, overlap=0.0,
+        select_k={"grid": [1, 2, 4, 8], "below_n": 1000, "groups": groups, "n_folds": 2},
+        seed=0, max_iter=60, tol=1e-5, regularization=1e-6,
+    )
+    ps = m.meta["per_slice"]
+    assert len(ps) == 2
+    assert ps[0]["n"] == 3000 and ps[0]["k"] == 8 and "k_scores" not in ps[0]
+    assert ps[1]["n"] == 150 and "k_scores" in ps[1]
+    assert ps[1]["k"] < 8, f"150 objects should not get the top of the grid; got {ps[1]}"
+    assert set(ps[1]["k_scores"]) == {"1", "2", "4", "8"}
+    # the recorded K matches the fitted mixture
+    assert m.mixtures[1].n_components == ps[1]["k"]
+
+
+def test_model_save_is_atomic(tmp_path):
+    from qso_pcolor.qso_model import SlicedColourRedshiftModel
+
+    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    dest = tmp_path / "m.json"
+    q.save(dest)
+    assert dest.exists() and not list(tmp_path.glob(".*.tmp"))
+    back = SlicedColourRedshiftModel.load(dest)
+    assert back.z_centres.size == q.z_centres.size
+
+
+def test_training_script_applies_maskbits_reads_holdout_and_never_overwrites():
+    import pathlib
+
+    src = pathlib.Path("scripts/train_qso_model.py").read_text()
+    # the DESI channel is now cut like the SDSS channel and the background
+    assert "sel &= mb == 0" in src and '"maskbits_cut_applied"' in src
+    # the split is read from a model that records it; drawing is the fallback
+    assert 'prev.get("holdout_blocks")' in src and "holdout_source" in src
+    # the pooled, unconditional K selection is gone
+    assert "select_n_components" not in src
+    assert '"select_below_n"' in src
+    # the shipped file cannot be clobbered by a training run
+    assert "refusing to overwrite the shipped model" in src
+    assert 'f"qso_{args.system}_full.json"' not in src

@@ -30,11 +30,28 @@ and are fitted separately, never pooled. Objects are de-duplicated by sky
 position, not identifier: ``zcat_primary`` leaves thousands of repeated objects
 under distinct ``targetid`` values, and DR16Q overlaps DESI heavily.
 
+Selection consistency (2026-09-20)
+----------------------------------
+``maskbits = 0`` is applied to **both** channels. The SDSS match query always
+required it; the DESI branch returned the column and never used it, so 5.4% of
+the DESI training quasars sat in regions the background model and the candidate
+selection exclude -- mostly WISE bright-star halos, i.e. contaminated in the
+bands that carry most of the discrimination. The three samples the Bayes
+factor compares are now built the same way.
+
+K is fixed at ``--n-components`` where a slice has at least ``--select-k-below``
+objects (measured: no held-out gain available there) and selected per slice
+from ``--k-grid`` below that, where it matters and is cheap.
+
+The holdout is READ from an existing model (``--holdout-from``) so that old
+and new can be compared on the same reserved sky; it is drawn afresh only when
+no such file exists. Output goes to a dated file, never over the shipped one.
+
 Usage
 -----
     python scripts/train_qso_model.py --system south
     python scripts/train_qso_model.py --system north --no-sdss
-    python scripts/train_qso_model.py --system south --select-k    # slower
+    python scripts/train_qso_model.py --system south --max-objects 20000   # plumbing check
 """
 
 from __future__ import annotations
@@ -165,13 +182,24 @@ def deduplicate(ra, dec, zspec, radius_arcsec=1.0) -> np.ndarray:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--system", choices=("south", "north"), default="south")
-    ap.add_argument("--zmin", type=float, default=0.4)
-    ap.add_argument("--zmax", type=float, default=3.6)
-    ap.add_argument("--n-slices", type=int, default=32)
-    ap.add_argument("--n-components", type=int, default=12)
-    ap.add_argument("--select-k", action="store_true",
-                    help="choose K by spatially blocked held-out density (slow)")
-    ap.add_argument("--k-grid", type=int, nargs="*", default=[6, 12, 20])
+    ap.add_argument("--zmin", type=float, default=0.1)
+    ap.add_argument("--zmax", type=float, default=4.4)
+    ap.add_argument("--n-slices", type=int, default=43, help="43 x 0.1 over 0.1-4.4")
+    ap.add_argument("--n-components", type=int, default=20,
+                    help="K for well-populated slices")
+    ap.add_argument("--select-k-below", type=int, default=10000,
+                    help="select K per slice by held-out density when the slice "
+                         "has fewer objects than this; 0 disables")
+    ap.add_argument("--k-grid", type=int, nargs="*", default=[2, 4, 8, 12, 20])
+    ap.add_argument("--no-maskbits-cut", action="store_true",
+                    help="do NOT require maskbits = 0 on the DESI channel "
+                         "(reproduces the pre-2026-09-20 selection)")
+    ap.add_argument("--holdout-from", type=Path, default=Path("models/qso_south_full.json"),
+                    help="model file whose holdout_blocks to reuse; drawn afresh "
+                         "if the file or the field is missing")
+    ap.add_argument("--out-name", type=str, default=None,
+                    help="output file name; default qso_<system>_<date>.json. The "
+                         "shipped model is never overwritten by this script")
     ap.add_argument("--no-sdss", action="store_true")
     ap.add_argument("--max-objects", type=int, default=None,
                     help="subsample for a quick run; omit to use everything")
@@ -189,7 +217,6 @@ def main() -> None:
     from qso_pcolor.data import galactic_from_equatorial
     from qso_pcolor.features import RelativeFluxTransform, deredden
     from qso_pcolor.qso_model import fit_sliced_model
-    from qso_pcolor.xd import select_n_components
 
     rel = RELEASE[args.system]
     print(f"Training the {args.system} model (release {rel})\n")
@@ -202,12 +229,25 @@ def main() -> None:
                       "sdss"))
 
     ra, dec, z, flux, ivar, trans, channel = [], [], [], [], [], [], []
+    n_masked_removed = 0
     for r, tag in parts:
         sel = np.asarray(r["release"], int) == rel
         if not sel.any():
             print(f"  {tag}: no objects in release {rel}")
             continue
-        print(f"  {tag}: {int(sel.sum()):,} in release {rel}")
+        n_rel = int(sel.sum())
+        # Same quality cut as the background model and the candidates. The
+        # SDSS query already imposes it in SQL; applying it here too costs
+        # nothing and makes the two channels demonstrably identical.
+        if not args.no_maskbits_cut and "maskbits" in r:
+            mb = np.asarray(r["maskbits"], int)
+            sel &= mb == 0
+            n_masked_removed += n_rel - int(sel.sum())
+            print(f"  {tag}: {n_rel:,} in release {rel}, "
+                  f"{n_rel - int(sel.sum()):,} in masked regions removed "
+                  f"({100 * (n_rel - int(sel.sum())) / n_rel:.2f}%)")
+        else:
+            print(f"  {tag}: {n_rel:,} in release {rel}")
         ra.append(np.asarray(r["ra"])[sel])
         dec.append(np.asarray(r["dec"])[sel])
         z.append(np.asarray(r["zspec"])[sel])
@@ -247,49 +287,59 @@ def main() -> None:
     # usable object and then sampled those same objects to report a "held-out"
     # likelihood -- which measured training density, not generalisation, and
     # would have made the selection-channel comparison meaningless.
-    rng_h = np.random.default_rng(args.holdout_seed)
     blocks = np.unique(groups)
-    n_hold = max(1, int(round(args.holdout_frac * blocks.size)))
-    held_blocks = set(rng_h.choice(blocks, size=n_hold, replace=False).tolist())
-    is_held = np.array([g in held_blocks for g in groups])
-    print(f"  spatial holdout: {n_hold}/{blocks.size} nside=4 blocks, "
-          f"{int(is_held.sum()):,} objects ({100 * is_held.mean():.1f}%) reserved")
+    held_blocks: set[int] | None = None
+    holdout_source = "drawn"
+    if args.holdout_from and Path(args.holdout_from).exists():
+        prev = json.loads(Path(args.holdout_from).read_text()).get("meta", {})
+        prev_blocks = prev.get("holdout_blocks") or prev.get("holdout_blocks_recovered")
+        if prev_blocks and int(prev.get("holdout_nside", 4)) == 4:
+            held_blocks = set(int(b) for b in prev_blocks)
+            holdout_source = f"read from {args.holdout_from}"
+    if held_blocks is None:
+        # No recorded split to reuse: draw one. This is the ONLY place a draw
+        # happens, and the result is written to the model so it never has to
+        # be re-derived -- re-deriving it is what put training objects into a
+        # "held-out" figure (AGENTS.md M6b).
+        rng_h = np.random.default_rng(args.holdout_seed)
+        n_hold = max(1, int(round(args.holdout_frac * blocks.size)))
+        held_blocks = set(rng_h.choice(blocks, size=n_hold, replace=False).tolist())
+    is_held = np.isin(groups, list(held_blocks))
+    print(f"  spatial holdout ({holdout_source}): {len(held_blocks)} blocks, "
+          f"{int(is_held.sum()):,} objects ({100 * is_held.mean():.1f}%) reserved; "
+          f"{blocks.size} blocks populated")
 
     n_comp = args.n_components
-    scores = {}
-    if args.select_k:
-        print("\nchoosing K by spatially blocked held-out density")
-        # Sample across the whole redshift range, not one slice: the best K at
-        # z = 1.8 need not be the best at z = 0.5 or z = 3.
-        tr = np.flatnonzero(~is_held)
-        per_z, sub = 4000, []
-        for lo in np.arange(args.zmin, args.zmax, 0.4):
-            inb = tr[(z[ok][tr] >= lo) & (z[ok][tr] < lo + 0.4)]
-            if inb.size:
-                sub.append(np.random.default_rng(0).choice(
-                    inb, min(per_z, inb.size), replace=False))
-        sub = np.concatenate(sub)
-        print(f"  K selection on {sub.size:,} objects spanning "
-              f"{args.zmin}-{args.zmax}, blocked by nside=4 cell")
-        n_comp, scores = select_n_components(
-            fs.x[ok][sub], fs.cov[ok][sub], args.k_grid,
-            observed=fs.observed[ok][sub], groups=groups[sub],
-            n_folds=4, seed=0, max_iter=200, regularization=1e-6,
-        )
-        for k, sc in sorted(scores.items()):
-            print(f"  K = {k:3d}   held-out mean log density {sc:+.4f}")
-        print(f"  -> K = {n_comp}")
-
-    print(f"\nfitting {args.n_slices} slices, K = {n_comp}")
+    print(f"\nfitting {args.n_slices} slices, K = {n_comp} where n >= "
+          f"{args.select_k_below:,}, selected from {args.k_grid} below")
     t0 = time.time()
     fit_idx = np.flatnonzero(ok)[~is_held]
+    # finer blocks than the holdout for the K-selection folds: nside=8 cells
+    # keep neighbours together without leaving a sparse slice with one fold
+    l_fit, b_fit = galactic_from_equatorial(ra[ok][~is_held], dec[ok][~is_held])
+    select_k = None
+    if args.select_k_below > 0:
+        select_k = {"grid": args.k_grid, "below_n": args.select_k_below,
+                    "groups": galactic_healpix(l_fit, b_fit, 8), "n_folds": 2}
+    ref_mag_fit = fs.ref_mag[fit_idx]
     model = fit_sliced_model(
         fs.x[fit_idx], fs.cov[fit_idx], z[fit_idx],
         z_edges=np.linspace(args.zmin, args.zmax, args.n_slices + 1),
         observed=fs.observed[fit_idx], n_components=n_comp, min_per_slice=500,
         overlap=0.5, system=f"ls_dr9_{args.system}_grzw", labels=fs.labels,
         seed=0, max_iter=300, tol=1e-6, regularization=1e-6,
+        select_k=select_k,
         meta={
+            "maskbits_cut_applied": not args.no_maskbits_cut,
+            "n_masked_removed": int(n_masked_removed),
+            "holdout_source": holdout_source,
+            "k_rule": {"fixed_k": n_comp, "select_below_n": args.select_k_below,
+                       "grid": args.k_grid},
+            "validity": {
+                "ref_mag_1_50_99": [float(x) for x in np.percentile(ref_mag_fit, [1, 50, 99])],
+                "min_ref_snr": 5.0,
+                "min_dims": 3,
+            },
             "trained": time.strftime("%Y-%m-%d"),
             "release": rel,
             "n_train": int(fit_idx.size),
@@ -308,7 +358,6 @@ def main() -> None:
             "n_desi": int((channel[ok][~is_held] == "desi").sum()),
             "n_sdss": int((channel[ok][~is_held] == "sdss").sum()),
             "z_range": [args.zmin, args.zmax],
-            "k_selection": scores or "fixed",
             "dedup_arcsec": 1.0,
         },
     )
@@ -316,9 +365,15 @@ def main() -> None:
           f"{model.n_train.astype(int).min():,}-{model.n_train.astype(int).max():,}")
 
     args.out.mkdir(exist_ok=True)
-    path = args.out / f"qso_{args.system}_full.json"
+    name = args.out_name or f"qso_{args.system}_{time.strftime('%Y%m%d')}.json"
+    path = args.out / name
+    if path.resolve() == Path("models/qso_south_full.json").resolve():
+        raise SystemExit("refusing to overwrite the shipped model; validate first, "
+                         "then copy it into place deliberately")
     model.save(path)
-    print(f"\nwrote {path}")
+    ks = [p_["k"] for p_ in model.meta["per_slice"]]
+    print(f"\nwrote {path}: {len(ks)} slices, K from {min(ks)} to {max(ks)}, "
+          f"{sum(1 for p_ in model.meta['per_slice'] if 'k_scores' in p_)} selected")
 
     # Held-out likelihood per selection channel: the measurement of how much the
     # DESI targeting bias matters. A large gap is a warning, not a curiosity.

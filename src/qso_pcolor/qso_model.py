@@ -441,7 +441,19 @@ class SlicedColourRedshiftModel:
         }
 
     def save(self, path: str | Path) -> None:
-        Path(path).write_text(json.dumps(self.to_dict()))
+        # Write beside the target and rename: a training run interrupted in the
+        # middle of write_text leaves a truncated JSON that the next load
+        # accepts as far as it can parse, and a half-model is worse than none.
+        import os
+
+        path = Path(path)
+        tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+        try:
+            tmp.write_text(json.dumps(self.to_dict()))
+            os.replace(tmp, path)
+        finally:
+            if tmp.exists():
+                tmp.unlink()
 
     @classmethod
     def from_dict(cls, d: dict) -> "SlicedColourRedshiftModel":
@@ -473,9 +485,26 @@ def fit_sliced_model(
     system: str = "unspecified",
     labels: tuple[str, ...] = (),
     meta: dict | None = None,
+    select_k: dict | None = None,
     **fit_kwargs,
 ) -> SlicedColourRedshiftModel:
     """Fit one extreme-deconvolution mixture per redshift slice.
+
+    ``select_k``, when given, chooses K per slice **where the slice is sparse**
+    instead of asserting ``n_components`` everywhere.  Measured on the shipped
+    model (2026-09-20): with more than ~10,000 objects in a slice the held-out
+    penalty for using K=20 rather than the optimum is 0.000 nats; with 893 it
+    is 0.29 nats, and the optimum is K=4.  So selection is worth its cost only
+    below a threshold, and is cheap there because the slices are small.
+
+        select_k = {"grid": [2, 4, 8, 12, 20],   # candidates, capped at n_components
+                    "below_n": 10000,            # select only when n < this
+                    "groups": <array, len n>,    # spatial blocks for the folds
+                    "n_folds": 2}
+
+    Every slice's n, K and (where selection ran) the per-K held-out scores are
+    recorded in ``meta["per_slice"]``, so a reader can tell a 20-component fit
+    from a 4-component fallback.
 
     Parameters
     ----------
@@ -507,7 +536,17 @@ def fit_sliced_model(
 
     mixtures: list[GaussianMixture] = []
     counts = np.zeros(centres.size)
+    per_slice: list[dict] = []
     t_start = time.time()
+    if select_k is not None:
+        from .xd import select_n_components
+
+        sk_groups = np.asarray(select_k["groups"])
+        if sk_groups.shape[0] != x.shape[0]:
+            raise ValueError("select_k['groups'] must have one entry per object")
+        sk_grid = [int(k) for k in select_k.get("grid", (2, 4, 8, 12, 20)) if k <= n_components]
+        sk_below = int(select_k.get("below_n", 10000))
+        sk_folds = int(select_k.get("n_folds", 2))
     for j in range(centres.size):
         w = z_edges[j + 1] - z_edges[j]
         lo = z_edges[j] - overlap * w
@@ -520,6 +559,24 @@ def fit_sliced_model(
                 f"training objects; widen the slice or narrow the redshift range"
             )
         k = n_components if counts[j] >= min_per_slice else 1
+        k_scores: dict = {}
+        if select_k is not None and min_per_slice <= counts[j] < sk_below:
+            # comparison only: fewer iterations are fine for RANKING K (the EM
+            # cap study measured 100 vs 300 iterations at 0.004 nats), and the
+            # winning K is then fitted below with the full settings
+            sk_kwargs = {a: b for a, b in fit_kwargs.items() if a != "seed"}
+            sk_kwargs["max_iter"] = min(int(fit_kwargs.get("max_iter", 300)), 100)
+            k, k_scores = select_n_components(
+                x[sel],
+                None if cov is None else np.asarray(cov)[sel],
+                sk_grid,
+                observed=None if observed is None else observed[sel],
+                weights=None if weights is None else np.asarray(weights)[sel],
+                groups=sk_groups[sel],
+                n_folds=sk_folds,
+                seed=int(fit_kwargs.get("seed", 0)),
+                **sk_kwargs,
+            )
         res = fit_xd(
             x[sel],
             None if cov is None else np.asarray(cov)[sel],
@@ -530,11 +587,17 @@ def fit_sliced_model(
             **fit_kwargs,
         )
         mixtures.append(res.mixture)
+        per_slice.append({
+            "z": float(centres[j]), "n": int(counts[j]), "k": int(k),
+            "converged": bool(res.converged), "n_iter": int(res.n_iter),
+            **({"k_scores": {str(a): float(b) for a, b in k_scores.items()}} if k_scores else {}),
+        })
         # A million-object fit takes hours; silence for that long makes a stall
         # indistinguishable from progress.
         log.info(
-            "slice %d/%d  z %.2f-%.2f  n=%d  K=%d  iters=%d  %s  [%.0f s elapsed]",
-            j + 1, centres.size, lo, hi, int(counts[j]), k, res.n_iter,
+            "slice %d/%d  z %.2f-%.2f  n=%d  K=%d%s  iters=%d  %s  [%.0f s elapsed]",
+            j + 1, centres.size, lo, hi, int(counts[j]), k,
+            " (selected)" if k_scores else "", res.n_iter,
             "converged" if res.converged else "hit max_iter", time.time() - t_start,
         )
 
@@ -544,7 +607,8 @@ def fit_sliced_model(
         counts,
         system,
         labels,
-        meta={"overlap": overlap, "min_per_slice": min_per_slice, **(meta or {})},
+        meta={"overlap": overlap, "min_per_slice": min_per_slice,
+              "per_slice": per_slice, **(meta or {})},
     )
 
 
