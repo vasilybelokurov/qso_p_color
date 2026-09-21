@@ -44,7 +44,7 @@ def evaluate(model, phot, z, grid, levels, alternative_z=None):
         cdf=cumulative_trapezoid(post,grid,axis=1,initial=0.)/norm[:,None]
         # Each row's likelihood at its own spectroscopic/assigned redshift.
         at=q.log_p_colour_given_z(f.x,f.cov,z[sel],_log_slices=slices).diagonal()
-        pb=conditional_log_prob(model.background,f.x,f.cov,f.observed,int(a))
+        pb=model.background_log_prob(f.x,f.cov,f.observed,int(a))
         logbf[sel]=at-pb;mode[sel]=grid[np.argmax(post,axis=1)]
         mean_lp[sel]=at
         lognorm=lp.max(1)+np.log(norm)
@@ -64,8 +64,12 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--config",type=Path,default=Path("configs/multisurvey.json"))
     ap.add_argument("--validation-config",type=Path,default=Path("configs/multisurvey_validation.json"))
+    ap.add_argument("--model",type=Path,help="evaluate an additional saved model with the same training selection")
+    ap.add_argument("--report-prefix",type=Path,default=Path("docs/MULTISURVEY_VALIDATION"))
+    ap.add_argument("--figure-name",default="validation/multisurvey_auc")
     args=ap.parse_args();cfg=json.loads(args.config.read_text());vc=json.loads(args.validation_config.read_text())
-    root=Path(cfg["data_dir"]);model=MultiSurveyModel.load(cfg["model_path"])
+    root=Path(cfg["data_dir"]);model_path=str(args.model or cfg["model_path"])
+    model=MultiSurveyModel.load(model_path)
     if json.loads((root/"config.json").read_text()) != cfg or model.meta["settings"]["config"] != cfg:
         raise ValueError("validation sample, fit, and requested configuration differ")
     q,b=[dict(np.load(root/f"{name}.npz")) for name in ("quasars","background")]
@@ -156,19 +160,19 @@ def main():
                      median_final_iteration_change=float(np.median([
                          abs(s["convergence_tail"][-1]-s["convergence_tail"][-2]) for s in slices])),
                      quasar_per_slice=slices)
-    result=dict(model=cfg["model_path"],run_id=model.meta["run_id"],validation_config=vc,
-                training=fit_summary,
+    result=dict(model=model_path,run_id=model.meta["run_id"],validation_config=vc,
+                training=fit_summary,background_marginal=model.meta.get('background_marginal'),
                 public_scorer_checks=checks,combinations=report,
                 qso_heldout_by_band={label:int((qp.observed[:,j]&q["held"]).sum()) for j,label in enumerate(qp.bands)},
                 background_heldout_by_band={label:int((bp.observed[:,j]&b["held"]).sum()) for j,label in enumerate(bp.bands)},
                 interpretation="High-latitude availability-selected subsets; at most 200 objects per class and combination. Different survey rows use different available objects. Redshift PDFs use a flat z prior; coverage is a diagnostic, not a calibration claim. Population posteriors require separate matched surface-density priors.")
     (root/"validation.json").write_text(json.dumps(result,indent=2,allow_nan=False))
-    Path('docs/MULTISURVEY_VALIDATION.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
+    args.report_prefix.with_suffix('.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     selected=[r for r in report if len(r["surveys"])==1 or set(r["surveys"]) in
               ({"sdss","allwise"},{"decals","allwise"},{"ps1","allwise"},
                {"sdss","ps1","allwise"},{"allwise","vhs"},set(cfg["surveys"]))]
-    lines=["# Multi-survey model validation", "",f"Run `{model.meta['run_id']}`; model `{cfg['model_path']}`.","",
-           "The method and these tests are in the main text of the [method note](method/method.pdf). A separate [matched old/new comparison](MODEL_COMPARISON.md) uses identical held-out Legacy grz measurements: redshift discrimination agrees closely, but the extension has weaker quasar/star separation. These survey-combination results do not establish equivalence to the original model.","",
+    lines=["# Multi-survey model validation", "",f"Run `{model.meta['run_id']}`; model `{model_path}`.","",
+           "The method and these tests are in the main text of the [method note](method/method.pdf). The [matched old/new comparison](MODEL_COMPARISON.md) and [fresh-object confirmation](MODEL_COMPARISON_FRESH.md) document performance relative to the original model. Survey-combination rows alone do not establish equivalence.","",
            result['interpretation'],"",
            f"The quasar fit uses {fit_summary['n_quasars_fit']:,} objects, with {fit_summary['n_quasars_reserved']:,} reserved in the existing spatial holdout. It spans {len(slices)} slices over model support {model.qso.support[0]:.2f}–{model.qso.support[1]:.2f}; the selected component counts (K: number of slices) are `{fit_summary['quasar_component_counts']}`.","",
            f"The original field sample has {n_background_original:,} sources from {len(model.meta['fields'])} fields, with {n_background_original_reserved:,} sources in reserved fields. The background fit uses {model.meta['background']['n_fit']:,} sampled rows with weights restoring the training population and K={model.background.n_components}.","",
@@ -188,7 +192,10 @@ def main():
               "The QSO-versus-field AUC uses colour evidence at the true redshift for quasars and assigned primary redshifts for field objects. The true-versus-other-redshift AUC scores each withheld quasar at its true redshift and at a primary redshift drawn from the withheld population outside the declared matching window, using the normalised quasar-only redshift density. These are discrimination checks, not physical-pair probabilities or substitutes for the field-quasar term in scoring.","",
               "The data use native observed photometry, with quality cuts and high-latitude selection recorded in `configs/multisurvey.json`. The background contains all source types and excludes known quasars. Whole fields were reserved before fitting; internal component selection used additional fields from the training partition.","",
               "The [full machine-readable report](MULTISURVEY_VALIDATION.json) includes all 127 combinations, per-band holdout counts, and fit diagnostics. A local copy is also kept in `data/multisurvey/validation.json`. The existing southern models were retained."]
-    Path('docs/MULTISURVEY_VALIDATION.md').write_text('\n'.join(lines)+'\n')
+    if model.background_marginals:
+        marginal=model.meta['background_marginal']
+        lines += ['', f"The declared southern Legacy grz background marginal uses {marginal['n_fit']:,} existing training objects; {marginal['n_selection']:,} of these were reserved in the original internal selection fields to choose K={marginal['selected_k']}. The final fit converged: {marginal['final']['converged']}. It is used only when it contains every observed input band. Quasar fits, transforms, and the full joint background are unchanged."]
+    args.report_prefix.with_suffix('.md').write_text('\n'.join(lines)+'\n')
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -198,7 +205,7 @@ def main():
            [r.get('auc_qso_vs_field_by_colour_bf') or 0 for r in singles])
     ax.set_ylim(0,1);ax.set_ylabel('QSO versus field AUC (colour BF)')
     ax.set_title('Reserved objects; each survey uses its available subset')
-    fig.tight_layout();save_figure(fig,'validation/multisurvey_auc');plt.close(fig)
+    fig.tight_layout();save_figure(fig,args.figure_name);plt.close(fig)
 
 
 if __name__=='__main__':

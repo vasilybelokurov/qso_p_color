@@ -133,10 +133,38 @@ class _ConditionalQSO(SlicedColourRedshiftModel):
         return out
 
 
+def _background_log_prob(model, marginals, x, cov, observed, anchor):
+    """Conditional field density, using a declared marginal when it covers input.
+
+    Routing depends only on observed band labels. A marginal is never applied
+    when an observed band or the reference lies outside its fitted coordinates.
+    The smallest covering model takes precedence; ties keep saved order.
+    """
+    lp = np.empty(len(x)); remaining = np.ones(len(x), bool)
+    for marginal in sorted(marginals, key=lambda m: m.n_dim):
+        indices = np.array([model.labels.index(label) for label in marginal.labels])
+        if anchor not in indices:
+            continue
+        outside = np.ones(len(model.labels), bool); outside[indices] = False
+        use = remaining & ~observed[:, outside].any(axis=1)
+        if not use.any():
+            continue
+        subcov = None if cov is None else cov[use][:, indices, :][:, :, indices]
+        lp[use] = conditional_log_prob(marginal, x[use][:, indices], subcov,
+            observed[use][:, indices], int(np.flatnonzero(indices == anchor)[0]))
+        remaining[use] = False
+    if remaining.any():
+        lp[remaining] = conditional_log_prob(model, x[remaining],
+            None if cov is None else cov[remaining], observed[remaining], anchor)
+    return lp
+
+
 class _ConditionalBackground:
-    def __init__(self, model: GaussianMixture, system: str, anchor: int, bounds: np.ndarray):
+    def __init__(self, model: GaussianMixture, system: str, anchor: int, bounds: np.ndarray,
+                 marginals=()):
         self.model, self.system, self.anchor = model, system, anchor
         self.labels, self.bounds = model.labels, bounds
+        self.marginals = marginals
 
     def check_system(self, system):
         if system != self.system:
@@ -144,7 +172,7 @@ class _ConditionalBackground:
 
     def log_prob(self, x, cov, ref_mag, l_deg, b_deg, *, observed=None, return_level=False):
         obs = np.ones_like(x, bool) if observed is None else observed
-        lp = conditional_log_prob(self.model, x, cov, obs, self.anchor)
+        lp = _background_log_prob(self.model, self.marginals, x, cov, obs, self.anchor)
         return (lp, np.zeros(len(x))) if return_level else lp
 
     def out_of_mag_range(self, ref_mag):
@@ -162,7 +190,10 @@ class MultiSurveyScore(PairScore):
 
 @dataclass
 class MultiSurveyModel:
-    """A joint quasar/background model that accepts any subset of its bands.
+    """A joint quasar model with declared field densities for arbitrary bands.
+
+    Field likelihoods use the joint background unless a saved marginal fit
+    contains every observed band. Each is a normalised conditional density.
 
     Priors are optional, as in the original scorer. A prior pair must explicitly
     identify this transform and reference band; an optical prior is never used
@@ -175,6 +206,7 @@ class MultiSurveyModel:
     reference_priority: tuple[str, ...]
     background_bounds: np.ndarray
     meta: dict = field(default_factory=dict)
+    background_marginals: tuple[GaussianMixture, ...] = ()
 
     def __post_init__(self):
         self.reference_priority = tuple(self.reference_priority)
@@ -187,6 +219,21 @@ class MultiSurveyModel:
             raise ValueError("duplicate reference priority entries")
         if self.background_bounds.shape != (len(self.transform.bands), 2):
             raise ValueError("background bounds must have shape (bands, 2)")
+        self.background_marginals = tuple(self.background_marginals)
+        for marginal in self.background_marginals:
+            if (not marginal.labels or len(set(marginal.labels)) != marginal.n_dim or
+                    not set(marginal.labels) <= set(self.transform.bands)):
+                raise ValueError("background marginal must have unique model band labels")
+
+    def background_log_prob(self, x: np.ndarray, cov: np.ndarray | None,
+                            observed: np.ndarray, anchor: int) -> np.ndarray:
+        """Field log density per observed non-reference luptitude volume.
+
+        Inputs follow the saved full band schema. Declared marginal fits apply
+        only when they contain every observed band, including the reference.
+        """
+        return _background_log_prob(self.background, self.background_marginals,
+                                    x, cov, observed, anchor)
 
     @property
     def transform_id(self) -> str:
@@ -253,7 +300,8 @@ class MultiSurveyModel:
                 b_deg=np.broadcast_to(np.asarray(b_deg), (n,))[rows],
                 qso_model=_ConditionalQSO(self.qso, int(a)),
                 background_model=_ConditionalBackground(self.background, self.qso.system,
-                                                        int(a), self.background_bounds),
+                                                        int(a), self.background_bounds,
+                                                        self.background_marginals),
                 match=match, min_bands=min_bands, qso_prior=qprior, background_density=density,
                 **local)
             for i, score in zip(rows, scores):
@@ -263,11 +311,12 @@ class MultiSurveyModel:
         return result
 
     def to_dict(self) -> dict:
-        return dict(kind="multisurvey_conditional_photometry", version=1,
+        return dict(kind="multisurvey_conditional_photometry", version=2 if self.background_marginals else 1,
                     qso=self.qso.to_dict(), background=self.background.to_dict(),
                     transform=self.transform.to_dict(),
                     reference_priority=list(self.reference_priority),
-                    background_bounds=self.background_bounds.tolist(), meta=self.meta)
+                    background_bounds=self.background_bounds.tolist(), meta=self.meta,
+                    background_marginals=[m.to_dict() for m in self.background_marginals])
 
     def save(self, path: str | Path) -> None:
         path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
@@ -282,7 +331,7 @@ class MultiSurveyModel:
     @classmethod
     def load(cls, path: str | Path) -> MultiSurveyModel:
         d = json.loads(Path(path).read_text())
-        if d.get("kind") != "multisurvey_conditional_photometry" or d.get("version") != 1:
+        if d.get("kind") != "multisurvey_conditional_photometry" or d.get("version") not in (1, 2):
             raise ValueError("unsupported multisurvey model format")
         tr = d["transform"]
         if tr.get("kind")!="native_band_luptitudes" or tr.get("dereddened") is not False:
@@ -290,4 +339,5 @@ class MultiSurveyModel:
         return cls(SlicedColourRedshiftModel.from_dict(d["qso"]),
                    GaussianMixture.from_dict(d["background"]),
                    BandLuptitudeTransform(tuple(tr["bands"]), np.array(tr["softening"])),
-                   tuple(d["reference_priority"]), np.array(d["background_bounds"]), d["meta"])
+                   tuple(d["reference_priority"]), np.array(d["background_bounds"]), d["meta"],
+                   tuple(GaussianMixture.from_dict(m) for m in d.get("background_marginals", [])))

@@ -104,7 +104,7 @@ scripts/build_multisurvey_sample.py  cached quasar and all-source field samples
 scripts/train_multisurvey_model.py   cached fits with spatial component selection
 scripts/validate_multisurvey.py      reserved-object checks for all survey subsets
 docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    141 tests; see section 7
+tests/                    143 tests; see section 7
 ```
 
 Saved real-data models and validation scripts now ship for the original
@@ -690,11 +690,16 @@ the run configurations are `configs/multisurvey*.json`.
 `scripts/compare_old_new_models.py` and `configs/model_comparison.json`
 define the matched, held-out Legacy grz comparison. Its results are recorded
 in `docs/MODEL_COMPARISON.md` and the method's main validation section.
-The saved extension agrees closely in redshift discrimination but has weaker
-quasar/star discrimination on these shared bands; do not claim that its scores
-are interchangeable with the original model. Keep this comparison fixed when
-assessing a future improvement, and use fresh reserved data to confirm any
-change chosen in response to it.
+The initial extension's discrepancy was traced to the background. A separate
+southern grz background (K=16, chosen on the original internal selection fields)
+now applies only when it covers every observed band. Other combinations keep
+the joint background. The quasar fit is unchanged. Fresh-object confirmation
+in `docs/MODEL_COMPARISON_FRESH.md` gives original/new QSO/non-QSO AUC
+0.962/0.959 and redshift AUC 0.790/0.791; star AUC remains 0.970/0.953.
+Scores are not interchangeable. The initial extension is retained in
+`models/multisurvey_joint_20260921.json`, with its original comparison report
+in `docs/MODEL_COMPARISON_JOINT.md`. Keep these samples fixed for regression
+checks; do not use them as unseen model-selection data in later work.
 
 Keep the original four model/prior files tracked at their existing paths and
 keep their public loading APIs usable. The README's model-selection table and

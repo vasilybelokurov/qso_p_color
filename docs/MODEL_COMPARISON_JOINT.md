@@ -6,21 +6,21 @@ Evaluated 2,000 quasars, 488 stars, and 1,512 galaxies in 14 common reserved sky
 
 | Metric | Original | Seven-survey |
 |---|---:|---:|
-| Quasar/non-quasar AUC | 0.9590 | 0.9579 |
+| Quasar/non-quasar AUC | 0.9590 | 0.9416 |
 | True/other redshift AUC | 0.7892 | 0.7932 |
 | Central 68% redshift interval coverage | 0.7990 | 0.7895 |
 | Median absolute dz/(1+z) | 0.1815 | 0.1212 |
-| Quasar/star AUC | 0.9630 | 0.9491 |
-| Quasar/galaxy AUC | 0.9577 | 0.9608 |
+| Quasar/star AUC | 0.9630 | 0.9048 |
+| Quasar/galaxy AUC | 0.9577 | 0.9534 |
 
 Paired 95% intervals resample whole sky blocks, retaining each object’s old/new scores together. The configured equivalence margin is ±0.02 AUC, declared before scoring; the entire interval must lie inside it.
 
-- Quasar/non-quasar AUC: new minus old -0.0011, interval [-0.0042, +0.0020]; equivalence check passes.
+- Quasar/non-quasar AUC: new minus old -0.0174, interval [-0.0241, -0.0109]; equivalence check does not pass.
 - True/other redshift AUC: new minus old +0.0040, interval [-0.0040, +0.0092]; equivalence check passes.
 
 Individual score agreement:
 
-- log_bf: Spearman 0.942; median new minus old -0.429 nats; median absolute difference 1.098 nats.
+- log_bf: Spearman 0.926; median new minus old -0.569 nats; median absolute difference 1.259 nats.
 - log_pz: Spearman 0.882; median new minus old -0.001 nats; median absolute difference 0.175 nats.
 
 Near-equal AUC, when present, does not establish interchangeable individual scores. This comparison does not refit either model. The original model remains available.
@@ -29,4 +29,4 @@ The old model uses g/r and z/r after marginalising its missing WISE dimensions; 
 
 All g,r,z measurements must be usable, with maskbits=0, r S/N≥5, 17≤dereddened r<22.5, |b|≥25°, release=9010, 3–30 arcsec catalogue separation, and finite fracflux_r≤0.2. Negative non-reference fluxes are retained. This defines a matched diagnostic sample, not the prevalence of classes in the sky.
 
-Reproduce with `python scripts/compare_old_new_models.py --config CONFIG`, using the configuration recorded in the [full results and hashes](MODEL_COMPARISON.json). The source catalogue is local. The hash-keyed score cache records source rows, target IDs, coordinates, assigned redshifts, and both model outputs. [Other survey combinations](MULTISURVEY_VALIDATION.md).
+Reproduce with `python scripts/compare_old_new_models.py --config CONFIG`, using the configuration recorded in the [full results and hashes](MODEL_COMPARISON_JOINT.json). The source catalogue is local. The hash-keyed score cache records source rows, target IDs, coordinates, assigned redshifts, and both model outputs. [Other survey combinations](MULTISURVEY_VALIDATION.md).

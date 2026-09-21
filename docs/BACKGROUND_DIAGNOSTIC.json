@@ -1,0 +1,24 @@
+{
+  "original_Q_original_B": {
+    "STAR": 0.9629887295081967,
+    "GALAXY": 0.9577261904761905
+  },
+  "joint_Q_joint_B": {
+    "STAR": 0.9048094262295082,
+    "GALAXY": 0.9534298941798942
+  },
+  "original_Q_joint_B": {
+    "STAR": 0.897452868852459,
+    "GALAXY": 0.947728835978836
+  },
+  "joint_Q_original_B": {
+    "STAR": 0.9604682377049181,
+    "GALAXY": 0.9594963624338624
+  },
+  "hashes": {
+    "base_model": "f494393a8c7f112f8f49945d7fc76bb81170cb0028326501cb7362e45c724785",
+    "original_background": "0e45b579e690d129f2ee9dccb0834f649186c4d7add647bf2965afbbcda49c1c",
+    "comparison_sample": "7d951e59fd0f81f84b9eda5481562ce4aefcca4a8ea6d95b119f5330ff2578a4"
+  },
+  "interpretation": "Diagnostic exchange after converting new conditional luptitude densities into original dereddened flux-ratio coordinates at fixed measured r; excludes WISE. Models retain their different first-order noise approximations. The exchange locates the discrepancy; mixture size is chosen by separate internal field likelihood, and swapped models are never deployed."
+}

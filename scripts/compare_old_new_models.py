@@ -93,6 +93,9 @@ def select_sample(cfg, old, background, new):
     _, unique = np.unique(raw['comp_targetid'][ids], return_index=True)
     ids = ids[np.sort(unique)]
     ids = ids[deduplicate(ra[ids], dec[ids], cfg['dedup_radius_arcsec'])]
+    if cfg.get('exclude_score_cache'):
+        with np.load(cfg['exclude_score_cache']) as previous:
+            ids = ids[~np.isin(raw['comp_targetid'][ids], previous['targetid'])]
     rng = np.random.default_rng(cfg['seed'])
     counts = {k: int(np.sum(kind[ids] == k)) for k in ['QSO','STAR','GALAXY']}
     chosen = []
@@ -141,7 +144,7 @@ def score_sample(cfg, data, old, background, new):
             if name == 'old':
                 pb = background.log_prob(f.x, f.cov, f.ref_mag, data['l'][rows], data['b'][rows], observed=f.observed)
             else:
-                pb = conditional_log_prob(new.background, f.x, f.cov, f.observed, anchor)
+                pb = new.background_log_prob(f.x, f.cov, f.observed, anchor)
             res['log_bf'] = res.pop('log_like') - pb
             parts.append(res)
         out.update({f'{name}_{k}': np.concatenate([p[k] for p in parts]) for k in parts[0]})
@@ -199,12 +202,13 @@ def report(cfg, identity, data, counts):
                   heldout_blocks=groups.tolist(), public_scorer_checks=6, metrics=values,
                   auc_differences=differences, score_agreement=agreement,
                   interpretation='Identical southern Legacy DR9 grz measurements; original dereddened relative fluxes versus new observed luptitudes. WISE excluded because Legacy forced WISE and ALLWISE are different measurements. Spectroscopically selected individual objects, not random imaging sources or a close-pair calibration. No matched new population prior; compare dimensionless Bayes factors and flat-prior redshift summaries only.')
-    Path('docs/MODEL_COMPARISON.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
+    report_path = Path(cfg.get('report_prefix', 'docs/MODEL_COMPARISON'))
+    report_path.with_suffix('.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     labels = dict(auc_qso_nonqso='Quasar/non-quasar AUC', auc_true_other_z='True/other redshift AUC',
                   coverage_68='Central 68% redshift interval coverage', median_abs_dz_over_1pz='Median absolute dz/(1+z)',
                   auc_qso_star='Quasar/star AUC', auc_qso_galaxy='Quasar/galaxy AUC')
     lines = ['# Original versus seven-survey model: identical Legacy DR9 data', '', result['interpretation'], '',
-             f"Evaluated {result['evaluated']['QSO']:,} quasars, {result['evaluated']['STAR']:,} stars, and {result['evaluated']['GALAXY']:,} galaxies in {len(groups)} common reserved sky blocks. Only blocks recorded as held out by both quasar models are admitted; every background fitting/selection cone is excluded. Objects are positionally de-duplicated, with cuts and seed in `configs/model_comparison.json`.", '',
+             f"Evaluated {result['evaluated']['QSO']:,} quasars, {result['evaluated']['STAR']:,} stars, and {result['evaluated']['GALAXY']:,} galaxies in {len(groups)} common reserved sky blocks. Only blocks recorded as held out by both quasar models are admitted; every background fitting/selection cone is excluded. Objects are positionally de-duplicated; the full JSON report records all cuts, seeds, and model paths.", '',
              '| Metric | Original | Seven-survey |', '|---|---:|---:|']
     for key in values['old']:
         lines.append(f"| {labels[key]} | {values['old'][key]:.4f} | {values['new'][key]:.4f} |")
@@ -215,24 +219,26 @@ def report(cfg, identity, data, counts):
     lines += ['', 'Individual score agreement:', '']
     for key, v in agreement.items():
         lines.append(f"- {key}: Spearman {v['spearman']:.3f}; median new minus old {v['median_new_minus_old']:+.3f} nats; median absolute difference {v['median_absolute_difference']:.3f} nats.")
-    lines += ['', 'Near-equal AUC, when present, does not establish interchangeable individual scores. Both trained artifacts are unchanged. The original model remains available for its validated Legacy workflow.', '',
+    lines += ['', 'Near-equal AUC, when present, does not establish interchangeable individual scores. This comparison does not refit either model. The original model remains available.', '',
               'The old model uses g/r and z/r after marginalising its missing WISE dimensions; the new model conditions the three observed luptitudes on r. Raw likelihood densities have different units and are not compared. The same true and assigned primary redshifts enter both calculations. QSO/non-QSO AUC scores quasars at their true redshifts and non-quasars at redshifts drawn from the held-out quasar population; true/other-z AUC uses each quasar at its true and one drawn redshift outside ±2000 km/s.', '',
               'All g,r,z measurements must be usable, with maskbits=0, r S/N≥5, 17≤dereddened r<22.5, |b|≥25°, release=9010, 3–30 arcsec catalogue separation, and finite fracflux_r≤0.2. Negative non-reference fluxes are retained. This defines a matched diagnostic sample, not the prevalence of classes in the sky.', '',
-              'Reproduce with `python scripts/compare_old_new_models.py`; the source catalogue is local. The hash-keyed score cache records source rows, target IDs, coordinates, assigned redshifts, and both model outputs. [Full results and hashes](MODEL_COMPARISON.json); [other survey combinations](MULTISURVEY_VALIDATION.md).']
-    Path('docs/MODEL_COMPARISON.md').write_text('\n'.join(lines)+'\n')
+              f"Reproduce with `python scripts/compare_old_new_models.py --config CONFIG`, using the configuration recorded in the [full results and hashes]({report_path.name}.json). The source catalogue is local. The hash-keyed score cache records source rows, target IDs, coordinates, assigned redshifts, and both model outputs. [Other survey combinations](MULTISURVEY_VALIDATION.md)."]
+    if cfg.get('exclude_score_cache'):
+        lines += ['', f"This confirmation sample excludes every target in `{cfg['exclude_score_cache']}` before the random draw. It uses previously unscored objects in the common spatial holdout; the sky blocks are shared with the diagnostic sample, so this is an object-level confirmation, not a new-footprint test."]
+    report_path.with_suffix('.md').write_text('\n'.join(lines)+'\n')
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(1, 2, figsize=(10,4.2))
-    for ax, field, selected, label in [(axes[0], 'log_bf', rows, 'Colour log Bayes factor (4,000 objects)'),
-                                        (axes[1], 'log_pz', rows[q], 'Log redshift density at true z (2,000 QSOs)')]:
+    for ax, field, selected, label in [(axes[0], 'log_bf', rows, f'Colour log Bayes factor ({len(rows):,} objects)'),
+                                        (axes[1], 'log_pz', rows[q], f'Log redshift density at true z ({q.sum():,} QSOs)')]:
         old, new = [data[f'{name}_{field}'][selected] for name in ['old','new']]
         ax.scatter(old,new,s=5,alpha=.18,rasterized=True)
         lim = [min(old.min(),new.min()),max(old.max(),new.max())]
         ax.plot(lim,lim,'k--',lw=1)
         ax.set(xlabel='Original model', ylabel='Seven-survey model', title=label)
     fig.suptitle('Identical held-out objects and Legacy DR9 g, r, z measurements')
-    fig.tight_layout(); save_figure(fig,'validation/old_new_grz'); plt.close(fig)
+    fig.tight_layout(); save_figure(fig,cfg.get('figure_name','validation/old_new_grz')); plt.close(fig)
     print(json.dumps({k:result[k] for k in ['available','evaluated','metrics','auc_differences','score_agreement']},indent=2),flush=True)
 
 
@@ -242,6 +248,9 @@ def main():
     args = parser.parse_args(); cfg = json.loads(args.config.read_text())
     identity = {key: sha256(cfg[key]) for key in ['source','old_qso','old_background','new_model']}
     identity['script'] = sha256(__file__)
+    identity['package'] = {p.name:sha256(str(p)) for p in sorted(Path('src/qso_pcolor').glob('*.py'))}
+    if cfg.get('exclude_score_cache'):
+        identity['excluded_sample'] = sha256(cfg['exclude_score_cache'])
     signature = json.dumps(dict(config=cfg, hashes=identity), sort_keys=True)
     cache = Path(cfg['score_cache'])
     if cache.exists():

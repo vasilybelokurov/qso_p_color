@@ -1,6 +1,6 @@
 {
   "model": "models/multisurvey.json",
-  "run_id": "458ddae86afe",
+  "run_id": "9ca579b6b507",
   "validation_config": {
     "seed": 20260921,
     "max_quasars_per_combination": 200,
@@ -2793,7 +2793,7 @@
       "median_abs_dz_over_1pz": 0.08920236606844988,
       "mean_conditional_log_density": 0.31941992760842003,
       "auc_true_vs_other_redshift_by_conditional_density": 0.885675,
-      "auc_qso_vs_field_by_colour_bf": 0.93145
+      "auc_qso_vs_field_by_colour_bf": 0.934525
     },
     {
       "surveys": [
@@ -5320,5 +5320,75 @@
     "vhs:h": 643,
     "vhs:ks": 1658
   },
-  "interpretation": "High-latitude availability-selected subsets; at most 200 objects per class and combination. Different survey rows use different available objects. Redshift PDFs use a flat z prior; coverage is a diagnostic, not a calibration claim. Population posteriors require separate matched surface-density priors."
+  "interpretation": "High-latitude availability-selected subsets; at most 200 objects per class and combination. Different survey rows use different available objects. Redshift PDFs use a flat z prior; coverage is a diagnostic, not a calibration claim. Population posteriors require separate matched surface-density priors.",
+  "background_marginal": {
+    "run_id": "9ca579b6b507",
+    "config": {
+      "base_model": "models/multisurvey.json",
+      "background_sample": "data/multisurvey/background.npz",
+      "comparison_sample": "data/multisurvey/old_new_comparison.npz",
+      "output_model": "models/multisurvey_grz_background_candidate.json",
+      "cache_dir": "data/multisurvey/background_marginal_fits",
+      "bands": [
+        "decals_dr9_south:g",
+        "decals_dr9_south:r",
+        "decals_dr9_south:z"
+      ],
+      "reference_band": "decals_dr9_south:r",
+      "seed": 20260921,
+      "k_candidates": [
+        8,
+        16,
+        32
+      ],
+      "regularization": 0.001,
+      "max_iter": 150,
+      "tol": 1e-05
+    },
+    "hashes": {
+      "base_model": "f494393a8c7f112f8f49945d7fc76bb81170cb0028326501cb7362e45c724785",
+      "background_sample": "bd822e610832f6526b47cbe39f54ec8bed1085aa4b402cb7a8baa0cd33d96702"
+    },
+    "n_fit": 13233,
+    "n_selection": 2279,
+    "selected_k": 16,
+    "selection": [
+      {
+        "k": 8,
+        "selection_log_density": -1.3766965114464498,
+        "n_iter": 150,
+        "converged": false
+      },
+      {
+        "k": 16,
+        "selection_log_density": -1.3489095976037975,
+        "n_iter": 150,
+        "converged": false
+      },
+      {
+        "k": 32,
+        "selection_log_density": -1.3504955826239209,
+        "n_iter": 150,
+        "converged": true
+      }
+    ],
+    "final": {
+      "n_iter": 15,
+      "converged": true,
+      "convergence_tail": [
+        -2.7997427378588644,
+        -2.799704626082614,
+        -2.7996708545702456,
+        -2.7996404063063944,
+        -2.799612462979591
+      ]
+    },
+    "selection_fields": [
+      16,
+      10,
+      11,
+      18
+    ],
+    "routing": "Use only when all observed bands are contained in the fitted band set; otherwise use the joint background."
+  }
 }

@@ -1,8 +1,8 @@
 # Multi-survey model validation
 
-Run `458ddae86afe`; model `models/multisurvey.json`.
+Run `9ca579b6b507`; model `models/multisurvey.json`.
 
-The method and these tests are in the main text of the [method note](method/method.pdf). A separate [matched old/new comparison](MODEL_COMPARISON.md) uses identical held-out Legacy grz measurements: redshift discrimination agrees closely, but the extension has weaker quasar/star separation. These survey-combination results do not establish equivalence to the original model.
+The method and these tests are in the main text of the [method note](method/method.pdf). The [matched old/new comparison](MODEL_COMPARISON.md) and [fresh-object confirmation](MODEL_COMPARISON_FRESH.md) document performance relative to the original model. Survey-combination rows alone do not establish equivalence.
 
 High-latitude availability-selected subsets; at most 200 objects per class and combination. Different survey rows use different available objects. Redshift PDFs use a flat z prior; coverage is a diagnostic, not a calibration claim. Population posteriors require separate matched surface-density priors.
 
@@ -21,7 +21,7 @@ The public scorer was checked against a separate batched calculation for 127 rea
 | Surveys | Held-out QSOs available | QSOs / field objects evaluated | QSO vs field AUC | True vs other z AUC | Median absolute dz/(1+z) | 68% interval coverage |
 |---|---:|---:|---:|---:|---:|---:|
 | sdss | 10137 | 200 / 200 | 0.943 | 0.923 | 0.048 | 0.705 |
-| decals | 13685 | 200 / 200 | 0.931 | 0.886 | 0.089 | 0.700 |
+| decals | 13685 | 200 / 200 | 0.935 | 0.886 | 0.089 | 0.700 |
 | allwise | 8244 | 200 / 200 | 0.903 | 0.770 | 0.199 | 0.725 |
 | ps1 | 14235 | 200 / 200 | 0.938 | 0.845 | 0.068 | 0.735 |
 | nsc | 11765 | 200 / 200 | 0.902 | 0.847 | 0.089 | 0.740 |
@@ -41,3 +41,5 @@ The QSO-versus-field AUC uses colour evidence at the true redshift for quasars a
 The data use native observed photometry, with quality cuts and high-latitude selection recorded in `configs/multisurvey.json`. The background contains all source types and excludes known quasars. Whole fields were reserved before fitting; internal component selection used additional fields from the training partition.
 
 The [full machine-readable report](MULTISURVEY_VALIDATION.json) includes all 127 combinations, per-band holdout counts, and fit diagnostics. A local copy is also kept in `data/multisurvey/validation.json`. The existing southern models were retained.
+
+The declared southern Legacy grz background marginal uses 13,233 existing training objects; 2,279 of these were reserved in the original internal selection fields to choose K=16. The final fit converged: True. It is used only when it contains every observed input band. Quasar fits, transforms, and the full joint background are unchanged.

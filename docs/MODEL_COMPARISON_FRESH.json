@@ -1,6 +1,6 @@
 {
   "config": {
-    "seed": 20260922,
+    "seed": 20260923,
     "source": "data/pairs_desi_dr1.npz",
     "old_qso": "models/qso_south_full.json",
     "old_background": "models/background_south_global.json",
@@ -24,9 +24,10 @@
     "batch_size": 128,
     "bootstrap_replicates": 1000,
     "auc_equivalence_margin": 0.02,
-    "score_cache": "data/multisurvey/comparison_current.npz",
-    "report_prefix": "docs/MODEL_COMPARISON",
-    "figure_name": "validation/old_new_grz"
+    "score_cache": "data/multisurvey/comparison_fresh.npz",
+    "report_prefix": "docs/MODEL_COMPARISON_FRESH",
+    "figure_name": "validation/old_new_grz_fresh",
+    "exclude_score_cache": "data/multisurvey/old_new_comparison.npz"
   },
   "hashes": {
     "source": "090cee4f2810b479d0183af10388219c9ca0dec786846c6aef98ec693d61c7d5",
@@ -47,17 +48,18 @@
       "qso_model.py": "eecb694c44ac7d8e6b691aa38eacb3ffb4637a5eaae60b1f22d5110b5441814b",
       "score.py": "4f0d2676fa379c376682b075fba1fda33b45bc8470be11bb0b840a72253683a6",
       "xd.py": "85bba368c92c5c98d351f825d704a93d1f51cf2ac011f75da2eae21d843a5783"
-    }
+    },
+    "excluded_sample": "7d951e59fd0f81f84b9eda5481562ce4aefcca4a8ea6d95b119f5330ff2578a4"
   },
   "available": {
-    "QSO": 7513,
-    "STAR": 17647,
-    "GALAXY": 51770
+    "QSO": 5513,
+    "STAR": 17159,
+    "GALAXY": 50258
   },
   "evaluated": {
     "QSO": 2000,
-    "STAR": 488,
-    "GALAXY": 1512
+    "STAR": 530,
+    "GALAXY": 1470
   },
   "heldout_blocks": [
     2,
@@ -78,57 +80,57 @@
   "public_scorer_checks": 6,
   "metrics": {
     "old": {
-      "auc_qso_nonqso": 0.95901025,
-      "auc_true_other_z": 0.78920675,
-      "coverage_68": 0.799,
-      "median_abs_dz_over_1pz": 0.18153716731396308,
-      "auc_qso_star": 0.9629887295081967,
-      "auc_qso_galaxy": 0.9577261904761905
+      "auc_qso_nonqso": 0.96171825,
+      "auc_true_other_z": 0.790077,
+      "coverage_68": 0.7945,
+      "median_abs_dz_over_1pz": 0.19749326211208132,
+      "auc_qso_star": 0.9695207547169812,
+      "auc_qso_galaxy": 0.9589051020408164
     },
     "new": {
-      "auc_qso_nonqso": 0.9579165,
-      "auc_true_other_z": 0.79322225,
-      "coverage_68": 0.7895,
-      "median_abs_dz_over_1pz": 0.12115567444967523,
-      "auc_qso_star": 0.9490502049180328,
-      "auc_qso_galaxy": 0.9607781084656085
+      "auc_qso_nonqso": 0.958994,
+      "auc_true_other_z": 0.79121875,
+      "coverage_68": 0.7875,
+      "median_abs_dz_over_1pz": 0.12625857857561035,
+      "auc_qso_star": 0.9529867924528301,
+      "auc_qso_galaxy": 0.9611598639455783
     }
   },
   "auc_differences": {
     "auc_qso_nonqso": {
-      "new_minus_old": -0.0010937500000000044,
+      "new_minus_old": -0.0027242499999999836,
       "paired_block_bootstrap_95_interval": [
-        -0.004180817584906041,
-        0.002041701600029965
+        -0.006312592614208893,
+        0.0009475314277549049
       ],
       "within_equivalence_margin": true
     },
     "auc_true_other_z": {
-      "new_minus_old": 0.004015500000000061,
+      "new_minus_old": 0.0011417499999999414,
       "paired_block_bootstrap_95_interval": [
-        -0.003970335969686425,
-        0.009228361839781273
+        -0.004434919960232669,
+        0.005492637272155037
       ],
       "within_equivalence_margin": true
     }
   },
   "score_agreement": {
     "log_bf": {
-      "spearman": 0.9422393707649606,
-      "median_new_minus_old": -0.42890001195830374,
-      "median_absolute_difference": 1.0982509632062316,
+      "spearman": 0.9412404901400306,
+      "median_new_minus_old": -0.4427338921548223,
+      "median_absolute_difference": 1.1148472942520242,
       "difference_16_84": [
-        -2.9414791157525038,
-        1.0257971989213168
+        -3.00142117816,
+        1.0368288407174413
       ]
     },
     "log_pz": {
-      "spearman": 0.8817824609456152,
-      "median_new_minus_old": -0.0011672992460743936,
-      "median_absolute_difference": 0.1747812624162284,
+      "spearman": 0.8715547128886783,
+      "median_new_minus_old": 0.0008104926697682091,
+      "median_absolute_difference": 0.16938501304456222,
       "difference_16_84": [
-        -0.2593290593252388,
-        0.2790664638644735
+        -0.2580684550548939,
+        0.2857175498778103
       ]
     }
   },

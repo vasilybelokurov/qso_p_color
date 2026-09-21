@@ -100,6 +100,49 @@ def synthetic_model():
                             np.tile([10., 30.], (d, 1)))
 
 
+def test_background_marginal_routing_against_gaussian_conditioning():
+    model = synthetic_model()
+    labels = ('decals_dr9_south:r', 'decals_dr9_south:g')  # reverse input order
+    marginal = GaussianMixture(np.ones(1), np.array([[20., 21.]]),
+                               np.array([[[.5, .2], [.2, .8]]]), labels)
+    model.background_marginals = (marginal,)
+    d = len(model.transform.bands)
+    r, g, extra = [model.transform.bands.index(b) for b in (*labels, 'allwise:w1')]
+    x = np.full((2,d), np.nan); observed = np.zeros((2,d), bool)
+    x[:,[r,g]] = [20.4,21.7]; observed[:,[r,g]] = True
+    x[1,extra] = 19.; observed[1,extra] = True
+    cov = np.broadcast_to(.1*np.eye(d),(2,d,d)).copy()
+    result = model.background_log_prob(x,cov,observed,r)
+    # Independent univariate Gaussian conditioning for the selected marginal.
+    mean = 21. + .2/.6*(20.4-20.)
+    variance = .9-.2**2/.6
+    assert result[0] == pytest.approx(norm.logpdf(21.7,mean,np.sqrt(variance)))
+    # An extra observed band must keep the original joint background exactly.
+    baseline = conditional_log_prob(model.background,x[1:],cov[1:],observed[1:],r)[0]
+    assert result[1] == pytest.approx(baseline,abs=1e-12)
+
+
+def test_background_marginal_public_scorer_and_serialisation(tmp_path):
+    model = synthetic_model()
+    labels = ('decals_dr9_south:g','decals_dr9_south:r','decals_dr9_south:z')
+    phot = Photometry([[3.,5.,7.]],[[.01,.01,.01]],labels)
+    kwargs = dict(z_primary=np.array([1.5]), l_deg=np.array([180.]), b_deg=np.array([45.]),
+                  match=RedshiftMatch(half_width_kms=2000.),min_bands=2)
+    original = model.score(phot,**kwargs)[0]
+    model.background_marginals = (GaussianMixture(np.ones(1),np.array([[21.,20.,19.]]),
+                                                   np.diag([.3,.4,.5])[None],labels),)
+    path = tmp_path/'model.json'; model.save(path); restored = MultiSurveyModel.load(path)
+    result = restored.score(phot,**kwargs)[0]
+    f = restored.transform(phot); g,r,z = [f.labels.index(b) for b in labels]
+    expected = (norm.logpdf(f.x[0,r],20.,np.sqrt(.4+f.cov[0,r,r])) +
+                norm.logpdf(f.x[0,z],19.,np.sqrt(.5+f.cov[0,z,z])))
+    # This synthetic model's reference priority is input-schema order: g first.
+    assert result.reference_band == labels[0]
+    assert result.loglike_bkg == pytest.approx(expected,abs=1e-10)
+    assert result.p_zmatch_given_qso == original.p_zmatch_given_qso
+    assert result.loglike_qso_zprimary == original.loglike_qso_zprimary
+
+
 def test_all_127_survey_combinations_and_two_band_ir_only():
     model = synthetic_model()
     p = Photometry(np.full((1, len(model.transform.bands)), 3.),

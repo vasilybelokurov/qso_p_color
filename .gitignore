@@ -16,6 +16,8 @@ models/examples/
 !models/sigma_q_south.json
 # Separate extension; the existing southern model remains available unchanged.
 !models/multisurvey.json
+# Preserve the initial joint-only extension for reproducible comparisons.
+!models/multisurvey_joint_20260921.json
 *.npz
 *.parquet
 
