@@ -1451,7 +1451,13 @@ each from a different random field. Contours are the quasar model at $z_0$
 (blue), the stellar model averaged over the footprint (orange, dashed) and the
 stellar model fitted in this object's own neighbourhood (green). Panel titles
 give the target redshift, reference magnitude and Galactic coordinates; the
-measured object is the open circle with its error bars. Note that the outermost
+measured object is the open circle with its error bars and covariance ellipse.
+The axes now show dereddened luptitude colours $u_g-u_r$ and $u_z-u_r$,
+using the southern Legacy softening parameters saved with the seven-survey
+model. The original flux-ratio model densities are transformed at each
+object's measured reference flux, including the change-of-variables Jacobian.
+The objects, trained models and scores are unchanged. These contours remain
+intrinsic densities, before measurement-noise convolution. Note that the outermost
 contour is drawn at $5\%$ of peak density, \emph{not} at an enclosed
 probability, so an object outside it is not thereby improbable.}
 \label{fig:examples}
@@ -1506,8 +1512,10 @@ captures a few per cent of a redshift posterior that is an order of magnitude
 wider (\S\ref{sec:window}). The Bayes factor and the ranking are what carry the
 information; the posterior carries the window.
 
-\paragraph{A known defect visible in the figure.} Small contour fragments appear
-near the origin in several panels, and a stray tick near $(0.3, 4.6)$ in one.
+\paragraph{A feature of the archived flux-ratio plot.} Small contour fragments
+near the origin, and a stray tick near $(0.3, 4.6)$, appeared in the original
+flux-ratio rendering, retained as
+\path{plots/examples/optical_only_examples_flux_ratio.png}.
 These belong to the \emph{global} stellar model and mark a mixture component
 sitting where essentially no real sources are. They do not affect the local
 models or any number in the table, but they indicate a stray component in that
@@ -1521,7 +1529,9 @@ DECaLS, ALLWISE, PS1, NSC, SkyMapper and VHS individually; DECaLS+ALLWISE,
 SDSS+ALLWISE, PS1+ALLWISE and ALLWISE+VHS; and all seven together.
 The full-size figures and a twelve-page PDF atlas are supplied in
 \texttt{docs/examples/}, with the ten objects' photometry and all 120 score
-records. The original Figure~\ref{fig:examples} and its models are retained.
+records. Figure~\ref{fig:examples} retains its original objects, models and
+scores, with its display changed to the same luptitude-colour convention.
+Its photometry remains dereddened; the extension uses observed photometry.
 
 For a controlled comparison, every new figure uses the \emph{same} five
 reserved quasars and five reserved field objects. These are a new draw with

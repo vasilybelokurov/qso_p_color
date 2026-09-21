@@ -317,7 +317,9 @@ def make_gallery(path: Path, sample: dict, results: list[dict], cfg: dict) -> No
         f"[Download the {len(results)}-page PDF](multisurvey_examples.pdf). Each image below also opens at full resolution.", "",
         f"All versions use the same **{n} held-out spectroscopic quasars** (Q1-Q{n}) and "
         f"**{n} unclassified field sources** (F1-F{n}). These are new examples selected for common coverage, "
-        "rather than the objects in the original Figure 10, which remains unchanged.", "",
+        "rather than the objects in Figure 10. Figure 10 now uses the same luptitude-colour axis convention, "
+        "while retaining its original objects, models and scores; its photometry remains dereddened. "
+        "The [original flux-ratio plot](../../plots/examples/optical_only_examples_flux_ratio.png) is archived.", "",
         f"The sample was drawn with seed {sample['selection']['seed']}, before evaluating scores, from "
         f"{q['eligible_count']} eligible quasars in {len(q['groups'])} "
         f"reserved sky blocks and {b['eligible_count']} eligible field sources. Quasars come from {n} different blocks; "

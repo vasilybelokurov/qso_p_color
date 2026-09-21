@@ -2,7 +2,7 @@
 
 [Download the 12-page PDF](multisurvey_examples.pdf). Each image below also opens at full resolution.
 
-All versions use the same **5 held-out spectroscopic quasars** (Q1-Q5) and **5 unclassified field sources** (F1-F5). These are new examples selected for common coverage, rather than the objects in the original Figure 10, which remains unchanged.
+All versions use the same **5 held-out spectroscopic quasars** (Q1-Q5) and **5 unclassified field sources** (F1-F5). These are new examples selected for common coverage, rather than the objects in Figure 10. Figure 10 now uses the same luptitude-colour axis convention, while retaining its original objects, models and scores; its photometry remains dereddened. The [original flux-ratio plot](../../plots/examples/optical_only_examples_flux_ratio.png) is archived.
 
 The sample was drawn with seed 0, before evaluating scores, from 120 eligible quasars in 8 reserved sky blocks and 49 eligible field sources. Quasars come from 5 different blocks; all field sources come from the extra reserved overlap field (field 24). Selection requires the plotted bands to be measured and 19 < SDSS r luptitude < 21.5. This small common-coverage illustration is not a representative performance test; the [larger validation](../MULTISURVEY_VALIDATION.md) supplies those results.
 

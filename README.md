@@ -49,7 +49,7 @@ so follow the example for the model you load.
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 145 tests. The original quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 147 tests. The original quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -124,7 +124,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 145 tests, ~41 s
+python -m pytest -q                          # 147 tests, ~43 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -258,6 +258,7 @@ discarded as lying outside the trained range), quality flags and a status code.
 | `src/qso_pcolor/` | the package: mixtures, extreme deconvolution, features, models, priors, scorer |
 | `scripts/train_qso_model.py` | train the quasar colour model (DESI ± SDSS, spatial holdout, K selection) |
 | `scripts/score_examples.py` | worked example: 10 real objects, per-object local backgrounds, figure |
+| `scripts/redraw_optical_examples.py` | redraw Figure 10 from saved inputs in luptitude colours; no queries or fitting |
 | `scripts/build_pair_validation.py` | labelled close-pair sample from DESI DR1 (579,572 companions with spectra) |
 | `scripts/validate_pairs.py` | the validation: ROC, reliability, contaminants by spectype, figure |
 | `scripts/make_method_figures.py` | the method note's figures |
@@ -308,15 +309,19 @@ by ≤ 0.006. The retrain bought consistency and provenance, not accuracy — as
 expected once we measured that masked quasars sit 0.85 nats off the clean
 locus but are only 5.4 % of the sample.
 
-Everything else is derived and gitignored. Rebuilding needs **WSDB access**
+Large catalogue caches and intermediate fits are gitignored. Rebuilding them needs **WSDB access**
 (`sqlutilpy`, credentials via `PGUSER` / `PGHOST` / `~/.pgpass`):
 
 ```bash
 python scripts/train_qso_model.py --system south --select-k   # ~4 h
 python scripts/make_method_figures.py                          # figs 1-8, ~8 min
-python scripts/score_examples.py                               # fig 9, ~15 min
+python scripts/redraw_optical_examples.py                       # fig 10, saved objects/models/scores
+python scripts/score_examples.py                               # rebuild the original sample and scores; cached fits
 make -C docs/method                                            # rebuild the PDF
 ```
+
+The Figure 10 redraw uses committed inputs and runs offline; rebuilding the
+PDF also needs no database access.
 
 Queries cache to `data/`, keyed by a hash of the query text, so a rerun reuses
 the same selection. SDSS training matches also carry the parent query in their
@@ -365,6 +370,9 @@ in each combination. The field examples share one reserved overlap field;
 these ten objects illustrate behaviour rather than measure survey-wide accuracy.
 Reproduce them offline with `python scripts/make_multisurvey_examples.py`
 (the `figures` installation extra supplies the PDF dependency).
+Figure 10 now uses luptitude-colour axes too, retaining its original objects,
+models and scores. Its previous [flux-ratio rendering](plots/examples/optical_only_examples_flux_ratio.png)
+is archived; the redraw includes the density Jacobian and full colour errors.
 
 The new mixtures learn the joint band distribution. For each object, the
 scorer conditions on an available reference band and marginalises the absent

@@ -1,0 +1,15 @@
+{
+  "sample": "docs/examples/optical_examples.json",
+  "softening_source": "models/multisurvey.json, run 9ca579b6b507",
+  "softening": {
+    "decals_dr9_south:g": 0.025732057094244663,
+    "decals_dr9_south:r": 0.03742364834601584,
+    "decals_dr9_south:z": 0.09492015225478573
+  },
+  "bands": ["decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"],
+  "grid_points": 240,
+  "contour_peak_fractions": [0.05, 0.3, 0.8],
+  "colour_limits": [[-0.8, 3.0], [-3.0, 1.0]],
+  "point_error_extent": 2.0,
+  "figure": "examples/optical_only_examples"
+}

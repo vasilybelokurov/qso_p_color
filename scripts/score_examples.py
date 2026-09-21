@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Score a handful of real objects and show the two models they are scored against.
 
-Takes five spectroscopic quasars and five point-like field sources from the same
-patch of sky, scores each against a target redshift, and draws the quasar and
-background densities in the plane the decision is being made in.
+Takes five spectroscopic quasars and five point-like field sources from separate
+fields, scores each against a target redshift, and draws the quasar and background
+densities. Figure 10 now displays the original flux-ratio densities in luptitude
+colours, with the coordinate Jacobian included and the scores unchanged.
 
 **Optical only.** Everything here uses the DECaLS bands alone -- g/r and z/r --
 with W1 and W2 marginalised out exactly by the observed-dimension mask, not
@@ -13,7 +14,11 @@ quasar/star discrimination, so optical-only shows what the colours alone can do.
 The quasars are drawn from the model's **reserved** spatial blocks, so none of
 them was used in fitting.
 
-    python scripts/score_examples.py --ra 180 --dec 0
+    python scripts/score_examples.py
+
+For a plot-only redraw from the committed inputs, without queries or fitting:
+
+    python scripts/redraw_optical_examples.py
 """
 
 from __future__ import annotations
@@ -360,6 +365,19 @@ def main() -> None:
 
 
 def make_figure(qso, backgrounds, gbkg, fq, iq, zq, fst, isx, rows, gal, args):
+    """Cache the original inputs and render them on luptitude-colour axes."""
+    import json
+    from redraw_optical_examples import export_sample, render
+    # Use the same finite JSON convention as the seven-survey examples.
+    from make_multisurvey_examples import write_json
+
+    cfg = json.loads(Path("configs/optical_examples_plot.json").read_text())
+    sample = export_sample(qso, backgrounds, gbkg, fq, iq, zq, fst, isx, rows, gal, args)
+    write_json(Path(cfg["sample"]), sample)
+    print(f"\nwrote {render(sample, cfg)}")
+
+
+def make_flux_ratio_figure(qso, backgrounds, gbkg, fq, iq, zq, fst, isx, rows, gal, args):
     """Two rows of panels: the models, in the plane the decision is made in."""
     import matplotlib.pyplot as plt
     from qso_pcolor.plotting import SERIES, save_figure, use_paper_style
@@ -444,7 +462,7 @@ def make_figure(qso, backgrounds, gbkg, fq, iq, zq, fst, isx, rows, gal, args):
     fig.suptitle("DECaLS colours only: W1 and W2 marginalised out, not dropped",
                  x=0.01, ha="left", fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
-    print(f"\nwrote {save_figure(fig, 'examples/optical_only_examples')}")
+    print(f"\nwrote {save_figure(fig, 'examples/optical_only_examples_flux_ratio')}")
 
 
 if __name__ == "__main__":
