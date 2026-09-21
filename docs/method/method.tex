@@ -39,8 +39,8 @@ densities that convert those into intensities, and a three-hypothesis posterior
 that includes quasars at the \emph{wrong} redshift as a competing explanation.
 We show that a narrow redshift-match window enters the answer as a
 multiplicative constant, derive the window-free statistic $R$ in that limit,
-that, and explain why $R$ rather than a posterior probability is the quantity to
-rank on. All figures are built from DESI DR1 spectroscopy and Legacy Surveys
+and explain why $R$ rather than a posterior probability is the quantity to
+rank on. The original illustrations use DESI DR1 spectroscopy and Legacy Surveys
 DR9 imaging, and the original southern quasar model they depict remains
 distributed with the code. Applied to held-out quasars, the statistic separates quasars from the
 field population by about fourteen natural logarithms but separates
@@ -53,9 +53,13 @@ stars with AUC $0.988$ and from galaxies with $0.964$ in the full sample, and un
 same-redshift probability by a
 factor that falls from $10.0$ at $3$--$5''$ to $3.3$ at $20$--$30''$ --- the
 signature of quasar clustering, which the scorer deliberately omits and which
-this measurement is the first to size. Appendix~\ref{sec:multisurvey} describes
-the additional seven-survey model, including infrared-only inputs, its
-held-out validation, and access to both model families.
+this measurement is the first to size. Section~\ref{sec:multisurvey} describes
+the additional model for arbitrary combinations of SDSS, Legacy DR9,
+AllWISE, PS1, NSC, SkyMapper, and VHS, including infrared-only inputs.
+Matched Legacy $grz$ tests give original/new redshift-discrimination AUCs
+of $0.789/0.793$, but quasar/non-quasar AUCs of $0.959/0.942$; the outputs
+are not interchangeable. Section~\ref{sec:multisurvey-validation} reports
+tests of all 127 survey subsets. Both model families remain available.
 \end{abstract}
 
 \section*{The method in plain words}
@@ -63,6 +67,14 @@ held-out validation, and access to both model families.
 
 An orientation before the formalism. Everything asserted here is developed, and
 qualified, in the sections that follow.
+
+\paragraph{Two available model families.} The original model serves southern
+Legacy DR9 photometry. The extension accepts any combination of seven surveys,
+including infrared-only measurements, by using the available bands and
+integrating over those that are missing (\S\ref{sec:multisurvey}). Both are
+distributed. Their test on identical Legacy measurements is in
+\S\ref{sec:old-new-comparison}; the other survey combinations follow in
+\S\ref{sec:multisurvey-validation}.
 
 \paragraph{The question, and what is in scope.} We have a quasar whose redshift
 has been measured from a spectrum, and a neighbour a few arcseconds away for
@@ -1253,6 +1265,136 @@ and the data that produced it \\
 \end{tabular}
 \end{center}
 
+\section{Extension to arbitrary survey combinations}
+\label{sec:multisurvey}
+
+The separate implementation in \texttt{multisurvey.py} extends the same
+mixture machinery and three-hypothesis scorer to SDSS, Legacy Surveys DR9,
+AllWISE, Pan-STARRS1, NSC, SkyMapper, and VHS. Infrared-only inputs are included.
+The original trained southern Legacy model is retained. The new model stores
+37 individually labelled bands: SDSS $ugriz$; separate southern and northern
+Legacy $grz$; AllWISE W1--W4; PS1 $grizy$; NSC $ugrizy$ and VR; SkyMapper
+$uvgriz$; and VHS $YJHK_s$. Filters from different surveys are never identified
+with one another. Legacy forced WISE fluxes are not inserted as additional
+AllWISE measurements.
+
+\subsection{Access to the saved models}
+Both model families are distributed in the repository and can score supplied
+photometry without database access or refitting. The following files are
+included under \path{models/} in Git, outside the Python wheel.
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+File & Contents \\
+\midrule
+\path{qso_south_full.json} & Original quasar model \\
+\path{background_south_global.json} & Original background model \\
+\path{background_density_south_global.json} & Original background surface density \\
+\path{sigma_q_south.json} & Original quasar prior \\
+\path{multisurvey.json} & Additional seven-survey model \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The first four trained artifacts are unchanged. They support the original
+relative-flux pipeline and its intensity-based outputs. The original quasar
+model retains the \texttt{load} method of \texttt{SlicedColourRedshiftModel}.
+The extension is loaded explicitly through \texttt{MultiSurveyModel}; its
+file contains both colour models, the luptitude transform, the band schema,
+and the training manifest. The README gives separate offline examples and
+input conventions for each family.
+
+\subsection{A joint model and an available reference}
+The existing relative-flux transform requires its reference measurement.
+Requiring that same optical band would defeat infrared-only use. Instead the
+extension fits the joint distribution of the individual band luptitudes,
+including brightness, with a full covariance matrix. For native calibrated
+flux $f_b$, define
+\begin{equation}
+ u_b=22.5-\frac{2.5}{\ln 10}
+ \left[\operatorname{asinh}\left(\frac{f_b}{2s_b}\right)+\ln s_b\right].
+\end{equation}
+The positive softening $s_b$ is estimated from the training field sample and
+saved. The derivative is $-(2.5/\ln 10)/\sqrt{f_b^2+4s_b^2}$; applying this
+Jacobian to the full flux covariance supplies the observational covariance in
+luptitude space. This is the same first-order treatment of transformed errors
+used by the original asinh-colour implementation. Negative measured fluxes
+remain measurements.
+
+Let $O$ be the observed bands and choose an observed reference $a\in O$ by a
+saved priority order. For a quasar slice, the colour likelihood is
+\begin{equation}
+ p(\mathbf{u}_{O\setminus a}\mid u_a,Q,z)
+ =\frac{p(\mathbf{u}_{O}\mid Q,z)}{p(u_a\mid Q,z)}.
+ \label{eq:multi-conditional}
+\end{equation}
+Both densities are obtained from the joint mixture after convolving the
+candidate's measurement covariance. Missing bands are marginalised exactly.
+At fixed $u_a$, replacing the other luptitudes by the colours $u_b-u_a$ has
+unit Jacobian, so equation~\eqref{eq:multi-conditional} is a colour density
+normalised per unit volume of the observed colours. Conditioning the full
+mixture in this way also updates its component weights; conditioning only
+the component means would give a different, incorrect result. Neighbouring
+redshift slices are interpolated in conditional density, preserving
+normalisation.
+
+The field likelihood is conditioned on the same measured reference. The
+resulting likelihoods enter the original \texttt{score\_candidates} calculation,
+including its field-quasar alternative and supported-window integration.
+Two measured bands supply one colour and can be scored when the explicitly
+requested minimum is two bands. Fewer bands receive an insufficient-photometry
+status. A richer input is evaluated jointly, so separate survey Bayes factors
+are not multiplied under an independence assumption.
+
+\subsection{Calibration, selection, and priors}
+Each filter retains its native catalogue calibration: optical magnitudes use
+their survey conventions and AllWISE/VHS retain Vega zero points. A native
+magnitude of 22.5 corresponds to flux one. AllWISE profile-fit DN fluxes and
+their errors use the documented zero points 20.5, 19.5, 18.0, and 13.0 for
+W1--W4. Magnitude-only tables supply measured magnitudes and errors; an absent
+magnitude is not converted into an invented flux or an upper limit. The new
+sample uses observed photometry and a stated high-Galactic-latitude selection;
+it does not apply the original Legacy extinction correction to other filters.
+These conventions are part of the saved model and must also be used for its
+candidates.
+
+The brightness coordinate is now the native reference-band luptitude $u_a$.
+Surface densities must consequently be defined per unit $u_a$, for that band
+and that photometric selection. The existing southern $r$-magnitude prior is
+not an infrared prior. A supplied prior pair must carry the exact reference
+label and the saved transform identifier. Without a matching pair the model
+returns colour evidence and the quasar-conditional redshift probability;
+population posteriors and $R$ remain unavailable under the existing no-prior
+contract. Survey availability is not used as evidence of quasar class.
+
+The new data builder positionally de-duplicates the spectroscopic parent,
+preserves its recorded spatial holdout, and matches the seven catalogues.
+Its background is the positional union of sources of all morphological types
+in separated fields, with known quasars removed. One coarse catalogue source
+is assigned to at most one optical/NIR source. Whole fields are reserved for
+validation, with measurements from each band on both sides. Component counts
+are selected using further reserved sky blocks or fields inside the training
+sample; final validation objects never enter fitting or component selection.
+An additional, exclusively reserved overlap field supplies survey combinations
+absent from the original reserved fields. Its position was chosen for coverage
+before inspecting validation scores and is recorded in the validation
+configuration.
+The capped background training sample retains rare observed-band patterns;
+inverse sampling weights restore each pattern's abundance in the full field
+sample. This preserves training coverage without artificially promoting
+rare survey combinations in the field distribution.
+The shipped model's run manifest and the separate validation report state the
+sample sizes, band coverage, fit convergence, and measured performance.
+
+The original clean-companion restriction still applies. Survey quality flags
+alone do not establish that a low-resolution infrared measurement separates
+a close pair. Contaminated bands must be marked unusable, and a real companion
+score must use a declared blend policy. Cross-survey intrinsic covariance
+allows variation between the surveys' epochs; shared measurement noise, when
+known, is supplied through the full observational covariance.
+
 \section{A worked example on ten real objects}
 \label{sec:examples}
 
@@ -1523,6 +1665,172 @@ carries its edges, is constant across the outer half-bins, and is zero only
 beyond them; the numbers above are from the corrected run, and the fix changed
 no AUC by more than $0.01$.
 
+\subsection{Original and seven-survey models on identical Legacy photometry}
+\label{sec:old-new-comparison}
+
+The extension should preserve useful performance on its shared inputs. We
+test this directly on the same $2{,}000$ quasars, 488 stars, and $1{,}512$
+galaxies, drawn from the cached DESI spectroscopic companion catalogue and
+used here as individual classified objects. All lie in 14 sky blocks reserved
+by both quasar fits, outside every background fitting or component-selection
+cone. Positional de-duplication uses $1''$. The common selection requires
+southern release 9010, \texttt{maskbits}=0, $|b|\ge25^\circ$, usable $g,r,z$
+measurements, $r$ signal-to-noise at least 5, and dereddened $17\le r<22.5$.
+The catalogue separation is $3$--$30''$, with finite
+\texttt{fracflux\_r}$\le0.2$. Negative non-reference fluxes are retained.
+There are $7{,}513$ eligible unique quasars, $17{,}647$ stars, and $51{,}770$
+galaxies before the seeded draw. These are spectroscopically selected objects,
+not a random sample of the imaging population.
+
+The shared measurements are Legacy DR9 $g,r,z$. The original model
+marginalises its missing forced-WISE dimensions, leaving $g/r$ and $z/r$;
+the new model marginalises every other survey band and conditions on $r$.
+Both receive the same measured fluxes and errors, processed under their saved
+conventions: dereddened relative fluxes for the original, observed luptitudes
+for the extension. Legacy forced WISE and standalone AllWISE are different
+measurements, so they are excluded from this matched-input test. Raw
+likelihood densities have different units and are not compared.
+
+Both models use identical true and assigned primary redshifts, the same
+supported grid, and a flat redshift prior. Quasar/non-quasar discrimination
+uses the dimensionless colour Bayes factor at the true redshift for quasars
+and a redshift drawn from the held-out quasar population for non-quasars.
+The true/other-redshift test scores each quasar at its true redshift and at
+one drawn redshift outside the declared $\pm2000\kms$ window, using its
+normalised quasar-only redshift density. No population posterior is compared:
+the extension does not yet have a matched surface-density prior.
+Table~\ref{tab:old-new} gives the results.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Matched-data diagnostic & Original & Seven-survey \\
+\midrule
+Quasar/non-quasar AUC & 0.9590 & 0.9416 \\
+Quasar/star AUC & 0.9630 & 0.9048 \\
+Quasar/galaxy AUC & 0.9577 & 0.9534 \\
+True/other $z$ AUC & 0.7892 & 0.7932 \\
+Central 68\% redshift interval coverage & 0.7990 & 0.7895 \\
+Median $|z_{\rm mode}-z_{\rm spec}|/(1+z_{\rm spec})$ & 0.1815 & 0.1212 \\
+\bottomrule
+\end{tabular}
+\caption{The two saved models evaluated on identical held-out objects and
+southern Legacy DR9 $g,r,z$ measurements. The test marginalises all other
+bands in both models. Redshift diagnostics use the same flat prior.}
+\label{tab:old-new}
+\end{table}
+
+Redshift discrimination agrees closely: the new-minus-original AUC is
+$+0.0040$, with a paired 95\% interval $[-0.0040,+0.0092]$ from 1,000
+resamples of whole sky blocks. The corresponding quasar/non-quasar difference
+is $-0.0174$, with interval $[-0.0241,-0.0109]$. With the pragmatic
+$\pm0.02$ AUC equivalence margin recorded before scoring, the redshift test
+passes and the quasar/non-quasar test does not. The largest measured change
+is weaker separation from stars; galaxy separation remains close.
+
+Individual scores are also not interchangeable. The log colour Bayes factors
+have Spearman correlation 0.926 and median absolute difference 1.259 nats;
+their median new-minus-original shift is $-0.569$ nats. For the quasar-only
+log redshift density at the true redshift, the correlation is 0.882 and the
+median absolute difference is 0.175 nats. Figure~\ref{fig:old-new} shows
+every evaluated object without cropping the score range. Thus the matched
+test supports similar redshift discrimination, not an overall claim of
+near-identical model outputs. The original model remains the established
+choice for its Legacy workflow. The next targeted check is the extension's
+weaker star rejection on these shared bands. Both fits remain unchanged.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{../../plots/validation/old_new_grz.png}
+\caption{Original versus seven-survey scores from the matched Legacy test.
+Left: colour Bayes factors for all $4{,}000$ objects. Right: normalised
+redshift densities at the true redshift for $2{,}000$ quasars. The dashed
+line is equality. Agreement in a ranking metric does not imply equal scores.}
+\label{fig:old-new}
+\end{figure}
+
+The reproducible calculation is \path{scripts/compare_old_new_models.py},
+with selection and seeds in \path{configs/model_comparison.json}. Its report
+records input and model hashes; its cached rows retain object identities,
+assigned redshifts, and both sets of scores. Six real-data checks confirm
+agreement with the two public scoring APIs, and a separate numerical test
+checks the redshift summaries against scalar Gaussian quadrature.
+
+\subsection{The seven-survey fit and survey-combination tests}
+\label{sec:multisurvey-validation}
+
+Run \texttt{458ddae86afe} fits $67{,}574$ quasars, with $14{,}766$ reserved in
+the original spatial holdout. There are 43 slices with centres spanning
+$0.15\le z\le4.35$, which defines the scoring support. Internal spatial
+selection chooses $K=2$ for six slices and $K=4$ for 37. The field sample
+contains $173{,}054$ sources in 24 fields; six fields containing $41{,}241$
+sources are reserved. The background uses $20{,}000$ sampled training rows
+with weights restoring their observed-pattern abundances and selects $K=8$.
+The additional overlap field contributes $6{,}825$ exclusively reserved
+sources. No final validation source enters component selection or fitting.
+
+All 127 non-empty survey subsets are evaluated on reserved objects with at
+least one usable measurement from each requested survey and at least two
+measurements in total. Each subset uses 200 quasars and up to 200 field
+sources; the smallest available field subset contains 145 sources. The public
+scorer agrees with a separate batched density calculation for a real object
+in every subset. Table~\ref{tab:multisurvey-validation} reports representative
+results. The quasar-versus-field test evaluates each quasar at its true
+redshift and each field object at a redshift drawn from those quasars. The
+true-versus-other-redshift test evaluates each withheld quasar at its true
+redshift and at a primary redshift drawn from the withheld population outside
+the declared $\pm2000\kms$ window, using the normalised quasar-only redshift
+density. These tests assess discrimination; they are distinct from the
+original close-pair validation.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Survey subset & QSO/field AUC & True/other $z$ AUC & 68\% coverage \\
+\midrule
+SDSS             & 0.943 & 0.923 & 0.705 \\
+Legacy DR9       & 0.931 & 0.886 & 0.700 \\
+AllWISE          & 0.903 & 0.770 & 0.725 \\
+PS1              & 0.938 & 0.845 & 0.735 \\
+NSC              & 0.902 & 0.847 & 0.740 \\
+SkyMapper        & 0.883 & 0.772 & 0.655 \\
+VHS              & 0.620 & 0.779 & 0.745 \\
+Legacy + AllWISE & 0.986 & 0.928 & 0.770 \\
+AllWISE + VHS    & 0.928 & 0.841 & 0.770 \\
+All seven        & 0.9999 & 0.974 & 0.810 \\
+\bottomrule
+\end{tabular}
+\caption{Reserved-object checks of the distributed seven-survey model.
+Rows use different availability-selected populations and do not measure the
+gain from adding a survey to identical objects. The all-seven row uses 200
+quasars and 145 field sources; the other displayed rows use 200 of each.
+Coverage refers to central redshift intervals under a flat redshift prior,
+not to calibration of the population posterior.}
+\label{tab:multisurvey-validation}
+\end{table}
+
+Infrared-only inputs therefore yield scores, with weak quasar/field
+separation for VHS alone in this sample. Optical and infrared combinations
+often discriminate well, while the redshift intervals are generally broader
+than their nominal coverage. The per-subset results and the limited overlap
+population should be retained when interpreting those numbers. Population
+posteriors and $R$ for the extension still require matched surface-density
+priors; the original southern prior is not reused for these measurements.
+
+The saved fits use the configured 150-iteration cap. Two of the 43 quasar
+fits reach the requested $10^{-5}$ convergence tolerance; the background fit
+does not. The median absolute change in mean training log density at the last
+quasar iteration is $2.17\times10^{-4}$ nats per object. The reported validation
+assesses these saved fits at that stopping point. Full selection settings,
+fit metadata, and all 127 results accompany the scripts and validation report;
+the package's tests also include independent numerical checks of
+conditioning, error propagation, missing bands, and infrared-only scoring.
+
+
 \section{Scope and limitations}
 \label{sec:limitations}
 
@@ -1638,206 +1946,6 @@ this update itself rather than calling the reference library
 selection-function weights would enter. In the implementation no matrix inverse
 is formed: $\mathbf{T}_{ij}^{-1}$ appears only inside solves against a Cholesky
 factor.
-
-\section{Extension to arbitrary survey combinations}
-\label{sec:multisurvey}
-
-The separate implementation in \texttt{multisurvey.py} extends the same
-mixture machinery and three-hypothesis scorer to SDSS, Legacy Surveys DR9,
-AllWISE, Pan-STARRS1, NSC, SkyMapper, and VHS. Infrared-only inputs are included.
-The original trained southern Legacy model is retained. The new model stores
-37 individually labelled bands: SDSS $ugriz$; separate southern and northern
-Legacy $grz$; AllWISE W1--W4; PS1 $grizy$; NSC $ugrizy$ and VR; SkyMapper
-$uvgriz$; and VHS $YJHK_s$. Filters from different surveys are never identified
-with one another. Legacy forced WISE fluxes are not inserted as additional
-AllWISE measurements.
-
-\paragraph{Access to the saved models.}
-Both model families are distributed in the repository and can score supplied
-photometry without database access or refitting. The following files are
-included under \path{models/} in Git, outside the Python wheel.
-
-\begin{center}
-\small
-\begin{tabular}{@{}ll@{}}
-\toprule
-File & Contents \\
-\midrule
-\path{qso_south_full.json} & Original quasar model \\
-\path{background_south_global.json} & Original background model \\
-\path{background_density_south_global.json} & Original background surface density \\
-\path{sigma_q_south.json} & Original quasar prior \\
-\path{multisurvey.json} & Additional seven-survey model \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-The first four trained artifacts are unchanged. They support the original
-relative-flux pipeline and its intensity-based outputs. The original quasar
-model retains the \texttt{load} method of \texttt{SlicedColourRedshiftModel}.
-The extension is loaded explicitly through \texttt{MultiSurveyModel}; its
-file contains both colour models, the luptitude transform, the band schema,
-and the training manifest. The README gives separate offline examples and
-input conventions for each family.
-
-\paragraph{A joint model and an available reference.}
-The existing relative-flux transform requires its reference measurement.
-Requiring that same optical band would defeat infrared-only use. Instead the
-extension fits the joint distribution of the individual band luptitudes,
-including brightness, with a full covariance matrix. For native calibrated
-flux $f_b$, define
-\begin{equation}
- u_b=22.5-\frac{2.5}{\ln 10}
- \left[\operatorname{asinh}\left(\frac{f_b}{2s_b}\right)+\ln s_b\right].
-\end{equation}
-The positive softening $s_b$ is estimated from the training field sample and
-saved. The derivative is $-(2.5/\ln 10)/\sqrt{f_b^2+4s_b^2}$; applying this
-Jacobian to the full flux covariance supplies the observational covariance in
-luptitude space. This is the same first-order treatment of transformed errors
-used by the original asinh-colour implementation. Negative measured fluxes
-remain measurements.
-
-Let $O$ be the observed bands and choose an observed reference $a\in O$ by a
-saved priority order. For a quasar slice, the colour likelihood is
-\begin{equation}
- p(\mathbf{u}_{O\setminus a}\mid u_a,Q,z)
- =\frac{p(\mathbf{u}_{O}\mid Q,z)}{p(u_a\mid Q,z)}.
- \label{eq:multi-conditional}
-\end{equation}
-Both densities are obtained from the joint mixture after convolving the
-candidate's measurement covariance. Missing bands are marginalised exactly.
-At fixed $u_a$, replacing the other luptitudes by the colours $u_b-u_a$ has
-unit Jacobian, so equation~\eqref{eq:multi-conditional} is a colour density
-normalised per unit volume of the observed colours. Conditioning the full
-mixture in this way also updates its component weights; conditioning only
-the component means would give a different, incorrect result. Neighbouring
-redshift slices are interpolated in conditional density, preserving
-normalisation.
-
-The field likelihood is conditioned on the same measured reference. The
-resulting likelihoods enter the original \texttt{score\_candidates} calculation,
-including its field-quasar alternative and supported-window integration.
-Two measured bands supply one colour and can be scored when the explicitly
-requested minimum is two bands. Fewer bands receive an insufficient-photometry
-status. A richer input is evaluated jointly, so separate survey Bayes factors
-are not multiplied under an independence assumption.
-
-\paragraph{Calibration, selection, and priors.}
-Each filter retains its native catalogue calibration: optical magnitudes use
-their survey conventions and AllWISE/VHS retain Vega zero points. A native
-magnitude of 22.5 corresponds to flux one. AllWISE profile-fit DN fluxes and
-their errors use the documented zero points 20.5, 19.5, 18.0, and 13.0 for
-W1--W4. Magnitude-only tables supply measured magnitudes and errors; an absent
-magnitude is not converted into an invented flux or an upper limit. The new
-sample uses observed photometry and a stated high-Galactic-latitude selection;
-it does not apply the original Legacy extinction correction to other filters.
-These conventions are part of the saved model and must also be used for its
-candidates.
-
-The brightness coordinate is now the native reference-band luptitude $u_a$.
-Surface densities must consequently be defined per unit $u_a$, for that band
-and that photometric selection. The existing southern $r$-magnitude prior is
-not an infrared prior. A supplied prior pair must carry the exact reference
-label and the saved transform identifier. Without a matching pair the model
-returns colour evidence and the quasar-conditional redshift probability;
-population posteriors and $R$ remain unavailable under the existing no-prior
-contract. Survey availability is not used as evidence of quasar class.
-
-The new data builder positionally de-duplicates the spectroscopic parent,
-preserves its recorded spatial holdout, and matches the seven catalogues.
-Its background is the positional union of sources of all morphological types
-in separated fields, with known quasars removed. One coarse catalogue source
-is assigned to at most one optical/NIR source. Whole fields are reserved for
-validation, with measurements from each band on both sides. Component counts
-are selected using further reserved sky blocks or fields inside the training
-sample; final validation objects never enter fitting or component selection.
-An additional, exclusively reserved overlap field supplies survey combinations
-absent from the original reserved fields. Its position was chosen for coverage
-before inspecting validation scores and is recorded in the validation
-configuration.
-The capped background training sample retains rare observed-band patterns;
-inverse sampling weights restore each pattern's abundance in the full field
-sample. This preserves training coverage without artificially promoting
-rare survey combinations in the field distribution.
-The shipped model's run manifest and the separate validation report state the
-sample sizes, band coverage, fit convergence, and measured performance.
-
-The original clean-companion restriction still applies. Survey quality flags
-alone do not establish that a low-resolution infrared measurement separates
-a close pair. Contaminated bands must be marked unusable, and a real companion
-score must use a declared blend policy. Cross-survey intrinsic covariance
-allows variation between the surveys' epochs; shared measurement noise, when
-known, is supplied through the full observational covariance.
-
-\paragraph{The distributed fit and its validation (21 September 2026).}
-Run \texttt{458ddae86afe} fits $67{,}574$ quasars, with $14{,}766$ reserved in
-the original spatial holdout. There are 43 slices with centres spanning
-$0.15\le z\le4.35$, which defines the scoring support. Internal spatial
-selection chooses $K=2$ for six slices and $K=4$ for 37. The field sample
-contains $173{,}054$ sources in 24 fields; six fields containing $41{,}241$
-sources are reserved. The background uses $20{,}000$ sampled training rows
-with weights restoring their observed-pattern abundances and selects $K=8$.
-The additional overlap field contributes $6{,}825$ exclusively reserved
-sources. No final validation source enters component selection or fitting.
-
-All 127 non-empty survey subsets are evaluated on reserved objects with at
-least one usable measurement from each requested survey and at least two
-measurements in total. Each subset uses 200 quasars and up to 200 field
-sources; the smallest available field subset contains 145 sources. The public
-scorer agrees with a separate batched density calculation for a real object
-in every subset. Table~\ref{tab:multisurvey-validation} reports representative
-results. The quasar-versus-field test evaluates each quasar at its true
-redshift and each field object at a redshift drawn from those quasars. The
-true-versus-other-redshift test evaluates each withheld quasar at its true
-redshift and at a primary redshift drawn from the withheld population outside
-the declared $\pm2000\kms$ window, using the normalised quasar-only redshift
-density. These tests assess discrimination; they are distinct from the
-original close-pair validation.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-Survey subset & QSO/field AUC & True/other $z$ AUC & 68\% coverage \\
-\midrule
-SDSS             & 0.943 & 0.923 & 0.705 \\
-Legacy DR9       & 0.931 & 0.886 & 0.700 \\
-AllWISE          & 0.903 & 0.770 & 0.725 \\
-PS1              & 0.938 & 0.845 & 0.735 \\
-NSC              & 0.902 & 0.847 & 0.740 \\
-SkyMapper        & 0.883 & 0.772 & 0.655 \\
-VHS              & 0.620 & 0.779 & 0.745 \\
-Legacy + AllWISE & 0.986 & 0.928 & 0.770 \\
-AllWISE + VHS    & 0.928 & 0.841 & 0.770 \\
-All seven        & 0.9999 & 0.974 & 0.810 \\
-\bottomrule
-\end{tabular}
-\caption{Reserved-object checks of the distributed seven-survey model.
-Rows use different availability-selected populations and do not measure the
-gain from adding a survey to identical objects. The all-seven row uses 200
-quasars and 145 field sources; the other displayed rows use 200 of each.
-Coverage refers to central redshift intervals under a flat redshift prior,
-not to calibration of the population posterior.}
-\label{tab:multisurvey-validation}
-\end{table}
-
-Infrared-only inputs therefore yield scores, with weak quasar/field
-separation for VHS alone in this sample. Optical and infrared combinations
-often discriminate well, while the redshift intervals are generally broader
-than their nominal coverage. The per-subset results and the limited overlap
-population should be retained when interpreting those numbers. Population
-posteriors and $R$ for the extension still require matched surface-density
-priors; the original southern prior is not reused for these measurements.
-
-The saved fits use the configured 150-iteration cap. Two of the 43 quasar
-fits reach the requested $10^{-5}$ convergence tolerance; the background fit
-does not. The median absolute change in mean training log density at the last
-quasar iteration is $2.17\times10^{-4}$ nats per object. The reported validation
-assesses these saved fits at that stopping point. Full selection settings,
-fit metadata, and all 127 results accompany the scripts and validation report;
-the package's 140 tests also include independent numerical checks of
-conditioning, error propagation, missing bands, and infrared-only scoring.
 
 \begin{thebibliography}{9}
 

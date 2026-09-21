@@ -104,7 +104,7 @@ scripts/build_multisurvey_sample.py  cached quasar and all-source field samples
 scripts/train_multisurvey_model.py   cached fits with spatial component selection
 scripts/validate_multisurvey.py      reserved-object checks for all survey subsets
 docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    140 tests; see section 7
+tests/                    141 tests; see section 7
 ```
 
 Saved real-data models and validation scripts now ship for the original
@@ -684,8 +684,17 @@ pager's.
 
 The extension supports SDSS, DECaLS/Legacy DR9, ALLWISE, PS1, NSC, SkyMapper,
 and VHS, including infrared-only input. It retains the original southern
-artifacts. Its method is described in Appendix C of `docs/method/method.tex`;
+artifacts. Its method is described in the main text of `docs/method/method.tex`;
 the run configurations are `configs/multisurvey*.json`.
+
+`scripts/compare_old_new_models.py` and `configs/model_comparison.json`
+define the matched, held-out Legacy grz comparison. Its results are recorded
+in `docs/MODEL_COMPARISON.md` and the method's main validation section.
+The saved extension agrees closely in redshift discrimination but has weaker
+quasar/star discrimination on these shared bands; do not claim that its scores
+are interchangeable with the original model. Keep this comparison fixed when
+assessing a future improvement, and use fresh reserved data to confirm any
+change chosen in response to it.
 
 Keep the original four model/prior files tracked at their existing paths and
 keep their public loading APIs usable. The README's model-selection table and

@@ -2,6 +2,8 @@
 
 Run `458ddae86afe`; model `models/multisurvey.json`.
 
+The method and these tests are in the main text of the [method note](method/method.pdf). A separate [matched old/new comparison](MODEL_COMPARISON.md) uses identical held-out Legacy grz measurements: redshift discrimination agrees closely, but the extension has weaker quasar/star separation. These survey-combination results do not establish equivalence to the original model.
+
 High-latitude availability-selected subsets; at most 200 objects per class and combination. Different survey rows use different available objects. Redshift PDFs use a flat z prior; coverage is a diagnostic, not a calibration claim. Population posteriors require separate matched surface-density priors.
 
 The quasar fit uses 67,574 objects, with 14,766 reserved in the existing spatial holdout. It spans 43 slices over model support 0.15–4.35; the selected component counts (K: number of slices) are `{'2': 6, '4': 37}`.

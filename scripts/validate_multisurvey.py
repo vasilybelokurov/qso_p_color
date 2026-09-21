@@ -168,6 +168,7 @@ def main():
               ({"sdss","allwise"},{"decals","allwise"},{"ps1","allwise"},
                {"sdss","ps1","allwise"},{"allwise","vhs"},set(cfg["surveys"]))]
     lines=["# Multi-survey model validation", "",f"Run `{model.meta['run_id']}`; model `{cfg['model_path']}`.","",
+           "The method and these tests are in the main text of the [method note](method/method.pdf). A separate [matched old/new comparison](MODEL_COMPARISON.md) uses identical held-out Legacy grz measurements: redshift discrimination agrees closely, but the extension has weaker quasar/star separation. These survey-combination results do not establish equivalence to the original model.","",
            result['interpretation'],"",
            f"The quasar fit uses {fit_summary['n_quasars_fit']:,} objects, with {fit_summary['n_quasars_reserved']:,} reserved in the existing spatial holdout. It spans {len(slices)} slices over model support {model.qso.support[0]:.2f}–{model.qso.support[1]:.2f}; the selected component counts (K: number of slices) are `{fit_summary['quasar_component_counts']}`.","",
            f"The original field sample has {n_background_original:,} sources from {len(model.meta['fields'])} fields, with {n_background_original_reserved:,} sources in reserved fields. The background fit uses {model.meta['background']['n_fit']:,} sampled rows with weights restoring the training population and K={model.background.n_components}.","",

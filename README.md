@@ -49,7 +49,7 @@ so follow the example for the model you load.
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 140 tests. The original quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 141 tests. The original quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -124,7 +124,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 140 tests, ~46 s
+python -m pytest -q                          # 141 tests, ~43 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -339,6 +339,16 @@ for the samples, fit stopping criteria, and measured performance. Supporting
 a combination does not imply equal precision: VHS-only QSO/field separation
 is weak in this validation (AUC 0.620), while ALLWISE-only gives 0.903.
 
+An [identical-data comparison](docs/MODEL_COMPARISON.md) uses the same 2,000
+held-out quasars and 2,000 spectroscopically confirmed stars/galaxies, with
+southern Legacy DR9 **g,r,z only** in both models. Original/new redshift
+discrimination agrees closely (AUC **0.789/0.793**), but quasar/non-quasar
+discrimination falls from **0.959 to 0.942**, chiefly against stars
+(**0.963/0.905**). Individual scores are not interchangeable. The original
+model remains the established choice for its Legacy workflow; the extension
+adds the other survey combinations. The method note now describes the
+extension and both sets of tests in its **main text**.
+
 The new mixtures learn the joint band distribution. For each object, the
 scorer conditions on an available reference band and marginalises the absent
 bands. Thus ALLWISE-only, VHS-only, and mixed optical/infrared inputs use the
@@ -402,14 +412,16 @@ python scripts/build_multisurvey_sample.py --config configs/multisurvey.json
 python scripts/train_multisurvey_model.py --config configs/multisurvey.json
 python scripts/build_multisurvey_sample.py --part validation
 python scripts/validate_multisurvey.py --config configs/multisurvey.json
+python scripts/compare_old_new_models.py --config configs/model_comparison.json
 ```
 
 The configuration records survey matching, quality selection, the seed, and
 fit settings. Quasar validation reuses the saved spatial holdout; background
 validation reserves whole fields. Component selection uses a separate split
 inside the training sample. See [the method note](docs/method/method.pdf),
-section “Extension to arbitrary survey combinations”, for the conditional
-likelihood and its normalisation.
+sections “Extension to arbitrary survey combinations” and “Validation:
+design and results”, for the conditional likelihood, its normalisation,
+the matched old/new test, and the survey-combination results.
 
 ## Conventions
 

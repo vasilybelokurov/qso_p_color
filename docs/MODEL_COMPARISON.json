@@ -1,0 +1,120 @@
+{
+  "config": {
+    "seed": 20260922,
+    "source": "data/pairs_desi_dr1.npz",
+    "old_qso": "models/qso_south_full.json",
+    "old_background": "models/background_south_global.json",
+    "new_model": "models/multisurvey.json",
+    "max_per_class": 2000,
+    "release": 9010,
+    "min_abs_b_deg": 25.0,
+    "min_reference_snr": 5.0,
+    "reference_magnitude_range": [
+      17.0,
+      22.5
+    ],
+    "separation_arcsec_range": [
+      3.0,
+      30.0
+    ],
+    "max_fracflux_r": 0.2,
+    "dedup_radius_arcsec": 1.0,
+    "half_width_kms": 2000.0,
+    "redshift_grid_points": 601,
+    "batch_size": 128,
+    "bootstrap_replicates": 1000,
+    "auc_equivalence_margin": 0.02,
+    "score_cache": "data/multisurvey/old_new_comparison.npz"
+  },
+  "hashes": {
+    "source": "090cee4f2810b479d0183af10388219c9ca0dec786846c6aef98ec693d61c7d5",
+    "old_qso": "fa0ffddfe18ad405938b19b934760067ea88df2a1f8368ad1bb867663868fb6b",
+    "old_background": "0e45b579e690d129f2ee9dccb0834f649186c4d7add647bf2965afbbcda49c1c",
+    "new_model": "f494393a8c7f112f8f49945d7fc76bb81170cb0028326501cb7362e45c724785",
+    "script": "6d77fd9da5acdb317e91ea477df1450619ce1882deb6e830442af83314b81dc2"
+  },
+  "available": {
+    "QSO": 7513,
+    "STAR": 17647,
+    "GALAXY": 51770
+  },
+  "evaluated": {
+    "QSO": 2000,
+    "STAR": 488,
+    "GALAXY": 1512
+  },
+  "heldout_blocks": [
+    2,
+    3,
+    8,
+    15,
+    35,
+    38,
+    62,
+    81,
+    131,
+    141,
+    145,
+    146,
+    156,
+    170
+  ],
+  "public_scorer_checks": 6,
+  "metrics": {
+    "old": {
+      "auc_qso_nonqso": 0.95901025,
+      "auc_true_other_z": 0.78920675,
+      "coverage_68": 0.799,
+      "median_abs_dz_over_1pz": 0.18153716731396308,
+      "auc_qso_star": 0.9629887295081967,
+      "auc_qso_galaxy": 0.9577261904761905
+    },
+    "new": {
+      "auc_qso_nonqso": 0.9415665,
+      "auc_true_other_z": 0.79322225,
+      "coverage_68": 0.7895,
+      "median_abs_dz_over_1pz": 0.12115567444967523,
+      "auc_qso_star": 0.9048094262295082,
+      "auc_qso_galaxy": 0.9534298941798942
+    }
+  },
+  "auc_differences": {
+    "auc_qso_nonqso": {
+      "new_minus_old": -0.01744374999999998,
+      "paired_block_bootstrap_95_interval": [
+        -0.02413264025865944,
+        -0.010913098671359664
+      ],
+      "within_equivalence_margin": false
+    },
+    "auc_true_other_z": {
+      "new_minus_old": 0.004015500000000061,
+      "paired_block_bootstrap_95_interval": [
+        -0.003970335969686425,
+        0.009228361839781273
+      ],
+      "within_equivalence_margin": true
+    }
+  },
+  "score_agreement": {
+    "log_bf": {
+      "spearman": 0.9255610875975678,
+      "median_new_minus_old": -0.5688768728575445,
+      "median_absolute_difference": 1.258529913689032,
+      "difference_16_84": [
+        -2.702053130397438,
+        1.1583368967496606
+      ]
+    },
+    "log_pz": {
+      "spearman": 0.8817824609456152,
+      "median_new_minus_old": -0.0011672992460743936,
+      "median_absolute_difference": 0.1747812624162284,
+      "difference_16_84": [
+        -0.2593290593252388,
+        0.2790664638644735
+      ]
+    }
+  },
+  "interpretation": "Identical southern Legacy DR9 grz measurements; original dereddened relative fluxes versus new observed luptitudes. WISE excluded because Legacy forced WISE and ALLWISE are different measurements. Spectroscopically selected individual objects, not random imaging sources or a close-pair calibration. No matched new population prior; compare dimensionless Bayes factors and flat-prior redshift summaries only."
+}
