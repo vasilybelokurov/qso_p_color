@@ -31,6 +31,12 @@ choice; installing the update does not switch an existing script to it.
 | Original southern Legacy DR9 | Dereddened `grz` and Legacy forced W1/W2; colour evidence, `p_zmatch_given_qso`, and `p_sameq` / `log_r_per_unit_z` using the supplied priors | [Original offline example](#scoring-a-candidate--offline-straight-from-a-clone) |
 | Seven-survey extension | Any subset of SDSS, DECaLS/Legacy DR9, ALLWISE, PS1, NSC, SkyMapper, and VHS, including infrared-only; observed native photometry, at least two measured bands; evidence and `p_zmatch_given_qso`, with population posteriors requiring matched priors | [Multi-survey offline example](#combining-surveys-including-infrared-only-inputs) |
 
+Use the original bundle to reproduce the existing southern Legacy analysis
+with its supplied priors. Use the current seven-survey model for other surveys
+or mixed survey coverage. **One saved seven-survey model handles all 127
+non-empty survey combinations**: choose the measured bands in the input,
+without loading or training a separate model for each combination.
+
 The saved files are:
 
 | File | Contents |
@@ -39,7 +45,15 @@ The saved files are:
 | [background_south_global.json](models/background_south_global.json) | Original southern background colour model |
 | [background_density_south_global.json](models/background_density_south_global.json) | Original background surface density |
 | [sigma_q_south.json](models/sigma_q_south.json) | Original quasar surface-density prior |
-| [multisurvey.json](models/multisurvey.json) | New joint quasar/background model, transform, and band schema |
+| [multisurvey.json](models/multisurvey.json) | Current seven-survey model: quasar/background fits, transform, band schema, and automatic southern `grz` background selection |
+| [multisurvey_joint_20260921.json](models/multisurvey_joint_20260921.json) | Archived initial seven-survey version, with only the joint background; retained to reproduce the initial comparison |
+
+The first four files form **one original model bundle**. The current and
+archived seven-survey versions each load from one file. Both use
+`MultiSurveyModel.load(...)`; select the archived path only when reproducing
+that version's results. The current `multisurvey.json` is the choice used by
+the multi-survey example below. The original bundle uses its separate loading
+API, shown in the original example.
 
 Clone the repository and run the examples from its root so these relative paths
 resolve. Model files are included in Git; they are not bundled into the Python
@@ -122,14 +136,21 @@ Ranking needs a prior; without one the package returns NaN for
 ## Install
 
 ```bash
-source ~/Work/venvs/.venv/bin/activate      # or your own environment
-pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
+git clone https://github.com/vasilybelokurov/qso_p_color.git
+cd qso_p_color
+python3 -m venv .venv                        # Python 3.11 or newer
+source .venv/bin/activate
+pip install -e ".[dev]"                      # package plus pytest
 python -m pytest -q                          # 149 tests, ~43 s
 ```
 
-Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
-alone installs neither pytest nor `sqlutilpy`, so use the extras above: the test
-command needs the first and everything that touches data needs the second.
+Installation supplies the numerical dependencies, including numpy, scipy,
+astropy, healpy, and matplotlib. The `dev` extra supplies pytest. For database
+queries or rebuilding samples, also install the WSDB extra:
+
+```bash
+pip install -e ".[dev,wsdb]"                  # wsdb = sqlutilpy
+```
 
 The two examples using the saved models run offline. Fitting a local background
 or rebuilding the training samples needs WSDB, `sqlutilpy`, and credentials
@@ -279,7 +300,9 @@ discarded as lying outside the trained range), quality flags and a status code.
 
 ## Models and data
 
-Four files are committed, and together they are everything the scorer needs:
+The **original southern model bundle** consists of these four committed files.
+Together they supply its colour models and population priors. The two
+seven-survey versions are listed under [Choose a saved model](#choose-a-saved-model).
 
 | file | what |
 |---|---|
@@ -424,10 +447,24 @@ print(row.reference_band, row.bands_used, row.status)
 ```
 
 The returned row retains the existing evidence/posterior contract and adds
-the reference band, bands used, and surveys used. Input columns can arrive in
-any order; absent bands are represented by missing entries. A real companion
-score must also supply a `BlendPolicy` and its required measurements. Mark
-contaminated bands unusable rather than borrowing a primary's infrared flux.
+the reference band, bands used, and surveys used. With the example's inputs,
+`status` is `no_prior_posterior_unavailable`: colour evidence and
+`p_zmatch_given_qso` are available, while `p_sameq` and `log_r_per_unit_z`
+are NaN because matching population priors were not supplied.
+
+To use PS1 or a mixed combination, change `Photometry.bands` and the matching
+flux and variance columns; keep the same loaded model and scoring call.
+For example, PS1+ALLWISE can use
+`("ps1:g", "ps1:r", "ps1:i", "ps1:z", "ps1:y", "allwise:w1", "allwise:w2")`.
+`model.transform.bands` lists every accepted label. Columns may be in any
+order as long as they match `bands`. Omit wholly absent bands; for missing or
+unusable entries within a batch, use `flux=np.nan` and `variance=np.inf`.
+Keep valid negative flux measurements. At least two usable bands per object
+are required by `min_bands=2`; otherwise the status is `insufficient_photometry`.
+
+A real companion score must also supply a `BlendPolicy` and its required
+measurements. Mark contaminated bands unusable rather than borrowing a
+primary's infrared flux.
 
 **Population posteriors require matching priors.** The old southern
 r-magnitude prior cannot be applied to an infrared reference or to the new
