@@ -1580,6 +1580,66 @@ ALLWISE-only and VHS-only, are in the accompanying atlas.}
 \label{fig:survey-examples}
 \end{figure}
 
+\subsection{Quasar colour density as a function of redshift}
+\label{sec:colour-redshift}
+
+Figures~\ref{fig:colour-redshift-core} and \ref{fig:colour-redshift-ps1}
+show ten one-colour marginals of the saved seven-survey quasar model over
+its full support, $0.15\leq z\leq4.35$. The first figure spans the optical
+and infrared; the second adds all four adjacent PS1 colours. They show
+$p(c\mid Q,z)$, with brightness and every unused band integrated out.
+No measurement noise is added. Thus these are intrinsic model densities,
+averaged over the fitted brightness distribution at each redshift, rather
+than densities conditional on an individual candidate's reference flux.
+
+Each colour is a native luptitude difference, $c=u_a-u_b$. For a Gaussian
+component with mean $\boldsymbol\mu$ and covariance $V$, its exact colour
+marginal has mean $\mu_a-\mu_b$ and variance
+$V_{aa}+V_{bb}-2V_{ab}$. Component weights are unchanged, and the model's
+linear interpolation of densities between redshift slices is retained.
+The figures use the existing fits without further smoothing or retraining.
+
+At each redshift the density integrates to one over all colour, with no
+weighting by quasar counts or a redshift prior. Both figures share the same
+absolute logarithmic density scale in mag$^{-1}$; neither the peaks nor the
+finite displayed ranges are renormalised. Solid curves give the median and
+dashed curves the 16th and 84th percentiles. The axis limits contain at least
+99.4\% of the model probability at every redshift. Numerical integration
+of the displayed grids agrees with the analytic Gaussian-mixture CDF to
+within $2.6\times10^{-7}$ in probability.
+
+These are observed, not dereddened, colours in the model's native systems:
+SDSS, DECaLS and PS1 use AB calibration, while ALLWISE and VHS use Vega.
+In particular, DECaLS $r-$ALLWISE W1 retains that mixed zero-point convention.
+Luptitude colours approach ordinary magnitude differences at high signal;
+their behaviour at low flux also depends on the saved softening parameters.
+PS1 and DECaLS $g-r$ are plotted separately because their filters and
+photometric systems differ.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{../../plots/method/colour_redshift_core.png}
+\caption{Intrinsic quasar colour densities from the seven-survey model:
+SDSS $u-g$, southern DECaLS $g-r$ and $r-z$, DECaLS $r-$ALLWISE W1,
+VHS $J-K_s$, and ALLWISE W1$-$W2. Brightness and all unused bands are
+marginalised. Each redshift column is a unit-integral colour density;
+the shading measures density per magnitude, not source counts. Median
+and central 68\% limits are overlaid. The density scale is shared with
+Figure~\ref{fig:colour-redshift-ps1}.}
+\label{fig:colour-redshift-core}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{../../plots/method/colour_redshift_ps1.png}
+\caption{The four adjacent PS1 colours, $g-r$, $r-i$, $i-z$ and $z-y$,
+against spectroscopic redshift. Normalisation, marginalisation, quantile
+curves and density scale are identical to
+Figure~\ref{fig:colour-redshift-core}. These marginals retain the separately
+labelled PS1 bands of the joint model; they do not substitute DECaLS colours.}
+\label{fig:colour-redshift-ps1}
+\end{figure}
+
 \section{Validation: design and results}
 \label{sec:validation}
 

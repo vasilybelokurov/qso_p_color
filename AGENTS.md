@@ -103,8 +103,9 @@ scripts/recover_holdout_blocks.py  recover a trained model's spatial holdout
 scripts/build_multisurvey_sample.py  cached quasar and all-source field samples
 scripts/train_multisurvey_model.py   cached fits with spatial component selection
 scripts/validate_multisurvey.py      reserved-object checks for all survey subsets
+scripts/plot_colour_redshift.py     intrinsic colour-redshift marginals, including PS1
 docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    143 tests; see section 7
+tests/                    149 tests; see section 7
 ```
 
 Saved real-data models and validation scripts now ship for the original

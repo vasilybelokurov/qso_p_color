@@ -1,0 +1,256 @@
+{
+  "model": "models/multisurvey.json",
+  "model_run": "9ca579b6b507",
+  "model_sha256": "32781d773995025217d225c9a0fafddd626b4026c57dc1d4579c9f6954138dff",
+  "config": {
+    "model": "models/multisurvey.json",
+    "redshift_grid_points": 421,
+    "colour_grid_points": 650,
+    "axis_tail_probability": 0.005,
+    "quantiles": [
+      0.16,
+      0.5,
+      0.84
+    ],
+    "density_decades": 3,
+    "report": "docs/COLOUR_REDSHIFT.json",
+    "grid_cache": "data/colour_redshift_model.npz",
+    "figures": [
+      {
+        "name": "method/colour_redshift_core",
+        "title": "Quasar model: optical to infrared colours",
+        "colours": [
+          {
+            "title": "SDSS u - g",
+            "bands": [
+              "sdss:u",
+              "sdss:g"
+            ]
+          },
+          {
+            "title": "DECaLS g - r",
+            "bands": [
+              "decals_dr9_south:g",
+              "decals_dr9_south:r"
+            ]
+          },
+          {
+            "title": "DECaLS r - z",
+            "bands": [
+              "decals_dr9_south:r",
+              "decals_dr9_south:z"
+            ]
+          },
+          {
+            "title": "DECaLS r - ALLWISE W1",
+            "bands": [
+              "decals_dr9_south:r",
+              "allwise:w1"
+            ]
+          },
+          {
+            "title": "VHS J - Ks",
+            "bands": [
+              "vhs:j",
+              "vhs:ks"
+            ]
+          },
+          {
+            "title": "ALLWISE W1 - W2",
+            "bands": [
+              "allwise:w1",
+              "allwise:w2"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "method/colour_redshift_ps1",
+        "title": "Quasar model: PS1 colours",
+        "colours": [
+          {
+            "title": "PS1 g - r",
+            "bands": [
+              "ps1:g",
+              "ps1:r"
+            ]
+          },
+          {
+            "title": "PS1 r - i",
+            "bands": [
+              "ps1:r",
+              "ps1:i"
+            ]
+          },
+          {
+            "title": "PS1 i - z",
+            "bands": [
+              "ps1:i",
+              "ps1:z"
+            ]
+          },
+          {
+            "title": "PS1 z - y",
+            "bands": [
+              "ps1:z",
+              "ps1:y"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "redshift_support": [
+    0.15000000000000002,
+    4.35
+  ],
+  "density_limits": [
+    0.01,
+    10.0
+  ],
+  "normalisation": "integral over all colour = 1 at every z; no finite-axis or peak renormalisation",
+  "conditioning": "brightness and other bands marginalised; no surface-density/redshift prior",
+  "photometry": "observed native-system luptitudes; optical AB, ALLWISE/VHS Vega; no added measurement noise",
+  "figures": [
+    {
+      "path": "plots/method/colour_redshift_core.png",
+      "colours": [
+        {
+          "title": "SDSS u - g",
+          "bands": [
+            "sdss:u",
+            "sdss:g"
+          ],
+          "limits": [
+            -2.0,
+            4.5
+          ],
+          "minimum_displayed_probability": 0.9976108192300794,
+          "maximum_integration_error": 1.784780796487695e-07
+        },
+        {
+          "title": "DECaLS g - r",
+          "bands": [
+            "decals_dr9_south:g",
+            "decals_dr9_south:r"
+          ],
+          "limits": [
+            -0.7,
+            3.4
+          ],
+          "minimum_displayed_probability": 0.9975716622180129,
+          "maximum_integration_error": 1.84346773957067e-07
+        },
+        {
+          "title": "DECaLS r - z",
+          "bands": [
+            "decals_dr9_south:r",
+            "decals_dr9_south:z"
+          ],
+          "limits": [
+            -0.7,
+            2.2
+          ],
+          "minimum_displayed_probability": 0.9977340509328567,
+          "maximum_integration_error": 1.1483407047485628e-07
+        },
+        {
+          "title": "DECaLS r - ALLWISE W1",
+          "bands": [
+            "decals_dr9_south:r",
+            "allwise:w1"
+          ],
+          "limits": [
+            1.1,
+            10.4
+          ],
+          "minimum_displayed_probability": 0.9973675747950883,
+          "maximum_integration_error": 1.4714068374832578e-07
+        },
+        {
+          "title": "VHS J - Ks",
+          "bands": [
+            "vhs:j",
+            "vhs:ks"
+          ],
+          "limits": [
+            -1.4,
+            5.4
+          ],
+          "minimum_displayed_probability": 0.9955186523049281,
+          "maximum_integration_error": 2.0207695750062982e-07
+        },
+        {
+          "title": "ALLWISE W1 - W2",
+          "bands": [
+            "allwise:w1",
+            "allwise:w2"
+          ],
+          "limits": [
+            -0.7,
+            2.1
+          ],
+          "minimum_displayed_probability": 0.9940607221524551,
+          "maximum_integration_error": 7.683371505695646e-08
+        }
+      ]
+    },
+    {
+      "path": "plots/method/colour_redshift_ps1.png",
+      "colours": [
+        {
+          "title": "PS1 g - r",
+          "bands": [
+            "ps1:g",
+            "ps1:r"
+          ],
+          "limits": [
+            -0.8,
+            3.0
+          ],
+          "minimum_displayed_probability": 0.9969708422308052,
+          "maximum_integration_error": 2.572308709369864e-07
+        },
+        {
+          "title": "PS1 r - i",
+          "bands": [
+            "ps1:r",
+            "ps1:i"
+          ],
+          "limits": [
+            -0.8,
+            1.5
+          ],
+          "minimum_displayed_probability": 0.9970854221501514,
+          "maximum_integration_error": 1.1373148223192686e-07
+        },
+        {
+          "title": "PS1 i - z",
+          "bands": [
+            "ps1:i",
+            "ps1:z"
+          ],
+          "limits": [
+            -0.6,
+            1.1
+          ],
+          "minimum_displayed_probability": 0.996246623935885,
+          "maximum_integration_error": 9.92145027245428e-08
+        },
+        {
+          "title": "PS1 z - y",
+          "bands": [
+            "ps1:z",
+            "ps1:y"
+          ],
+          "limits": [
+            -0.8,
+            1.5
+          ],
+          "minimum_displayed_probability": 0.9974259165318017,
+          "maximum_integration_error": 1.1969118507426657e-07
+        }
+      ]
+    }
+  ]
+}

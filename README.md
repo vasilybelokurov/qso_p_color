@@ -49,7 +49,7 @@ so follow the example for the model you load.
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 147 tests. The original quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 149 tests. The original quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -124,7 +124,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 147 tests, ~43 s
+python -m pytest -q                          # 149 tests, ~43 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -259,6 +259,7 @@ discarded as lying outside the trained range), quality flags and a status code.
 | `scripts/train_qso_model.py` | train the quasar colour model (DESI ± SDSS, spatial holdout, K selection) |
 | `scripts/score_examples.py` | worked example: 10 real objects, per-object local backgrounds, figure |
 | `scripts/redraw_optical_examples.py` | redraw Figure 10 from saved inputs in luptitude colours; no queries or fitting |
+| `scripts/plot_colour_redshift.py` | ten intrinsic quasar colour densities versus redshift, including four PS1 colours; saved model only |
 | `scripts/build_pair_validation.py` | labelled close-pair sample from DESI DR1 (579,572 companions with spectra) |
 | `scripts/validate_pairs.py` | the validation: ROC, reliability, contaminants by spectype, figure |
 | `scripts/make_method_figures.py` | the method note's figures |
@@ -373,6 +374,18 @@ Reproduce them offline with `python scripts/make_multisurvey_examples.py`
 Figure 10 now uses luptitude-colour axes too, retaining its original objects,
 models and scores. Its previous [flux-ratio rendering](plots/examples/optical_only_examples_flux_ratio.png)
 is archived; the redraw includes the density Jacobian and full colour errors.
+
+Figures 12–13 in the method note show the model's **colour density versus
+redshift**: [six optical/infrared colours](plots/method/colour_redshift_core.png)
+and [PS1 g−r, r−i, i−z and z−y](plots/method/colour_redshift_ps1.png).
+Brightness and unused bands are integrated out, with no added measurement
+noise. Every redshift column is a unit-integral colour density; both figures
+share one absolute density scale and show the median and 16th–84th percentiles.
+The colours retain the model's observed native calibration (optical AB,
+ALLWISE/VHS Vega). Reproduce them offline with
+`python scripts/plot_colour_redshift.py`; band choices and display settings
+are in [the configuration](configs/colour_redshift.json), with model provenance
+and integration checks in [the numerical report](docs/COLOUR_REDSHIFT.json).
 
 The new mixtures learn the joint band distribution. For each object, the
 scorer conditions on an available reference band and marginalises the absent

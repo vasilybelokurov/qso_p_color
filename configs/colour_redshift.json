@@ -1,0 +1,34 @@
+{
+  "model": "models/multisurvey.json",
+  "redshift_grid_points": 421,
+  "colour_grid_points": 650,
+  "axis_tail_probability": 0.005,
+  "quantiles": [0.16, 0.5, 0.84],
+  "density_decades": 3,
+  "report": "docs/COLOUR_REDSHIFT.json",
+  "grid_cache": "data/colour_redshift_model.npz",
+  "figures": [
+    {
+      "name": "method/colour_redshift_core",
+      "title": "Quasar model: optical to infrared colours",
+      "colours": [
+        {"title": "SDSS u - g", "bands": ["sdss:u", "sdss:g"]},
+        {"title": "DECaLS g - r", "bands": ["decals_dr9_south:g", "decals_dr9_south:r"]},
+        {"title": "DECaLS r - z", "bands": ["decals_dr9_south:r", "decals_dr9_south:z"]},
+        {"title": "DECaLS r - ALLWISE W1", "bands": ["decals_dr9_south:r", "allwise:w1"]},
+        {"title": "VHS J - Ks", "bands": ["vhs:j", "vhs:ks"]},
+        {"title": "ALLWISE W1 - W2", "bands": ["allwise:w1", "allwise:w2"]}
+      ]
+    },
+    {
+      "name": "method/colour_redshift_ps1",
+      "title": "Quasar model: PS1 colours",
+      "colours": [
+        {"title": "PS1 g - r", "bands": ["ps1:g", "ps1:r"]},
+        {"title": "PS1 r - i", "bands": ["ps1:r", "ps1:i"]},
+        {"title": "PS1 i - z", "bands": ["ps1:i", "ps1:z"]},
+        {"title": "PS1 z - y", "bands": ["ps1:z", "ps1:y"]}
+      ]
+    }
+  ]
+}
