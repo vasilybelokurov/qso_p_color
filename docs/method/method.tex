@@ -390,10 +390,36 @@ $\mathbf{S}_i$ during fitting, so that the density of the \emph{observed} value
 is evaluated with $\mathbf{V}_k+\mathbf{S}_i$. The EM update is given in
 Appendix~\ref{app:xd}. Figure~\ref{fig:deconv} tests this on real quasar
 colours by injecting noise of known size: the deconvolved width is recovered to
-within $7\%$ after the observed width has more than doubled, while an ordinary
+within $3\%$ after the observed width has more than doubled, while an ordinary
 mixture tracks the broadened distribution exactly. The correction matters most
 where the measurement error approaches the intrinsic width of the locus, which
 in these data is the faint end.
+
+\paragraph{Whose implementation.} The algorithm is Bovy, Hogg \& Roweis's; the
+code is not. \texttt{qso\_pcolor} carries its own numpy implementation of the
+update in Appendix~\ref{app:xd} and depends neither on the authors' C
+\texttt{extreme\_deconvolution} library nor on \texttt{astroML}'s wrapper. The
+reason is the missing-band case. Quasar candidates routinely lack $W1$ or $W2$,
+and we wanted marginalisation over an absent band to be exact and per object,
+which here is a boolean mask selecting the observed sub-block $O$ of each
+component; the reference implementation expresses the same thing through
+per-object projection matrices. Everything else --- the E-step convolution, the
+M-step moments, the reduction to ordinary Gaussian-mixture EM at
+$\mathbf{S}_i=0$ --- is the published algorithm, and with no missing dimensions
+the two agree by construction.
+
+That choice has a cost, and it is fair to state it. Two defects in our
+implementation were found and fixed during development: a covariance M step
+that accumulated $\mathrm{E}[\mathbf{b}\mathbf{b}^{\!\top}]
+-\boldsymbol{\mu}\boldsymbol{\mu}^{\!\top}$ and cancelled catastrophically at
+flux scales of $10^{8}$, returning zero variance; and a transposed array in the
+cross term that corrupted off-diagonal covariances \emph{only} when bands were
+missing --- the very case the reference library would not have exercised in the
+same way. Both are now pinned by regression tests, and the fitted densities are
+checked against independent routes (numerical quadrature, Monte Carlo, and
+closed forms where they exist). A reader who would rather trust the reference
+library than our tests is reasonable to do so; the interface is small enough
+that substituting it touches one function.
 
 \begin{figure}[t]
 \centering
@@ -1583,8 +1609,12 @@ with the M step
 %
 With $\mathbf{S}_i=0$ and no missing dimensions this reduces exactly to ordinary
 Gaussian-mixture EM. Restricting $O$ per object is how missing bands are handled
-without projection matrices. Sample weights multiply every sum, which is where
-selection-function weights would enter.
+without projection matrices, and is the reason \texttt{qso\_pcolor} implements
+this update itself rather than calling the reference library
+(\S\ref{sec:xd}). Sample weights multiply every sum, which is where
+selection-function weights would enter. In the implementation no matrix inverse
+is formed: $\mathbf{T}_{ij}^{-1}$ appears only inside solves against a Cholesky
+factor.
 
 \begin{thebibliography}{9}
 
