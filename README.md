@@ -49,7 +49,7 @@ so follow the example for the model you load.
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 143 tests. The original quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 145 tests. The original quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -124,7 +124,7 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 143 tests, ~43 s
+python -m pytest -q                          # 145 tests, ~41 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
@@ -355,6 +355,16 @@ were rechecked; the other 126 rows are unchanged. The method and both sets of
 tests appear in the method note's **main text**. The original southern models
 and the [initial joint-only extension](models/multisurvey_joint_20260921.json)
 remain available.
+
+Twelve [Figure 10-style comparisons](docs/examples/README.md) show the same
+five held-out quasars and five unclassified field sources using each survey
+alone, DECaLS+ALLWISE, SDSS+ALLWISE, PS1+ALLWISE, ALLWISE+VHS, and all seven.
+The gallery includes a twelve-page PDF, full-resolution PNGs, the fixed sample,
+and exact scores. Two-colour contours accompany scores from all available bands
+in each combination. The field examples share one reserved overlap field;
+these ten objects illustrate behaviour rather than measure survey-wide accuracy.
+Reproduce them offline with `python scripts/make_multisurvey_examples.py`
+(the `figures` installation extra supplies the PDF dependency).
 
 The new mixtures learn the joint band distribution. For each object, the
 scorer conditions on an available reference band and marginalises the absent

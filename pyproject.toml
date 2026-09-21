@@ -21,6 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 wsdb = ["sqlutilpy>=0.26"]
 dev = ["pytest>=8", "pytest-cov"]
+figures = ["reportlab>=4"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

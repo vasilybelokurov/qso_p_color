@@ -7,7 +7,7 @@ PDF  := method.pdf
 # Figure 9 lives under plots/examples/ and is made by a different script, so a
 # wildcard over plots/method/ alone silently stops the PDF rebuilding when it
 # changes.
-FIGS := $(wildcard ../../plots/method/*.png) $(wildcard ../../plots/examples/*.png) $(wildcard ../../plots/validation/*.png)
+FIGS := $(wildcard ../../plots/method/*.png) $(wildcard ../../plots/examples/*.png) $(wildcard ../../plots/examples/multisurvey/*.png) $(wildcard ../../plots/validation/*.png)
 
 .PHONY: all clean figures watch
 

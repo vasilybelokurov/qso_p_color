@@ -1513,6 +1513,63 @@ sitting where essentially no real sources are. They do not affect the local
 models or any number in the table, but they indicate a stray component in that
 fit which has not been chased down.
 
+\subsection{The same examples across survey combinations}
+\label{sec:survey-examples}
+
+The seven-survey model has twelve versions of this worked example: SDSS,
+DECaLS, ALLWISE, PS1, NSC, SkyMapper and VHS individually; DECaLS+ALLWISE,
+SDSS+ALLWISE, PS1+ALLWISE and ALLWISE+VHS; and all seven together.
+The full-size figures and a twelve-page PDF atlas are supplied in
+\texttt{docs/examples/}, with the ten objects' photometry and all 120 score
+records. The original Figure~\ref{fig:examples} and its models are retained.
+
+For a controlled comparison, every new figure uses the \emph{same} five
+reserved quasars and five reserved field objects. These are a new draw with
+the required common coverage, using seed zero and
+$19 < u_{\mathrm{SDSS}:r} < 21.5$, before inspecting any scores. There are
+120 eligible quasars in eight reserved blocks and 49 eligible field sources.
+One quasar is drawn from each of five distinct blocks. The field sources all
+come from the additional reserved overlap field used in
+\S\ref{sec:multisurvey}; they have no spectroscopic class labels. This shared
+footprint and the coverage selection make the ten objects an illustration,
+not an estimate of general survey performance. The target redshift in each
+column is the top object's spectroscopic redshift, reused for the bottom
+object and in every survey version.
+
+Each panel projects the model onto two native-system luptitude colours,
+conditioned on the measured reference band. The measurement covariance of
+the three plotted bands is convolved before conditioning; all other bands
+are marginalised. The blue contours show the quasar density at $z_0$ and the
+green dashed contours the all-source background. DECaLS-only uses the saved
+southern $grz$ background marginal; every other combination uses the joint
+background. These are the shipped background fits, with no per-object local
+refitting. Contour levels remain fractions of peak density, and error
+ellipses include the covariance introduced by the shared reference band.
+
+The annotations use \emph{every available band} in the selected surveys,
+so the two plotted colours do not contain all the evidence. They give
+$\ln\mathrm{BF}$ and $P_z=p_{z\mathrm{match}\mid Q}$ for a
+$\pm2000\kms$ window and a flat redshift prior over the trained support.
+The latter is conditional on being a quasar, rather than a population
+posterior; matching surface-density priors for the extension are not supplied.
+For example, Q4 at $z=1.136$ has $\ln\mathrm{BF}=-4.1$ with DECaLS alone
+and $+14.8$ with DECaLS+ALLWISE. With all seven surveys, the unclassified F1
+still has positive evidence ($+5.0$). Neither that object nor the weak quasar
+cases were replaced to make the figures separate more cleanly.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../../plots/examples/multisurvey/decals_allwise.png}
+\caption{One of the twelve survey-combination versions: DECaLS+ALLWISE.
+The fixed quasars Q1--Q5 and field sources F1--F5 recur in every version.
+Contours show two-colour marginals conditional on the reference; panel
+scores use all seven available bands in this combination. The upper and
+lower panels in a column share the same target redshift. $P_z$ assumes the
+object is a quasar and is not $p_{\rm same}$. Full-size versions, including
+ALLWISE-only and VHS-only, are in the accompanying atlas.}
+\label{fig:survey-examples}
+\end{figure}
+
 \section{Validation: design and results}
 \label{sec:validation}
 

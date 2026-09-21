@@ -1,0 +1,32 @@
+{
+  "model": "models/multisurvey.json",
+  "quasars": "data/multisurvey/quasars.npz",
+  "field_sources": "data/multisurvey/validation_background.npz",
+  "sample": "docs/examples/multisurvey_sample.json",
+  "output_dir": "docs/examples",
+  "figure_dir": "examples/multisurvey",
+  "seed": 0,
+  "objects_per_class": 5,
+  "selection_reference": "sdss:r",
+  "selection_luptitude_range": [19.0, 21.5],
+  "half_width_kms": 2000.0,
+  "min_bands": 2,
+  "grid_points": 180,
+  "contour_peak_fractions": [0.05, 0.3, 0.8],
+  "axis_tail_probability": 0.005,
+  "point_error_extent": 2.0,
+  "combinations": [
+    {"name": "SDSS", "surveys": ["sdss"], "plane": ["sdss:r", "sdss:g", "sdss:z"]},
+    {"name": "DECaLS", "surveys": ["decals"], "plane": ["decals_dr9_south:r", "decals_dr9_south:g", "decals_dr9_south:z"]},
+    {"name": "ALLWISE", "surveys": ["allwise"], "plane": ["allwise:w1", "allwise:w2", "allwise:w3"]},
+    {"name": "PS1", "surveys": ["ps1"], "plane": ["ps1:r", "ps1:g", "ps1:z"]},
+    {"name": "NSC", "surveys": ["nsc"], "plane": ["nsc:r", "nsc:g", "nsc:z"]},
+    {"name": "SkyMapper", "surveys": ["skymapper"], "plane": ["skymapper:r", "skymapper:g", "skymapper:i"]},
+    {"name": "VHS", "surveys": ["vhs"], "plane": ["vhs:j", "vhs:y", "vhs:ks"]},
+    {"name": "DECaLS + ALLWISE", "surveys": ["decals", "allwise"], "plane": ["decals_dr9_south:r", "decals_dr9_south:g", "allwise:w1"]},
+    {"name": "SDSS + ALLWISE", "surveys": ["sdss", "allwise"], "plane": ["sdss:r", "sdss:g", "allwise:w1"]},
+    {"name": "PS1 + ALLWISE", "surveys": ["ps1", "allwise"], "plane": ["ps1:r", "ps1:g", "allwise:w1"]},
+    {"name": "ALLWISE + VHS", "surveys": ["allwise", "vhs"], "plane": ["vhs:j", "allwise:w1", "allwise:w2"]},
+    {"name": "All seven surveys", "surveys": ["sdss", "decals", "allwise", "ps1", "nsc", "skymapper", "vhs"], "plane": ["sdss:r", "sdss:g", "allwise:w1"]}
+  ]
+}
