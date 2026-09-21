@@ -181,14 +181,7 @@ def main() -> None:
 
         # 3. false-positive rate at z0 under each model (held-out field sources)
         sub = i_val[good]
-        def fs_subset(mask_idx):
-            import dataclasses
-            kw = {}
-            for fld in dataclasses.fields(fs):
-                val = getattr(fs, fld.name)
-                kw[fld.name] = val[mask_idx] if isinstance(val, np.ndarray) and val.shape[:1] == (fs.x.shape[0],) else val
-            return type(fs)(**kw)
-        fsub = fs_subset(sub)
+        fsub = fs.subset(sub)
         fpr = {}
         for tag, bk, dn in (("global", gbkg, gdens), ("local", lbkg, ldens)):
             rows = score_candidates(fsub, z_primary=np.full(sub.size, args.z0),
@@ -208,14 +201,7 @@ def main() -> None:
         dlogr = dlogbf = np.nan
         n_q = int(qi.size)
         if n_q >= 10:
-            def qsubset(mask_idx):
-                import dataclasses
-                kw = {}
-                for fld in dataclasses.fields(qfs):
-                    val = getattr(qfs, fld.name)
-                    kw[fld.name] = val[mask_idx] if isinstance(val, np.ndarray) and val.shape[:1] == (qfs.x.shape[0],) else val
-                return type(qfs)(**kw)
-            qsub = qsubset(qi)
+            qsub = qfs.subset(qi)
             out = {}
             for tag, bk, dn in (("global", gbkg, gdens), ("local", lbkg, ldens)):
                 rows = score_candidates(qsub, z_primary=qz[qi], l_deg=ql[qi], b_deg=qb[qi],

@@ -17,10 +17,11 @@ back to a single Gaussian, which is crude but honest.
 
 **Homogeneity is the constraint.** The new slices must differ from the old ones
 in redshift and nothing else -- same transform, same S/N floor, same release,
-same quality cuts, same K, same seed and EM settings. Applying (say) the
-``maskbits`` fix here would put a discontinuity in sample selection at z = 0.4
+same quality cuts, same seed and EM settings; K is selected for sparse slices. Applying (say) the
+``maskbits`` cut only to the extension of an uncut model would put a discontinuity in sample selection at z = 0.4
 and z = 3.6, exactly where it would later be read as a feature of quasar
-colour. Selection changes belong to a full retrain, not to this pass.
+colour. The cut is inherited from the saved model metadata, including for the
+current mask-clean model. Selection changes belong to a full retrain.
 
     python scripts/extend_qso_model_redshift.py --dry-run
     python scripts/extend_qso_model_redshift.py --zmin 0.1 --zmax 4.4
@@ -39,7 +40,7 @@ BANDS = ("g", "r", "z", "w1", "w2")
 
 
 def load_edge_sample(cache_dir: Path, zlo: float, zhi: float, release: int,
-                     use_sdss: bool) -> dict:
+                     use_sdss: bool, *, maskbits_cut: bool) -> dict:
     """DESI (+ SDSS) quasars in a redshift interval, cut exactly like training.
 
     The caches are keyed on the query text, so asking for a new interval fetches
@@ -58,6 +59,9 @@ def load_edge_sample(cache_dir: Path, zlo: float, zhi: float, release: int,
     ra, dec, z, flux, ivar, trans, channel = [], [], [], [], [], [], []
     for r, name in parts:
         sel = np.asarray(r["release"], int) == release
+        # SDSS is mask-clean in its SQL query; DESI exposes maskbits.
+        if maskbits_cut and name == "desi":
+            sel &= np.asarray(r["maskbits"], int) == 0
         if not sel.any():
             continue
         ra.append(np.asarray(r["ra"])[sel])
@@ -150,7 +154,8 @@ def main() -> None:
         print(f"\n--- {label} end: {centres.size} slices, querying "
               f"{qlo:g} < z < {qhi:g}")
         d = load_edge_sample(args.cache, qlo, qhi, release,
-                             int(meta.get("n_sdss", 0)) > 0)
+                             int(meta.get("n_sdss", 0)) > 0,
+                             maskbits_cut=bool(meta.get("maskbits_cut_applied", False)))
         f, v = deredden(d["flux"], d["ivar"], d["trans"])
         fs = tr(f, v, BANDS)
         ok = fs.usable(min_dims=3) & np.isfinite(fs.ref_mag)

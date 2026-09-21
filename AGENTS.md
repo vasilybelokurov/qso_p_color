@@ -49,13 +49,15 @@ enters as a pure multiplicative constant:
 ```
 R = Sigma_Q(z0, m) p(c | Q, z0) / (Lambda_Q,total + lambda_bkg)     [1/redshift]
 
-p_sameq = R * dz_match_eff                                          (exactly)
+p_sameq ≈ R * dz_match_eff                               (narrow-window limit)
 ```
 
 The denominator carries no window dependence at all — `same_z` and `field_q`
 partition the quasar intensity, so their sum is the total whatever window is
 declared. `R` is therefore the window-free evidence, and any posterior follows
-from one multiplication.
+from one multiplication in the narrow-window limit. The implementation stores
+the window-averaged `R`, for which `p_sameq = exp(log_r_per_unit_z) *
+dz_match_eff` is exact; wider windows can change that average.
 
 Consequences, all enforced by tests:
 
@@ -65,9 +67,9 @@ Consequences, all enforced by tests:
   together in every output row.
 - **Never integrate a velocity window on the redshift grid.** Δ*z* = 0.03 on a
   grid of step 0.01 is two or three points, and the trapezoid rule of that is
-  noise. `RedshiftMatch.effective_width` gives the window area in closed form,
-  and the scorer switches to the closed-form path whenever the grid cannot
-  resolve the window (`RedshiftMatch.is_narrow_for`).
+  noise. The scorer inserts dense window nodes and exact support boundaries,
+  sharing those nodes with the total-intensity integral. It also inserts model
+  and prior interpolation knots so a narrow prior peak enters both integrals.
 
 ---
 
@@ -89,19 +91,26 @@ src/qso_pcolor/
   priors.py      Sigma_B(m, l, b) and Sigma_Q(z, m)
   score.py       the three-hypothesis scorer and PairScore output record
   data.py        WSDB queries, cached to .npz
+  multisurvey_data.py  survey-labelled native photometry and catalogue adapters
+  multisurvey.py       joint-band mixtures conditioned on an available reference;
+                      exact missing-band marginalisation, including infrared-only
   plotting.py    save_figure: every figure a PNG under plots/
 tools/journal.py          JOURNAL.md updater
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
 scripts/make_method_figures.py     figures 1-8 for the method note
 scripts/score_examples.py          figure 9: ten real objects, local backgrounds
 scripts/recover_holdout_blocks.py  recover a trained model's spatial holdout
+scripts/build_multisurvey_sample.py  cached quasar and all-source field samples
+scripts/train_multisurvey_model.py   cached fits with spatial component selection
+scripts/validate_multisurvey.py      reserved-object checks for all survey subsets
 docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    98 tests; see section 7
+tests/                    140 tests; see section 7
 ```
 
-Not yet built: the validation and calibration module, the diagnostic plots,
-the CLI, the configuration schema, and the real-data fits. Section 5 has the
-order.
+Saved real-data models and validation scripts now ship for the original
+southern pipeline and the seven-survey extension. Sections below retain the
+milestone history; section 10 describes the extension. A general CLI and the
+remaining calibration work are not yet complete.
 
 ---
 
@@ -295,17 +304,19 @@ background. That is a residual of the same bias in the same direction, and worth
 measuring — but it is **not** a reason to block on obtaining a completeness, and
 an earlier version of this note said it was.
 
-The reason it is minor: `Sigma_Q` multiplies **both** `lambda_sameq` and
-`lambda_fieldq`, so a uniform completeness cancels between them and shifts them
-only against the background. A factor-two error in `C` moves `p_sameq` by about
-13%, identically for every candidate at a given magnitude, so the ranking is
-untouched. Compare the quasar removal above, worth ~1.3 in log BF.
+A uniform completeness correction multiplies **both** `lambda_sameq` and
+`lambda_fieldq`, so it cancels in `p_zmatch_given_qso`. It does not cancel
+against the background: if the multiplier is `a`, `p_sameq` and `R` change by
+`a*(Q+B)/(a*Q+B)`, where `Q` is total quasar intensity and `B` is background
+intensity. This factor depends on colours, so ranking is not guaranteed to
+remain unchanged. The previously quoted 13% shift was an example, not a
+candidate-independent bound.
 
 What does *not* cancel is **redshift-dependent** incompleteness, which changes
 the shape of `Sigma_Q` between inside and outside the window: intensities
 (1, 1, 1) give p = 1/3, while a correction multiplying only the field term by
-100 gives 1/102. So the completeness matters for the *shape*, not the level, and
-that is the form the caveat should take.
+100 gives 1/102. Thus the shape affects the quasar-only redshift probability,
+while the level affects competition against the background.
 
 ### M2a — the classifier review (2026-09-19)
 
@@ -532,6 +543,23 @@ by default; local for |b| ≲ 25°, densities ≳ 3e4/deg², or odd neighbourhoo
 The footprint cannot test the plane. Figure: plots/validation/background_modes.png;
 per-cone table: data/background_modes.json (local).
 
+### Maintenance validation (2026-09-21)
+
+The current trained models are retained unchanged. Shared supported integration
+nodes repair scoring on coarse grids; an empty prior retains colour evidence;
+row subsets retain their flags; future redshift extensions inherit the saved
+maskbits policy. Validation now applies `maskbits = 0` and an explicit
+`fracflux_r` limit, derives labels from the requested velocity window, and saves
+the full score contract. Run with `--max-fracflux 0.2
+--hard-negative-max-kms 6000 10000`.
+
+The clean rerun scores 50,746 companions, 14,221 held out. Held-out AUCs are
+0.815 by log R, 0.759 by log BF and 0.855 by p_zmatch. Against quasars only
+3,000–6,000 km/s from the primary they are 0.488 by log R and 0.508 by p_zmatch;
+the broad comparison does not establish velocity resolution. See
+`docs/MAINTENANCE_2026-09-21.md` for the changes and verification. Clustering
+remains outside this maintenance scope; no retraining is needed or performed.
+
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by
@@ -651,3 +679,37 @@ pager's.
   that *does* move when only the prior moves is a worse one.
 - When the answer depends on a choice nobody has measured, measure it and put
   the number in `JOURNAL.md`. Do not pick a default and move on.
+
+## 10. Multi-survey extension (2026-09-21)
+
+The extension supports SDSS, DECaLS/Legacy DR9, ALLWISE, PS1, NSC, SkyMapper,
+and VHS, including infrared-only input. It retains the original southern
+artifacts. Its method is described in Appendix C of `docs/method/method.tex`;
+the run configurations are `configs/multisurvey*.json`.
+
+Keep the original four model/prior files tracked at their existing paths and
+keep their public loading APIs usable. The README's model-selection table and
+offline examples are the user entry points. The extension is an explicit
+additional choice, saved to `models/multisurvey.json`; it must not overwrite or
+silently replace the original artifacts.
+
+- The 37 coordinates are native survey-band luptitudes, including distinct
+  northern and southern Legacy bands. AllWISE/VHS keep Vega calibration;
+  do not treat these inputs as uniformly AB nanomaggies.
+- The new sample uses observed photometry at the configured high Galactic
+  latitude. Do not apply the original Legacy dereddening transform to it.
+- Scoring conditions the joint noisy distribution on an observed reference
+  band, then marginalises missing bands. Two measurements supply one colour.
+  Do not multiply separate survey Bayes factors.
+- A new prior must describe the same reference band, luptitude transform, and
+  selection. The original southern r prior cannot simply be relabelled. Without
+  matched priors, return evidence and the quasar-conditional redshift result
+  with the existing no-prior status; leave population posteriors and R NaN.
+- Preserve the old quasar holdout blocks. Field validation reserves whole
+  fields; component selection uses further blocks/fields inside training.
+  Rare field measurement patterns are retained with abundance-restoring weights.
+- Training writes convergence status and per-band counts; validation must
+  report the saved fits, including any iteration caps or sparse coverage.
+  Fitted mixtures are cached so rerunning a report does not repeat training.
+- Clean-companion requirements still apply. Matching a low-resolution source
+  to a position does not certify that its flux separates a close pair.

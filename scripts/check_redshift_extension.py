@@ -85,7 +85,8 @@ def main() -> None:
     print(f"{'range':>14s} {'n':>7s} {'old':>9s} {'new':>9s} {'gain':>9s}")
     rows = []
     for zlo, zhi in ((0.0, lo_old), (hi_old, float(new.support[1]) + 0.05)):
-        d = load_edge_sample(args.cache, zlo, zhi, rel, use_sdss)
+        d = load_edge_sample(args.cache, zlo, zhi, rel, use_sdss,
+                             maskbits_cut=bool(meta.get("maskbits_cut_applied", False)))
         f, v = deredden(d["flux"], d["ivar"], d["trans"])
         fs = tr(f, v, BANDS)
         ok = fs.usable(min_dims=3) & np.isfinite(fs.ref_mag)

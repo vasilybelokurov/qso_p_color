@@ -122,6 +122,15 @@ class FeatureSet:
     def flag_summary(self) -> dict[str, int]:
         return {k: int(v.sum()) for k, v in self.flags.items()}
 
+    def subset(self, indices: np.ndarray) -> FeatureSet:
+        """Select rows, keeping each diagnostic flag aligned with its object."""
+        return FeatureSet(
+            x=self.x[indices], cov=self.cov[indices], observed=self.observed[indices],
+            ref_flux=self.ref_flux[indices], ref_mag=self.ref_mag[indices],
+            ref_snr=self.ref_snr[indices], labels=self.labels,
+            flags={k: v[indices] for k, v in self.flags.items()},
+        )
+
 
 class FeatureTransform:
     """Interface for flux -> feature transforms."""

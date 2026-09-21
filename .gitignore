@@ -14,6 +14,8 @@ models/examples/
 !models/background_south_global.json
 !models/background_density_south_global.json
 !models/sigma_q_south.json
+# Separate extension; the existing southern model remains available unchanged.
+!models/multisurvey.json
 *.npz
 *.parquet
 

@@ -29,12 +29,15 @@ from .qso_model import (
     fit_sliced_model,
 )
 from .score import PairScore, score_candidates
+from .multisurvey import BandLuptitudeTransform, MultiSurveyModel, MultiSurveyScore
+from .multisurvey_data import Photometry
 from .xd import fit_xd, select_n_components
 
 __version__ = "0.1.0"
 
 __all__ = [
     "AsinhColourTransform",
+    "BandLuptitudeTransform",
     "BackgroundColourModel",
     "BackgroundSurfaceDensity",
     "EmpiricalQSOPrior",
@@ -42,8 +45,11 @@ __all__ = [
     "GaussianMixture",
     "GridQSOPrior",
     "JointColourRedshiftModel",
+    "MultiSurveyModel",
+    "MultiSurveyScore",
     "PLOTS_DIR",
     "PairScore",
+    "Photometry",
     "RedshiftMatch",
     "RelativeFluxTransform",
     "SlicedColourRedshiftModel",

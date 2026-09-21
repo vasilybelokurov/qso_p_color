@@ -1,51 +1,19 @@
 #!/usr/bin/env python
-"""Validate the scorer on spectroscopically labelled close pairs.
+"""Validate the saved scorer on spectroscopically labelled close pairs.
 
-This is the first measurement of whether the method works, as opposed to
-whether its machinery is self-consistent.  Every companion in
-``data/pairs_desi_dr1.npz`` (from ``build_pair_validation.py``) has a spectrum,
-so its label -- ``same_z``, ``field_q`` or ``non_qso`` -- is independent of the
-colours being scored.
+Apply maskbits=0 and an explicitly chosen reference-band fracflux limit, then
+report full-sample and spatially held-out metrics. Labels are derived from the
+requested velocity window. The shipped all-source global background and saved
+quasar prior are used; no model is fitted by this script. Log R depends on the
+background, whereas p_zmatch_given_qso does not.
 
-Three questions, each with a number:
-
-1. **Can the colours tell a same-redshift quasar from a wrong-redshift one?**
-   ROC and AUC for ``same_z`` against ``field_q``, ranked by
-   ``log_r_per_unit_z``.  An AUC near 0.5 would mean the colours carry no
-   redshift information at the +/-3000 km/s level, and the whole exercise is a
-   quasar finder only.
-2. **Does the Bayes factor fail on field quasars, as the README claims?**
-   The same ROC ranked by ``log_bayes_factor_qz_bkg``, which has no ``field_q``
-   term.  If its AUC is not clearly lower, the README's central claim is wrong.
-3. **Is ``p_zmatch_given_qso`` calibrated?**  Among quasar companions, the
-   empirical fraction with a matching redshift in bins of predicted
-   probability.  A reliability curve far from the diagonal means the number is
-   not a probability.
-
-Plus one sanity line: what fraction of stars and galaxies score above the
-median same-redshift quasar.
-
-**Background model.**  One global model (the eight-field fit in
-``models/examples/global.json``) is used for every pair.  Fitting a local cone
-per candidate would take days for ~10^4 pairs, and it would not change the
-answers to questions 1--3: those compare quasars against quasars, where the
-background cancels, and for question 4 the quasar/background separation is of
-order 10^6, so the background's fine structure is irrelevant.  This is a
-deliberate approximation and is recorded in the output.
-
-**Held-out subset.**  Companions that are themselves DESI quasars may have
-been in the model's training set.  The in-sample effect was measured at
-+0.018 nats, so it should not matter; every number is reported both for all
-pairs and for pairs whose companion lies in the model's reserved sky blocks,
-and a disagreement between the two columns would itself be a finding.
-
-    python scripts/validate_pairs.py
-    python scripts/validate_pairs.py --pairs data/pairs_desi_dr1.npz --min-sep 3
+    python scripts/validate_pairs.py --max-fracflux 0.2 --hard-negative-max-kms 6000 10000
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -53,7 +21,6 @@ from pathlib import Path
 import numpy as np
 
 BANDS = ("g", "r", "z", "w1", "w2")
-MAG_EDGES = np.array([17.0, 19.5, 20.5, 21.5, 22.5])
 
 
 def auc_rank(pos: np.ndarray, neg: np.ndarray) -> float:
@@ -103,6 +70,27 @@ def reliability(p: np.ndarray, y: np.ndarray, edges: np.ndarray):
     return rows
 
 
+def validation_labels(spectype: np.ndarray, dv_kms: np.ndarray,
+                      half_width_kms: float) -> np.ndarray:
+    """Spectroscopic classes for the declared absolute velocity window (km/s)."""
+    if not np.isfinite(half_width_kms) or half_width_kms <= 0:
+        raise ValueError("half_width_kms must be positive and finite")
+    qso = np.char.strip(np.asarray(spectype).astype(str)) == "QSO"
+    dv = np.abs(np.asarray(dv_kms, float))
+    labels = np.full(qso.shape, "non_qso", dtype="U16")
+    labels[qso] = "field_q"
+    labels[qso & (dv < half_width_kms)] = "same_z"
+    labels[qso & ~np.isfinite(dv)] = "invalid_redshift"
+    return labels
+
+
+def clean_photometry(maskbits: np.ndarray, fracflux_r: np.ndarray,
+                     max_fracflux: float) -> np.ndarray:
+    """Survey mask and reference-band contamination cut; missing is not clean."""
+    return ((np.asarray(maskbits) == 0) & np.isfinite(fracflux_r)
+            & (np.asarray(fracflux_r) <= max_fracflux))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -115,8 +103,12 @@ def main() -> None:
                          "first validation is models/examples/global.json")
     ap.add_argument("--background-density", type=Path,
                     default=Path("models/background_density_south_global.json"))
-    ap.add_argument("--plateau", type=float, default=240.0,
-                    help="quasar density per deg^2 for Sigma_Q, as in score_examples")
+    ap.add_argument("--prior", type=Path, default=Path("models/sigma_q_south.json"))
+    ap.add_argument("--max-fracflux", type=float, required=True,
+                    help="maximum reference-band fracflux_r; missing values are rejected")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--hard-negative-max-kms", type=float, nargs="*", default=[],
+                    help="report field quasars between the match boundary and each limit")
     ap.add_argument("--min-sep", type=float, default=3.0)
     ap.add_argument("--max-sep", type=float, default=30.0)
     ap.add_argument("--half-width-kms", type=float, default=3000.0,
@@ -131,21 +123,24 @@ def main() -> None:
                          "candidate model so the shipped model's figure survives")
     args = ap.parse_args()
 
-    import sys
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from score_examples import build_sigma_q
-
     from qso_pcolor.background import BackgroundColourModel, galactic_healpix
-    from qso_pcolor.data import galactic_from_equatorial
+    from qso_pcolor.data import galactic_from_equatorial, _save_npz
     from qso_pcolor.features import RelativeFluxTransform, deredden
-    from qso_pcolor.priors import BackgroundSurfaceDensity
+    from qso_pcolor.priors import BackgroundSurfaceDensity, GridQSOPrior
     from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
     from qso_pcolor.score import BlendPolicy, score_candidates
 
     d = dict(np.load(args.pairs, allow_pickle=False))
-    label = d["label"].astype(str)
+    label = validation_labels(d["comp_spectype"], d["dv_kms"], args.half_width_kms)
+    if (not np.isfinite(args.max_fracflux) or args.max_fracflux < 0
+            or any(x <= args.half_width_kms for x in args.hard_negative_max_kms)):
+        ap.error("fracflux must be finite and non-negative; hard-negative limits must exceed the window")
     sep = d["sep_arcsec"]
+    selection = {}
+    def record_selection(stage, mask):
+        selection[stage] = {k: int(np.sum(mask & (label == k)))
+                            for k in ("same_z", "field_q", "non_qso", "invalid_redshift")}
+    record_selection("input", np.ones(label.size, bool))
     qso = SlicedColourRedshiftModel.load(args.model)
     bkg = BackgroundColourModel.load(args.background)
     bdens = BackgroundSurfaceDensity.load(args.background_density)
@@ -157,12 +152,16 @@ def main() -> None:
     rel = np.asarray(d["comp_release"], int)
     zp = np.asarray(d["z_primary"], float)
     keep = ((rel == int(qso.meta["release"])) & (sep >= args.min_sep) & (sep <= args.max_sep)
-            & qso.in_support(zp))
+            & qso.in_support(zp) & (label != "invalid_redshift"))
+    record_selection("system_separation_redshift", keep)
+    keep &= clean_photometry(d["comp_maskbits"], d["comp_fracflux_r"], args.max_fracflux)
+    record_selection("mask_and_fracflux", keep)
     nq = np.flatnonzero(keep & (label == "non_qso"))
     if nq.size > args.max_non_qso:
-        drop = np.random.default_rng(0).choice(nq, nq.size - args.max_non_qso, replace=False)
+        drop = np.random.default_rng(args.seed).choice(nq, nq.size - args.max_non_qso, replace=False)
         keep[drop] = False
         print(f"non_qso subsampled {nq.size:,} -> {args.max_non_qso:,}")
+    record_selection("after_non_qso_subsample", keep)
     print(f"kept {int(keep.sum()):,} with release {qso.meta['release']}, "
           f"{args.min_sep:g}-{args.max_sep:g} arcsec, primary in model support")
 
@@ -170,13 +169,18 @@ def main() -> None:
     f, v = deredden(st("flux_"), st("flux_ivar_"), st("mw_transmission_"))
     tr = RelativeFluxTransform(reference_band="r", min_ref_snr=5.0)
     fs = tr(f, v, BANDS)
-    usable = fs.usable(min_dims=3) & np.isfinite(fs.ref_mag) & (fs.ref_mag < MAG_EDGES[-1])
+    usable = (fs.usable(min_dims=3) & np.isfinite(fs.ref_mag)
+              & (fs.ref_mag >= bkg.mag_edges[0]) & (fs.ref_mag < bkg.mag_edges[-1]))
     print(f"  usable photometry: {int(usable.sum()):,}")
 
     idx = np.flatnonzero(keep)[usable]
+    final_selection = np.zeros(label.size, bool)
+    final_selection[idx] = True
+    record_selection("usable_in_background_magnitude_range", final_selection)
     label, sep, zp = label[idx], sep[idx], zp[idx]
+    dv = np.abs(np.asarray(d["dv_kms"], float)[idx])
     spectype = np.asarray(d["comp_spectype"]).astype(str)[idx]
-    feat = _subset(fs, usable)
+    feat = fs.subset(usable)
 
     l, b = galactic_from_equatorial(np.asarray(d["comp_ra"], float)[idx],
                                     np.asarray(d["comp_dec"], float)[idx])
@@ -186,17 +190,17 @@ def main() -> None:
     print(f"  companions in reserved blocks: {int(in_held.sum()):,}")
 
     # -- score ---------------------------------------------------------------
-    prior = build_sigma_q(qso.support[0], qso.support[1], args.plateau)
+    prior = GridQSOPrior.load(args.prior)
     match = RedshiftMatch(half_width_kms=args.half_width_kms)
-    frac = np.stack([np.asarray(d[f"comp_fracflux_{bnd}"], float)[idx] for bnd in ("g", "r", "z")], 1)
-    frac = np.nanmax(np.where(np.isfinite(frac), frac, 0.0), axis=1)
+    frac = np.asarray(d["comp_fracflux_r"], float)[idx]
     t0 = time.time()
     rows = score_candidates(
         feat, z_primary=zp, l_deg=l, b_deg=b,
         qso_model=qso, background_model=bkg, background_density=bdens,
         qso_prior=prior, match=match,
-        blend_policy=BlendPolicy(min_separation_arcsec=args.min_sep, max_fracflux=None),
+        blend_policy=BlendPolicy(min_separation_arcsec=args.min_sep, max_fracflux=args.max_fracflux),
         separation_arcsec=sep, fracflux=frac, min_bands=3,
+        candidate_id=d["comp_targetid"][idx], primary_id=d["prim_targetid"][idx],
     )
     print(f"scored {len(rows):,} companions in {time.time() - t0:.0f} s")
 
@@ -206,22 +210,40 @@ def main() -> None:
     psame = np.array([r.p_sameq for r in rows])
     status = np.array([r.status for r in rows])
     scored = status == "ok"
+    evidence_ok = np.isfinite(logbf) & np.array([
+        "background_out_of_mag_range" not in r.quality_flags for r in rows])
     print(f"  status ok: {int(scored.sum()):,}   other: "
           + ", ".join(f"{s} {int((status == s).sum())}" for s in np.unique(status[~scored])))
 
     # -- the three measurements, on all pairs and on the reserved blocks ------
     report = {"n": {}, "auc": {}, "reliability": {}, "non_qso_above_same_z_median": {},
-              "settings": vars(args) | {"background_note":
-                  "single global 8-field background for every pair; see docstring"}}
+              "selection_counts": selection, "hard_negatives": {}, "evidence_n": {},
+              "model_sha256": {str(p): hashlib.sha256(p.read_bytes()).hexdigest()
+                               for p in (args.model, args.background, args.background_density, args.prior)},
+              "settings": vars(args) | {"maskbits": 0, "fracflux_band": "r",
+                  "magnitude_range": bkg.mag_edges[[0, -1]].tolist(),
+                  "background_note": "saved all-source global background; no refit"}}
     for name, m in (("all", scored), ("held_out", scored & in_held)):
         S, F, N = m & (label == "same_z"), m & (label == "field_q"), m & (label == "non_qso")
         report["n"][name] = {"same_z": int(S.sum()), "field_q": int(F.sum()), "non_qso": int(N.sum())}
+        E = evidence_ok & (in_held if name == "held_out" else True)
+        ES, EF, EN = E & (label == "same_z"), E & (label == "field_q"), E & (label == "non_qso")
+        report["evidence_n"][name] = {"same_z": int(ES.sum()), "field_q": int(EF.sum()), "non_qso": int(EN.sum())}
         report["auc"][name] = {
             "same_z_vs_field_q_by_log_r": auc_rank(logr[S], logr[F]),
-            "same_z_vs_field_q_by_log_bf": auc_rank(logbf[S], logbf[F]),
+            "same_z_vs_field_q_by_log_bf": auc_rank(logbf[ES], logbf[EF]),
             "same_z_vs_field_q_by_p_zmatch": auc_rank(pz[S], pz[F]),
-            "quasar_vs_non_qso_by_log_bf": auc_rank(logbf[S | F], logbf[N]),
+            "quasar_vs_non_qso_by_log_bf": auc_rank(logbf[ES | EF], logbf[EN]),
         }
+        report["hard_negatives"][name] = []
+        for upper in args.hard_negative_max_kms:
+            H = F & (dv < upper)
+            report["hard_negatives"][name].append({
+                "dv_kms": [args.half_width_kms, upper],
+                "n_same_z": int(S.sum()), "n_field_q": int(H.sum()),
+                "auc_log_r": auc_rank(logr[S], logr[H]),
+                "auc_p_zmatch": auc_rank(pz[S], pz[H]),
+            })
         Q = S | F
         y = (label == "same_z")[Q].astype(float)
         report["reliability"][name] = reliability(
@@ -231,8 +253,7 @@ def main() -> None:
             float((logbf[N] > med).mean()) if N.any() else float("nan"))
 
     # -- diagnostics that decide how to read the numbers above ----------------
-    # 1. who was refused, and why.  A status other than ok removes the object
-    #    from every metric, so a class-dependent refusal biases the comparison.
+    # 1. Posterior refusals are counted separately from usable colour evidence.
     report["refused"] = {}
     for st_ in np.unique(status[~scored]):
         m = status == st_
@@ -303,30 +324,23 @@ def main() -> None:
               f"above same_z median {100 * r['frac_above_same_z_median_log_bf']:.1f}%")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(args.out, pair_idx=idx, label=label, spectype=spectype, sep=sep,
-                        z_primary=zp, in_held=in_held,
-                        log_r=logr, log_bf=logbf, p_zmatch=pz, p_sameq=psame, status=status,
-                        ref_mag=feat.ref_mag)
+    # Retain the full PairScore contract as well as historical plotting aliases.
+    records = [r.as_row() for r in rows]
+    columns = {key: np.asarray([r[key] for r in records]) for key in records[0]}
+    columns.update(pair_idx=idx, label=label, spectype=spectype, sep=sep,
+                   in_held=in_held, dv_kms=dv, log_r=logr, log_bf=logbf, p_zmatch=pz,
+                   maskbits=d["comp_maskbits"][idx], fracflux_r=frac)
+    _save_npz(args.out, **columns)
+    args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=1))
     print(f"\nwrote {args.out} and {args.report}")
     make_figure(label, scored, in_held, logr, logbf, pz, report, args.figure)
 
 
-def _subset(fs, mask):
-    """A FeatureSet restricted to ``mask`` rows, whatever its field list is."""
-    import dataclasses
-
-    kw = {}
-    for fld in dataclasses.fields(fs):
-        val = getattr(fs, fld.name)
-        if isinstance(val, np.ndarray) and val.shape[:1] == (mask.size,):
-            kw[fld.name] = val[mask]
-        else:
-            kw[fld.name] = val
-    return type(fs)(**kw)
-
-
 def make_figure(label, scored, in_held, logr, logbf, pz, report, fig_name="validation/pair_validation"):
+    import matplotlib
+
+    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     from qso_pcolor.plotting import SERIES, save_figure, use_paper_style

@@ -27,7 +27,7 @@ Without it, a real quasar at a completely different redshift is scored as
 evidence *for* a same-redshift companion, because it beats the stellar locus
 easily.  For a binary-quasar search that is the dominant failure mode, not a
 refinement: the two-class number ``p_sameq_vs_bkg`` that the brief asks for is
-reported, but ``p_sameq`` is the one to rank on.
+reported, but ``log_r_per_unit_z`` is the one to rank on.
 
 What the scorer refuses to do
 -----------------------------
@@ -45,7 +45,8 @@ import numpy as np
 from .background import BackgroundColourModel
 from .features import FeatureSet
 from .priors import BackgroundSurfaceDensity, GridQSOPrior
-from .qso_model import RedshiftMatch, SlicedColourRedshiftModel
+from .qso_model import (RedshiftMatch, SlicedColourRedshiftModel,
+                        _integration_grid, _window_subgrid, _window_integral)
 
 __all__ = [
     "PairScore",
@@ -155,12 +156,9 @@ class PairScore:
     p_sameq_vs_bkg: float
     p_sameq: float
 
-    # Window-free ranking statistic, log of R in units of 1/redshift: the
-    # same-redshift quasar intensity per unit redshift at z0, over the total
-    # intensity of every explanation.  Independent of the declared match window,
-    # so two candidates can be compared without anyone agreeing on one, and
-    #     p_sameq = R * dz_match_eff
-    # recovers the posterior for any window exactly.
+    # Window-averaged same-redshift intensity per unit redshift divided by the
+    # total intensity. It tends to the window-free point value for narrow
+    # windows; p_sameq = exp(log_r_per_unit_z) * dz_match_eff exactly.
     log_r_per_unit_z: float
     dz_match_eff: float
 
@@ -189,37 +187,6 @@ class PairScore:
 
 def _trapz(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     return np.trapezoid(y, x, axis=-1)
-
-
-def _window_subgrid(
-    match: RedshiftMatch, z_primary: float, support: tuple[float, float], n_sub: int
-) -> np.ndarray:
-    """Dense grid spanning the match window, clipped to the model's support.
-
-    Every window integral is done on this grid rather than on the main redshift
-    grid.  That removes three separate failure modes at once:
-
-    * a velocity window is only a few main-grid steps wide, so integrating a
-      sampled top hat there quantises the answer by tens of per cent;
-    * a closed-form "narrow window" shortcut instead assumes the integrand is
-      constant across the window, which fails at a cusp or a spike;
-    * either approach silently counts window area lying *outside* the trained
-      redshift range, inventing quasars where the model knows of none.
-
-    Integrating the real integrand over the real interval has none of these
-    properties, and costs nothing, because the slice model evaluates at
-    arbitrary redshift by interpolating densities it has already computed.
-    """
-    lo_s, hi_s = support
-    w = match.half_width(z_primary)
-    reach = w + 5.0 * match.z_primary_err if match.kernel == "tophat" else 5.0 * float(
-        np.hypot(w, match.z_primary_err)
-    )
-    lo = max(z_primary - reach, lo_s)
-    hi = min(z_primary + reach, hi_s)
-    if hi <= lo:
-        return np.empty(0)
-    return np.linspace(lo, hi, n_sub)
 
 
 def score_candidates(
@@ -262,8 +229,8 @@ def score_candidates(
         Surface-density models.  If either is ``None`` the posterior fields are
         ``NaN`` and ``status`` says so; the Bayes factor is still returned.
     z_grid : ndarray
-        Grid for the redshift integrals.  It must span the quasar model's
-        trained range; the integrals are trapezoidal on this grid.
+        Quadrature grid. Exact model/prior boundaries, interpolation knots and
+        window nodes are inserted; all integrals use the same supported grid.
     min_bands : int
         Minimum number of usable feature dimensions.  Below this the object is
         returned with ``status='insufficient_photometry'`` and NaN scores,
@@ -346,10 +313,13 @@ def score_candidates(
         sigma_b = np.full(n, np.nan)
         dens_level = np.full(n, -1)
 
+    out_of_mag = background_model.out_of_mag_range(features.ref_mag)
     out: list[PairScore] = []
     for i in range(n):
         flags = [k for k, v in features.flags.items() if bool(np.atleast_1d(v)[i])]
         status = "ok"
+        if out_of_mag[i]:
+            flags.append("background_out_of_mag_range")
 
         if blended[i]:
             flags = flags + ["blended"]
@@ -399,72 +369,65 @@ def score_candidates(
             continue
         w_sub = match.weight(z_sub, float(z_primary[i]))
         dz_eff = float(_trapz(w_sub, z_sub))      # window area actually usable
-        log_pq_sub = qso_model.log_p_colour_given_z(
-            features.x[i : i + 1], features.cov[i : i + 1], z_sub,
-            observed=features.observed[i : i + 1], _log_slices=log_slices[i : i + 1],
-        )[0]
-
-        # p(z | c, Q) uses the quasar prior as its redshift prior when one is
-        # available, and states a flat prior otherwise.
+        # One supported grid for the total and the window: a narrow prior
+        # peak resolved by the numerator must also enter the denominator.
+        support = qso_model.support
+        knots = qso_model.z_centres
         if qso_prior is not None:
-            sigma_q_grid = qso_prior(z_grid, float(features.ref_mag[i]))
-            sigma_q_sub = qso_prior(z_sub, float(features.ref_mag[i]))
+            support = (max(support[0], qso_prior.z_edges[0]),
+                       min(support[1], qso_prior.z_edges[-1]))
+            knots = np.concatenate([knots, qso_prior.z_centres])
+        nodes = _integration_grid(z_grid, support, knots, z_sub)
+        lp = qso_model.log_p_colour_given_z(
+            features.x[i:i+1], features.cov[i:i+1], nodes,
+            _log_slices=log_slices[i:i+1],
+        )[0] if nodes.size else np.empty(0)
+        if qso_prior is not None:
             with np.errstate(divide="ignore"):
-                log_zprior = np.log(sigma_q_grid)
-        else:
-            sigma_q_grid = sigma_q_sub = None
-            log_zprior = np.zeros_like(z_grid)
-
-        log_post = log_pq_grid[i] + log_zprior
-        if not np.isfinite(log_post).any():
-            out.append(
-                _null_score(
-                    cid[i], pid[i], z_primary[i], features, sysname, i,
-                    "qso_prior_empty_at_this_magnitude", flags, manifest_id,
-                    int(n_bands[i]),
-                )
+                lp += np.log(qso_prior(nodes, float(features.ref_mag[i])))
+        if not np.isfinite(lp).any():
+            row = _null_score(
+                cid[i], pid[i], z_primary[i], features, sysname, i,
+                "qso_prior_empty_at_this_magnitude", flags, manifest_id, int(n_bands[i]),
             )
+            row.loglike_qso_zprimary = log_lq
+            row.loglike_bkg = float(log_pb[i])
+            row.log_bayes_factor_qz_bkg = log_bf
+            row.dz_match_eff = dz_eff
+            row.background_local_weight = float(local_w[i])
+            row.background_density_level = int(dens_level[i])
+            out.append(row)
             continue
-        shift = float(np.nanmax(log_post[np.isfinite(log_post)]))
-        post = np.where(np.isfinite(log_post), np.exp(log_post - shift), 0.0)
+        shift = float(lp[np.isfinite(lp)].max())
+        post = np.exp(lp - shift)
+        norm = float(_trapz(post, nodes))
+        same = float(_window_integral(post, nodes, z_sub, match, float(z_primary[i])))
+        p_zmatch = same / norm
+        z_mode = float(nodes[int(np.argmax(post))])
 
-        # Integrate only where the model is defined.  Outside its support
-        # ``log_p_colour_given_z`` clamps its interpolation index and returns
-        # the nearest edge slice, so a wider grid does not extend the model --
-        # it replays one slice over a region it never measured, and normalising
-        # over that makes p_zmatch_given_qso depend on where the grid happens to
-        # stop.  Measured before the range was widened, that fiction carried
-        # 7.1% of the normalisation for the README candidate; after widening to
-        # 0.15 < z < 4.35 it is 2.25%, which is smaller but no more real.
-        in_sup = qso_model.in_support(z_grid)
-        norm_all = _trapz(post, z_grid)
-        post = np.where(in_sup, post, 0.0)
-        norm = _trapz(post, z_grid)
-        frac_out = float(1.0 - norm / norm_all) if norm_all > 0 else float("nan")
-        if norm <= 0:
-            out.append(
-                _null_score(
-                    cid[i], pid[i], z_primary[i], features, sysname, i,
-                    "colours_explained_only_outside_model_redshift_support",
-                    flags, manifest_id, int(n_bands[i]),
-                )
-            )
-            continue
-        z_mode = float(z_grid[int(np.argmax(post))])
-
-        # Numerator on the window sub-grid, denominator on the main grid, both
-        # on the same scale.  Because W <= 1 and the sub-grid lies inside the
-        # main grid, this cannot exceed 1 -- the previous sampled-window form
-        # could, and did.
-        log_post_sub = log_pq_sub + (
-            np.log(np.where(sigma_q_sub > 0, sigma_q_sub, np.nan))
-            if qso_prior is not None else 0.0
-        )
-        with np.errstate(invalid="ignore"):
-            post_sub = np.where(
-                np.isfinite(log_post_sub), np.exp(log_post_sub - shift), 0.0
-            )
-        p_zmatch = float(_trapz(w_sub * post_sub, z_sub) / norm) if norm > 0 else np.nan
+        # Diagnostic only: how much mass would edge-clamping invent on the
+        # requested grid outside the trained support? Never use it in a score.
+        raw_lp = log_pq_grid[i].copy()
+        if qso_prior is not None:
+            with np.errstate(divide="ignore"):
+                raw_lp += np.log(qso_prior(z_grid, float(features.ref_mag[i])))
+        raw_shift = max(shift, float(np.max(raw_lp)))
+        # Integrate exterior pieces separately, with exact boundary endpoints.
+        outside = 0.0
+        for lo, hi in ((z_grid[0], qso_model.support[0]),
+                       (qso_model.support[1], z_grid[-1])):
+            if hi > lo:
+                ext = _integration_grid(z_grid, (lo, hi))
+                ext_lp = qso_model.log_p_colour_given_z(
+                    features.x[i:i+1], features.cov[i:i+1], ext,
+                    _log_slices=log_slices[i:i+1],
+                )[0]
+                if qso_prior is not None:
+                    with np.errstate(divide="ignore"):
+                        ext_lp += np.log(qso_prior(ext, float(features.ref_mag[i])))
+                outside += float(_trapz(np.exp(ext_lp - raw_shift), ext))
+        supported = norm * np.exp(shift - raw_shift)
+        frac_out = outside / (supported + outside)
 
         ood = float(
             qso_model.ood_score(
@@ -482,49 +445,13 @@ def score_candidates(
             p_vs_bkg = p_full = np.nan
             status = "no_prior_posterior_unavailable"
         else:
-            # Everything is scaled by the largest log-intensity in play, so no
-            # term can overflow or underflow before the ratios are formed.  The
-            # scale must include the surface densities: an earlier version
-            # scaled by the colour likelihood alone, which underflowed to -inf
-            # whenever Sigma_Q was extreme.
-            log_int_grid = log_pq_grid[i] + log_zprior
-            log_int_sub = log_pq_sub + np.where(
-                sigma_q_sub > 0, np.log(np.where(sigma_q_sub > 0, sigma_q_sub, 1.0)),
-                -np.inf,
-            )
             log_b = float(log_pb[i]) + (
                 np.log(sigma_b[i]) if sigma_b[i] > 0 else -np.inf
             )
-            finite = log_int_grid[np.isfinite(log_int_grid)]
-            scale = max(float(finite.max()) if finite.size else -np.inf, log_b)
-            if not np.isfinite(scale):
-                out.append(
-                    _null_score(
-                        cid[i], pid[i], z_primary[i], features, sysname, i,
-                        "qso_prior_empty_at_this_magnitude", flags, manifest_id,
-                        int(n_bands[i]),
-                    )
-                )
-                continue
-
-            total_q = float(_trapz(
-                np.where(np.isfinite(log_int_grid), np.exp(log_int_grid - scale), 0.0),
-                z_grid,
-            ))
-            # The same-redshift term: the real integrand, over the real
-            # interval, on a grid that resolves it.  No closed form, no sampled
-            # top hat, no window area outside the model's support.
-            s_rel = float(_trapz(
-                w_sub * np.where(np.isfinite(log_int_sub),
-                                 np.exp(log_int_sub - scale), 0.0),
-                z_sub,
-            ))
-            f_rel = total_q - s_rel
-            if f_rel < 0:
-                # Only reachable if the main grid under-resolves the integrand
-                # that the sub-grid resolves; report it rather than clip silently.
-                status = "window_integral_exceeds_total_check_z_grid"
-                f_rel = 0.0
+            scale = max(shift, log_b)
+            total_q = norm * np.exp(shift - scale)
+            s_rel = same * np.exp(shift - scale)
+            f_rel = max(total_q - s_rel, 0.0)  # protect round-off only
             b_rel = float(np.exp(log_b - scale))
 
             denom = s_rel + f_rel + b_rel

@@ -64,6 +64,56 @@ __all__ = [
 
 log = logging.getLogger(__name__)
 
+
+def _integration_grid(z_grid, support, *knots):
+    """Merge quadrature nodes and exact boundaries inside a redshift support."""
+    z_grid = np.asarray(z_grid, float)
+    if (z_grid.ndim != 1 or z_grid.size < 2 or not np.isfinite(z_grid).all()
+            or not (np.diff(z_grid) > 0).all()):
+        raise ValueError("z_grid must contain at least two finite, increasing values")
+    lo, hi = support
+    if hi <= lo:
+        return np.empty(0)
+    nodes = np.unique(np.concatenate([z_grid, [lo, hi], *knots]))
+    return nodes[(nodes >= lo) & (nodes <= hi)]
+
+
+def _window_subgrid(match, z_primary, support, n_sub=129):
+    """Resolve the match window, including its exact edges, within support."""
+    if n_sub < 2:
+        raise ValueError("n_window_sub must be at least 2")
+    width = match.half_width(z_primary)
+    reach = (width + 5 * match.z_primary_err if match.kernel == "tophat"
+             else 5 * float(np.hypot(width, match.z_primary_err)))
+    lo, hi = max(z_primary - reach, support[0]), min(z_primary + reach, support[1])
+    return np.linspace(lo, hi, n_sub) if hi > lo else np.empty(0)
+
+
+def _window_integral(density, grid, window, match, z_primary):
+    """Integrate on shared nodes without bridging a top-hat discontinuity."""
+    if window.size == 0:
+        return np.zeros(np.shape(density)[:-1])
+    inside = (grid >= window[0]) & (grid <= window[-1])
+    return np.trapezoid(density[..., inside] * match.weight(grid[inside], z_primary),
+                        grid[inside], axis=-1)
+
+
+def _interpolate_log_prior(z_grid, log_prior, nodes):
+    """Linearly interpolate prior *densities*, preserving zero-density regions."""
+    if log_prior is None:
+        return np.zeros_like(nodes)
+    log_prior = np.asarray(log_prior, float)
+    if log_prior.shape != z_grid.shape:
+        raise ValueError("log_z_prior must have the same shape as z_grid")
+    finite = np.isfinite(log_prior)
+    if not finite.any():
+        return np.full_like(nodes, -np.inf)
+    shift = log_prior[finite].max()
+    density = np.exp(log_prior - shift)
+    with np.errstate(divide="ignore"):
+        return np.log(np.interp(nodes, z_grid, density, left=0, right=0)) + shift
+
+
 C_KM_S = 299792.458
 
 
@@ -337,26 +387,34 @@ class SlicedColourRedshiftModel:
         observed: np.ndarray | None = None,
         log_z_prior: np.ndarray | None = None,
     ) -> np.ndarray:
-        """p(z | c_obs, Q) on ``z_grid``, normalised by trapezoid, shape (n, n_z).
+        """p(z | c_obs, Q) on ``z_grid``, shape (n, n_z), per unit redshift.
+
+        Normalisation is over the trained support, inserting its exact edges
+        and slice centres into the quadrature grid. Returned values outside
+        support are zero. A coarse output grid need not integrate to unity
+        when those inserted points are absent from it. An empty prior returns NaN.
 
         Parameters
         ----------
         log_z_prior : ndarray, shape (n_z,), optional
             Log of the assumed quasar redshift prior, up to a constant.  ``None``
-            means flat in ``z`` over the grid, which is a declaration, not a
+            means flat in ``z`` over the trained support, which is a declaration, not a
             physical statement: for a field-quasar calculation pass the log of
             :math:`\\Sigma_Q(z, m)` instead so that the redshift prior and the
             magnitude selection are the ones you intend.
         """
         z_grid = np.asarray(z_grid, dtype=float)
-        log_like = self.log_p_colour_given_z(x, cov, z_grid, observed=observed)
-        if log_z_prior is not None:
-            log_like = log_like + np.asarray(log_z_prior, dtype=float)[None, :]
-        # Normalise by trapezoid in linear space, in a numerically safe way.
-        shift = log_like.max(axis=1, keepdims=True)
-        p = np.exp(log_like - shift)
-        norm = np.trapezoid(p, z_grid, axis=1)[:, None]
-        return p / norm
+        nodes = _integration_grid(z_grid, self.support, self.z_centres)
+        slices = self._log_p_slices(x, cov, observed)
+        lp = self.log_p_colour_given_z(x, cov, nodes, _log_slices=slices)
+        lp += _interpolate_log_prior(z_grid, log_z_prior, nodes)
+        shift = np.max(lp, axis=1, keepdims=True)
+        shift = np.where(np.isfinite(shift), shift, 0.0)
+        norm = np.trapezoid(np.exp(lp - shift), nodes, axis=1)[:, None]
+        sampled = self.log_p_colour_given_z(x, cov, z_grid, _log_slices=slices)
+        sampled += _interpolate_log_prior(z_grid, log_z_prior, z_grid)
+        p = np.where(self.in_support(z_grid), np.exp(sampled - shift), 0.0)
+        return np.divide(p, norm, out=np.full_like(p, np.nan), where=norm > 0)
 
     def p_zmatch_given_qso(
         self,
@@ -376,11 +434,16 @@ class SlicedColourRedshiftModel:
         says nothing about whether it is a quasar at all.
         """
         z_grid = np.asarray(z_grid, dtype=float)
-        post = self.redshift_posterior(
-            x, cov, z_grid, observed=observed, log_z_prior=log_z_prior
-        )
-        w = match.weight(z_grid, z_primary)
-        return np.trapezoid(post * w[None, :], z_grid, axis=1)
+        window = _window_subgrid(match, z_primary, self.support)
+        nodes = _integration_grid(z_grid, self.support, self.z_centres, window)
+        lp = self.log_p_colour_given_z(x, cov, nodes, observed=observed)
+        lp += _interpolate_log_prior(z_grid, log_z_prior, nodes)
+        shift = np.max(lp, axis=1, keepdims=True)
+        shift = np.where(np.isfinite(shift), shift, 0.0)
+        density = np.exp(lp - shift)
+        total = np.trapezoid(density, nodes, axis=-1)
+        same = _window_integral(density, nodes, window, match, z_primary)
+        return np.divide(same, total, out=np.full_like(total, np.nan), where=total > 0)
 
     def ood_score(
         self,

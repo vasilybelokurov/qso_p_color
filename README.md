@@ -19,25 +19,55 @@ calculation cannot tell a genuine companion from a foreground quasar at
 
 ---
 
+## Choose a saved model
+
+**Both model families ship with the repository and work offline.** The original
+southern Legacy Surveys models remain at their existing paths, with unchanged
+trained parameters and loading APIs. The seven-survey model is an additional
+choice; installing the update does not switch an existing script to it.
+
+| Model family | Photometry and outputs | Start here |
+|---|---|---|
+| Original southern Legacy DR9 | Dereddened `grz` and Legacy forced W1/W2; colour evidence, `p_zmatch_given_qso`, and `p_sameq` / `log_r_per_unit_z` using the supplied priors | [Original offline example](#scoring-a-candidate--offline-straight-from-a-clone) |
+| Seven-survey extension | Any subset of SDSS, DECaLS/Legacy DR9, ALLWISE, PS1, NSC, SkyMapper, and VHS, including infrared-only; observed native photometry, at least two measured bands; evidence and `p_zmatch_given_qso`, with population posteriors requiring matched priors | [Multi-survey offline example](#combining-surveys-including-infrared-only-inputs) |
+
+The saved files are:
+
+| File | Contents |
+|---|---|
+| [qso_south_full.json](models/qso_south_full.json) | Original southern quasar colour model |
+| [background_south_global.json](models/background_south_global.json) | Original southern background colour model |
+| [background_density_south_global.json](models/background_density_south_global.json) | Original background surface density |
+| [sigma_q_south.json](models/sigma_q_south.json) | Original quasar surface-density prior |
+| [multisurvey.json](models/multisurvey.json) | New joint quasar/background model, transform, and band schema |
+
+Clone the repository and run the examples from its root so these relative paths
+resolve. Model files are included in Git; they are not bundled into the Python
+wheel. The multi-survey model uses different flux and extinction conventions,
+so follow the example for the model you load.
+
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 117 tests. The quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 140 tests. The original quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
 prior-independent Bayes factor.
 
-**What is measured** (`scripts/validate_pairs.py`, 52,099 spectroscopically
-labelled companions at 3–30″, held-out and full samples agree to 0.01):
+**What is measured** (`scripts/validate_pairs.py`, rerun 2026-09-21): 50,746
+spectroscopically labelled companions at 3–30″ with `maskbits = 0`, finite
+`fracflux_r ≤ 0.2`, and 17 ≤ r < 22.5. There are 14,221 companions in the
+reserved sky blocks. Quasar-ranking results below use those held-out objects;
+star/galaxy results use the full sample.
 
 | question | result |
 |---|---|
-| same-*z* quasar vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **AUC 0.81** (0.86 by `p_zmatch_given_qso` alone) |
-| same, ranked by the Bayes factor alone | AUC 0.76 |
-| quasar vs spectroscopic star, by Bayes factor | **AUC 0.98**; 0.4 % of stars above the median same-*z* quasar |
-| quasar vs spectroscopic galaxy, by Bayes factor | **AUC 0.96**; 0.3 % above |
-| `p_zmatch_given_qso` calibration | right in shape, **low by 3.3× (20–30″) to 9.9× (3–5″)** |
+| same-*z* quasar vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **AUC 0.815** (0.855 by `p_zmatch_given_qso` alone) |
+| same, ranked by the Bayes factor alone | AUC 0.759 |
+| quasar vs spectroscopic star, by Bayes factor | **AUC 0.988**; 0.1 % of stars above the median same-*z* quasar |
+| quasar vs spectroscopic galaxy, by Bayes factor | **AUC 0.964**; 0.3 % above |
+| `p_zmatch_given_qso` calibration | right in shape, **low by 3.3× (20–30″) to 10.0× (3–5″)** |
 
 That last row is not a bug: the scorer assumes the companion's redshift is drawn
 from the field, and physical pairs cluster. The factor is the measured
@@ -45,10 +75,26 @@ clustering excess; multiply the odds by it if you want a probability at a given
 separation. Rank on `log_r_per_unit_z`; do not read `p_sameq` as calibrated
 without that factor.
 
+The broad comparison is useful, but it does **not** resolve the velocity
+boundary. Against held-out quasars just outside it (3,000–6,000 km/s), AUC is
+0.488 by `log_r_per_unit_z` and 0.508 by `p_zmatch_given_qso`: effectively
+chance. This limits what can be inferred from colours; it is not a reason to
+retrain the current model.
+
+Reproduce this validation using the saved models and cached pairs:
+
+```bash
+python scripts/validate_pairs.py --max-fracflux 0.2 --hard-negative-max-kms 6000 10000
+```
+
+The report records the selection counts and model hashes. The saved rows include
+`dz_match_eff`, quality flags and all `PairScore` fields. `--prior` selects a
+saved prior; the validator no longer rebuilds one through `--plateau`.
+
 `log_bayes_factor_qz_bkg` is **not** an alternative ranking statistic. It
 compares "a quasar at *z*₀" against "background" and has no `field_q` term.
-Measured: it separates same-*z* from wrong-*z* quasars with AUC 0.76 against
-0.81 for `log_r_per_unit_z` — worse, not useless, because p(c | Q, *z*₀) is
+Measured: it separates same-*z* from wrong-*z* quasars with AUC 0.759 against
+0.815 for `log_r_per_unit_z` — worse, not useless, because p(c | Q, *z*₀) is
 itself redshift-dependent. Use it to reject stars, not to order candidates.
 Ranking needs a prior; without one the package returns NaN for
 `log_r_per_unit_z` rather than substituting something that looks similar.
@@ -60,17 +106,14 @@ Ranking needs a prior; without one the package returns NaN for
 - The selection-bias measurement is unresolved: DESI- and SDSS-selected quasars
   cannot be compared by raw density, because they differ by 0.7 mag in
   brightness, which changes the density mechanically.
-- Only the southern photometric system (`release` 9010) is trained. North
-  (BASS/MzLS) is a different system and needs its own model.
+- The original five-band pipeline covers the southern photometric system.
+  The multi-survey extension below has separately labelled northern and
+  southern Legacy bands.
 - Blends are out of scope: `BlendPolicy` refuses companions below a stated
   separation rather than scoring them badly — and only when you pass one.
-- `p_zmatch_given_qso` normalises over a redshift grid wider than the model's
-  support (0.05–5.0 against 0.15–4.35), where the edge slices repeat. Measured:
-  2.25 % of that normalisation is extrapolated for the example below — down
-  from 7.1 % before the range was widened, but not zero. The Bayes factor is
-  unaffected.
-- Only the southern model is validated end to end. `p_zmatch_given_qso` is
-  conditional on the companion being a quasar *inside the trained range*; a
+- Close-pair validation currently covers the southern model. The multi-survey
+  checks use reserved individual quasars and field sources. `p_zmatch_given_qso`
+  is conditional on the companion being a quasar *inside the trained range*; a
   candidate whose colours are best explained beyond z ≈ 4.4 is reported via
   `frac_norm_outside_support`, not scored as if it were inside.
 
@@ -81,22 +124,23 @@ Ranking needs a prior; without one the package returns NaN for
 ```bash
 source ~/Work/venvs/.venv/bin/activate      # or your own environment
 pip install -e ".[dev,wsdb]"                 # dev = pytest, wsdb = sqlutilpy
-python -m pytest -q                          # 117 tests, ~45 s
+python -m pytest -q                          # 140 tests, ~46 s
 ```
 
 Python ≥ 3.11 with numpy, scipy, astropy, healpy, matplotlib. `pip install -e .`
 alone installs neither pytest nor `sqlutilpy`, so use the extras above: the test
 command needs the first and everything that touches data needs the second.
 
-**The worked example below queries WSDB live.** It needs `sqlutilpy` and
-credentials (`PGUSER` / `PGHOST` / `~/.pgpass`); without them, only the parts
-that use the committed model will run.
+The two examples using the saved models run offline. Fitting a local background
+or rebuilding the training samples needs WSDB, `sqlutilpy`, and credentials
+(`PGUSER` / `PGHOST` / `~/.pgpass`).
 
 ---
 
 ## Scoring a candidate — offline, straight from a clone
 
-Everything the scorer needs ships in `models/`: the quasar colour model, a
+This example loads the **original southern Legacy DR9 model**. Everything
+it needs ships in `models/`: the quasar colour model, a
 footprint-average background colour model with its surface density, and the
 quasar surface density. No database access is required for this.
 
@@ -179,6 +223,8 @@ print(rows[0].log_bayes_factor_qz_bkg)   # +4.91
 Leave out `qso_prior` and `p_sameq` and `log_r_per_unit_z` come back `nan` with
 `status='no_prior_posterior_unavailable'` — **by design**: the package returns
 the prior-independent evidence rather than inventing a posterior.
+An empty prior at the candidate magnitude likewise retains the likelihoods and
+Bayes factor, with `status='qso_prior_empty_at_this_magnitude'`.
 
 Every row also carries `log_r_per_unit_z` (the ranking statistic),
 `dz_match_eff`, the three log intensities, an out-of-distribution score,
@@ -193,7 +239,7 @@ discarded as lying outside the trained range), quality flags and a status code.
 - **Reading `p_sameq` as "probability of a binary".** A ±2000 km/s window is
   Δ*z* = 0.037 against a photometric redshift width of ~0.6, so `p_sameq` stays
   small even for a perfect candidate. Rank on `log_r_per_unit_z`.
-- **Ranking on the Bayes factor.** See above: AUC 0.76 against 0.81.
+- **Ranking on the Bayes factor.** See above: AUC 0.759 against 0.815.
 - **A background model with no galaxies in it.** The first validation used an
   eight-field background fitted to `type = 'PSF'` sources only, and reported
   galaxies as a serious contaminant (AUC 0.80, 10.7 % above the same-*z*
@@ -272,12 +318,98 @@ python scripts/score_examples.py                               # fig 9, ~15 min
 make -C docs/method                                            # rebuild the PDF
 ```
 
-Queries cache to `data/`, keyed by a hash of the query text, so a rerun costs
-nothing and a changed query can never return stale rows. Two caches sit outside
-that guarantee: `data/dr16q_ls.npz` (written by `train_qso_model.load_sdss`,
-which checks only that the file exists, so changed redshift limits reuse the old
-sample) and the fitted `models/method_*.json`, which reload unless `--refit` is
+Queries cache to `data/`, keyed by a hash of the query text, so a rerun reuses
+the same selection. SDSS training matches also carry the parent query in their
+cache identity. The fitted `models/method_*.json` reload unless `--refit` is
 passed.
+
+## Combining surveys, including infrared-only inputs
+
+The extension in `qso_pcolor.multisurvey` uses **SDSS, DECaLS/Legacy DR9,
+ALLWISE, PS1, NSC, SkyMapper, and VHS**, individually or in combination.
+Every survey/filter has its own label. Northern and southern Legacy filters
+remain separate, and Legacy forced WISE measurements are not relabelled as
+ALLWISE. The original southern model and its offline example above are retained.
+
+The saved `models/multisurvey.json` uses **67,574 quasars** in 43 redshift
+slices (support 0.15–4.35), with **14,766 quasars reserved** in the existing
+spatial holdout. All **127 non-empty survey combinations** were checked on
+reserved quasars and field sources. See the [validation report](docs/MULTISURVEY_VALIDATION.md)
+for the samples, fit stopping criteria, and measured performance. Supporting
+a combination does not imply equal precision: VHS-only QSO/field separation
+is weak in this validation (AUC 0.620), while ALLWISE-only gives 0.903.
+
+The new mixtures learn the joint band distribution. For each object, the
+scorer conditions on an available reference band and marginalises the absent
+bands. Thus ALLWISE-only, VHS-only, and mixed optical/infrared inputs use the
+same three-hypothesis calculation. Survey likelihoods are evaluated jointly;
+they are not multiplied as independent evidence. Two measured bands provide
+one colour, with the minimum band count supplied explicitly.
+
+The inputs use **native calibrated flux units**: magnitude 22.5 has flux one.
+Optical and infrared zero-point conventions are recorded separately; ALLWISE
+and VHS retain Vega calibration. `catalogue_photometry` converts the verified
+WSDB columns, preserves negative raw fluxes, and applies the same configured
+quality cuts for training, field sources, and candidates. The current new
+sample uses observed photometry at high Galactic latitude, without dereddening.
+Pass observed measurements to this model. Its metadata records this convention.
+
+For example, a diagnostic using only two infrared bands is:
+
+```python
+import numpy as np
+from qso_pcolor import MultiSurveyModel, Photometry, RedshiftMatch
+
+model = MultiSurveyModel.load("models/multisurvey.json")
+phot = Photometry(
+    flux=np.array([[400.0, 830.0]]),
+    variance=np.array([[40.0**2, 100.0**2]]),
+    bands=("allwise:w1", "allwise:w2"),
+)
+row = model.score(
+    phot, z_primary=np.array([1.8]),
+    l_deg=np.array([180.0]), b_deg=np.array([45.0]),
+    match=RedshiftMatch(half_width_kms=2000.0), min_bands=2,
+)[0]
+print(row.log_bayes_factor_qz_bkg, row.p_zmatch_given_qso)
+print(row.reference_band, row.bands_used, row.status)
+```
+
+The returned row retains the existing evidence/posterior contract and adds
+the reference band, bands used, and surveys used. Input columns can arrive in
+any order; absent bands are represented by missing entries. A real companion
+score must also supply a `BlendPolicy` and its required measurements. Mark
+contaminated bands unusable rather than borrowing a primary's infrared flux.
+
+**Population posteriors require matching priors.** The old southern
+r-magnitude prior cannot be applied to an infrared reference or to the new
+luptitude coordinate. Without an appropriate prior pair, the new model returns
+colour evidence and `p_zmatch_given_qso`, with posterior fields and `log R`
+unavailable. To supply priors, pass
+`priors={reference_band: (qso_prior, background_density)}`; each prior's metadata
+must contain that `reference_band` and `transform_id=model.transform_id`.
+Those surface densities must describe the same photometric selection and be
+normalised per reference-band luptitude. Relabelling the old priors is invalid.
+
+The reproducible build uses the shared environment and caches the catalogue
+queries and individual fits. Rebuilding needs WSDB and the DESI/SDSS parent
+caches named in `configs/multisurvey.json`; using the saved model needs neither.
+The commands write the extension to `models/multisurvey.json` and preserve all
+four original model/prior files:
+
+```bash
+python scripts/build_multisurvey_sample.py --config configs/multisurvey.json
+python scripts/train_multisurvey_model.py --config configs/multisurvey.json
+python scripts/build_multisurvey_sample.py --part validation
+python scripts/validate_multisurvey.py --config configs/multisurvey.json
+```
+
+The configuration records survey matching, quality selection, the seed, and
+fit settings. Quasar validation reuses the saved spatial holdout; background
+validation reserves whole fields. Component selection uses a separate split
+inside the training sample. See [the method note](docs/method/method.pdf),
+section “Extension to arbitrary survey combinations”, for the conditional
+likelihood and its normalisation.
 
 ## Conventions
 

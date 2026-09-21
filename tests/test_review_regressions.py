@@ -509,14 +509,15 @@ def test_redshift_normalisation_stops_at_the_model_support():
     Normalising over a grid wider than the trained range makes
     p_zmatch_given_qso depend on where the grid happens to stop.
     """
-    import pathlib
-
-    src = pathlib.Path("src/qso_pcolor/score.py").read_text()
-    assert "in_sup = qso_model.in_support(z_grid)" in src
-    assert "post = np.where(in_sup, post, 0.0)" in src
-    # and the discarded share must be reported, not silently dropped
-    assert "frac_norm_outside_support" in src
-    assert "colours_explained_only_outside_model_redshift_support" in src
+    prior = GridQSOPrior(np.array([0., 1., 2.]), np.array([10., 30.]), np.ones((3, 2)))
+    narrow = _score(prior, np.linspace(0, 1, 101), .5, RedshiftMatch(dz_half_width=.1))
+    wide = _score(prior, np.linspace(0, 2, 201), .5, RedshiftMatch(dz_half_width=.1))
+    for row in (narrow, wide):
+        assert row.p_zmatch_given_qso == pytest.approx(.2)
+        assert row.p_sameq == pytest.approx(.2 / (1 + 1/30))
+        assert np.exp(row.log_lambda_sameq) + np.exp(row.log_lambda_fieldq) == pytest.approx(1/np.sqrt(2*np.pi))
+    assert narrow.frac_norm_outside_support == pytest.approx(0.)
+    assert wide.frac_norm_outside_support == pytest.approx(.5)
 
 
 def test_scorer_reports_the_discarded_normalisation():

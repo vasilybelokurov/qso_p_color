@@ -1,0 +1,13 @@
+{
+  "seed": 20260921,
+  "max_quasars_per_combination": 200,
+  "max_background_per_combination": 200,
+  "redshift_grid_points": 301,
+  "credible_levels": [0.68, 0.95],
+  "half_width_kms": 2000.0,
+  "minimum_bands_per_requested_survey": 1,
+  "extra_background_fields": [
+    {"ra": 151.47797850002533, "dec": -3.267425733248633, "radius_deg": 0.15}
+  ],
+  "extra_field_selection": "One of 492 reserved quasars with at least two bands in every survey, outside all original background cones, selected with seed 20261021 before inspecting validation scores. This supplies the SDSS/VHS overlap absent from the original reserved field sample."
+}
