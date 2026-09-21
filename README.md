@@ -294,3 +294,20 @@ DR1 and SDSS DR16Q (Lyke et al. 2020). The method note's bibliography has the
 rest.
 
 **No licence file yet** — add one before sharing outside the group.
+
+## Acknowledgements
+
+The code, the method note and the analyses in this repository were written with
+**Claude** (Anthropic) in Claude Code, working from the scientific design and
+under the review of the author. **OpenAI Codex** was used as an independent
+adversarial reviewer at four points — the pipeline, the classifier, the method
+note and the repository as a handover artefact — and its reports are in
+`docs/reviews/` (local). Several substantive defects in this repository were
+found that way, including a background area error of 17×, a fabricated
+"held-out" evaluation in the training script, and the fold-skipping behaviour
+in the component-number selection.
+
+Every finding from either was verified against the code before being acted on,
+and every number quoted in the README and the method note comes from a run
+recorded in the repository. Responsibility for the method and for what is
+claimed of it rests with the author.
