@@ -1,0 +1,46 @@
+{
+ "x0.5": {
+  "auc": {
+   "same_vs_field_by_log_r": 0.8164754808471386,
+   "same_vs_field_by_p_zmatch": 0.864204000099722,
+   "quasar_vs_non_qso_by_log_bf": 0.9653859098256811,
+   "same_vs_non_qso_by_log_r": 0.9956414016091435
+  },
+  "rho": 0.9992922847286679,
+  "dlog10p_same": -0.08270745859900985,
+  "nonq": 85
+ },
+ "x2": {
+  "auc": {
+   "same_vs_field_by_log_r": 0.836605929720903,
+   "same_vs_field_by_p_zmatch": 0.864204000099722,
+   "quasar_vs_non_qso_by_log_bf": 0.9653859098256811,
+   "same_vs_non_qso_by_log_r": 0.9950214301827205
+  },
+  "rho": 0.9992983682467297,
+  "dlog10p_same": 0.04812430754706398,
+  "nonq": 222
+ },
+ "tiltp1": {
+  "auc": {
+   "same_vs_field_by_log_r": 0.82880579758922,
+   "same_vs_field_by_p_zmatch": 0.8661252072348329,
+   "quasar_vs_non_qso_by_log_bf": 0.9653859098256811,
+   "same_vs_non_qso_by_log_r": 0.9958643507030603
+  },
+  "rho": 0.9990282784064282,
+  "dlog10p_same": -0.002054271955429075,
+  "nonq": 138
+ },
+ "tiltm1": {
+  "auc": {
+   "same_vs_field_by_log_r": 0.8228065829001658,
+   "same_vs_field_by_p_zmatch": 0.859498367051843,
+   "quasar_vs_non_qso_by_log_bf": 0.9653859098256811,
+   "same_vs_non_qso_by_log_r": 0.9946834348447252
+  },
+  "rho": 0.9989981379219816,
+  "dlog10p_same": -0.010620852527191221,
+  "nonq": 135
+ }
+}

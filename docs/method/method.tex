@@ -1492,6 +1492,37 @@ version of the model, the Legacy-only row rises from $0.935$ to $0.985$
 forced $W1,W2$; single-survey rows otherwise move by up to $0.04$, within the
 scatter of samples of $200$.
 
+\subsection{Consistency checks}
+\label{sec:health}
+
+Three further checks (details in \path{docs/HEALTH_CHECKS.md}).
+
+\paragraph{Luptitude errors.} The delta-method noise model was compared with the
+exact flux-space likelihood on $300$ reserved objects with Legacy
+$g,r,z,W1,W2$, by importance sampling. The Bayes factor changes by a median
+$0.02$ nats when every band has S/N $>10$, $0.10$ at S/N $3$--$10$, and $0.25$
+(90th percentile $1.5$) when some band is below S/N $3$; its sign changes for $3$
+of $300$. Negligible for ranking; a flux-space likelihood would remove it.
+
+\paragraph{Reference band.} Scored with SDSS, Legacy or PS1 $r$ as the reference,
+$400$ reserved quasars change $\ln R$ by a median $0.03$--$0.04$. Field sources
+change by a constant $+0.9$ nats with SDSS $r$ as reference relative to Legacy
+$r$ (PS1 $+0.1$), at every magnitude, while their ranking among themselves is
+unchanged. The model's joint densities agree across references to $0.04$ nats;
+the offset comes from the per-band priors, whose $\Sb$ counts only sources
+measured in the reference band (SDSS measures fewer of them) while the
+conditional density describes all field sources. Candidates with an SDSS
+reference therefore have a quasar--field gap about $0.9$ nats smaller. Taking
+$\Sb$ from the model's own marginal would make $R$ exactly invariant, but needs
+an explicit model of detection, and is deferred with it.
+
+\paragraph{Completeness.} Scaling $\Sq$ by $0.5$ or $2$ moves the held-out AUC by
+$\ln R$ by $-0.011$ and $+0.010$ and leaves the ranking unchanged
+($\rho=0.999$); tilting its redshift shape by $(1+z)^{\pm1}$ moves it by less than
+$0.005$. The number of non-quasars with $P(\text{quasar})>1/2$ changes from $134$
+to $85$ and $222$: $C$ matters for probabilities and class boundaries, not for
+ranking.
+
 %==============================================================================
 \section{Worked examples}
 \label{sec:examples}
