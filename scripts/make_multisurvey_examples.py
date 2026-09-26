@@ -178,7 +178,7 @@ def label(band: str) -> str:
 
 
 def make_figure(cfg: dict, combination: dict, model: MultiSurveyModel,
-                sample: dict, phot: Photometry):
+                sample: dict, phot: Photometry, priors=None, outlier=None):
     """Score every available selected band and draw its two-colour projection."""
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
@@ -190,7 +190,7 @@ def make_figure(cfg: dict, combination: dict, model: MultiSurveyModel,
     scores = model.score(selected, z_primary=np.array([o["z_primary"] for o in objects]),
         l_deg=np.array([o["l"] for o in objects]), b_deg=np.array([o["b"] for o in objects]),
         candidate_id=[o["id"] for o in objects], min_bands=cfg["min_bands"],
-        match=RedshiftMatch(half_width_kms=cfg["half_width_kms"]))
+        match=RedshiftMatch(half_width_kms=cfg["half_width_kms"]), priors=priors, outlier=outlier)
     plane = tuple(combination["plane"])
     idx = [features.labels.index(b) for b in plane]
     if not features.observed[:, idx].all():
@@ -260,8 +260,10 @@ def make_figure(cfg: dict, combination: dict, model: MultiSurveyModel,
                      f"$(l,b)=({obj['l']:.1f}, {obj['b']:.1f})$", fontsize=9.5, pad=7)
         percent = 100*score.p_zmatch_given_qso
         pz_text = f"={percent:.2f}" if percent >= .01 else "<0.01"
+        lr = score.log_r_per_unit_z
+        lr_text = f"$\\ln R={lr:+.1f}$   " if np.isfinite(lr) else "$\\ln R$ n/a   "
         annotation = (f"$\\ln \\mathrm{{BF}}={score.log_bayes_factor_qz_bkg:+.1f}$\n"
-                      f"$P_z{pz_text}\\%$   $N_{{band}}={len(score.bands_used)}$")
+                      f"{lr_text}$P_z{pz_text}\\%$   $N_{{band}}={len(score.bands_used)}$")
         ax.text(.97, .97, annotation, transform=ax.transAxes, ha="right", va="top", fontsize=9,
                 bbox=dict(facecolor="white", edgecolor="none", alpha=.85, pad=2), zorder=10)
         ax.set_xlim(*limits[0]); ax.set_ylim(*limits[1])
@@ -278,9 +280,9 @@ def make_figure(cfg: dict, combination: dict, model: MultiSurveyModel,
                loc="upper center", bbox_to_anchor=(.5, .903), ncol=3, fontsize=9)
     fig.text(.5, .098, "Axes: native-system luptitude colours (mag). Contours: two-colour marginals at 5%, 30%, 80% of peak; conditioned on the reference.",
              ha="center", fontsize=9)
-    fig.text(.5, .063, "Scores use ALL available bands of the selected surveys. $P_z$: target-redshift probability conditional on being a quasar; flat redshift prior.",
+    fig.text(.5, .063, "Scores use ALL available bands of the selected surveys. $P_z$: target-redshift probability conditional on being a quasar, under the quasar surface density $\\Sigma_Q$.",
              ha="center", fontsize=9)
-    fig.text(.5, .028, f"Window: +/-{cfg['half_width_kms']:g} km/s. Field objects share one overlap field and have no class labels. Population posterior unavailable.",
+    fig.text(.5, .028, f"Window: +/-{cfg['half_width_kms']:g} km/s. $\\ln R$: ranking statistic with the reference-band priors and the unmodelled term. Field objects share one overlap field and have no class labels.",
              ha="center", fontsize=9)
     slug = "_".join(combination["surveys"])
     path = save_figure(fig, f"{cfg['figure_dir']}/{slug}", dpi=180)
@@ -333,11 +335,10 @@ def make_gallery(path: Path, sample: dict, results: list[dict], cfg: dict) -> No
         "within each figure and include every point and its two-sigma error extent.", "",
         "**Annotations use every available band in the selected surveys**, so two displayed colours "
         "need not explain the full score. `ln BF` is the natural-log quasar-at-target-z/background "
-        f"likelihood ratio. `P_z` is `p_zmatch_given_qso` for a +/-{cfg['half_width_kms']:g} km/s window and a flat redshift "
-        "prior over model support (0.15-4.35). It assumes the object is a quasar and is not the "
-        "probability of a physical companion. The panels annotate evidence only; the population "
-        "posterior and `log R` come from the same scorer with `models/multisurvey_priors.json` and are "
-        "not shown here. The same target redshift is used in the top and bottom panel of each column.", "",
+        f"likelihood ratio against the field (including the unmodelled term). `ln R` is the ranking statistic, "
+        f"with the reference-band priors. `P_z` is `p_zmatch_given_qso` for a +/-{cfg['half_width_kms']:g} km/s window "
+        "under the quasar surface density of the reference band. It assumes the object is a quasar and is not the "
+        "probability of a physical companion. The same target redshift is used in the top and bottom panel of each column.", "",
         "Optical bands retain their native AB calibration; ALLWISE and VHS retain Vega calibration. "
         "Colours are differences of the model's saved luptitudes, not ordinary magnitude colours at "
         "low signal-to-noise. Usable negative fluxes remain measurements. DECaLS-only (Legacy g, r, z "
@@ -392,9 +393,16 @@ def main() -> None:
     import matplotlib
     matplotlib.use("Agg")
     use_paper_style()
+    priors = outlier = None
+    if cfg.get("priors"):
+        from qso_pcolor.multisurvey import MultiSurveyOutlier, load_priors
+        priors = load_priors(cfg["priors"], model)
+    if cfg.get("outlier"):
+        from qso_pcolor.multisurvey import MultiSurveyOutlier
+        outlier = MultiSurveyOutlier.load(cfg["outlier"])
     results = []
     for combination in cfg["combinations"]:
-        results.append(make_figure(cfg, combination, model, sample, phot))
+        results.append(make_figure(cfg, combination, model, sample, phot, priors, outlier))
         print(results[-1]["figure"], flush=True)
     root = Path(cfg["output_dir"])
     root.mkdir(parents=True, exist_ok=True)

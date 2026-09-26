@@ -8,7 +8,7 @@ The sample was drawn with seed 0, before evaluating scores, from 120 eligible qu
 
 Blue contours show the quasar model at the target redshift; green dashed contours show the all-source background. Both are normalised two-colour densities conditioned on the measured reference band, with all other bands marginalised and the plotted bands' measurement noise convolved before conditioning. Levels are 5%, 30%, and 80% of peak density, not enclosed probabilities. Circles mark measurements; bars and ellipses show one-sigma colour errors, including the covariance from the common reference. Axes are shared across all ten panels within each figure and include every point and its two-sigma error extent.
 
-**Annotations use every available band in the selected surveys**, so two displayed colours need not explain the full score. `ln BF` is the natural-log quasar-at-target-z/background likelihood ratio. `P_z` is `p_zmatch_given_qso` for a +/-2000 km/s window and a flat redshift prior over model support (0.15-4.35). It assumes the object is a quasar and is not the probability of a physical companion. The panels annotate evidence only; the population posterior and `log R` come from the same scorer with `models/multisurvey_priors.json` and are not shown here. The same target redshift is used in the top and bottom panel of each column.
+**Annotations use every available band in the selected surveys**, so two displayed colours need not explain the full score. `ln BF` is the natural-log quasar-at-target-z/background likelihood ratio against the field (including the unmodelled term). `ln R` is the ranking statistic, with the reference-band priors. `P_z` is `p_zmatch_given_qso` for a +/-2000 km/s window under the quasar surface density of the reference band. It assumes the object is a quasar and is not the probability of a physical companion. The same target redshift is used in the top and bottom panel of each column.
 
 Optical bands retain their native AB calibration; ALLWISE and VHS retain Vega calibration. Colours are differences of the model's saved luptitudes, not ordinary magnitude colours at low signal-to-noise. Usable negative fluxes remain measurements. DECaLS-only (Legacy g, r, z and forced W1, W2) uses the dedicated southern Legacy background fit; all other versions use the joint background. These figures show catalogue-object photometric diagnostics, without a per-object local background fit or a claim that the sources meet a close-companion blend policy.
 
@@ -36,17 +36,17 @@ Natural-log Bayes factors; signs do not provide spectroscopic class labels for t
 | Survey inputs | Q1 | Q2 | Q3 | Q4 | Q5 | F1 | F2 | F3 | F4 | F5 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | SDSS | +1.5 | +5.6 | +2.1 | +0.2 | +8.2 | +0.5 | -4.3 | -3.4 | -20.5 | -2.0 |
-| DECaLS | +5.2 | +9.9 | +7.3 | +18.2 | +11.5 | -1.7 | -10.7 | -7.4 | -38.5 | -9.7 |
+| DECaLS | +5.2 | +9.9 | +7.3 | +14.3 | +11.5 | -1.7 | -10.7 | -7.4 | -38.5 | -9.7 |
 | ALLWISE | +9.7 | +3.1 | -1.2 | +13.1 | +3.5 | +1.4 | -1.0 | -2.1 | -5.1 | -0.5 |
-| PS1 | +1.1 | +2.1 | +4.7 | -0.9 | +2.7 | -3.0 | -9.4 | -2.3 | -21.3 | -2.8 |
+| PS1 | +1.1 | +2.1 | +4.7 | -0.8 | +2.7 | -3.0 | -9.3 | -2.3 | -21.3 | -2.8 |
 | NSC | +1.5 | +0.5 | +1.0 | -1.8 | +3.0 | +0.1 | -8.3 | -4.2 | -15.1 | -3.3 |
 | SkyMapper | +3.3 | +1.4 | +2.8 | +1.4 | +2.1 | +2.1 | -2.4 | +0.7 | -0.7 | +0.6 |
-| VHS | +5.0 | +2.9 | +4.4 | +2.6 | +2.8 | +1.7 | -1.8 | -4.2 | +0.9 | +1.5 |
-| DECaLS + ALLWISE | +14.0 | +9.6 | +4.6 | +15.8 | +6.0 | +0.7 | -10.6 | -9.6 | -36.3 | -9.7 |
+| VHS | +5.0 | +2.9 | +4.4 | +2.7 | +2.8 | +1.7 | -1.8 | -4.2 | +0.9 | +1.5 |
+| DECaLS + ALLWISE | +14.0 | +9.6 | +4.6 | +15.8 | +6.0 | +0.7 | -10.5 | -9.6 | -36.3 | -9.7 |
 | SDSS + ALLWISE | +13.3 | +9.6 | +2.3 | +16.5 | +13.6 | +1.1 | -16.0 | -17.4 | -33.3 | -3.5 |
-| PS1 + ALLWISE | +12.0 | +7.8 | +5.5 | +15.1 | +5.8 | -1.2 | -21.3 | -17.0 | -39.8 | -4.0 |
+| PS1 + ALLWISE | +12.0 | +7.9 | +5.5 | +15.1 | +5.8 | -1.2 | -21.3 | -17.0 | -39.8 | -3.9 |
 | ALLWISE + VHS | +14.6 | +6.6 | +3.4 | +19.5 | +7.6 | +3.1 | -5.8 | -9.7 | -17.8 | +0.3 |
-| All seven surveys | +22.2 | +30.8 | +29.0 | +37.8 | +39.2 | +6.9 | -45.5 | -36.4 | -110.9 | -14.0 |
+| All seven surveys | +22.2 | +30.8 | +29.0 | +37.8 | +39.2 | +6.9 | -45.5 | -36.4 | -110.9 | -13.9 |
 
 These examples were retained as drawn, without replacing ambiguous cases. Positive evidence for an unclassified field source must not be read as a confirmed rejection failure.
 
