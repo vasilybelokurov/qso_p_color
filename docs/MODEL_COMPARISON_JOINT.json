@@ -2,9 +2,9 @@
   "config": {
     "seed": 20260922,
     "source": "data/pairs_desi_dr1.npz",
-    "old_qso": "models/qso_south_full.json",
-    "old_background": "models/background_south_global.json",
-    "new_model": "models/multisurvey_joint_20260921.json",
+    "old_qso": "models/archive/original_legacy_south/qso_south_full.json",
+    "old_background": "models/archive/original_legacy_south/background_south_global.json",
+    "new_model": "models/archive/multisurvey_joint_20260921.json",
     "max_per_class": 2000,
     "release": 9010,
     "min_abs_b_deg": 25.0,

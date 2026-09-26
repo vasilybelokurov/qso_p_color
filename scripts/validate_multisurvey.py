@@ -62,7 +62,7 @@ def evaluate(model, phot, z, grid, levels, alternative_z=None):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config",type=Path,default=Path("configs/multisurvey.json"))
+    ap.add_argument("--config",type=Path,default=Path("configs/multisurvey_lsw.json"))
     ap.add_argument("--validation-config",type=Path,default=Path("configs/multisurvey_validation.json"))
     ap.add_argument("--model",type=Path,help="evaluate an additional saved model with the same training selection")
     ap.add_argument("--report-prefix",type=Path,default=Path("docs/MULTISURVEY_VALIDATION"))

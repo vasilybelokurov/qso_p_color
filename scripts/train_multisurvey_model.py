@@ -114,7 +114,7 @@ def fit_and_select(name, features, train, validation, cfg, path, priority, seed)
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config", type=Path, default=Path("configs/multisurvey.json"))
+    ap.add_argument("--config", type=Path, default=Path("configs/multisurvey_lsw.json"))
     ap.add_argument("--z-step", type=float, default=None,
                     help="defaults to the sample configuration's redshift step")
     ap.add_argument("--max-background-fit", type=int, default=20000)

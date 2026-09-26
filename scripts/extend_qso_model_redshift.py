@@ -88,7 +88,7 @@ def load_edge_sample(cache_dir: Path, zlo: float, zhi: float, release: int,
 def main() -> None:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", type=Path, default=Path("models/qso_south_full.json"))
+    ap.add_argument("--model", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"))
     ap.add_argument("--out", type=Path, default=None,
                     help="default: overwrite --model in place")
     ap.add_argument("--zmin", type=float, default=0.1, help="new low edge")

@@ -38,7 +38,7 @@
   "tol": 1e-05,
   "regularization": 0.001,
   "min_band_training": 20,
-  "holdout_model": "models/qso_south_full.json",
+  "holdout_model": "models/archive/original_legacy_south/qso_south_full.json",
   "desi_cache": "data/desi_qso_full_5cd2db61c2.npz",
   "sdss_cache": "data/dr16q_positions_323d81e938.npz",
   "data_dir": "data/multisurvey_lsw",

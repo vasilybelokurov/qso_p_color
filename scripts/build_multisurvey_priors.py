@@ -25,7 +25,7 @@ cones in the footprint.
 Normalisation. The raw quasar densities carry the spectroscopic
 incompleteness of the parent. One constant C is applied to every anchor,
 fixed so that the Legacy-south r prior integrates to the validated original
-prior (``models/sigma_q_south.json``) over its own magnitude range. That
+prior (``models/archive/original_legacy_south/sigma_q_south.json``) over its own magnitude range. That
 assumes the completeness does not depend on which band is the reference.
 
     python scripts/build_multisurvey_priors.py

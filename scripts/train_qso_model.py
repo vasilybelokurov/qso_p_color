@@ -194,7 +194,7 @@ def main() -> None:
     ap.add_argument("--no-maskbits-cut", action="store_true",
                     help="do NOT require maskbits = 0 on the DESI channel "
                          "(reproduces the pre-2026-09-20 selection)")
-    ap.add_argument("--holdout-from", type=Path, default=Path("models/qso_south_full.json"),
+    ap.add_argument("--holdout-from", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"),
                     help="model file whose holdout_blocks to reuse; drawn afresh "
                          "if the file or the field is missing")
     ap.add_argument("--out-name", type=str, default=None,
@@ -367,7 +367,7 @@ def main() -> None:
     args.out.mkdir(exist_ok=True)
     name = args.out_name or f"qso_{args.system}_{time.strftime('%Y%m%d')}.json"
     path = args.out / name
-    if path.resolve() == Path("models/qso_south_full.json").resolve():
+    if path.resolve() == Path("models/archive/original_legacy_south/qso_south_full.json").resolve():
         raise SystemExit("refusing to overwrite the shipped model; validate first, "
                          "then copy it into place deliberately")
     model.save(path)

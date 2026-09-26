@@ -90,10 +90,10 @@ def main() -> None:
 
     d = dict(np.load(args.pairs, allow_pickle=False))
     label = validation_labels(d["comp_spectype"], d["dv_kms"], args.half_width_kms)
-    qso = SlicedColourRedshiftModel.load("models/qso_south_full.json")
-    bkg = BackgroundColourModel.load("models/background_south_global.json")
-    dens = BackgroundSurfaceDensity.load("models/background_density_south_global.json")
-    prior = GridQSOPrior.load("models/sigma_q_south.json")
+    qso = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
+    bkg = BackgroundColourModel.load("models/archive/original_legacy_south/background_south_global.json")
+    dens = BackgroundSurfaceDensity.load("models/archive/original_legacy_south/background_density_south_global.json")
+    prior = GridQSOPrior.load("models/archive/original_legacy_south/sigma_q_south.json")
     ms = MultiSurveyModel.load(args.ms_model)
     ms_priors = load_priors(args.priors, ms)
 

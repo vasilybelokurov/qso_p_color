@@ -73,7 +73,7 @@ def diagnose_background(cfg, model):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config', type=Path, default=Path('configs/background_marginal.json'))
+    parser.add_argument('--config', type=Path, default=Path('configs/background_marginal_lsw_grz.json'))
     parser.add_argument('--diagnose-only',action='store_true')
     args = parser.parse_args(); cfg = json.loads(args.config.read_text())
     model = MultiSurveyModel.load(cfg['base_model'])

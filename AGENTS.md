@@ -27,7 +27,7 @@ Three hypotheses, never two — plus a fourth that stops the model's tails from 
 | `same_z` | quasar whose redshift matches *z*₀ under a declared window |
 | `field_q` | quasar at some other redshift |
 | `bkg` | anything else in the imaging catalogue at that brightness and sky position |
-| `out` | the broad "unmodelled" share η(m) of that same field (`outlier.py`, `models/outlier_south.json`) |
+| `out` | the broad "unmodelled" share η(m) of that same field (`outlier.py`, `models/archive/original_legacy_south/outlier_south.json`) |
 
 Without `out`, an object far from both colour models is scored by whichever
 Gaussian tail happens to be wider, and is called a quasar with probability one
@@ -743,7 +743,7 @@ the joint background. The quasar fit is unchanged. Fresh-object confirmation
 in `docs/MODEL_COMPARISON_FRESH.md` gives original/new QSO/non-QSO AUC
 0.962/0.959 and redshift AUC 0.790/0.791; star AUC remains 0.970/0.953.
 Scores are not interchangeable. The initial extension is retained in
-`models/multisurvey_joint_20260921.json`, with its original comparison report
+`models/archive/multisurvey_joint_20260921.json`, with its original comparison report
 in `docs/MODEL_COMPARISON_JOINT.md`. Keep these samples fixed for regression
 checks; do not use them as unseen model-selection data in later work.
 

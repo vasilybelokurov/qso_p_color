@@ -266,9 +266,9 @@ def test_shipped_outlier_model_dominates_every_shipped_component():
     from qso_pcolor.background import BackgroundColourModel
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
-    um = OutlierModel.load(ROOT / "models/outlier_south.json")
-    qso = SlicedColourRedshiftModel.load(ROOT / "models/qso_south_full.json")
-    bkg = BackgroundColourModel.load(ROOT / "models/background_south_global.json")
+    um = OutlierModel.load(ROOT / "models/archive/original_legacy_south/outlier_south.json")
+    qso = SlicedColourRedshiftModel.load(ROOT / "models/archive/original_legacy_south/qso_south_full.json")
+    bkg = BackgroundColourModel.load(ROOT / "models/archive/original_legacy_south/background_south_global.json")
     check = list(qso.mixtures) + list(bkg.global_)
     assert min_dominant_kappa(um.cov, check) < 1.0
     assert um.system == qso.system and um.labels == qso.labels
@@ -280,7 +280,7 @@ def test_shipped_outlier_model_dominates_every_shipped_component():
 
 
 def _readme(g_factor=1.0, outlier=False):
-    from test_shipped_models import score_readme_candidate
+    from test_archived_original import score_readme_candidate
     return score_readme_candidate(g_factor=g_factor, outlier=outlier)
 
 

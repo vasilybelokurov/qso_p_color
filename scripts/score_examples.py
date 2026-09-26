@@ -166,7 +166,7 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=5)
     ap.add_argument("--plateau", type=float, default=240.0,
                     help="true quasar density per deg^2 from the coverage plateau")
-    ap.add_argument("--model", type=Path, default=Path("models/qso_south_full.json"))
+    ap.add_argument("--model", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"))
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--refit", action="store_true",
                     help="rebuild the background models instead of "

@@ -335,7 +335,7 @@ def test_model_file_records_its_holdout_split():
     import json
     import pathlib
 
-    meta = json.loads(pathlib.Path("models/qso_south_full.json").read_text())["meta"]
+    meta = json.loads(pathlib.Path("models/archive/original_legacy_south/qso_south_full.json").read_text())["meta"]
     blocks = meta.get("holdout_blocks") or meta.get("holdout_blocks_recovered")
     assert blocks, "the shipped model must record its holdout block IDs"
     assert "holdout_seed" in meta
@@ -429,7 +429,7 @@ def test_readme_matches_the_shipped_model():
     import json
     import pathlib
 
-    meta = json.loads(pathlib.Path("models/qso_south_full.json").read_text())["meta"]
+    meta = json.loads(pathlib.Path("models/archive/original_legacy_south/qso_south_full.json").read_text())["meta"]
     readme = pathlib.Path("README.md").read_text()
     for key in ("n_train", "n_desi", "n_sdss", "n_holdout"):
         assert f"{meta[key]:,}" in readme, f"README does not state {key}"
@@ -455,7 +455,7 @@ def test_shipped_model_covers_the_extended_redshift_range():
     """
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
-    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    q = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
     lo, hi = q.support
     assert lo <= 0.15 + 1e-9 and hi >= 4.35 - 1e-9
     assert len(q.mixtures) == q.z_centres.size == 43
@@ -473,7 +473,7 @@ def test_sparse_slices_did_not_get_the_core_slice_K():
     """
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
-    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    q = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
     rule = q.meta["k_rule"]
     for r in q.meta["per_slice"]:
         if r["n"] >= rule["select_below_n"]:
@@ -491,7 +491,7 @@ def test_retrained_model_records_selection_and_provenance():
     """maskbits applied, holdout read not drawn, validity ranges present."""
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
-    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    q = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
     m = q.meta
     assert m["maskbits_cut_applied"] is True and m["n_masked_removed"] > 0
     assert m["holdout_source"].startswith("read from")
@@ -526,7 +526,7 @@ def test_scorer_reports_the_discarded_normalisation():
     from qso_pcolor.score import DEFAULT_Z_GRID
     from qso_pcolor.features import RelativeFluxTransform, deredden
 
-    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    q = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
     tr = RelativeFluxTransform(reference_band="r")
     f, v = deredden(np.array([[1.9, 2.6, 3.1, 11.0, 14.0]]),
                     np.array([[120.0, 150.0, 60.0, 8.0, 3.0]]),
@@ -692,7 +692,7 @@ def test_fit_sliced_model_selects_k_only_where_sparse_and_records_it():
 def test_model_save_is_atomic(tmp_path):
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
-    q = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    q = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
     dest = tmp_path / "m.json"
     q.save(dest)
     assert dest.exists() and not list(tmp_path.glob(".*.tmp"))

@@ -762,7 +762,7 @@ def main() -> None:
     ap.add_argument("--cache", type=Path, default=Path("data"))
     ap.add_argument("--refit", action="store_true",
                     help="rebuild the cone-fitted models instead of loading models/method_*.json")
-    ap.add_argument("--qso-model", type=Path, default=Path("models/qso_south_full.json"),
+    ap.add_argument("--qso-model", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"),
                     help="the quasar model the figures depict: the SHIPPED model by "
                          "default, so that figures captioned 'the fitted model' show "
                          "the model that ships")

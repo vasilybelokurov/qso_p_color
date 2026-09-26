@@ -6,7 +6,7 @@ Two measurements, both on the shipped models:
 1. **Synthetic sweep.** The README candidate (z0 = 1.8, r ~ 21) has one band
    flux, or a pair, multiplied by s = 1 ... 32 at fixed inverse variance, which
    walks it away from both colour loci. At each step the scorer is run with and
-   without ``models/outlier_south.json``.
+   without ``models/archive/original_legacy_south/outlier_south.json``.
 2. **Validation tails.** Reads the two pair-validation reports written by
    ``validate_pairs.py`` (three and four hypotheses) and tabulates, in bins of
    the distance to the nearer model, how many non-quasars and quasars are
@@ -15,7 +15,7 @@ Two measurements, both on the shipped models:
     python scripts/validate_pairs.py --max-fracflux 0.2 --ood-flag-sigma 4 --no-figure \\
         --out data/pair_validation_results_3hyp_20260926.npz \\
         --report data/pair_validation_report_3hyp_20260926.json
-    python scripts/validate_pairs.py ... --outlier models/outlier_south.json \\
+    python scripts/validate_pairs.py ... --outlier models/archive/original_legacy_south/outlier_south.json \\
         --out data/pair_validation_results_outlier_20260926.npz \\
         --report data/pair_validation_report_outlier_20260926.json
     python scripts/outlier_analysis.py
@@ -56,18 +56,18 @@ def sweep():
     from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
     from qso_pcolor.score import BlendPolicy, score_candidates
 
-    qso = SlicedColourRedshiftModel.load("models/qso_south_full.json")
+    qso = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
     kw = dict(
         z_primary=np.array([1.8]), l_deg=np.array([276.337]), b_deg=np.array([60.189]),
         qso_model=qso,
-        background_model=BackgroundColourModel.load("models/background_south_global.json"),
+        background_model=BackgroundColourModel.load("models/archive/original_legacy_south/background_south_global.json"),
         background_density=BackgroundSurfaceDensity.load(
-            "models/background_density_south_global.json"),
-        qso_prior=GridQSOPrior.load("models/sigma_q_south.json"),
+            "models/archive/original_legacy_south/background_density_south_global.json"),
+        qso_prior=GridQSOPrior.load("models/archive/original_legacy_south/sigma_q_south.json"),
         match=RedshiftMatch(half_width_kms=2000.0),
         blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
         separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]))
-    um = OutlierModel.load("models/outlier_south.json")
+    um = OutlierModel.load("models/archive/original_legacy_south/outlier_south.json")
     tr = RelativeFluxTransform(reference_band="r")
     f0, v0 = deredden(np.array([[1.9, 2.6, 3.1, 11.0, 14.0]]),
                       np.array([[120.0, 150.0, 60.0, 8.0, 3.0]]),

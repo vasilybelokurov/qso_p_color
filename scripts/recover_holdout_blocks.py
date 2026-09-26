@@ -29,7 +29,7 @@ The recovered list is written as ``holdout_blocks_recovered``, never as
 ``holdout_blocks``, so a reader can always tell a value inferred after the fact
 from one recorded by the training run itself.
 
-    python scripts/recover_holdout_blocks.py --model models/qso_south_full.json
+    python scripts/recover_holdout_blocks.py --model models/archive/original_legacy_south/qso_south_full.json
     python scripts/recover_holdout_blocks.py --model ... --dry-run
 """
 
@@ -125,7 +125,7 @@ def replay_split(
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", type=Path, default=Path("models/qso_south_full.json"))
+    ap.add_argument("--model", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"))
     ap.add_argument("--cache", type=Path, default=Path("data"))
     ap.add_argument("--holdout-seed", type=int, default=0,
                     help="training's default; the model file does not record it")

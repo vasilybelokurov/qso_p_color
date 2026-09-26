@@ -69,7 +69,7 @@ def test_background_density_is_the_stored_count_over_the_stored_area(priors):
 
 
 def test_legacy_south_r_prior_reproduces_the_validated_original():
-    ref = GridQSOPrior.load(ROOT / "models/sigma_q_south.json")
+    ref = GridQSOPrior.load(ROOT / "models/archive/original_legacy_south/sigma_q_south.json")
     d = json.loads(PRIORS.read_text())
     new = GridQSOPrior.from_dict(d["anchors"]["decals_dr9_south:r"]["qso_prior"])
     assert q_total(new, 17.0, 22.5) == pytest.approx(q_total(ref, 17.0, 22.5), rel=0.01)

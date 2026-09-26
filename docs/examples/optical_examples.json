@@ -1,7 +1,7 @@
 {
   "source_script": "scripts/score_examples.py",
   "seed": 0,
-  "source_model": "models/qso_south_full.json",
+  "source_model": "models/archive/original_legacy_south/qso_south_full.json",
   "model_sha256": "fa0ffddfe18ad405938b19b934760067ea88df2a1f8368ad1bb867663868fb6b",
   "photometric_system": "ls_dr9_south_grzw",
   "dereddened": true,

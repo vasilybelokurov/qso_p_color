@@ -95,15 +95,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pairs", type=Path, default=Path("data/pairs_desi_dr1.npz"))
-    ap.add_argument("--model", type=Path, default=Path("models/qso_south_full.json"))
+    ap.add_argument("--model", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"))
     ap.add_argument("--background", type=Path,
-                    default=Path("models/background_south_global.json"),
+                    default=Path("models/archive/original_legacy_south/background_south_global.json"),
                     help="the shipped footprint-average background (all source "
                          "types). The PSF-only eight-field model used for the "
                          "first validation is models/examples/global.json")
     ap.add_argument("--background-density", type=Path,
-                    default=Path("models/background_density_south_global.json"))
-    ap.add_argument("--prior", type=Path, default=Path("models/sigma_q_south.json"))
+                    default=Path("models/archive/original_legacy_south/background_density_south_global.json"))
+    ap.add_argument("--prior", type=Path, default=Path("models/archive/original_legacy_south/sigma_q_south.json"))
     ap.add_argument("--max-fracflux", type=float, required=True,
                     help="maximum reference-band fracflux_r; missing values are rejected")
     ap.add_argument("--seed", type=int, default=0)
@@ -119,7 +119,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("data/pair_validation_results.npz"))
     ap.add_argument("--report", type=Path, default=Path("data/pair_validation_report.json"))
     ap.add_argument("--outlier", type=Path, default=None,
-                    help="outlier model (models/outlier_south.json) adding the "
+                    help="outlier model (models/archive/original_legacy_south/outlier_south.json) adding the "
                          "unmodelled hypothesis; omitted = three hypotheses")
     ap.add_argument("--ood-flag-sigma", type=float, default=None,
                     help="threshold for the outside_both_models flag")

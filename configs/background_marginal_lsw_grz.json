@@ -2,7 +2,7 @@
   "base_model": "models/multisurvey_lsw.json",
   "background_sample": "data/multisurvey_lsw/background.npz",
   "comparison_sample": "data/multisurvey/old_new_comparison.npz",
-  "original_background": "models/background_south_global.json",
+  "original_background": "models/archive/original_legacy_south/background_south_global.json",
   "diagnostic_report": null,
   "output_model": "models/multisurvey_lsw.json",
   "cache_dir": "data/multisurvey_lsw/background_marginal_fits_grz",

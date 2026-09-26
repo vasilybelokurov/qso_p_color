@@ -1,10 +1,10 @@
 {
-  "base_model": "models/multisurvey_joint_20260921.json",
+  "base_model": "models/archive/multisurvey_joint_20260921.json",
   "background_sample": "data/multisurvey/background.npz",
   "comparison_sample": "data/multisurvey/old_new_comparison.npz",
-  "original_background": "models/background_south_global.json",
+  "original_background": "models/archive/original_legacy_south/background_south_global.json",
   "diagnostic_report": "docs/BACKGROUND_DIAGNOSTIC.json",
-  "output_model": "models/multisurvey.json",
+  "output_model": "models/archive/multisurvey_37band_20260921.json",
   "cache_dir": "data/multisurvey/background_marginal_fits",
   "bands": [
     "decals_dr9_south:g",

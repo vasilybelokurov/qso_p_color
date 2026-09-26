@@ -240,7 +240,7 @@ def validation_background_sample(cfg, root, validation):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config", type=Path, default=Path("configs/multisurvey.json"))
+    ap.add_argument("--config", type=Path, default=Path("configs/multisurvey_lsw.json"))
     ap.add_argument("--part", choices=("quasars", "background", "validation", "all"), default="all")
     ap.add_argument("--validation-config", type=Path, default=Path("configs/multisurvey_validation.json"))
     args = ap.parse_args(); cfg = json.loads(args.config.read_text())

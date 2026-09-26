@@ -106,7 +106,7 @@ def main() -> None:
                     default=[1.02, 1.1, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0],
                     help="kappa values to try, as multiples of kappa_min")
     ap.add_argument("--cache", type=Path, default=Path("data/outlier_heldout_fields.npz"))
-    ap.add_argument("--out", type=Path, default=Path("models/outlier_south.json"))
+    ap.add_argument("--out", type=Path, default=Path("models/archive/original_legacy_south/outlier_south.json"))
     ap.add_argument("--report", type=Path, default=Path("data/outlier_fit_report.json"))
     args = ap.parse_args()
 
@@ -115,8 +115,8 @@ def main() -> None:
                                     min_dominant_kappa, mixture_moments)
     from qso_pcolor.qso_model import SlicedColourRedshiftModel
 
-    qso = SlicedColourRedshiftModel.load("models/qso_south_full.json")
-    bkg = BackgroundColourModel.load("models/background_south_global.json")
+    qso = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
+    bkg = BackgroundColourModel.load("models/archive/original_legacy_south/background_south_global.json")
     if bkg.local or bkg.parent:
         raise SystemExit("expected the footprint-average background (global mixtures only)")
     edges = bkg.mag_edges
@@ -170,12 +170,12 @@ def main() -> None:
           f"{best['gain_B_nats_per_obj']:+.5f} nats/obj")
     meta = {
         "built": time.strftime("%Y-%m-%d"), "by": "scripts/fit_outlier_model.py",
-        "reference": "models/background_south_global.json (global mixtures, equal weights)",
+        "reference": "models/archive/original_legacy_south/background_south_global.json (global mixtures, equal weights)",
         "shape": "envelope_covariance(reference moments, all checked components)",
         "reference_sd": np.sqrt(np.diag(base)).tolist(),
         "envelope_sd": np.sqrt(np.diag(env)).tolist(),
-        "dominance_checked_against": ["models/qso_south_full.json (all slices)",
-                                      "models/background_south_global.json (all bins)"],
+        "dominance_checked_against": ["models/archive/original_legacy_south/qso_south_full.json (all slices)",
+                                      "models/archive/original_legacy_south/background_south_global.json (all bins)"],
         "fields": cones, "set_A": [c["index"] for c in cones[0::2]],
         "set_B": [c["index"] for c in cones[1::2]],
         "n_A": int(set_a.sum()), "n_B": int((~set_a).sum()),

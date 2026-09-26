@@ -53,9 +53,9 @@ def main() -> None:
                     help="cone centres are drawn from this seed; 0 reproduces "
                          "the fields used for the examples figure")
     ap.add_argument("--n-components", type=int, default=8)
-    ap.add_argument("--out", type=Path, default=Path("models/background_south_global.json"))
+    ap.add_argument("--out", type=Path, default=Path("models/archive/original_legacy_south/background_south_global.json"))
     ap.add_argument("--out-density", type=Path,
-                    default=Path("models/background_density_south_global.json"))
+                    default=Path("models/archive/original_legacy_south/background_density_south_global.json"))
     args = ap.parse_args()
 
     from qso_pcolor.background import _RELEASES_FOR_SYSTEM, fit_background_model

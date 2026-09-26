@@ -21,7 +21,7 @@ mixtures are untouched -- so that region doubles as a check that the splice did
 not disturb anything.
 
     python scripts/check_redshift_extension.py \
-        --old models/qso_south_full.json --new models/qso_south_extended.json
+        --old models/archive/original_legacy_south/qso_south_full.json --new models/qso_south_extended.json
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ BANDS = ("g", "r", "z", "w1", "w2")
 def main() -> None:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--old", type=Path, default=Path("models/qso_south_full.json"))
+    ap.add_argument("--old", type=Path, default=Path("models/archive/original_legacy_south/qso_south_full.json"))
     ap.add_argument("--new", type=Path, default=Path("models/qso_south_extended.json"))
     ap.add_argument("--cache", type=Path, default=Path("data"))
     args = ap.parse_args()

@@ -7,19 +7,13 @@ __pycache__/
 .pytest_cache/
 data/
 models/*
-models/examples/
-# ...except the trained quasar model, so the repo is usable without a 4-hour refit
-!models/qso_south_full.json
-# the other two ingredients the scorer needs, so a clone can score offline
-!models/background_south_global.json
-!models/background_density_south_global.json
-!models/sigma_q_south.json
-!models/outlier_south.json
-!models/multisurvey_priors.json
-# Separate extension; the existing southern model remains available unchanged.
+# The model: one file, its reference-band priors, and its unmodelled term.
 !models/multisurvey.json
-# Preserve the initial joint-only extension for reproducible comparisons.
-!models/multisurvey_joint_20260921.json
+!models/multisurvey_priors.json
+!models/multisurvey_outlier.json
+# Retired models, kept so earlier results and the model's own provenance
+# (holdout blocks, prior normalisation) stay reproducible.
+!models/archive/
 *.npz
 *.parquet
 

@@ -98,10 +98,10 @@ def main() -> None:
     from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
     from qso_pcolor.score import score_candidates
 
-    qso = SlicedColourRedshiftModel.load("models/qso_south_full.json")
-    gbkg = BackgroundColourModel.load("models/background_south_global.json")
-    gdens = BackgroundSurfaceDensity.load("models/background_density_south_global.json")
-    prior = GridQSOPrior.load("models/sigma_q_south.json")
+    qso = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
+    gbkg = BackgroundColourModel.load("models/archive/original_legacy_south/background_south_global.json")
+    gdens = BackgroundSurfaceDensity.load("models/archive/original_legacy_south/background_density_south_global.json")
+    prior = GridQSOPrior.load("models/archive/original_legacy_south/sigma_q_south.json")
     held = set(int(x) for x in qso.meta["holdout_blocks"])
     tr = RelativeFluxTransform(reference_band="r", min_ref_snr=5.0)
     match = RedshiftMatch(half_width_kms=2000.0)

@@ -41,13 +41,13 @@ The saved files are:
 
 | File | Contents |
 |---|---|
-| [qso_south_full.json](models/qso_south_full.json) | Original southern quasar colour model |
-| [background_south_global.json](models/background_south_global.json) | Original southern background colour model |
-| [background_density_south_global.json](models/background_density_south_global.json) | Original background surface density |
-| [sigma_q_south.json](models/sigma_q_south.json) | Original quasar surface-density prior |
-| [outlier_south.json](models/outlier_south.json) | The broad "unmodelled" share of the original background, fitted on 22 held-out fields |
+| [qso_south_full.json](models/archive/original_legacy_south/qso_south_full.json) | Original southern quasar colour model |
+| [background_south_global.json](models/archive/original_legacy_south/background_south_global.json) | Original southern background colour model |
+| [background_density_south_global.json](models/archive/original_legacy_south/background_density_south_global.json) | Original background surface density |
+| [sigma_q_south.json](models/archive/original_legacy_south/sigma_q_south.json) | Original quasar surface-density prior |
+| [outlier_south.json](models/archive/original_legacy_south/outlier_south.json) | The broad "unmodelled" share of the original background, fitted on 22 held-out fields |
 | [multisurvey.json](models/multisurvey.json) | Current seven-survey model: quasar/background fits, transform, band schema, and automatic southern `grz` background selection |
-| [multisurvey_joint_20260921.json](models/multisurvey_joint_20260921.json) | Archived initial seven-survey version, with only the joint background; retained to reproduce the initial comparison |
+| [multisurvey_joint_20260921.json](models/archive/multisurvey_joint_20260921.json) | Archived initial seven-survey version, with only the joint background; retained to reproduce the initial comparison |
 
 The first five files form **one original model bundle**. The current and
 archived seven-survey versions each load from one file. Both use
@@ -176,11 +176,11 @@ from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
 from qso_pcolor.score import BlendPolicy, score_candidates
 
 BANDS = ("g", "r", "z", "w1", "w2")
-qso   = SlicedColourRedshiftModel.load("models/qso_south_full.json")
-bkg   = BackgroundColourModel.load("models/background_south_global.json")
-dens  = BackgroundSurfaceDensity.load("models/background_density_south_global.json")
-prior = GridQSOPrior.load("models/sigma_q_south.json")
-out   = OutlierModel.load("models/outlier_south.json")   # the "unmodelled" hypothesis
+qso   = SlicedColourRedshiftModel.load("models/archive/original_legacy_south/qso_south_full.json")
+bkg   = BackgroundColourModel.load("models/archive/original_legacy_south/background_south_global.json")
+dens  = BackgroundSurfaceDensity.load("models/archive/original_legacy_south/background_density_south_global.json")
+prior = GridQSOPrior.load("models/archive/original_legacy_south/sigma_q_south.json")
+out   = OutlierModel.load("models/archive/original_legacy_south/outlier_south.json")   # the "unmodelled" hypothesis
 tr = RelativeFluxTransform(reference_band="r")
 
 # Legacy Surveys fluxes, inverse variances and transmissions (nanomaggies)
@@ -326,13 +326,13 @@ seven-survey versions are listed under [Choose a saved model](#choose-a-saved-mo
 
 | file | what |
 |---|---|
-| `models/qso_south_full.json` | the quasar colour–redshift model |
-| `models/background_south_global.json` | footprint-average background colour model (all source types, `maskbits = 0`, known quasars removed) |
-| `models/background_density_south_global.json` | its surface density Σ_B, mask-corrected area |
-| `models/sigma_q_south.json` | the quasar surface density Σ_Q(z, m), global and isotropic |
-| `models/outlier_south.json` | the unmodelled hypothesis: a normalised Gaussian broader than every quasar and background component, and its share η(m) of Σ_B (2.4–8.6 × 10⁻⁴), fitted on 22 held-out cones |
+| `models/archive/original_legacy_south/qso_south_full.json` | the quasar colour–redshift model |
+| `models/archive/original_legacy_south/background_south_global.json` | footprint-average background colour model (all source types, `maskbits = 0`, known quasars removed) |
+| `models/archive/original_legacy_south/background_density_south_global.json` | its surface density Σ_B, mask-corrected area |
+| `models/archive/original_legacy_south/sigma_q_south.json` | the quasar surface density Σ_Q(z, m), global and isotropic |
+| `models/archive/original_legacy_south/outlier_south.json` | the unmodelled hypothesis: a normalised Gaussian broader than every quasar and background component, and its share η(m) of Σ_B (2.4–8.6 × 10⁻⁴), fitted on 22 held-out cones |
 
-`models/qso_south_full.json` is 1,106,986 training quasars
+`models/archive/original_legacy_south/qso_south_full.json` is 1,106,986 training quasars
 (917,489 DESI DR1 + 189,497 SDSS DR16Q, de-duplicated at 1″, `maskbits = 0` on
 both channels), Legacy Surveys DR9 south (`release` 9010), 43 redshift slices
 covering 0.15 < z < 4.35 trained natively over 0.1–4.4. K = 20 where a slice
@@ -403,7 +403,7 @@ discrimination. Star rejection remains slightly weaker (**0.970/0.953**),
 and individual scores are not interchangeable. All 127 survey combinations
 were rechecked; the other 126 rows are unchanged. The method and both sets of
 tests appear in the method note's **main text**. The original southern models
-and the [initial joint-only extension](models/multisurvey_joint_20260921.json)
+and the [initial joint-only extension](models/archive/multisurvey_joint_20260921.json)
 remain available.
 
 Twelve [Figure 10-style comparisons](docs/examples/README.md) show the same
