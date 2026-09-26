@@ -144,7 +144,7 @@ wider, and an artefact would be called a certain quasar. A small, fitted share
 of the field with a very broad distribution takes those objects instead.
 
 \paragraph{Why the answer is a ranking rather than a verdict.} Colours locate a
-quasar in redshift only loosely --- typically to $\pm0.6$ --- while a
+quasar in redshift only loosely --- typically to $\pm0.4$ --- while a
 $\pm2000\kms$ pair window at $z=1.8$ spans $0.037$. Only a small part of any
 candidate's redshift probability can fall inside the window, so the probability
 is small even for a strong candidate. We therefore report a statistic that the
@@ -381,22 +381,22 @@ training set describes $p(\uvec\mid Q,z,\text{selected})$. SDSS, whose targeting
 channels differ, supplies $18\%$ of the drawn sample.
 
 Figure~\ref{fig:locus} shows the problem the quasar model has to solve, in
-the predecessor's Legacy flux-ratio coordinates. Quasars trace a track through
+Legacy luptitude colours. Quasars trace a track through
 colour space that moves with redshift, doubles back on itself, and crosses the
 locus of ordinary catalogue sources more than once; the motion is driven by
 strong emission lines and the Lyman break entering and leaving the passbands.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/method/fig1_qso_locus.png}
-\caption{DESI DR1 quasars in Legacy Surveys DR9 photometry. \emph{Left:} the
-quasar locus, coloured by spectroscopic redshift, over the density of all
-catalogue sources in the same field (grey). The quasar and field populations
-overlap substantially --- discrimination comes from where in the plane an object
-sits, not from a clean separation. \emph{Right:} median colour against redshift
-with the $16$--$84$th percentile band. The track is strongly non-monotonic,
-which is the property that shapes the choice of model in
-\S\ref{sec:slices}. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
+\includegraphics[width=\textwidth]{../../plots/method/model_locus.png}
+\caption{The quasar training sample in Legacy DR9 south luptitude colours.
+\emph{Left:} quasars coloured by spectroscopic redshift, over every source in the
+$24$ field cones (grey, log density); both with $g,r,z$ measured and $u_r<22.5$.
+The quasar and field populations overlap: discrimination comes from where an
+object sits, not from a clean separation. \emph{Right:} median colour against
+redshift with the $16$--$84$th percentile band, for $g-r$, $r-z$ and $z-W1$. The
+track is strongly non-monotonic, which is what shapes the model in
+\S\ref{sec:slices}.}
 \label{fig:locus}
 \end{figure}
 
@@ -419,9 +419,9 @@ whose components are convolved with each observation's covariance
 $\mathbf{S}_i$ during fitting, so that the observed value is evaluated with
 $\mathbf{V}_k+\mathbf{S}_i$. The update is given in Appendix~\ref{app:xd}.
 Figure~\ref{fig:deconv} tests the principle on real quasar colours by injecting
-noise of known size: the deconvolved width is recovered to within $3\%$ after
-the observed width has more than doubled, while an ordinary mixture tracks the
-broadened distribution exactly.
+noise of known size: the deconvolved width stays within $8\%$ of the truth up to
+an added noise of $1.5$ times the intrinsic width, and $14\%$ low at twice it,
+while an ordinary mixture tracks the broadened distribution.
 
 \paragraph{Whose implementation.} The algorithm is Bovy, Hogg \& Roweis's; the
 code is not. \texttt{qso\_pcolor} carries its own numpy implementation, because
@@ -436,17 +436,18 @@ tests against independent routes (quadrature, Monte Carlo, closed forms).
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/method/fig4_deconvolution.png}
+\includegraphics[width=\textwidth]{../../plots/method/model_deconvolution.png}
 \caption{Deconvolution tested by controlled noise injection on real quasar
-colours (Legacy $f_g/f_r$ of bright quasars near $z=1.8$, $N=1536$, $r<20$,
-whose measurement errors are negligible; fitted width $\sigma_0=0.119$). Gaussian
-noise of known size is added and the models refitted. \emph{Left:} at
-$\sigma_{\rm add}=\sigma_0$ the deconvolved mixture (blue) recovers the
-pre-injection truth (dashed) while the ordinary mixture (orange) is broadened.
-\emph{Right:} the ordinary mixture follows $\sqrt{\sigma_0^2+\sigma_{\rm add}^2}$,
-reaching $0.266$ at $\sigma_{\rm add}=2\sigma_0$; extreme deconvolution returns
-$0.122$. The test is of the algorithm, and was run in the predecessor's
-flux-ratio coordinates (Appendix~\ref{app:predecessor}).}
+colours: Legacy $g-r$ of the $473$ bright quasars ($u_r<20$, $|z-1.8|<0.15$) of
+the training draw, whose measurement errors are small; fitted width
+$\sigma_0=0.176$. Gaussian noise of known size is added and a two-component
+mixture refitted. \emph{Left:} at $\sigma_{\rm add}=\sigma_0$ the deconvolved
+mixture (blue) stays close to the pre-injection truth (dashed) while the ordinary
+mixture (orange) is broadened. \emph{Right:} the ordinary mixture follows
+$\sqrt{\sigma_0^2+\sigma_{\rm add}^2}$, reaching $0.382$ at $\sigma_{\rm
+add}=2\sigma_0$; extreme deconvolution stays within $8\%$ of $\sigma_0$ up to
+$1.5\sigma_0$ and returns $0.152$ ($14\%$ low) at $2\sigma_0$, where the sample
+of $473$ is small for the added noise.}
 \label{fig:deconv}
 \end{figure}
 
@@ -484,43 +485,36 @@ it.
 The fits stop at a $150$-iteration cap; one of $43$ reaches the $10^{-5}$
 tolerance. The validation below evaluates the saved fits at that stopping point.
 
-Figure~\ref{fig:slices} shows a fitted conditional density as probability
-contours in one colour plane at three redshifts, and Figure~\ref{fig:modelz}
-the same kind of model as a function of redshift against its training data,
-both for the predecessor's four flux ratios.
+Figure~\ref{fig:slices} shows the fitted density as probability contours in
+the Legacy $g-r$, $r-z$ plane at three redshifts, conditioned on a reference
+luptitude; Figure~\ref{fig:modelz} shows it as a function of redshift in four
+Legacy colours against the data it was fitted to.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/method/fig2_model_slices.png}
-\caption{The fitted conditional density $p(\cvec\mid Q,z)$ at three redshifts
-(contours), with the quasars in each slice (points). The locus translates and
-changes shape with redshift; each slice is a separate deconvolved mixture, so no
-linear colour--redshift relation is imposed. The contours are visibly tighter
-than the scatter of the points because the model is the \emph{deconvolved}
-density, while the points carry their measurement errors
-(\S\ref{sec:xd}). Note also how much the three loci overlap: this is the
-origin of the weak redshift discrimination quantified in
-\S\ref{sec:howmuch}. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
+\includegraphics[width=\textwidth]{../../plots/method/model_slices.png}
+\caption{The fitted quasar density at three redshifts, in the Legacy $g-r$,
+$r-z$ plane: the joint $41$-band mixture interpolated to $z$, marginalised over
+every other band and conditioned on $u_r=20.5$, without measurement noise.
+Contours are at $5$, $30$ and $80\%$ of the peak density. Points are training
+quasars within $0.1$ of $z$ and $0.5$ of $u_r=20.5$. The contours are tighter
+than the points because the model is the \emph{deconvolved} density while the
+points carry their errors (\S\ref{sec:xd}). The loci at the three redshifts
+overlap substantially: the origin of the weak redshift discrimination of
+\S\ref{sec:howmuch}.}
 \label{fig:slices}
 \end{figure}
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/method/fig8_model_across_redshift.png}
-\caption{The fitted quasar model itself, over the whole trained redshift range
-and in every feature it uses. Grey is the training data; the blue band and line
-are the $16$--$84$th percentile and median of the \emph{model's} marginal
-distribution at each redshift, computed from the fitted mixtures; the dotted
-orange lines are the same percentiles of the data. Figure~\ref{fig:slices}
-shows this density as contours in one plane at three redshifts; this is the same
-object viewed as a function of redshift. The model tracks the non-monotonic
-motion of the locus in the optical features and the steady decline of the
-mid-infrared excess. Model and data intervals nearly coincide here because at
-these magnitudes the measurement errors are small compared with the intrinsic
-spread; the deconvolution is a small correction in this projection and a large
-one at the faint end (Figure~\ref{fig:deconv}). Reproducing the observed spread
-after adding each object's own errors back to draws from the model is a direct
-check that the fit is neither over- nor under-dispersed. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
+\includegraphics[width=\textwidth]{../../plots/method/model_across_redshift.png}
+\caption{The fitted quasar model over its whole redshift range, in four Legacy
+colours: $g-r$, $r-z$, $z-W1$ and $W1-W2$ (forced unWISE). Grey is the training
+draw; the blue band and line are the $16$--$84$th percentiles and median of the
+model's colour marginal at each redshift (brightness and all other bands
+integrated out, no measurement noise); dotted orange lines are the same
+percentiles of the data. The model band is narrower than the data's because the
+data carry their measurement errors and the model does not.}
 \label{fig:modelz}
 \end{figure}
 
@@ -615,13 +609,17 @@ smoothly rather than drawing a decision boundary.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/method/fig3_two_densities.png}
-\caption{\emph{Left:} the quasar density at $z=1.8$ and the local background
-density, both fitted to real data, in the same feature plane. \emph{Right:} the
-colour Bayes factor \eqref{eq:bf}; the black contour is $\mathrm{BF}=1$, and
-black points are real catalogue sources at the relevant magnitude. Most of the
-field population sits where the Bayes factor strongly disfavours the quasar
-hypothesis, but the two loci are not disjoint. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
+\includegraphics[width=\textwidth]{../../plots/method/model_two_densities.png}
+\caption{\emph{Left:} the quasar density at $z=1.8$ and the field density, in the
+same Legacy $g-r$, $r-z$ plane, both conditioned on $u_r=20.8$; the field is the
+dedicated Legacy $g,r,z$ fit that the scorer uses for Legacy-only input
+(\S\ref{sec:marginals}). Contours at $5$, $30$ and $80\%$ of each peak.
+\emph{Right:} the colour Bayes factor of the two densities; the black contour is
+$\mathrm{BF}=1$, and black points are field sources within $0.4$ of $u_r=20.8$.
+Most of the field sits where the Bayes factor strongly disfavours a quasar, but
+the loci are not disjoint. The red regions far to the left, where neither
+density has support, are the Gaussian-tail extrapolation of
+\S\ref{sec:outliers}; the unmodelled term, not shown here, takes them over.}
 \label{fig:densities}
 \end{figure}
 
@@ -765,24 +763,29 @@ A physically motivated pair window is of order $\pm2000\kms$; at $z_0=1.4$
 %
 Broadband photometry constrains a quasar redshift far more loosely, and often
 to a multimodal distribution --- which is why XDQSOz produces a redshift
-\emph{PDF} \citep{bovy2012xdqsoz}. With Legacy $g,r,z,W1,W2$ the median
-posterior width was $\sigma_z\approx0.6$ (measured on $1500$ DESI quasars with
-the predecessor model). At $z_0=1.8$ the window spans $0.037$ in redshift; for
-a unimodal posterior of width $0.6$ it captures of order two per cent of the
-probability (Figure~\ref{fig:window}). So $\lambda_{\rm field}\gg\lambda_{\rm
+\emph{PDF} \citep{bovy2012xdqsoz}. With Legacy $g,r,z,W1,W2$, over $1500$
+quasars from the reserved sky blocks at all redshifts, the quasar-only posterior
+under a flat prior has median width $\sigma_z=0.42$ ($16$--$84$th percentiles
+$0.23$--$0.72$); the median distance from the posterior mean to the
+spectroscopic redshift is $0.17$. At $z_0=1.8$ the window spans $0.037$ in
+redshift; for a unimodal posterior of width $0.42$ it captures of order three
+per cent of the probability (Figure~\ref{fig:window}). So $\lambda_{\rm field}\gg\lambda_{\rm
 same}$ and $p_{\rm same}$ is small even for an object exactly on the locus at
 exactly the right redshift. That is the correct answer to the question as posed,
 and it means the question as posed is not the one colours can answer.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.86\textwidth]{../../plots/method/fig5_window.png}
-\caption{\emph{Top:} quasar-only redshift posteriors for three DESI quasars with
-$z_{\rm spec}\approx1.8$ under a flat prior, showing the width and the
-secondary solutions broadband colours cannot resolve. \emph{Bottom:} the same
-posterior with a $\pm2000\kms$ window drawn to scale (narrow orange band).
-Computed with the predecessor Legacy model; the property shown --- a window far
-narrower than the posterior --- is one of the bands, not of the model.}
+\includegraphics[width=0.86\textwidth]{../../plots/method/model_window.png}
+\caption{\emph{Top:} quasar-only redshift posteriors $p(z\mid\uvec,Q)$ under a
+flat prior for three quasars from the reserved sky blocks with
+$z_{\rm spec}\approx1.8$, from their Legacy $g,r,z,W1,W2$: the width, and a
+secondary solution the colours cannot rule out --- one of the three peaks at
+$z\approx2.2$. \emph{Bottom:} that posterior with the $\pm2000\kms$ window drawn
+to scale (orange band). The kinks at intervals of $0.1$ are real: the model
+interpolates linearly in density between independently fitted slices of two or
+four components, so the likelihood is piecewise linear in $z$ with changes of
+slope at the slice centres.}
 \label{fig:window}
 \end{figure}
 
@@ -796,13 +799,13 @@ narrower than the posterior --- is one of the bands, not of the model.}
 \midrule
 primary's spectroscopic error        & $0.0004$ & $1\times$ \\
 $\pm2000\kms$ window (half-width)    & $0.019$  & $49\times$ \\
-companion's photometric width        & $0.6$    & $1579\times$ \\
+companion's photometric width        & $0.42$   & $1050\times$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 The median DESI DR1 quasar redshift error is $0.0004$ ($43\kms$). The primary is
-known some $1600$ times better than the companion; the difficulty sits entirely
+known some $1000$ times better than the companion; the difficulty sits entirely
 on the companion. What the primary's precision buys is that
 $p(\uvec\mid Q,z_0)$ is evaluated at a sharp point. Its error enters by
 \emph{marginalising} the window over it, which smooths the window's edges while
@@ -826,8 +829,10 @@ To first order
 \label{eq:sigmaz}
 \end{equation}
 %
-Near $z=1.8$, Legacy $g-r$ moves at $0.356$ per unit redshift with scatter
-$0.219$, and $r-z$ at $0.402$ with $0.229$: implied widths $0.62$ and $0.57$.
+In the model near $z=1.8$, Legacy $g-r$ moves at $0.29$ per unit redshift with
+intrinsic scatter $0.23$, and $r-z$ at $0.31$ with $0.22$: implied widths $0.8$
+and $0.7$ from each colour alone; combined with $z-W1$ and $W1-W2$ the posterior
+width is $0.42$ (\S\ref{sec:window}).
 At bright magnitudes the scatter is intrinsic quasar-to-quasar diversity, not
 measurement error, so deeper imaging in the same bands buys little. Fifteen
 times more training data left $\sigma_z$ unchanged to $0.001$
@@ -899,119 +904,75 @@ Second, the implementation stores the \emph{window-averaged} $R =
 p_{\rm same}/\Delta Z_{\rm eff}$, so \eqref{eq:linear} holds for the reported
 numbers by construction. The substantive claim is that $R$ does not depend on
 the window, which holds in the narrow limit: over a factor of ten in window
-width $R$ moves by well under a per cent (Figure~\ref{fig:factorisation}).
+width $R$ moves by $2\times10^{-5}$ of its value (Figure~\ref{fig:factorisation}).
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/method/fig6_factorisation.png}
-\caption{The factorisation on a real quasar. \emph{Left:} $p_{\rm same}$ is
-proportional to the window area over more than a decade, as \eqref{eq:linear}
-requires; the dotted line is $R\,\Delta Z$ with $R$ from the narrowest window.
-\emph{Right:} $R$ is flat until the window stops being narrow compared with
-$\sigma_z$. Computed with the predecessor model; the factorisation is a property
-of \eqref{eq:lam_same}--\eqref{eq:partition}, not of a particular density.}
+\includegraphics[width=\textwidth]{../../plots/method/model_factorisation.png}
+\caption{The factorisation on a reserved quasar at $z\approx1.8$ scored from its
+Legacy $g,r,z,W1,W2$ with the priors and the unmodelled term, for windows from
+$\pm200$ to $\pm20{,}000\kms$. \emph{Left:} $p_{\rm same}$ is proportional to the
+window area, as \eqref{eq:linear} requires; the dotted line is $R\,\Delta Z$ with
+$R$ from the narrowest window. \emph{Right:} $R$ itself: over
+$0.004\le\Delta Z_{\rm eff}\le0.04$ --- velocity windows up to $\pm2000\kms$
+and beyond --- it changes by $2\times10^{-5}$ of its value, and departs only when
+the window stops being narrow compared with $\sigma_z$.}
 \label{fig:factorisation}
 \end{figure}
 
 \subsection{How much discrimination is actually available}
-\emph{This subsection reports measurements made with the predecessor model (Appendix~\ref{app:predecessor}); the pair validation of \S\ref{sec:validation} is the test of the current model.}
-
 \label{sec:howmuch}
 
 Figure~\ref{fig:separation} evaluates $R$ against a primary at $z_0=1.8$ for
-three real populations, and the result is worth stating plainly because it sets
-expectations for the whole programme.
+three populations from the reserved sky blocks and cones, scored from Legacy
+$g,r,z,W1,W2$ with the priors and the unmodelled term:
 
 \begin{center}
-\begin{tabular}{lr}
+\begin{tabular}{lrr}
 \toprule
-population & median $\log R$ \\
+population & $n$ & median $\ln R$ \\
 \midrule
-quasars at $z\approx z_0$        & $-0.3$ \\
-quasars at other redshifts       & $-2.9$ \\
-random catalogue sources         & $-14.2$ \\
+quasars with $|z-z_0|<0.05$   & $282$ & $-0.2$ \\
+quasars with $|z-z_0|>0.6$    & $397$ & $-4.2$ \\
+field sources, $19.5<u_r<21.5$ & $400$ & $-14.3$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 Two very different gaps. Against the field population the statistic is
-decisive: $e^{13.9}\approx10^{6}$. Against \emph{quasars at the wrong
-redshift} it is worth a factor of about $14$ ($e^{2.6}$). The quasars here are
-from the predecessor's reserved sky blocks, and the predecessor as retrained on
-2026-09-20 is the one evaluated (Appendix~\ref{app:predecessor}).
-
-That asymmetry is not a defect of the estimator; it is a statement about the
-information content of $grz+W1W2$ photometry. These bands identify quasars
-very well and locate them in redshift only weakly --- which is visible directly
-in Figure~\ref{fig:slices}, where the conditional loci at $z=0.9$, $1.8$ and
-$3.0$ overlap substantially, and in the posterior widths of
-Figure~\ref{fig:window}.
-
-The consequences for practice are concrete:
+decisive: $e^{14.1}\approx10^{6}$. Against \emph{quasars at the wrong redshift}
+it is worth a factor of about $55$ ($e^{4.0}$). That asymmetry is a statement
+about the information in $g,r,z,W1,W2$: these bands identify quasars very well
+and place them in redshift only weakly, as the overlapping loci of
+Figure~\ref{fig:slices} and the posterior widths of Figure~\ref{fig:window} show.
 
 \begin{itemize}
 \item \textbf{What this method delivers reliably is a quasar classification},
       not a redshift match. A companion with high $R$ is very likely a quasar;
       whether it is at $z_0$ is a much weaker inference.
-\item \textbf{The field-quasar hypothesis is therefore not a refinement but
-      the dominant competing explanation}, which is precisely why a
-      quasar-versus-star calculation would be misleading here rather than
-      merely incomplete.
-\item \textbf{Improving redshift discrimination requires more information,
-      not more training data.} This was originally stated as an expectation from
-      \eqref{eq:sigmaz}. It has since been tested directly. Retraining on the
-      full southern sample --- $1{,}237{,}336$ quasars against $79{,}865$, with
-      $32$ redshift slices against $24$ and twice the mixture components ---
-      leaves the redshift posterior unchanged. (Those are the two runs of that
-      experiment; the model shipped today is a later one again, described in
-      \S\ref{sec:slices}.)
-
-      \begin{center}
-      \begin{tabular}{lccc}
-      \toprule
-      training set & median $\sigma_z$ & $16$--$84\%$ &
-      median $|z_{\rm post}-z_{\rm spec}|$ \\
-      \midrule
-      $79{,}865$, $K=6$     & $0.601$ & $0.36$--$0.75$ & $0.290$ \\
-      $1{,}237{,}336$, $K=12$ & $0.602$ & $0.35$--$0.76$ & $0.296$ \\
-      \bottomrule
-      \end{tabular}
-      \end{center}
-
-      The comparison favours the larger model if anything: the small one was
-      trained on a $452\,{\rm deg}^2$ cone, so about $95\%$ of the $1500$ test
-      quasars lay outside its training set, while all of them lay inside the
-      large one's. Fifteen times the data, evaluated with every advantage, moved
-      $\sigma_z$ by $0.001$. The redshift precision is therefore set by the
-      information in $grz+W1W2$, not by the size of the training sample or the
-      flexibility of the model. What would help is a band in which quasar colour
-      changes faster with redshift --- a $u$ band spanning the Lyman break, a
-      narrow band on a strong line --- or variability, or spectroscopy. The
-      modular likelihood structure is designed so such a term can be added as a
-      factor rather than by rewriting the inference.
-
-      This bears on the information content, not on classification performance:
-      the separations quoted above remain in-sample medians with the hardest
-      cases absent, and establish neither purity nor completeness.
+\item \textbf{The field-quasar hypothesis is therefore the dominant competing
+      explanation}, which is why a quasar-versus-star calculation would be
+      misleading rather than merely incomplete.
+\item \textbf{Improving redshift discrimination requires more information, not
+      more training data} (Appendix~\ref{app:predecessor}: fifteen times more
+      quasars left $\sigma_z$ unchanged). What helps is a band in which quasar
+      colour changes faster with redshift --- SDSS $u$ across the Lyman break
+      (Table~\ref{tab:subsets}) --- or variability, or spectroscopy.
 \end{itemize}
+
+These are medians of a controlled comparison with the hardest intermediate
+redshifts absent; purity and completeness are measured on the labelled pairs of
+\S\ref{sec:validation}.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.74\textwidth]{../../plots/method/fig7_separation.png}
-\caption{The ranking statistic evaluated against a primary at $z_0=1.8$, for
-real quasars at that redshift ($|z-z_0|<0.05$), real quasars at other redshifts
-($|z-z_0|>0.6$), and random catalogue sources. Vertical lines mark the medians.
-Two limits of this comparison: the ``same'' class extends to $2.7$ times the
-window half-width, so not all of it lies inside the window being scored; and
-nothing populates the gap between $0.05$ and $0.6$, which is where
-discrimination is genuinely hardest. The quasars are drawn from the sixteen sky
-blocks the model reserved before fitting ($21{,}826$ available in this cone),
-so the comparison is out of sample. The quasar populations separate from the
-field by $\sim\!14$ natural logarithms but from \emph{each other} by only
-$\sim\!2.6$: $grz+W1W2$ photometry
-identifies quasars far better than it locates them in redshift
-(\S\ref{sec:howmuch}). The figure shows the statistic's dynamic range, not an
-operating characteristic. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
+\includegraphics[width=0.74\textwidth]{../../plots/method/model_separation.png}
+\caption{The ranking statistic against a primary at $z_0=1.8$ for quasars at that
+redshift ($|z-z_0|<0.05$, all $282$ available in the reserved blocks), quasars
+at other redshifts ($|z-z_0|>0.6$) and field sources from the reserved cones,
+scored from Legacy $g,r,z,W1,W2$. Vertical lines mark the medians. The ``same''
+class extends to $2.7$ times the window half-width, and nothing populates
+$0.05<|z-z_0|<0.6$, where discrimination is hardest.}
 \label{fig:separation}
 \end{figure}
 
@@ -1057,27 +1018,16 @@ there, so \eqref{eq:tailratio} reflects how two fits' tails fell, not evidence.
 With three hypotheses an artefact, a moving object or a population absent from
 both training sets is called a quasar with probability one.
 
-This was found and measured on the predecessor model. A real candidate
-($z_0=1.8$, $r\approx21$) with its $g$ flux multiplied by $8$ at fixed error lay
-$6.6\sigma$ from every quasar component and $14.8\sigma$ from every field
-component, and was a quasar with probability $1.000$, $\ln\mathrm{BF}=+24.7$;
-multiplied by $32$, $22\sigma$ from every quasar component, likewise. Among the
-$21{,}284$ spectroscopic non-quasars of the pair validation, $11$ lay more than
-$3\sigma$ from both models, and $7$ of those were called quasars, against $0.9\%$
-near the loci.
+Measured on the model with three hypotheses: the README candidate
+($z_0=1.8$, $u_r\approx21$, Legacy $g,r,z,W1,W2$) with its $g$ flux multiplied
+by $8$ at fixed error lies $4.8\sigma$ from every quasar component and
+$7.3\sigma$ from every field component, and is a quasar with probability
+$1.000$, $\ln\mathrm{BF}=+14.4$; multiplied by $32$, $7.5\sigma$ and $11.2\sigma$
+away, likewise. Among the $21{,}284$ spectroscopic non-quasars of the pair
+validation, $95$ lie more than $3\sigma$ from both models, and $17$ of those are
+called quasars, against $0.8\%$ within $2\sigma$ (Table~\ref{tab:sweep},
+Figure~\ref{fig:outliers}).
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\textwidth]{../../plots/method/fig11_outlier_tails.png}
-\caption{\emph{Left, centre:} the README candidate with its $g$ or $z$ flux
-multiplied by $s$. Orange: the three-hypothesis posterior probability of a
-quasar at any redshift; blue: the same with the unmodelled term; grey dashed:
-$P(U)$. Numbers along the top are $\min(d_Q,d_B)$ in $\sigma$. \emph{Right:} the
-$21{,}284$ spectroscopic non-quasars of the pair validation, in bins of the
-distance to the nearer model (counts along the top): the fraction called
-quasars. With $U$ that fraction is zero in every bin beyond $2\sigma$. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
-\label{fig:outliers-predecessor}
-\end{figure}
 
 Two distances identify the regime and are reported for every object: the
 Mahalanobis distance to the nearest component,
@@ -1451,36 +1401,6 @@ it held only AllWISE catalogue fluxes, matched the predecessor on $g,r,z$ and
 could not use them; retraining with the Legacy forced bands as separate bands
 closed the gap.
 
-Figure~\ref{fig:validation-predecessor} is the predecessor's own validation
-figure on these pairs, and Figure~\ref{fig:old-new} the earlier comparison of
-the predecessor with the $37$-band version of this model on $4{,}000$ fresh
-held-out objects with $g,r,z$ only.
-
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\textwidth]{../../plots/validation/pair_validation.png}
-\caption{Validation on spectroscopically labelled pairs. \emph{Left:} ROC for
-same-redshift against wrong-redshift quasar companions, ranked three ways.
-\emph{Centre:} the Bayes factor against background for the three classes; the
-\textsf{non\_qso} class is bimodal because it mixes stars (left peak) with the
-galaxies DESI targeted (right peak, overlapping the quasars). \emph{Right:}
-reliability of $p(z\in W\,|\,\cvec,Q)$ among quasar companions. The points lie
-on a line parallel to the diagonal: the predicted probability is right in
-shape and low by a constant factor, which is the signature of physical
-clustering that the scorer deliberately does not model. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
-\label{fig:validation-predecessor}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\textwidth]{../../plots/validation/old_new_grz_fresh.png}
-\caption{Fresh matched-sample comparison after the background correction.
-Left: colour Bayes factors for all $4{,}000$ objects. Right: normalised
-redshift densities at the true redshift for $2{,}000$ quasars. The dashed
-line is equality. Good agreement in discrimination does not imply equal
-scores for every object. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
-\label{fig:old-new}
-\end{figure}
 
 \subsection{Every survey combination}
 \label{sec:subsets}
@@ -1542,111 +1462,41 @@ scatter of samples of $200$.
 \section{Worked examples}
 \label{sec:examples}
 
-\subsection{Ten real objects on Legacy optical colours (predecessor model)}
-\label{sec:examples-optical}
+\subsection{Ten real objects on Legacy photometry}
+\label{sec:examples-legacy}
 
-\emph{This subsection, its figure and its table are from the predecessor model
-(Appendix~\ref{app:predecessor}).}
-Figure~\ref{fig:examples} applies the classifier to five spectroscopic quasars
-and five point-like field sources, and draws the densities each one is judged
-against. It is deliberately the hard case: \textbf{DECaLS bands only}, with
-$W1$ and $W2$ marginalised out exactly through the observed-dimension mask
-rather than dropped. WISE carries most of the quasar/star discrimination, so
-this shows what the optical colours alone can do.
-
-Each object is treated as a separate problem. The field sources come one from
-each of five independent random fields --- not five from one patch, which would
-share a single stellar environment and be a random sample of nothing.
-
-\paragraph{Provenance.} The quasars are drawn from the sixteen sky blocks
-recorded in the model file as reserved before fitting, so none was used in
-training. An earlier version of this figure could not make that claim: the
-script re-derived the holdout from a different sample instead of reading it,
-and three of its five quasars turned out to be training objects (a $+0.018$~nat
-effect on their densities, measured, so the numbers were right but the caption
-was not). The split is now written by the training run and read by every
-consumer, and the figure was regenerated from the predecessor as retrained on
-2026-09-20 (Appendix~\ref{app:predecessor}).
+Figure~\ref{fig:examples} scores five quasars from the reserved sky blocks and
+five field sources from the reserved overlap field on Legacy DR9 south
+$g,r,z,W1,W2$ alone, and draws the densities each is judged against, projected
+onto $g-r$ and $r-z$. These are the objects of every version in
+\S\ref{sec:survey-examples}, drawn once, with seed zero, before any score was
+computed.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../plots/examples/optical_only_examples.png}
-\caption{Ten real objects scored on DECaLS colours alone. \emph{Top:} five
-DESI DR1 quasars from the model's reserved sky blocks, never used in fitting.
-\emph{Bottom:} five point sources,
-each from a different random field. Contours are the quasar model at $z_0$
-(blue), the stellar model averaged over the footprint (orange, dashed) and the
-stellar model fitted in this object's own neighbourhood (green). Panel titles
-give the target redshift, reference magnitude and Galactic coordinates; the
-measured object is the open circle with its error bars and covariance ellipse.
-The axes now show dereddened luptitude colours $u_g-u_r$ and $u_z-u_r$,
-using the southern Legacy softening parameters saved with the seven-survey
-model. The original flux-ratio model densities are transformed at each
-object's measured reference flux, including the change-of-variables Jacobian.
-The objects, trained models and scores are unchanged. These contours remain
-intrinsic densities, before measurement-noise convolution. Note that the outermost
-contour is drawn at $5\%$ of peak density, \emph{not} at an enclosed
-probability, so an object outside it is not thereby improbable. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
+\includegraphics[width=\textwidth]{../../plots/examples/multisurvey/decals.png}
+\caption{Ten real objects scored on Legacy DR9 south $g,r,z,W1,W2$.
+\emph{Top:} five quasars from the reserved sky blocks, never used in fitting.
+\emph{Bottom:} five field sources from the reserved overlap field, without
+spectroscopic class; each shares the target redshift of the quasar above it.
+Blue contours: the quasar density at $z_0$; green dashed: the field density
+(the dedicated Legacy fit), both in native luptitude colours conditioned on the
+measured $u_r$, with the plotted bands' measurement covariance convolved and all
+other bands marginalised. Levels are $5$, $30$ and $80\%$ of peak, not enclosed
+probabilities. The measured object is the circle with its error ellipse. The
+annotated $\ln\mathrm{BF}$ uses all five bands, so it carries evidence --- $W1$ and
+$W2$ above all --- that the two plotted colours do not show.}
 \label{fig:examples}
 \end{figure}
 
-\begin{center}
-\begin{tabular}{lrrrrr}
-\toprule
- & $z_0$ & $r$ & $\log \mathrm{BF}$ & $\log R$ & $p_{\rm same}$ \\
-\midrule
-quasars & $3.49$ & $21.2$ & $+3.7$ & $-3.8$ & $1.4\times10^{-3}$ \\
-        & $3.58$ & $21.0$ & $+6.3$ & $-1.3$ & $1.7\times10^{-2}$ \\
-        & $2.29$ & $20.8$ & $+4.1$ & $-1.7$ & $8.0\times10^{-3}$ \\
-        & $1.60$ & $21.2$ & $+5.4$ & $-0.5$ & $2.0\times10^{-2}$ \\
-        & $2.88$ & $20.0$ & $+3.6$ & $-3.8$ & $1.1\times10^{-3}$ \\
-\midrule
-field   & $2.29$ & $21.3$ & $-10.6$ & $-16.0$ & $4.7\times10^{-9}$ \\
-        & $1.60$ & $19.5$ & $-4.6$  & $-9.9$  & $1.8\times10^{-6}$ \\
-        & $3.58$ & $20.5$ & $-4.6$  & $-12.4$ & $2.5\times10^{-7}$ \\
-        & $1.60$ & $19.3$ & $-3.1$  & $-8.3$  & $8.9\times10^{-6}$ \\
-        & $1.60$ & $20.8$ & $\mathbf{-1.0}$ & $-5.8$ & $1.1\times10^{-4}$ \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-All five quasars separate from the field, by $3.6$ to $6.3$ natural logarithms,
-and all five field sources fall below zero, the closest at $-1.0$. Three things
-in the figure are worth more than that headline.
-
-\paragraph{The weakest cases are the expected ones.} The quasar at $z=2.88$ is
-the least separated ($\log\mathrm{BF}=+3.6$): its panel shows it where the
-quasar locus crosses the stellar sequence, the redshift at which optical quasar
-and star colours coincide, and an earlier draw of this figure had a $z=2.85$
-quasar come out at $-0.6$ for the same reason. The point source at
-$\log\mathrm{BF}=-1.0$ is the mirror image, a star sitting on the quasar locus
-at $z_0=1.6$. Neither is a modelling failure; both are the degeneracy that
-$W1-W2$ exists to break, and the clearest single argument for not running
-optical-only in production.
-
-\paragraph{The local and global stellar models agree here.} Green and orange
-track each other closely in all ten panels. These sightlines are all at
-$|b|>27^\circ$, where the field population is not varying rapidly, so the local
-fit \emph{confirms} the footprint average rather than overturning it. That is a
-useful negative result, and one only visible because both were drawn. It should
-not be generalised to low latitude, where the per-object fit is expected to
-matter and has not been tested.
-
-\paragraph{$p_{\rm same}$ is small even when the evidence is strong.} The best
-object here has $\log\mathrm{BF}=+6.3$ --- odds of about $550$ to $1$ on colour
-alone --- and still only $p_{\rm same}=0.017$, because the $\pm2000\kms$ window
-captures a few per cent of a redshift posterior that is an order of magnitude
-wider (\S\ref{sec:window}). The Bayes factor and the ranking are what carry the
-information; the posterior carries the window.
-
-\paragraph{A feature of the archived flux-ratio plot.} Small contour fragments
-near the origin, and a stray tick near $(0.3, 4.6)$, appeared in the original
-flux-ratio rendering, retained as
-\path{plots/examples/optical_only_examples_flux_ratio.png}.
-These belong to the \emph{global} stellar model and mark a mixture component
-sitting where essentially no real sources are. They do not affect the local
-models or any number in the table, but they indicate a stray component in that
-fit which has not been chased down.
+All five quasars have positive evidence, from $+5.2$ to $+18.2$, and all five
+field sources negative, from $-1.7$ to $-38.5$ (the Legacy row of the table in
+\S\ref{sec:survey-examples}). The quasars Q1--Q3 lie at $z\approx0.3$, where the
+optical quasar and galaxy colours are close: in the $g-r$, $r-z$ plane they sit
+among the field contours, and their evidence comes from the forced $W1,W2$.
+F1 is the weakest rejection, $-1.7$; with all seven surveys it becomes $+6.9$,
+and without a spectrum its class is unknown. The objects were not replaced to
+make the figure separate more cleanly.
 
 \subsection{The same five quasars and five field sources in every survey combination}
 \label{sec:survey-examples}
@@ -1863,17 +1713,6 @@ candidate's own cone described held-out field sources better by at most
 $0.2$~nats per object, left the false-positive rate unchanged, and moved quasar
 $\ln R$ by $0.1$.
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\textwidth]{../../plots/validation/background_modes.png}
-\caption{Global against local field model in $30$ cones. \emph{Left:} held-out
-log density of each cone's own field sources, local minus global. \emph{Centre:}
-fraction of held-out field sources with $\log\mathrm{BF}>0$ against a primary at
-$z_0=1.8$, under each model. \emph{Right:} median shift in $\log R$ for the DESI
-quasars in the cone. Orange: cones facing the Galactic centre; blue:
-anticentre. \emph{Computed with the predecessor Legacy model (Appendix~\ref{app:predecessor}).}}
-\label{fig:bkg-modes}
-\end{figure}
 \item \emph{The colour tails decide far from both models} (\S\ref{sec:outliers}).
 \end{itemize}
 

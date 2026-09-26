@@ -219,7 +219,9 @@ def main() -> None:
     rho = spearmanr(scores["B_original_grz_log_r"][both], scores["C_multisurvey_grz_log_r"][both])
     report["spearman_log_r_B_C"] = float(rho.statistic)
     print(f"\nSpearman(log R: B vs C) on {both.sum():,} rows: {rho.statistic:.3f}")
-    _save_npz(args.scores, label=lab, spectype=spt, held=held, dv_kms=dv, sep=sep, **scores)
+    _save_npz(args.scores, label=lab, spectype=spt, held=held, dv_kms=dv, sep=sep,
+              z_primary=zp, ref_mag=fs.ref_mag, l_deg=l, b_deg=b,
+              primary_id=np.asarray(d["prim_targetid"])[idx].astype(str), **scores)
     args.out.write_text(json.dumps(report, indent=1))
     print(f"wrote {args.out} and {args.scores}")
 
