@@ -77,13 +77,18 @@ def test_allwise_uses_raw_flux_even_when_negative():
 def test_legacy_north_and_south_are_distinct_bands():
     rows = dict(ra=np.arange(3.), dec=np.zeros(3), release=np.array([9010, 9011, 9012]),
                 maskbits=np.zeros(3, int))
-    for b in "grz":
+    for b in SURVEYS["decals"].bands:
         rows[f"value_{b}"] = np.ones(3)
         rows[f"error_{b}"] = np.ones(3)
         rows[f"nobs_{b}"] = np.ones(3, int)
     p = catalogue_photometry("decals", rows, clean=True, vhs_bad_bits=0)
-    assert np.array_equal(p.observed[:, 0], [True, False, True])
-    assert np.array_equal(p.observed[:, 3], [False, True, False])
+    south_g = p.bands.index("decals_dr9_south:g")
+    north_g = p.bands.index("decals_dr9_north:g")
+    assert np.array_equal(p.observed[:, south_g], [True, False, True])
+    assert np.array_equal(p.observed[:, north_g], [False, True, False])
+    # the forced WISE bands follow the same hemisphere split
+    assert np.array_equal(p.observed[:, p.bands.index("decals_dr9_south:w1")], [True, False, True])
+    assert np.array_equal(p.observed[:, p.bands.index("decals_dr9_north:w2")], [False, True, False])
 
 
 def synthetic_model():

@@ -50,9 +50,13 @@ SURVEYS = {
     "sdss": _survey("sdss", "sdssdr14.photoobjall", "ugriz",
                     lambda b: f"psfflux_{b}", lambda b: f"psffluxivar_{b}",
                     "ivar", where="c.mode=1", extra=("clean",)),
-    "decals": _survey("decals", "decals_dr9.main", "grz",
+    # w1, w2 are the Legacy forced unWISE fluxes at the optical position (AB
+    # nanomaggies): a different system from the AllWISE catalogue fluxes, and
+    # the single strongest quasar/star discriminant these catalogues offer.
+    "decals": _survey("decals", "decals_dr9.main", ("g", "r", "z", "w1", "w2"),
                       lambda b: f"flux_{b}", lambda b: f"flux_ivar_{b}",
-                      "ivar", extra=("release", "maskbits", "nobs_g", "nobs_r", "nobs_z")),
+                      "ivar", extra=("release", "maskbits", "nobs_g", "nobs_r", "nobs_z",
+                                     "nobs_w1", "nobs_w2")),
     "allwise": _survey("allwise", "allwise.main", ("w1", "w2", "w3", "w4"),
                        lambda b: f"{b}flux", lambda b: f"{b}sigflux", "dn",
                        extra=("cc_flags",), magnitude_system="Vega"),
@@ -185,10 +189,11 @@ def catalogue_photometry(name: str, rows: dict, *, clean: bool, vhs_bad_bits: in
             ok &= np.array([len(s) == 4 and s[j] == "0" for s in flags])
         f[~ok, j], v[~ok, j] = np.nan, np.inf
     if name == "decals":
-        ff, vv = np.full((n, 6), np.nan), np.full((n, 6), np.inf)
-        for offset, releases in ((0, (9010, 9012)), (3, (9011,))):
+        nb = len(spec.bands)
+        ff, vv = np.full((n, 2 * nb), np.nan), np.full((n, 2 * nb), np.inf)
+        for offset, releases in ((0, (9010, 9012)), (nb, (9011,))):
             sel = np.isin(rows["release"], releases)
-            ff[sel, offset:offset+3], vv[sel, offset:offset+3] = f[sel], v[sel]
+            ff[sel, offset:offset+nb], vv[sel, offset:offset+nb] = f[sel], v[sel]
         f, v = ff, vv
     return Photometry(f, v, band_labels((name,)))
 
