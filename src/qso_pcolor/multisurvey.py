@@ -119,30 +119,40 @@ class _ConditionalQSO(SlicedColourRedshiftModel):
         return _conditional_min_mahalanobis(self.mixtures, x, cov, observed, self.anchor)
 
 
-def _conditional_min_mahalanobis(mixtures, x, cov, observed, anchor):
+def _conditional_min_mahalanobis(mixtures, x, cov, observed, anchor, chunk=2048):
     """Nearest-component distance of the non-reference bands given the reference.
 
     Same conditioning as :func:`conditional_log_prob`: noise is added to the
     joint covariance first, then each component is conditioned on the anchor.
+    Vectorised over objects sharing an observed-band pattern.
     """
-    x = np.atleast_2d(x)
-    obs = np.ones_like(x, bool) if observed is None else observed
-    out = np.full(len(x), np.nan)
-    for i in range(len(x)):
-        dims = np.flatnonzero(obs[i] & (np.arange(x.shape[1]) != anchor))
-        if not len(dims) or not obs[i, anchor]:
-            continue
-        best = np.inf
-        for mix in mixtures:
-            for mu, intrinsic in zip(mix.means, mix.covs):
-                total = intrinsic + (0 if cov is None else cov[i])
-                va = total[anchor, anchor]
-                cross = total[dims, anchor]
-                mean = mu[dims] + cross / va * (x[i, anchor] - mu[anchor])
-                conditional = total[np.ix_(dims, dims)] - np.outer(cross, cross) / va
-                residual = np.linalg.solve(np.linalg.cholesky(conditional), x[i, dims]-mean)
-                best = min(best, float(np.sqrt(residual @ residual)))
-        out[i] = best
+    x = np.atleast_2d(np.asarray(x, float))
+    n, d = x.shape
+    obs = np.ones_like(x, bool) if observed is None else np.asarray(observed, bool)
+    s = np.zeros((n, d, d)) if cov is None else np.asarray(cov, float)
+    mus = np.concatenate([m.means for m in mixtures])
+    vs = np.concatenate([m.covs for m in mixtures])
+    out = np.full(n, np.nan)
+    pattern = obs & (np.arange(d) != anchor)
+    ok = obs[:, anchor] & pattern.any(axis=1)
+    packed = np.packbits(pattern, axis=1)
+    _, inverse = np.unique(packed, axis=0, return_inverse=True)
+    for g in np.unique(inverse[ok]):
+        rows = np.flatnonzero(ok & (inverse == g))
+        dims = np.flatnonzero(pattern[rows[0]])
+        j = np.concatenate([[anchor], dims])
+        vj = vs[np.ix_(np.arange(len(vs)), j, j)]                    # (K, J, J)
+        for lo in range(0, rows.size, chunk):
+            r = rows[lo:lo + chunk]
+            t = vj[None] + s[np.ix_(r, j, j)][:, None]                # (m, K, J, J)
+            va = t[..., 0, 0]
+            cross = t[..., 1:, 0]
+            mean = mus[None][..., dims] + cross / va[..., None] * (
+                x[r, anchor][:, None, None] - mus[None][..., anchor][..., None])
+            cond = t[..., 1:, 1:] - cross[..., :, None] * cross[..., None, :] / va[..., None, None]
+            y = np.linalg.solve(np.linalg.cholesky(cond),
+                                (x[r][:, dims][:, None, :] - mean)[..., None])[..., 0]
+            out[r] = np.sqrt(np.einsum("mki,mki->mk", y, y).min(axis=1))
     return out
 
 
@@ -366,3 +376,31 @@ class MultiSurveyModel:
                    BandLuptitudeTransform(tuple(tr["bands"]), np.array(tr["softening"])),
                    tuple(d["reference_priority"]), np.array(d["background_bounds"]), d["meta"],
                    tuple(GaussianMixture.from_dict(m) for m in d.get("background_marginals", [])))
+
+
+def load_priors(path: str | Path, model: MultiSurveyModel) -> dict:
+    """Reference-band surface densities for ``model``, ready for ``score(priors=...)``.
+
+    The file (``scripts/build_multisurvey_priors.py``) holds one
+    (Sigma_Q(z, u_a), Sigma_B(u_a)) pair per reference band, both per unit
+    native luptitude, for objects with that band measured. A file built for a
+    different luptitude transform is refused, since its densities would be per
+    unit of a different coordinate.
+
+    Returns
+    -------
+    dict
+        ``reference band label -> (GridQSOPrior, BackgroundSurfaceDensity)``.
+        Bands without enough data to build a pair are absent; candidates whose
+        reference is one of them get the no-prior status.
+    """
+    from .priors import BackgroundSurfaceDensity, GridQSOPrior
+
+    d = json.loads(Path(path).read_text())
+    if d.get("kind") != "multisurvey_priors":
+        raise ValueError(f"not a multi-survey prior file: kind={d.get('kind')!r}")
+    if d["transform_id"] != model.transform_id:
+        raise ValueError("priors were built for a different luptitude transform")
+    return {label: (GridQSOPrior.from_dict(e["qso_prior"]),
+                    BackgroundSurfaceDensity.from_dict(e["background_density"]))
+            for label, e in d["anchors"].items()}

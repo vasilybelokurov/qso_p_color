@@ -15,6 +15,7 @@ models/examples/
 !models/background_density_south_global.json
 !models/sigma_q_south.json
 !models/outlier_south.json
+!models/multisurvey_priors.json
 # Separate extension; the existing southern model remains available unchanged.
 !models/multisurvey.json
 # Preserve the initial joint-only extension for reproducible comparisons.
