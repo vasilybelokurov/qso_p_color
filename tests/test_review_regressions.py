@@ -425,13 +425,16 @@ def test_local_background_rejects_wrong_or_mixed_release():
 
 
 def test_readme_matches_the_shipped_model():
-    """The README described 1.24 M DESI quasars; a third of them are SDSS."""
+    """An earlier README described 1.24 M DESI quasars; a third were SDSS.
+
+    The README's training numbers must be the shipped model's own.
+    """
     import json
     import pathlib
 
-    meta = json.loads(pathlib.Path("models/archive/original_legacy_south/qso_south_full.json").read_text())["meta"]
+    meta = json.loads(pathlib.Path("models/multisurvey.json").read_text())["qso"]["meta"]
     readme = pathlib.Path("README.md").read_text()
-    for key in ("n_train", "n_desi", "n_sdss", "n_holdout"):
+    for key in ("n_fit", "n_holdout"):
         assert f"{meta[key]:,}" in readme, f"README does not state {key}"
     assert "1.24 M DESI" not in readme
 
@@ -592,7 +595,7 @@ def test_readme_does_not_offer_the_bayes_factor_as_a_ranking_statistic():
 
     readme = pathlib.Path("README.md").read_text()
     assert "`log_r_per_unit_z` or `log_bayes_factor_qz_bkg`" not in readme
-    assert "**not** an alternative ranking statistic" in readme
+    assert "not an alternative ranking statistic" in readme
 
 
 # ---------------------------------------- pair validation, 2026-09-20

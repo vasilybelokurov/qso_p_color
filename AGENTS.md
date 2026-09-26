@@ -11,6 +11,16 @@ says *what to do*.
 commit.** A write-up that describes a previous version of the code is worse
 than none.
 
+**There is one model** (2026-09-26): `MultiSurveyModel` in
+`models/multisurvey.json`, with `models/multisurvey_priors.json` and
+`models/multisurvey_outlier.json`. It takes any subset of 41 bands from seven
+surveys. Everything else under `models/` is in `models/archive/` and is not a
+model to score with (section 10). Milestones M1–M7 below are the history of the
+retired Legacy-only model; their rules still hold, their file names are archived.
+
+**Commit and push after every tested step.** Run the suite to a file, commit
+only if it passed (8b), then `git push origin main`.
+
 ---
 
 ## 1. The question
@@ -27,12 +37,13 @@ Three hypotheses, never two — plus a fourth that stops the model's tails from 
 | `same_z` | quasar whose redshift matches *z*₀ under a declared window |
 | `field_q` | quasar at some other redshift |
 | `bkg` | anything else in the imaging catalogue at that brightness and sky position |
-| `out` | the broad "unmodelled" share η(m) of that same field (`outlier.py`, `models/archive/original_legacy_south/outlier_south.json`) |
+| `out` | the broad "unmodelled" share η(u_a) of that same field (`MultiSurveyOutlier`, `models/multisurvey_outlier.json`) |
 
 Without `out`, an object far from both colour models is scored by whichever
 Gaussian tail happens to be wider, and is called a quasar with probability one
-(measured, 2026-09-26; `docs/method/method.tex`, section "Colour outliers"). Pass
-`outlier_model=` for real candidates.
+(measured, 2026-09-26; method note, section "Colour outliers"). Pass
+`outlier=MultiSurveyOutlier.load(...)` to `MultiSurveyModel.score` for real
+candidates.
 
 Dropping `field_q` is the dominant failure mode: a real quasar at *z* = 2.6
 beats the stellar locus easily and would otherwise be scored as evidence for a
@@ -84,45 +95,48 @@ Consequences, all enforced by tests:
 Working and tested (`pytest -q` → all green; run it before and after any change):
 
 ```
+models/
+  multisurvey.json          THE model: 41-band quasar slices, joint field fit,
+                            Legacy-south grz and grzW1W2 field fits, transform
+  multisurvey_priors.json   Sigma_Q(z, u_a), Sigma_B(u_a) for 37 reference bands
+  multisurvey_outlier.json  the unmodelled term (envelope, eta per band and bin)
+  archive/                  retired models; provenance and regression only
 src/qso_pcolor/
   gaussmix.py    batched log-densities, missing-dimension marginalisation,
-                 per-object noise convolution, joint conditioning
-  xd.py          extreme deconvolution (Bovy, Hogg & Roweis) in numpy,
-                 held-out selection of K
-  features.py    flux -> features with FULL covariance; relative-flux and
-                 asinh-colour transforms; dereddening
-  qso_model.py   redshift-conditional colour mixtures (default) + joint
-                 (colour, z) backend; RedshiftMatch
-  background.py  hierarchical (HEALPix cell, magnitude bin) background colours
-  priors.py      Sigma_B(m, l, b) and Sigma_Q(z, m)
-  outlier.py     the unmodelled hypothesis: dominating envelope covariance,
-                 ML outlier fraction
-  score.py       the scorer (three hypotheses, four with an outlier model)
-                 and PairScore output record
+                 per-object noise convolution, joint conditioning,
+                 nearest-component distances
+  xd.py          extreme deconvolution (Bovy, Hogg & Roweis) in numpy
+  multisurvey_data.py  41 survey-labelled bands, native photometry, catalogue
+                 adapters and quality cuts, same_training_config
+  multisurvey.py MultiSurveyModel (joint mixtures conditioned on a reference
+                 band), load_priors, MultiSurveyOutlier
+  score.py       the scorer shared by every model, PairScore output record
+  outlier.py     envelope covariance, dominance check, ML outlier fraction
+  qso_model.py   sliced redshift-conditional mixtures; RedshiftMatch
+  priors.py      GridQSOPrior, BackgroundSurfaceDensity
+  background.py, features.py   the retired model's field model and flux ratios
   data.py        WSDB queries, cached to .npz
-  multisurvey_data.py  survey-labelled native photometry and catalogue adapters
-  multisurvey.py       joint-band mixtures conditioned on an available reference;
-                      exact missing-band marginalisation, including infrared-only
   plotting.py    save_figure: every figure a PNG under plots/
-tools/journal.py          JOURNAL.md updater
+scripts/ (the model)
+  build_multisurvey_sample.py   quasar training sample, 24 field cones, overlap field
+  train_multisurvey_model.py    slices and joint field fit, spatial K selection
+  fit_background_marginal.py    dedicated Legacy-only field fits (append)
+  build_multisurvey_priors.py   surface densities per reference band
+  fit_multisurvey_outlier.py    kappa and eta on field sources the fit never used
+  validate_pairs_multisurvey.py labelled pairs, against the predecessor on the same rows
+  validate_multisurvey.py       all 127 survey subsets on reserved objects
+  make_validation_figures.py, plot_colour_redshift.py, make_multisurvey_examples.py
+scripts/ (the retired model; run against models/archive/)
+  train_qso_model.py, build_global_background.py, validate_pairs.py,
+  compare_background_modes.py, fit_outlier_model.py, outlier_analysis.py,
+  make_method_figures.py, score_examples.py, compare_old_new_models.py, ...
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
-scripts/make_method_figures.py     figures 1-8 for the method note
-scripts/score_examples.py          figure 9: ten real objects, local backgrounds
-scripts/recover_holdout_blocks.py  recover a trained model's spatial holdout
-scripts/build_multisurvey_sample.py  cached quasar and all-source field samples
-scripts/train_multisurvey_model.py   cached fits with spatial component selection
-scripts/validate_multisurvey.py      reserved-object checks for all survey subsets
-scripts/plot_colour_redshift.py     intrinsic colour-redshift marginals, including PS1
-scripts/fit_outlier_model.py        kappa and eta(m) on 22 held-out field cones
-scripts/outlier_analysis.py         figure 11: colour outliers with and without `out`
-docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    166 tests; see section 7
+tools/journal.py          JOURNAL.md updater
+docs/method/              method.tex + Makefile -> method.pdf
+tests/                    185 tests; see section 7
 ```
 
-Saved real-data models and validation scripts now ship for the original
-southern pipeline and the seven-survey extension. Sections below retain the
-milestone history; section 10 describes the extension. A general CLI and the
-remaining calibration work are not yet complete.
+A general CLI and the remaining calibration work are not yet complete.
 
 ---
 
@@ -627,6 +641,7 @@ p_zmatch_given_qso          conditional on being a quasar at all
 z_phot_mode
 log_lambda_sameq, log_lambda_fieldq, log_lambda_bkg
 log_r_per_unit_z            window-free evidence; RANK ON THIS
+reference_band, bands_used, surveys_used    what the densities were conditioned on
 dz_match_eff                the window area that turns R into p_sameq
 p_sameq_vs_bkg              same_z vs every non-quasar (bkg + out); ignores field quasars
 p_sameq                     = exp(log_r_per_unit_z) * dz_match_eff
@@ -643,7 +658,8 @@ n_bands_used, status, quality_flags, model_manifest_id
 
 `status` values in use: `ok`, `insufficient_photometry`,
 `no_prior_posterior_unavailable`, `qso_prior_empty_at_this_magnitude`,
-`primary_z_outside_model_support`, `blended_not_scored`. Add to this list
+`primary_z_outside_model_support`, `window_outside_model_support`,
+`blended_not_scored`. Add to this list
 rather than returning a silent number. Quality flag `outside_both_models` is
 set only when the caller passes `ood_flag_sigma` (no default: rule 2).
 
@@ -663,6 +679,11 @@ Existing patterns to follow:
 | `test_xd.py` | deconvolution recovers the *intrinsic* width where a plain GMM recovers the broadened one |
 | `test_features.py` | Jacobian covariance vs Monte Carlo flux realisations |
 | `test_score.py` | posterior normalisation, prior-shift invariance, system-mismatch refusal, the velocity-window limitation |
+| `test_multisurvey.py` | conditioning against closed-form Gaussians, luptitude covariance vs Monte Carlo, all 127 survey subsets, band layout |
+| `test_multisurvey_priors.py` | priors vs stored counts, vs the archived prior, and across surveys' r bands; vectorised distances vs direct solves |
+| `test_multisurvey_outlier.py`, `test_outlier.py` | the unmodelled term vs scipy, Schur-complement dominance, eta = 0 identity, far outliers |
+| `test_shipped_models.py` | the README example on the one model; the three files are consistent |
+| `test_archived_original.py` | the retired model's benchmark numbers, from `models/archive/` |
 
 `filterwarnings = ["error::RuntimeWarning"]` is set on purpose: an overflow in
 an exponential is a bug, and it caught one during development. Do not relax it.
@@ -726,50 +747,52 @@ pager's.
 - When the answer depends on a choice nobody has measured, measure it and put
   the number in `JOURNAL.md`. Do not pick a default and move on.
 
-## 10. Multi-survey extension (2026-09-21)
+## 10. The model (2026-09-26)
 
-The extension supports SDSS, DECaLS/Legacy DR9, ALLWISE, PS1, NSC, SkyMapper,
-and VHS, including infrared-only input. It retains the original southern
-artifacts. Its method is described in the main text of `docs/method/method.tex`;
-the run configurations are `configs/multisurvey*.json`.
+`models/multisurvey.json` (run `22820c906d75`; quasar and joint field fits from
+`d1f7f0f7cc78`, training config `configs/multisurvey_lsw.json`) is the only
+model. It was promoted after it matched or beat the retired Legacy-only model
+on that model's own validation, on identical rows (method note §10.3):
+held-out same/wrong-z AUC by log R 0.828 vs 0.815, quasar/star 0.982 vs 0.988.
 
-`scripts/compare_old_new_models.py` and `configs/model_comparison.json`
-define the matched, held-out Legacy grz comparison. Its results are recorded
-in `docs/MODEL_COMPARISON.md` and the method's main validation section.
-The initial extension's discrepancy was traced to the background. A separate
-southern grz background (K=16, chosen on the original internal selection fields)
-now applies only when it covers every observed band. Other combinations keep
-the joint background. The quasar fit is unchanged. Fresh-object confirmation
-in `docs/MODEL_COMPARISON_FRESH.md` gives original/new QSO/non-QSO AUC
-0.962/0.959 and redshift AUC 0.790/0.791; star AUC remains 0.970/0.953.
-Scores are not interchangeable. The initial extension is retained in
-`models/archive/multisurvey_joint_20260921.json`, with its original comparison report
-in `docs/MODEL_COMPARISON_JOINT.md`. Keep these samples fixed for regression
-checks; do not use them as unseen model-selection data in later work.
+- **41 bands**, each in its own system: SDSS ugriz; Legacy DR9 south and north
+  g, r, z, W1, W2 (the forced unWISE fluxes; release 9010/9012 south, 9011
+  north); AllWISE W1–W4; PS1 grizy; NSC ugrizy+VR; SkyMapper uvgriz; VHS YJHKs.
+  **Legacy forced W1/W2 and AllWISE W1/W2 are different bands; never relabel
+  one as the other.** Leaving the Legacy ones out cost 0.11–0.13 in AUC.
+- Native luptitudes of observed (not dereddened) photometry; AllWISE/VHS keep
+  Vega. Do not apply a dereddening transform to this model's inputs.
+- Scoring conditions the joint noisy distribution on the first observed band
+  in the saved priority, then marginalises missing bands. Two measurements
+  supply one colour. Do not multiply separate survey Bayes factors.
+- **Priors are per reference band**, per unit native luptitude of that band,
+  counted inside that survey's footprint, for objects with that band measured.
+  One completeness constant (C = 2.30) ties them to the archived original
+  prior. A prior must carry the reference label and `transform_id`; a new
+  transform needs new priors.
+- **Dedicated field fits** apply only when every observed band is inside their
+  band set (smallest first): Legacy-south g, r, z and g, r, z, W1, W2. Refit
+  them, and then the outlier term, whenever the joint model is retrained.
+- **The unmodelled term** must dominate every component of every density the
+  scorer uses, including the dedicated fits (embedded). `kappa > kappa_min` is
+  enforced on construction; `fit_multisurvey_outlier.py` rebuilds the envelope.
+- Preserve the quasar holdout blocks. Field validation reserves whole cones;
+  component selection uses further blocks/cones inside training. Rare field
+  measurement patterns are retained with abundance-restoring weights.
+- Training writes a candidate (`models/multisurvey_lsw.json`); promote it to
+  `models/multisurvey.json` only after `validate_pairs_multisurvey.py` and
+  `validate_multisurvey.py` pass, and regenerate priors, outlier, figures,
+  examples and the method note from the promoted file.
+- Fits stop at a 150-iteration cap (1 of 43 quasar slices and the joint field
+  fit do not reach 1e-5). Validation reports the saved fits at that point.
+- Clean-companion requirements still apply. A low-resolution AllWISE source
+  beside a bright primary does not certify a separated measurement.
 
-Keep the original four model/prior files tracked at their existing paths and
-keep their public loading APIs usable. The README's model-selection table and
-offline examples are the user entry points. The extension is an explicit
-additional choice, saved to `models/multisurvey.json`; it must not overwrite or
-silently replace the original artifacts.
-
-- The 37 coordinates are native survey-band luptitudes, including distinct
-  northern and southern Legacy bands. AllWISE/VHS keep Vega calibration;
-  do not treat these inputs as uniformly AB nanomaggies.
-- The new sample uses observed photometry at the configured high Galactic
-  latitude. Do not apply the original Legacy dereddening transform to it.
-- Scoring conditions the joint noisy distribution on an observed reference
-  band, then marginalises missing bands. Two measurements supply one colour.
-  Do not multiply separate survey Bayes factors.
-- A new prior must describe the same reference band, luptitude transform, and
-  selection. The original southern r prior cannot simply be relabelled. Without
-  matched priors, return evidence and the quasar-conditional redshift result
-  with the existing no-prior status; leave population posteriors and R NaN.
-- Preserve the old quasar holdout blocks. Field validation reserves whole
-  fields; component selection uses further blocks/fields inside training.
-  Rare field measurement patterns are retained with abundance-restoring weights.
-- Training writes convergence status and per-band counts; validation must
-  report the saved fits, including any iteration caps or sparse coverage.
-  Fitted mixtures are cached so rerunning a report does not repeat training.
-- Clean-companion requirements still apply. Matching a low-resolution source
-  to a position does not certify that its flux separates a close pair.
+**The archive.** `models/archive/original_legacy_south/` (the retired model),
+`multisurvey_37band_20260921.json` and its priors (before Legacy W1/W2),
+`multisurvey_joint_20260921.json` (initial joint-only). Never score science
+candidates with them, never move them back to top level, never delete them:
+the model's holdout blocks and prior normalisation come from the original
+bundle, and `tests/test_archived_original.py` pins its benchmark numbers. A
+moved input file is accepted by `same_training_config` only if its content, or
+where the old path is gone its name, is unchanged.
