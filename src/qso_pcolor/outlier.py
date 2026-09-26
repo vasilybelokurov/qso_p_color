@@ -54,6 +54,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.linalg import eigh
+from scipy.special import expit
 
 from .gaussmix import GaussianMixture
 
@@ -94,7 +95,8 @@ def mixture_moments(mixtures: list[GaussianMixture],
     return mean, 0.5 * (cov + cov.T)
 
 
-def min_dominant_kappa(base_cov: np.ndarray, mixtures: list[GaussianMixture]) -> float:
+def min_dominant_kappa(base_cov: np.ndarray, mixtures: list[GaussianMixture],
+                       extra_covs: np.ndarray | None = None) -> float:
     """Smallest kappa for which kappa^2 * base_cov exceeds every component.
 
     Returns :math:`\\sqrt{\\max_k \\lambda_{\\max}(\\mathbf{V}_k,
@@ -104,14 +106,16 @@ def min_dominant_kappa(base_cov: np.ndarray, mixtures: list[GaussianMixture]) ->
     density that eventually dominates every component in every direction.
     """
     worst = 0.0
-    for m in mixtures:
-        for vk in m.covs:
-            worst = max(worst, float(eigh(vk, base_cov, eigvals_only=True)[-1]))
+    covs = [v for m in mixtures for v in m.covs]
+    if extra_covs is not None:
+        covs += list(extra_covs)
+    for vk in covs:
+        worst = max(worst, float(eigh(vk, base_cov, eigvals_only=True)[-1]))
     return float(np.sqrt(worst))
 
 
-def envelope_covariance(base_cov: np.ndarray,
-                        mixtures: list[GaussianMixture]) -> np.ndarray:
+def envelope_covariance(base_cov: np.ndarray, mixtures: list[GaussianMixture],
+                        extra_covs: np.ndarray | None = None) -> np.ndarray:
     """A covariance >= ``base_cov`` and >= every component, in the Loewner order.
 
     Construction, all with Cholesky factors:
@@ -129,9 +133,14 @@ def envelope_covariance(base_cov: np.ndarray,
 
     The bound is anisotropic: it is only as wide as the widest component *in
     each direction*.  :func:`min_dominant_kappa` against it is at most one.
+
+    ``extra_covs`` (shape (n, d, d)) are further matrices to dominate that are
+    not components of a full-dimensional mixture -- e.g. a marginal fit in a few
+    bands, embedded with zeros elsewhere.  Positive semi-definite is enough.
     """
     lo = np.linalg.cholesky(base_cov)
-    covs = np.concatenate([m.covs for m in mixtures])
+    covs = np.concatenate([m.covs for m in mixtures]
+                          + ([np.asarray(extra_covs, float)] if extra_covs is not None else []))
     wk = np.linalg.solve(lo, np.swapaxes(np.linalg.solve(lo, covs), -1, -2))
     wk = 0.5 * (wk + np.swapaxes(wk, -1, -2))
     _, q = np.linalg.eigh(wk.mean(axis=0))
@@ -163,11 +172,12 @@ def fit_outlier_fraction(log_p_bkg: np.ndarray, log_p_out: np.ndarray, *,
     a, b = a[good], b[good]
     if a.size == 0:
         raise ValueError("no finite densities to fit")
-    # Responsibility of U at eta is 1 / (1 + (1-eta)/eta * exp(a - b)).
-    d = np.clip(a - b, -700.0, 700.0)
+    # Responsibility of U at eta: expit(log(eta / (1 - eta)) - (a - b)), in log
+    # space so a tiny eta cannot overflow.
+    d = np.where(np.isfinite(a - b), a - b, np.where(np.isfinite(a), 745.0, -745.0))
     eta = 0.5
     for _ in range(max_iter):
-        new = float(np.mean(1.0 / (1.0 + (1.0 - eta) / eta * np.exp(d))))
+        new = float(np.mean(expit(np.log(eta) - np.log1p(-eta) - d)))
         if abs(new - eta) < tol * max(eta, 1e-300):
             eta = new
             break

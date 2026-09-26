@@ -274,6 +274,7 @@ class MultiSurveyModel:
               match: RedshiftMatch, min_bands: int,
               l_deg: np.ndarray, b_deg: np.ndarray,
               priors: dict | None = None, flux_covariance: np.ndarray | None = None,
+              outlier: "MultiSurveyOutlier | None" = None,
               **kwargs) -> list[MultiSurveyScore]:
         """Score arbitrary survey subsets; ``min_bands`` counts measured bands.
 
@@ -286,8 +287,10 @@ class MultiSurveyModel:
             raise ValueError("colour evidence requires at least two measured bands")
         if kwargs.get("outlier_model") is not None:
             raise ValueError(
-                "no outlier model exists for the conditional multi-survey densities; "
-                "an unconditional one would have the wrong units")
+                "an unconditional outlier model has the wrong units for the conditional "
+                "multi-survey densities; pass outlier=MultiSurveyOutlier instead")
+        if outlier is not None and outlier.transform_id != self.transform_id:
+            raise ValueError("outlier model was built for a different luptitude transform")
         features = self.transform(photometry, flux_covariance=flux_covariance)
         n = features.n_obs
         if not n:
@@ -322,6 +325,8 @@ class MultiSurveyModel:
                     raise ValueError("prior reference band or luptitude transform does not match")
             local = dict(kwargs)
             local.setdefault("manifest_id",self.meta.get("run_id",self.qso.system))
+            if outlier is not None and outlier.has(label):
+                local["outlier_model"] = outlier.conditional(int(a), label, self.qso.system)
             for key in ("candidate_id", "primary_id", "separation_arcsec", "fracflux"):
                 if key in local and local[key] is not None:
                     local[key] = np.broadcast_to(np.asarray(local[key]), (n,))[rows]
@@ -404,3 +409,91 @@ def load_priors(path: str | Path, model: MultiSurveyModel) -> dict:
     return {label: (GridQSOPrior.from_dict(e["qso_prior"]),
                     BackgroundSurfaceDensity.from_dict(e["background_density"]))
             for label, e in d["anchors"].items()}
+
+
+@dataclass
+class MultiSurveyOutlier:
+    """The unmodelled hypothesis for the conditional multi-survey densities.
+
+    One joint Gaussian :math:`\\mathcal N(\\bar{\\mathbf u}, \\kappa^2\\mathbf E)` over
+    all luptitudes, conditioned on the reference band exactly as the quasar and
+    background mixtures are.  If :math:`\\kappa^2\\mathbf E \\succeq \\mathbf V_k` for
+    every joint component, the same holds for the conditional covariances
+    (Schur complements are monotone in the Loewner order), so the conditional
+    density dominates every conditional tail.  :math:`\\eta` is fitted per
+    reference band and magnitude bin; a band with too few calibration objects
+    uses the pooled fraction stored under ``"*"``.
+    """
+    mean: np.ndarray
+    cov: np.ndarray
+    kappa: float
+    kappa_min: float
+    labels: tuple[str, ...]
+    transform_id: str
+    fractions: dict                   # label -> (mag_edges, fraction)
+    meta: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.mean = np.asarray(self.mean, float)
+        self.cov = np.asarray(self.cov, float)
+        self.labels = tuple(self.labels)
+        if not self.kappa > self.kappa_min:
+            raise ValueError("kappa does not exceed kappa_min: the density would not "
+                             "dominate every component's tail")
+        self.fractions = {k: (np.asarray(e, float), np.asarray(f, float))
+                          for k, (e, f) in self.fractions.items()}
+        for k, (e, f) in self.fractions.items():
+            if f.size != e.size - 1 or ((f < 0) | (f >= 1)).any():
+                raise ValueError(f"{k}: one fraction in [0, 1) per magnitude bin")
+        self._mix = GaussianMixture(np.ones(1), self.mean[None], self.cov[None],
+                                    labels=self.labels)
+
+    def has(self, label: str) -> bool:
+        return label in self.fractions or "*" in self.fractions
+
+    def conditional(self, anchor: int, label: str, system: str) -> "_ConditionalOutlier":
+        edges, frac = self.fractions.get(label, self.fractions.get("*"))
+        return _ConditionalOutlier(self._mix, anchor, edges, frac, system, self.labels)
+
+    def to_dict(self) -> dict:
+        return {"kind": "multisurvey_outlier", "mean": self.mean.tolist(),
+                "cov": self.cov.tolist(), "kappa": self.kappa, "kappa_min": self.kappa_min,
+                "labels": list(self.labels), "transform_id": self.transform_id,
+                "fractions": {k: [e.tolist(), f.tolist()] for k, (e, f) in self.fractions.items()},
+                "meta": self.meta}
+
+    def save(self, path: str | Path) -> None:
+        path = Path(path)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(self.to_dict()))
+        tmp.replace(path)
+
+    @classmethod
+    def load(cls, path: str | Path) -> "MultiSurveyOutlier":
+        d = json.loads(Path(path).read_text())
+        if d.get("kind") != "multisurvey_outlier":
+            raise ValueError(f"not a multi-survey outlier model: kind={d.get('kind')!r}")
+        return cls(d["mean"], d["cov"], d["kappa"], d["kappa_min"], tuple(d["labels"]),
+                   d["transform_id"], {k: tuple(v) for k, v in d["fractions"].items()},
+                   d.get("meta", {}))
+
+
+class _ConditionalOutlier:
+    """What ``score_candidates`` needs: a conditional log density and eta(m)."""
+
+    def __init__(self, mix, anchor, edges, fraction, system, labels):
+        self.mix, self.anchor, self.edges, self.fraction = mix, anchor, edges, fraction
+        self.system, self.labels = system, labels
+
+    def check_system(self, system):
+        if system != self.system:
+            raise ValueError("multisurvey outlier system mismatch")
+
+    def log_prob(self, x, cov=None, *, observed=None):
+        obs = np.ones_like(x, bool) if observed is None else observed
+        return conditional_log_prob(self.mix, x, cov, obs, self.anchor)
+
+    def fraction_at(self, ref_mag):
+        idx = np.clip(np.digitize(np.asarray(ref_mag, float), self.edges) - 1, 0,
+                      self.fraction.size - 1)
+        return self.fraction[idx]
