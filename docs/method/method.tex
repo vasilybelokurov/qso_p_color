@@ -59,9 +59,9 @@ $R$. On $50{,}746$ companions of DESI quasars that have spectra of their own,
 Legacy $g,r,z,W1,W2$ photometry ranks a same-redshift quasar above a
 wrong-redshift one with held-out AUC $0.828$, and separates quasars from
 stars and galaxies with AUC $0.982$ and $0.961$; the same-redshift
-probability is low by a factor that falls with separation --- an odds
-multiplier of $25$ at $3$--$5''$ falling to $3.9$ at $20$--$30''$ --- the
-signature of quasar clustering that the scorer deliberately omits. Quasars just outside a $\pm3000\kms$ window cannot be
+probability is low by a factor that falls from $9.8$ at $3$--$5''$ to
+$3.3$ at $20$--$30''$, the signature of quasar clustering that the scorer
+deliberately omits. Quasars just outside a $\pm3000\kms$ window cannot be
 distinguished from those inside it. The model replaces an earlier
 Legacy-only model (Appendix~\ref{app:predecessor}): on identical inputs it
 ranks redshift better ($0.828$ against $0.815$) and rejects stars slightly less
@@ -1358,38 +1358,20 @@ all non-quasars, $0.966$; ranking by $\ln R$ instead, same-redshift quasars
 against non-quasars, $0.995$.
 
 \paragraph{Calibration, and what the miscalibration measures.} The predicted
-$p(z\in W\mid\uvec,Q)$ is too low, by an amount that depends on separation. If
-clustering multiplies the same-redshift intensity by $A$, an object's
-probability $p$ becomes
-%
-\begin{equation}
-p' = \frac{A\,p}{1-p+A\,p},
-\label{eq:clustering}
-\end{equation}
-%
-so $A$ is an \emph{odds} multiplier. It is not the ratio of mean observed to
-mean predicted probability, which is what an earlier version of this note
-tabulated and told the reader to multiply the odds by; the two agree only while
-both probabilities are small. $A$ is fitted in each separation bin by maximising
-the Bernoulli likelihood of the \textsf{same\_z} labels under \eqref{eq:clustering}
-with each quasar companion's own $p$ (uncertainties from the likelihood's
-curvature):
+$p(z\in W\mid\uvec,Q)$ is low by a factor that depends on separation:
 
 \begin{center}
-\begin{tabular}{crcccc}
+\begin{tabular}{crccc}
 \toprule
-separation & $n$ & mean predicted & observed & ratio of means & odds multiplier $A$ \\
+separation & $n$ & mean predicted & observed & ratio \\
 \midrule
-$3$--$5''$   & $674$      & $0.038$ & $0.368$ & $9.8$ & $24.8\times\!/\,1.10$ \\
-$5$--$10''$  & $2{,}754$  & $0.032$ & $0.235$ & $7.4$ & $13.3\times\!/\,1.05$ \\
-$10$--$20''$ & $9{,}912$  & $0.025$ & $0.123$ & $4.9$ & $6.7\times\!/\,1.03$ \\
-$20$--$30''$ & $16{,}122$ & $0.022$ & $0.074$ & $3.3$ & $3.9\times\!/\,1.03$ \\
+$3$--$5''$   & $674$      & $0.038$ & $0.368$ & $9.8$ \\
+$5$--$10''$  & $2{,}754$  & $0.032$ & $0.235$ & $7.4$ \\
+$10$--$20''$ & $9{,}912$  & $0.025$ & $0.123$ & $4.9$ \\
+$20$--$30''$ & $16{,}122$ & $0.022$ & $0.074$ & $3.3$ \\
 \bottomrule
 \end{tabular}
 \end{center}
-
-\noindent
-With these $A$ the mean of $p'$ equals the observed fraction in every bin.
 
 \noindent
 The scorer draws the companion's redshift from the field distribution $\Sq$, but
@@ -1399,11 +1381,10 @@ not contain. The shape of the prediction is right --- the ranking says so --- an
 its normalisation is short by the projected quasar--quasar correlation
 integrated over the window. The excess is left out of the scorer on purpose, so
 that the ranking carries no cosmological assumption; a user who wants a
-probability applies \eqref{eq:clustering} with the $A$ for their separation. The
-predecessor measured the same ratios of means to two significant figures
-($10.0$, $7.4$, $4.9$, $3.3$), as it should: they measure the sky, not the model.
-Whether $A$ reaches unity beyond $30''$ is not yet measured, and these $A$ apply
-to candidates selected like DESI's spectroscopic companions.
+probability multiplies the odds by the factor for their separation. The
+predecessor measured the same factors to two significant figures ($10.0$, $7.4$,
+$4.9$, $3.3$), as it should: the ratio measures the sky, not the model. Whether
+it reaches unity beyond $30''$ is not yet measured.
 
 \subsection{Against the predecessor, on identical inputs}
 \label{sec:predecessor-compare}
@@ -1631,8 +1612,8 @@ classification posterior under field priors. A physical-pair calculation
 additionally conditions the quasar intensity on angular separation through
 small-scale quasar clustering \citep{hennawi2006,eftekharzadeh2017}. That layer
 is deliberately separate; its size is measured in \S\ref{sec:validation-results},
-and a user who wants a probability applies the odds multiplier $A$ for their
-separation through \eqref{eq:clustering}. The ranking statistic is unaffected.
+and a user who wants a probability multiplies the odds by that factor for their
+separation. The ranking statistic is unaffected.
 
 \paragraph{Colour cannot resolve the velocity window.} Quasars just outside
 $\pm3000\kms$ are indistinguishable from those inside (\S\ref{sec:validation-results}).

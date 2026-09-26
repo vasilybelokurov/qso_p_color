@@ -614,14 +614,6 @@ quasars (0.9 % near the loci). Remedy, in `outlier.py`:
 - **Not for the multi-survey scorer**, whose densities are conditional; it
   raises if given one, and reports conditional distances.
 
-### Clustering is an odds multiplier (2026-09-26)
-
-The separation table used to give observed/predicted mean probability (9.8,
-7.4, 4.9, 3.3) and say "multiply the odds by it". Wrong: if clustering
-multiplies the same-z intensity by A, p' = A p / (1 - p + A p). Fitted by the
-Bernoulli likelihood on each companion's own p: A = 24.8, 13.3, 6.7, 3.9 for
-3-5, 5-10, 10-20, 20-30''. Found by an external (ChatGPT) review.
-
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by
