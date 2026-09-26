@@ -6,12 +6,14 @@ three ways, on exactly the same rows:
 
 A. original model, dereddened Legacy g, r, z + Legacy forced W1, W2 (shipped);
 B. original model, g, r, z only (W1, W2 marked unmeasured);
-C. multi-survey model, native Legacy DR9-south g, r, z, with
-   ``models/multisurvey_priors.json``.
+C. multi-survey model, native Legacy DR9-south g, r, z, with its priors;
+D. (with ``--ms-model`` trained on Legacy forced W1/W2) the multi-survey
+   model on native Legacy g, r, z, W1, W2, with its priors and, if given,
+   its outlier term.
 
-C cannot use the pair catalogue's W1/W2: those are Legacy forced unWISE
-fluxes, a different system from the AllWISE catalogue the multi-survey model
-was trained on. So B is the like-for-like comparison and A is the target.
+The pair catalogue's W1/W2 are Legacy forced unWISE fluxes, a different
+system from AllWISE; only a model with ``decals_dr9_south:w1/w2`` bands can
+use them. B is the like-for-like comparison for C, A for D.
 Rows are those ``validate_pairs.py`` scores (same selection, same blend
 policy); held-out means the original model's reserved sky blocks, which the
 multi-survey quasar fit also reserved.
@@ -71,6 +73,8 @@ def main() -> None:
     ap.add_argument("--max-non-qso", type=int, default=30000)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--priors", type=Path, default=Path("models/multisurvey_priors.json"))
+    ap.add_argument("--ms-model", type=Path, default=Path("models/multisurvey.json"))
+    ap.add_argument("--ms-outlier", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path("data/pair_validation_multisurvey.json"))
     ap.add_argument("--scores", type=Path, default=Path("data/pair_validation_multisurvey.npz"))
     args = ap.parse_args()
@@ -78,7 +82,7 @@ def main() -> None:
     from qso_pcolor.background import BackgroundColourModel, galactic_healpix
     from qso_pcolor.data import _save_npz, galactic_from_equatorial
     from qso_pcolor.features import RelativeFluxTransform, deredden
-    from qso_pcolor.multisurvey import MultiSurveyModel, load_priors
+    from qso_pcolor.multisurvey import MultiSurveyModel, MultiSurveyOutlier, load_priors
     from qso_pcolor.multisurvey_data import Photometry
     from qso_pcolor.priors import BackgroundSurfaceDensity, GridQSOPrior
     from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
@@ -90,7 +94,7 @@ def main() -> None:
     bkg = BackgroundColourModel.load("models/background_south_global.json")
     dens = BackgroundSurfaceDensity.load("models/background_density_south_global.json")
     prior = GridQSOPrior.load("models/sigma_q_south.json")
-    ms = MultiSurveyModel.load("models/multisurvey.json")
+    ms = MultiSurveyModel.load(args.ms_model)
     ms_priors = load_priors(args.priors, ms)
 
     # -- the selection of validate_pairs.py, verbatim in effect -----------------
@@ -151,10 +155,49 @@ def main() -> None:
     print(f"C scored ({time.time() - t0:.0f} s); reference bands: "
           + ", ".join(f"{k} {v}" for k, v in zip(*np.unique([r.reference_band for r in rows_c],
                                                             return_counts=True))))
+    configs = [("A_original_grzW", rows_a), ("B_original_grz", rows_b),
+               ("C_multisurvey_grz", rows_c)]
+    if "decals_dr9_south:w1" in ms.transform.bands:
+        var = np.where(ivar > 0, 1.0 / np.where(ivar > 0, ivar, 1.0), np.inf)
+        ph5 = Photometry(flux, var, tuple(f"decals_dr9_south:{b}" for b in BANDS))
+        out_model = MultiSurveyOutlier.load(args.ms_outlier) if args.ms_outlier else None
+        t0 = time.time()
+        rows_d = ms.score(ph5, min_bands=2, priors=ms_priors, outlier=out_model, **common)
+        print(f"D scored ({time.time() - t0:.0f} s)")
+        configs.append(("D_multisurvey_grzW", rows_d))
 
-    for name, rows in (("A_original_grzW", rows_a), ("B_original_grz", rows_b),
-                       ("C_multisurvey_grz", rows_c)):
+    for name, rows in configs:
         m, logr, logbf, pz, ok = metrics(lab, spt, held, rows, dv, args.hard_negative_max_kms)
+        col = lambda k: np.array([getattr(r, k) for r in rows], float)  # noqa: E731
+        # calibration of p(z in W | Q) by separation: the clustering excess
+        qq = ok & np.isin(lab, ["same_z", "field_q"])
+        m["calibration_by_separation"] = []
+        for lo_, hi_ in ((3, 5), (5, 10), (10, 20), (20, 30)):
+            s_ = qq & (sep >= lo_) & (sep < hi_)
+            if s_.sum() >= 50:
+                pred, emp = float(pz[s_].mean()), float((lab[s_] == "same_z").mean())
+                m["calibration_by_separation"].append(
+                    {"sep": [lo_, hi_], "n": int(s_.sum()), "predicted": pred,
+                     "empirical": emp, "ratio": emp / pred})
+        # the tails: far from both models, called a quasar at any z?
+        far = np.fmin(col("qso_ood_sigma_any_z"), col("bkg_ood_sigma"))
+        with np.errstate(invalid="ignore"):
+            lq = np.logaddexp(col("log_lambda_sameq"), col("log_lambda_fieldq"))
+            lo = col("log_lambda_out")
+            ln = np.where(np.isfinite(lo), np.logaddexp(col("log_lambda_bkg"), lo),
+                          col("log_lambda_bkg"))
+        called = (lq - ln) > 0
+        isq = spt == "QSO"
+        m["tails"] = []
+        for a_, b_ in ((0, 2), (2, 3), (3, 4), (4, 6), (6, np.inf)):
+            t_ = ok & (far >= a_) & (far < b_)
+            m["tails"].append({"sigma": [a_, b_], "n_non_qso": int((t_ & ~isq).sum()),
+                               "non_qso_called_quasar": int((t_ & ~isq & called).sum()),
+                               "n_qso": int((t_ & isq).sum()),
+                               "qso_called_quasar": int((t_ & isq & called).sum())})
+        m["non_qso_called_quasar"] = int((ok & ~isq & called).sum())
+        scores[name + "_far"], scores[name + "_called"] = far, called
+        scores[name + "_p_outlier"] = col("p_outlier")
         report[name] = m
         scores[name + "_log_r"], scores[name + "_log_bf"] = logr, logbf
         scores[name + "_p_zmatch"], scores[name + "_ok"] = pz, ok
@@ -165,12 +208,18 @@ def main() -> None:
                   "quasar_vs_star_by_log_bf", "quasar_vs_galaxy_by_log_bf",
                   "same_vs_non_qso_by_log_r"):
             print(f"  {k:30s} {h[k]:.3f}   (all {m['all'][k]:.3f})")
+    if "D_multisurvey_grzW_ok" in scores:
+        from scipy.stats import spearmanr as _sp
+        both = scores["A_original_grzW_ok"].astype(bool) & scores["D_multisurvey_grzW_ok"].astype(bool)
+        rho_ad = _sp(scores["A_original_grzW_log_r"][both], scores["D_multisurvey_grzW_log_r"][both])
+        report["spearman_log_r_A_D"] = float(rho_ad.statistic)
+        print(f"Spearman(log R: A vs D) on {both.sum():,} rows: {rho_ad.statistic:.3f}")
     both = scores["B_original_grz_ok"].astype(bool) & scores["C_multisurvey_grz_ok"].astype(bool)
     from scipy.stats import spearmanr
     rho = spearmanr(scores["B_original_grz_log_r"][both], scores["C_multisurvey_grz_log_r"][both])
     report["spearman_log_r_B_C"] = float(rho.statistic)
     print(f"\nSpearman(log R: B vs C) on {both.sum():,} rows: {rho.statistic:.3f}")
-    _save_npz(args.scores, label=lab, spectype=spt, held=held, dv_kms=dv, **scores)
+    _save_npz(args.scores, label=lab, spectype=spt, held=held, dv_kms=dv, sep=sep, **scores)
     args.out.write_text(json.dumps(report, indent=1))
     print(f"wrote {args.out} and {args.scores}")
 

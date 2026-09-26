@@ -1,0 +1,25 @@
+{
+  "model_path": "models/multisurvey_lsw.json",
+  "sample_config": "configs/multisurvey_lsw.json",
+  "out": "models/multisurvey_lsw_priors.json",
+  "footprint_nside": 32,
+  "footprint_min_detections": 2,
+  "parent_min_per_cell": 20,
+  "mag_bin_width": 0.5,
+  "mag_quantiles": [
+    0.002,
+    0.998
+  ],
+  "min_quasars_per_anchor": 2000,
+  "min_field_sources_per_anchor": 2000,
+  "min_bands": 2,
+  "normalisation": {
+    "reference_prior": "models/sigma_q_south.json",
+    "anchor": "decals_dr9_south:r",
+    "mag_range": [
+      17.0,
+      22.5
+    ],
+    "why": "one spectroscopic-completeness constant for every anchor, fixed so the Legacy-south r prior integrates to the validated original prior over its own range"
+  }
+}

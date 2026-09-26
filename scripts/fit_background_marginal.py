@@ -77,13 +77,17 @@ def main():
     parser.add_argument('--diagnose-only',action='store_true')
     args = parser.parse_args(); cfg = json.loads(args.config.read_text())
     model = MultiSurveyModel.load(cfg['base_model'])
-    if model.background_marginals:
-        raise ValueError('start from the archived joint-only model, not an already corrected model')
+    labels = tuple(cfg['bands'])
+    if any(tuple(m.labels) == labels for m in model.background_marginals):
+        raise ValueError('the base model already has a marginal for these bands')
+    if model.background_marginals and not cfg.get('append', False):
+        raise ValueError("base model already has marginals; set \"append\": true to add another")
     if args.diagnose_only:
         diagnose_background(cfg,model)
         return
     settings = model.meta['settings']; original = settings['config']
     hashes = {key:digest(cfg[key]) for key in ['base_model','background_sample']}
+    base_run = model.meta.get('joint_run_id', model.meta['run_id'])
     if hashes['background_sample'] != settings['background_sha256']:
         raise ValueError('background cache differs from the base-model training data')
     identity = dict(config=cfg, hashes=hashes)
@@ -96,7 +100,7 @@ def main():
         ~data['held'] & (phot.observed.sum(1)>=original['min_bands']),
         settings['max_background_fit'], original['min_band_training'],
         np.random.default_rng(original['seed']+10))
-    labels = tuple(cfg['bands']); indices = np.array([phot.bands.index(b) for b in labels])
+    indices = np.array([phot.bands.index(b) for b in labels])
     rows = rows[phot.observed[rows][:,indices].all(axis=1)]
     features = model.transform(phot.subset(rows))
     x = features.x[:,indices]; cov = features.cov[:,indices,:][:,:,indices]
@@ -136,8 +140,11 @@ def main():
                     final={k:v for k,v in final.items() if k!='mixture'},
                     selection_fields=model.meta['background_selection_fields'],
                     routing='Use only when all observed bands are contained in the fitted band set; otherwise use the joint background.')
-    model.background_marginals = (GaussianMixture.from_dict(final['mixture']),)
-    model.meta = {**model.meta,'joint_run_id':model.meta['run_id'],'run_id':run,'background_marginal':manifest}
+    model.background_marginals = model.background_marginals + (GaussianMixture.from_dict(final['mixture']),)
+    fitted = list(model.meta.get('background_marginals_fitted',
+                                 [model.meta['background_marginal']] if 'background_marginal' in model.meta else []))
+    model.meta = {**model.meta,'joint_run_id':base_run,'run_id':run,'background_marginal':manifest,
+                  'background_marginals_fitted':fitted + [manifest]}
     model.save(cfg['output_model'])
     print('Saved candidate',cfg['output_model'],flush=True)
 

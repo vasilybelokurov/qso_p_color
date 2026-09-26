@@ -1,0 +1,25 @@
+{
+  "base_model": "models/multisurvey_lsw.json",
+  "background_sample": "data/multisurvey_lsw/background.npz",
+  "comparison_sample": "data/multisurvey/old_new_comparison.npz",
+  "original_background": "models/background_south_global.json",
+  "diagnostic_report": null,
+  "output_model": "models/multisurvey_lsw.json",
+  "cache_dir": "data/multisurvey_lsw/background_marginal_fits_grz",
+  "bands": [
+    "decals_dr9_south:g",
+    "decals_dr9_south:r",
+    "decals_dr9_south:z"
+  ],
+  "reference_band": "decals_dr9_south:r",
+  "seed": 20260921,
+  "k_candidates": [
+    8,
+    16,
+    32
+  ],
+  "regularization": 0.001,
+  "max_iter": 150,
+  "tol": 1e-05,
+  "append": false
+}
