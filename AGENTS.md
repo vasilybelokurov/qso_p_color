@@ -773,9 +773,15 @@ held-out same/wrong-z AUC by log R 0.828 vs 0.815, quasar/star 0.982 vs 0.988.
 - **Dedicated field fits** apply only when every observed band is inside their
   band set (smallest first): Legacy-south g, r, z and g, r, z, W1, W2. Refit
   them, and then the outlier term, whenever the joint model is retrained.
-- **The unmodelled term** must dominate every component of every density the
-  scorer uses, including the dedicated fits (embedded). `kappa > kappa_min` is
-  enforced on construction; `fit_multisurvey_outlier.py` rebuilds the envelope.
+- **The unmodelled term is a Student-t** (nu = 2, scale 1.5 x the field
+  covariance, eta per reference band and bin), refitted by
+  `fit_multisurvey_outlier.py` after any retrain. Its power-law tail exceeds
+  every Gaussian component far enough out whatever its scale. **Do not go back
+  to a Gaussian envelope:** to dominate all 224 components it had to be several
+  luptitudes wide, so its fitted share was negligible exactly where the field
+  model's tails are wrong (bright field sources below 1e-4 of peak: 2-5
+  observed, 0.2-0.3 predicted; Gaussian U 0.6, t 4.4-5.6). Check that tail-count
+  table and the pair-validation tails whenever the term or the field fit changes.
 - Preserve the quasar holdout blocks. Field validation reserves whole cones;
   component selection uses further blocks/cones inside training. Rare field
   measurement patterns are retained with abundance-restoring weights.

@@ -52,7 +52,7 @@ Three files, all in `models/`, are the model:
 |---|---|
 | [multisurvey.json](models/multisurvey.json) | quasar and field densities over native band luptitudes, the luptitude transform, the band schema, dedicated Legacy-only field fits, training manifest |
 | [multisurvey_priors.json](models/multisurvey_priors.json) | surface densities Σ_Q(z, u_a) and Σ_B(u_a) for 37 of the 41 possible reference bands |
-| [multisurvey_outlier.json](models/multisurvey_outlier.json) | the unmodelled hypothesis: a normalised Gaussian wider than every component, and its fitted share of the field |
+| [multisurvey_outlier.json](models/multisurvey_outlier.json) | the unmodelled hypothesis: a heavy-tailed Student-t (ν = 2) at the field's own scale, and its fitted share of the field |
 
 Without the priors you get the colour evidence and the quasar-only redshift
 probability; with them, the posterior and the ranking statistic *R*.
@@ -127,10 +127,10 @@ s = model.score(
     blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
     separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
 )[0]
-print(s.log_bayes_factor_qz_bkg)   # +3.90    evidence: quasar at z0 vs the field
+print(s.log_bayes_factor_qz_bkg)   # +3.91    evidence: quasar at z0 vs the field
 print(s.log_r_per_unit_z)          # -1.73    the ranking statistic
 print(s.p_sameq, s.dz_match_eff)   # 6.6e-03  posterior for the ±2000 km/s window, and its width
-print(s.p_outlier)                 # 3.4e-06  share taken by "unmodelled"
+print(s.p_outlier)                 # 1.4e-03  share taken by "unmodelled"
 print(s.qso_ood_sigma_any_z, s.bkg_ood_sigma)   # 0.43 2.33  distance to each model, in sigma
 print(s.reference_band, s.status)  # decals_dr9_south:r ok
 ```

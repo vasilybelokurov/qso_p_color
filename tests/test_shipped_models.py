@@ -47,10 +47,10 @@ def test_the_readme_example():
     assert s.status == "ok" and s.reference_band == "decals_dr9_south:r"
     assert s.surveys_used == ("decals",)
     # the README quotes these
-    assert s.log_bayes_factor_qz_bkg == pytest.approx(3.90, abs=0.05)
+    assert s.log_bayes_factor_qz_bkg == pytest.approx(3.91, abs=0.05)
     assert s.log_r_per_unit_z == pytest.approx(-1.73, abs=0.05)
     assert s.p_sameq == pytest.approx(6.6e-3, rel=0.05)
-    assert s.p_outlier < 1e-4
+    assert s.p_outlier < 1e-2                         # 1.4e-3: near the loci U is minor
     assert s.p_sameq == pytest.approx(np.exp(s.log_r_per_unit_z) * s.dz_match_eff, rel=1e-10)
     assert "outside_both_models" not in s.quality_flags
 
@@ -60,28 +60,38 @@ def test_the_model_files_describe_one_consistent_model():
     assert len(model.transform.bands) == 41
     assert {"decals_dr9_south:w1", "decals_dr9_north:w2", "allwise:w1"} <= set(model.transform.bands)
     assert [m.labels for m in model.background_marginals] == [LEGACY[:3], LEGACY]
-    assert out.transform_id == model.transform_id and out.kappa > out.kappa_min
+    assert out.transform_id == model.transform_id
+    assert out.family == "student_t" and out.nu > 0
     assert "*" in out.fractions
     assert len(priors) == 37
     for label, (qp, bd) in priors.items():
         assert qp.meta["transform_id"] == model.transform_id == bd.meta["transform_id"]
 
 
-def test_the_unmodelled_term_dominates_every_shipped_component():
-    from qso_pcolor.outlier import min_dominant_kappa
+def test_the_unmodelled_term_outweighs_both_models_far_from_their_loci():
+    """The Student-t tail is a power law, so far enough out it exceeds every
+    Gaussian component whatever its width. Checked on the README candidate
+    pushed away from both loci in several directions."""
+    from qso_pcolor.multisurvey import _ConditionalQSO
+    from qso_pcolor.multisurvey_data import Photometry
 
     model, _, out = load()
     bands = model.transform.bands
-    extra = []
-    for m in model.background_marginals:
-        idx = np.array([bands.index(b) for b in m.labels])
-        for v in m.covs:
-            e = np.zeros((len(bands), len(bands)))
-            e[np.ix_(idx, idx)] = v
-            extra.append(e)
-    k = min_dominant_kappa(out.cov, list(model.qso.mixtures) + [model.background],
-                           np.array(extra))
-    assert k < 1.0
+    a = bands.index("decals_dr9_south:r")
+    cq = _ConditionalQSO(model.qso, a)
+    u_mod = out.conditional(a, "decals_dr9_south:r", model.qso.system)
+    base = Photometry(np.array([[1.9, 2.6, 3.1, 11.0, 14.0]]),
+                      1.0 / np.array([[120.0, 150.0, 60.0, 8.0, 3.0]]), LEGACY).align(bands)
+    f = model.transform(base)
+    rng = np.random.default_rng(0)
+    for _ in range(6):
+        d = np.zeros(len(bands)); d[[bands.index(b) for b in LEGACY if b != LEGACY[1]]] = rng.normal(size=4)
+        d /= np.linalg.norm(d)
+        x = f.x + 25.0 * d                     # 25 luptitudes from the candidate
+        lq = cq._log_p_slices(x, f.cov, f.observed).max()
+        lb = model.background_log_prob(x, f.cov, f.observed, a)[0]
+        lu = u_mod.log_prob(x, f.cov, observed=f.observed)[0]
+        assert lu > lq and lu > lb, (lu, lq, lb)
 
 
 def test_infrared_only_input_gets_a_posterior():

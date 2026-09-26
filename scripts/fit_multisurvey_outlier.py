@@ -46,6 +46,10 @@ def main() -> None:
     ap.add_argument("--n-mag-bins", type=int, default=3,
                     help="quantile bins of the reference luptitude per band")
     ap.add_argument("--min-per-bin", type=int, default=500)
+    ap.add_argument("--family", choices=("gaussian", "student_t"), default="student_t",
+                    help="student_t: heavy-tailed, scale = c^2 x field covariance, no envelope")
+    ap.add_argument("--nu", type=float, nargs="+", default=[1.0, 2.0, 4.0, 8.0])
+    ap.add_argument("--scale-factors", type=float, nargs="+", default=[0.5, 0.75, 1.0, 1.5, 2.0, 3.0])
     args = ap.parse_args()
 
     from train_multisurvey_model import sample_patterns
@@ -98,15 +102,31 @@ def main() -> None:
 
     from qso_pcolor.gaussmix import GaussianMixture
 
+    from qso_pcolor.outlier import student_t_logpdf
+
+    if args.family == "gaussian":
+        specs = [dict(kappa_factor=f, kappa=f * kmin, cov=(f * kmin) ** 2 * env, nu=None)
+                 for f in args.kappa_factors]
+    else:
+        specs = [dict(nu=nu, kappa_factor=c, kappa=c, cov=c ** 2 * base)
+                 for nu in args.nu for c in args.scale_factors]
     rows = []
-    for fac in args.kappa_factors:
-        kappa = fac * kmin
-        mix = GaussianMixture(np.ones(1), mean[None], (kappa**2 * env)[None], labels=bands)
+    for spec in specs:
+        fac, kappa = spec["kappa_factor"], spec["kappa"]
         log_pu = np.full(len(anchor), np.nan)
+        if spec["nu"] is None:
+            mix = GaussianMixture(np.ones(1), mean[None], spec["cov"][None], labels=bands)
         for a in np.unique(anchor[use]):
             s = use & (anchor == a)
-            log_pu[s] = conditional_log_prob(mix, feats.x[s], feats.cov[s], feats.observed[s],
-                                             int(a))
+            if spec["nu"] is None:
+                log_pu[s] = conditional_log_prob(mix, feats.x[s], feats.cov[s],
+                                                 feats.observed[s], int(a))
+            else:
+                ref = np.zeros_like(feats.observed[s]); ref[:, a] = feats.observed[s][:, a]
+                log_pu[s] = (student_t_logpdf(feats.x[s], mean, spec["cov"], spec["nu"],
+                                              feats.cov[s], observed=feats.observed[s])
+                             - student_t_logpdf(feats.x[s], mean, spec["cov"], spec["nu"],
+                                                feats.cov[s], observed=ref))
         fractions, gain = {}, np.zeros(len(anchor))
         for a in np.unique(anchor[set_a]):
             label = bands[a]
@@ -132,28 +152,31 @@ def main() -> None:
             gain[rest] = np.logaddexp(np.log1p(-pooled) + log_pb[rest],
                                       np.log(pooled) + log_pu[rest]) - log_pb[rest]
         covered = use
-        row = {"kappa_factor": fac, "kappa": kappa,
+        row = {"kappa_factor": fac, "kappa": kappa, "nu": spec["nu"], "_cov": spec["cov"],
                "gain_A": float(gain[set_a & covered].mean()),
                "gain_B": float(gain[set_b & covered].mean()),
                "n_B_covered": int((set_b & covered).sum()),
                "fractions": {k: [e.tolist(), f.tolist()] for k, (e, f) in fractions.items()}}
         rows.append(row)
-        print(f"  kappa = {fac:4.2f} x kappa_min: gain A {row['gain_A']:+.5f}  "
-              f"B {row['gain_B']:+.5f} nats/obj over {len(fractions)} reference bands")
+        tag = (f"kappa = {fac:4.2f} x kappa_min" if spec["nu"] is None
+               else f"nu = {spec['nu']:4.1f}, scale = {fac:4.2f} x field")
+        print(f"  {tag}: gain A {row['gain_A']:+.5f}  B {row['gain_B']:+.5f} nats/obj "
+              f"over {len(fractions)} reference bands", flush=True)
     best = max(rows, key=lambda r: r["gain_A"])
-    print(f"chosen on A: {best['kappa_factor']} x kappa_min; gain on B {best['gain_B']:+.5f}")
+    print(f"chosen on A: nu={best['nu']} factor={best['kappa_factor']}; gain on B {best['gain_B']:+.5f}")
     for k, (e, f) in best["fractions"].items():
         print(f"    {k:22s} eta = " + " ".join(f"{x:.1e}" for x in f))
     out = MultiSurveyOutlier(
-        mean, best["kappa"] ** 2 * env, best["kappa"], kmin, bands, model.transform_id,
-        {k: tuple(v) for k, v in best["fractions"].items()},
+        mean, best["_cov"], best["kappa"], kmin if best["nu"] is None else 0.0, bands,
+        model.transform_id, {k: tuple(v) for k, v in best["fractions"].items()},
         meta={"built": time.strftime("%Y-%m-%d"), "by": "scripts/fit_multisurvey_outlier.py",
               "model": str(args.model), "model_run_id": model.meta.get("run_id"),
               "set_A": "training-field sources unused by the background fit",
               "set_B": "reserved background fields", "n_A": int(set_a.sum()),
-              "n_B": int(set_b.sum()), "kappa_scan": [{k: v for k, v in r.items()
-                                                       if k != "fractions"} for r in rows],
-              "chosen_by": "max held-out log-likelihood on set A"})
+              "n_B": int(set_b.sum()), "scan": [{k: v for k, v in r.items()
+                                                 if k not in ("fractions", "_cov")} for r in rows],
+              "chosen_by": "max held-out log-likelihood on set A"},
+        family=args.family, nu=best["nu"])
     out.save(args.out)
     print(f"wrote {args.out}")
 

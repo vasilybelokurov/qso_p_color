@@ -139,3 +139,30 @@ def test_round_trip_and_transform_check(tmp_path):
     back.transform_id = "0" * 64
     with pytest.raises(ValueError, match="transform"):
         run(model, priors, [[18.0, 17.9, 16.1]], outlier=back)
+
+
+def test_student_t_conditional_is_the_joint_over_the_reference_marginal():
+    from scipy.stats import multivariate_t
+
+    model, priors = toy()
+    g = outlier_for(model, 1e-3)
+    um = MultiSurveyOutlier(g.mean, np.diag([0.5, 0.3, 0.4]), 1.0, 0.0, LABELS,
+                            model.transform_id, g.fractions, family="student_t", nu=2.0)
+    c = um.conditional(0, LABELS[0], model.qso.system)
+    x = np.array([[18.0, 17.0, 16.0], [25.0, 10.0, 30.0]])
+    got = c.log_prob(x, np.zeros((2, 3, 3)), observed=np.ones((2, 3), bool))
+    for i in range(2):
+        joint = multivariate_t(um.mean, um.cov, df=2.0).logpdf(x[i])
+        marg = multivariate_t(um.mean[:1], um.cov[:1, :1], df=2.0).logpdf(x[i, :1])
+        assert got[i] == pytest.approx(joint - marg, abs=1e-10)
+    # a far object goes to U through the scorer
+    far = run(model, priors, [[18.0, 40.0, -10.0]], outlier=um)[0]
+    assert far.p_outlier > 0.99
+
+
+def test_a_student_t_outlier_needs_positive_nu():
+    model, _ = toy()
+    g = outlier_for(model, 1e-3)
+    with pytest.raises(ValueError, match="nu"):
+        MultiSurveyOutlier(g.mean, g.cov, 1.0, 0.0, LABELS, model.transform_id, g.fractions,
+                           family="student_t", nu=None)

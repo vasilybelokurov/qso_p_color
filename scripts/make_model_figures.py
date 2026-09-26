@@ -201,7 +201,21 @@ def fig_slices(model, d, out, r0=20.5):
     return save_figure(fig, "method/model_slices")
 
 
-def fig_two_densities(model, d, out, z0=1.8, r0=20.8):
+def plane_outlier(model, outl, r0, xx, yy):
+    """log of the unmodelled density on the plane and its share eta at u_r = r0."""
+    B = model.transform.bands
+    ia = B.index(R)
+    n = xx.size
+    x = np.full((n, len(B)), np.nan)
+    obs = np.zeros((n, len(B)), bool)
+    x[:, B.index(G)] = r0 + xx.ravel(); x[:, ia] = r0; x[:, B.index(Z)] = r0 - yy.ravel()
+    obs[:, [B.index(G), ia, B.index(Z)]] = True
+    c = outl.conditional(ia, R, model.qso.system)
+    return (c.log_prob(x, np.zeros((n, len(B), len(B))), observed=obs).reshape(xx.shape),
+            float(c.fraction_at(np.array([r0]))[0]))
+
+
+def fig_two_densities(model, outl, d, out, z0=1.8, r0=20.8):
     import matplotlib.pyplot as plt
     from qso_pcolor.plotting import SERIES, save_figure
 
@@ -210,31 +224,42 @@ def fig_two_densities(model, d, out, z0=1.8, r0=20.8):
     xx, yy = np.meshgrid(gx, gy, indexing="ij")
     lq = plane_logpdf(qso_plane(model, z0, r0), xx, yy)
     lb = plane_logpdf(field_plane(model, r0), xx, yy)
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.1))
+    lu, eta = plane_outlier(model, outl, r0, xx, yy)
+    lf = np.logaddexp(np.log1p(-eta) + lb, np.log(eta) + lu)
+    fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.7), gridspec_kw={"width_ratios": [1, 1, 1.18]})
     ax = axes[0]
     for lp, key, lab in ((lq, "same_z", f"quasar at $z={z0}$"), (lb, "background", "field")):
         ax.contour(gx, gy, np.exp(lp - lp.max()).T, levels=[0.05, 0.3, 0.8],
-                   colors=SERIES[key], linewidths=1.2)
+                   colors=SERIES[key], linewidths=1.1)
         ax.plot([], [], color=SERIES[key], label=lab)
-    ax.legend(loc="upper right", fontsize=7)
+    ax.legend(loc="upper right", fontsize=6.5)
     ax.set_xlabel("Legacy $g - r$"); ax.set_ylabel("Legacy $r - z$")
-    ax.set_title(f"Two densities at $u_r = {r0}$", loc="left")
-    ax = axes[1]
-    bf = lq - lb
-    lim = 12
-    im = ax.pcolormesh(gx, gy, np.clip(bf, -lim, lim).T, cmap="RdBu_r", vmin=-lim, vmax=lim,
-                       shading="auto", rasterized=True)
-    ax.contour(gx, gy, bf.T, levels=[0.0], colors="#2b2b28", linewidths=0.9)
-    cb = fig.colorbar(im, ax=ax, pad=0.02)
-    cb.set_label(r"$\ln\mathrm{BF}$ (quasar / field)"); cb.outline.set_visible(False)
+    ax.set_title(f"Densities, $u_r={r0}$", loc="left", fontsize=9)
     gr, rz = colours(b)
     s = np.flatnonzero(b["grz"] & (np.abs(b["u"][R] - r0) < 0.4))
-    ax.scatter(gr[s], rz[s], s=1.2, color="k", alpha=0.25, linewidths=0, rasterized=True)
-    ax.set_xlim(gx[0], gx[-1]); ax.set_ylim(gy[0], gy[-1])
-    ax.set_xlabel("Legacy $g - r$")
-    ax.set_title("Colour Bayes factor; black line is unity", loc="left")
+    lim = 12
+    for ax, bf, title in ((axes[1], lq - lb, "ln BF, field model only"),
+                          (axes[2], lq - lf, "ln BF as scored (with $U$)")):
+        im = ax.pcolormesh(gx, gy, np.clip(bf, -lim, lim).T, cmap="RdBu_r", vmin=-lim, vmax=lim,
+                           shading="auto", rasterized=True)
+        ax.contour(gx, gy, bf.T, levels=[0.0], colors="#2b2b28", linewidths=0.8)
+        ax.scatter(gr[s], rz[s], s=0.8, color="k", alpha=0.25, linewidths=0, rasterized=True)
+        ax.set_xlim(gx[0], gx[-1]); ax.set_ylim(gy[0], gy[-1])
+        ax.set_xlabel("Legacy $g - r$")
+        ax.set_title(title, loc="left", fontsize=9)
+    axes[2].set_yticklabels([])
+    cb = fig.colorbar(im, ax=axes[2], pad=0.02)
+    cb.set_label(r"$\ln\mathrm{BF}$ (quasar / field)"); cb.outline.set_visible(False)
     fig.tight_layout()
-    out["two_densities"] = {"n_field_points": int(s.size), "z0": z0, "r0": r0}
+    low = (lq < lq.max() + np.log(0.01)) & (lb < lb.max() + np.log(0.01))
+    out["two_densities"] = {"n_field_points": int(s.size), "z0": z0, "r0": r0, "eta": eta,
+                            "low_cells": float(low.mean()),
+                            "low_bf_gt5_field_only": float(((lq - lb)[low] > 5).mean()),
+                            "low_bf_gt5_scored": float(((lq - lf)[low] > 5).mean()),
+                            "low_bf_gt0_field_only": float(((lq - lb)[low] > 0).mean()),
+                            "low_bf_gt0_scored": float(((lq - lf)[low] > 0).mean()),
+                            "max_bf_field_only": float((lq - lb).max()),
+                            "max_bf_scored": float((lq - lf).max())}
     return save_figure(fig, "method/model_two_densities")
 
 
@@ -509,7 +534,7 @@ def main() -> None:
     out = json.loads(args.report.read_text()) if args.report.exists() else {}
     figs = {"locus": lambda: fig_locus(model, d, out),
             "slices": lambda: fig_slices(model, d, out),
-            "two_densities": lambda: fig_two_densities(model, d, out),
+            "two_densities": lambda: fig_two_densities(model, outl, d, out),
             "deconvolution": lambda: fig_deconvolution(model, d, out),
             "across_redshift": lambda: fig_model_across_redshift(model, d, out),
             "window": lambda: fig_window(model, d, out),

@@ -432,14 +432,26 @@ class MultiSurveyOutlier:
     transform_id: str
     fractions: dict                   # label -> (mag_edges, fraction)
     meta: dict = field(default_factory=dict)
+    # "gaussian": cov is kappa^2 E, and must exceed every component (kappa > kappa_min).
+    # "student_t": cov is the scale matrix of a t with nu degrees of freedom. Its
+    # power-law tail exceeds every Gaussian far enough out whatever the scale, so
+    # the scale can be the field's own and no envelope is needed.
+    family: str = "gaussian"
+    nu: float | None = None
 
     def __post_init__(self):
         self.mean = np.asarray(self.mean, float)
         self.cov = np.asarray(self.cov, float)
         self.labels = tuple(self.labels)
-        if not self.kappa > self.kappa_min:
-            raise ValueError("kappa does not exceed kappa_min: the density would not "
-                             "dominate every component's tail")
+        if self.family == "gaussian":
+            if not self.kappa > self.kappa_min:
+                raise ValueError("kappa does not exceed kappa_min: the density would not "
+                                 "dominate every component's tail")
+        elif self.family == "student_t":
+            if self.nu is None or not self.nu > 0 or not self.kappa > 0:
+                raise ValueError("a Student-t outlier needs nu > 0 and a positive scale factor")
+        else:
+            raise ValueError(f"unknown outlier family {self.family!r}")
         self.fractions = {k: (np.asarray(e, float), np.asarray(f, float))
                           for k, (e, f) in self.fractions.items()}
         for k, (e, f) in self.fractions.items():
@@ -453,14 +465,15 @@ class MultiSurveyOutlier:
 
     def conditional(self, anchor: int, label: str, system: str) -> "_ConditionalOutlier":
         edges, frac = self.fractions.get(label, self.fractions.get("*"))
-        return _ConditionalOutlier(self._mix, anchor, edges, frac, system, self.labels)
+        t = (self.mean, self.cov, self.nu) if self.family == "student_t" else None
+        return _ConditionalOutlier(self._mix, anchor, edges, frac, system, self.labels, t)
 
     def to_dict(self) -> dict:
         return {"kind": "multisurvey_outlier", "mean": self.mean.tolist(),
                 "cov": self.cov.tolist(), "kappa": self.kappa, "kappa_min": self.kappa_min,
                 "labels": list(self.labels), "transform_id": self.transform_id,
                 "fractions": {k: [e.tolist(), f.tolist()] for k, (e, f) in self.fractions.items()},
-                "meta": self.meta}
+                "meta": self.meta, "family": self.family, "nu": self.nu}
 
     def save(self, path: str | Path) -> None:
         path = Path(path)
@@ -475,15 +488,16 @@ class MultiSurveyOutlier:
             raise ValueError(f"not a multi-survey outlier model: kind={d.get('kind')!r}")
         return cls(d["mean"], d["cov"], d["kappa"], d["kappa_min"], tuple(d["labels"]),
                    d["transform_id"], {k: tuple(v) for k, v in d["fractions"].items()},
-                   d.get("meta", {}))
+                   d.get("meta", {}), d.get("family", "gaussian"), d.get("nu"))
 
 
 class _ConditionalOutlier:
     """What ``score_candidates`` needs: a conditional log density and eta(m)."""
 
-    def __init__(self, mix, anchor, edges, fraction, system, labels):
+    def __init__(self, mix, anchor, edges, fraction, system, labels, student_t=None):
         self.mix, self.anchor, self.edges, self.fraction = mix, anchor, edges, fraction
         self.system, self.labels = system, labels
+        self.student_t = student_t          # (mean, scale, nu) or None for the Gaussian
 
     def check_system(self, system):
         if system != self.system:
@@ -491,7 +505,14 @@ class _ConditionalOutlier:
 
     def log_prob(self, x, cov=None, *, observed=None):
         obs = np.ones_like(x, bool) if observed is None else observed
-        return conditional_log_prob(self.mix, x, cov, obs, self.anchor)
+        if self.student_t is None:
+            return conditional_log_prob(self.mix, x, cov, obs, self.anchor)
+        from .outlier import student_t_logpdf
+        mean, scale, nu = self.student_t
+        ref = np.zeros_like(obs); ref[:, self.anchor] = obs[:, self.anchor]
+        # a conditional of a t is the joint over the marginal, both t with the same nu
+        return (student_t_logpdf(x, mean, scale, nu, cov, observed=obs)
+                - student_t_logpdf(x, mean, scale, nu, cov, observed=ref))
 
     def fraction_at(self, ref_mag):
         idx = np.clip(np.digitize(np.asarray(ref_mag, float), self.edges) - 1, 0,

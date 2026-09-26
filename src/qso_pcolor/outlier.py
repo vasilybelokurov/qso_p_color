@@ -297,3 +297,51 @@ class OutlierModel:
     @classmethod
     def load(cls, path: str | Path) -> "OutlierModel":
         return cls.from_dict(json.loads(Path(path).read_text()))
+
+
+def student_t_logpdf(x: np.ndarray, mean: np.ndarray, scale: np.ndarray, nu: float,
+                     cov: np.ndarray | None = None, *,
+                     observed: np.ndarray | None = None) -> np.ndarray:
+    """log of a multivariate Student-t density in each object's observed subspace.
+
+    .. math::
+        \\ln t_\\nu(\\mathbf x\\mid\\boldsymbol\\mu,\\boldsymbol\\Sigma) =
+        \\ln\\Gamma\\bigl(\\tfrac{\\nu+d}{2}\\bigr) - \\ln\\Gamma\\bigl(\\tfrac{\\nu}{2}\\bigr)
+        - \\tfrac d2\\ln(\\nu\\pi) - \\tfrac12\\ln|\\boldsymbol\\Sigma|
+        - \\tfrac{\\nu+d}{2}\\ln\\bigl(1+\\delta^2/\\nu\\bigr)
+
+    Marginals of a t are t with the same ``nu`` and the sub-block of the scale,
+    so missing bands are marginalised exactly.  Measurement noise is included
+    by adding the object's covariance to the scale, which is exact only in the
+    Gaussian limit: a t convolved with a Gaussian is not a t.  The heavy tail,
+    which is the point of this density, is unaffected by that approximation.
+
+    Returns
+    -------
+    ndarray, shape (n,)
+    """
+    from scipy.special import gammaln
+
+    x = np.atleast_2d(np.asarray(x, float))
+    n, d = x.shape
+    s = (np.zeros((n, d, d)) if cov is None
+         else np.broadcast_to(np.asarray(cov, float).reshape(-1, d, d), (n, d, d)))
+    obs = (np.ones((n, d), bool) if observed is None
+           else np.broadcast_to(np.asarray(observed, bool), (n, d)))
+    out = np.zeros(n)
+    packed = np.packbits(obs, axis=1)
+    _, inverse = np.unique(packed, axis=0, return_inverse=True)
+    for g in range(inverse.max() + 1 if n else 0):
+        rows = np.flatnonzero(inverse == g)
+        idx = np.flatnonzero(obs[rows[0]])
+        k = idx.size
+        if k == 0:
+            continue
+        t = scale[np.ix_(idx, idx)][None] + s[np.ix_(rows, idx, idx)]
+        L = np.linalg.cholesky(t)
+        y = np.linalg.solve(L, (x[np.ix_(rows, idx)] - mean[idx])[..., None])[..., 0]
+        maha = np.einsum("ni,ni->n", y, y)
+        logdet = 2.0 * np.log(np.einsum("nii->ni", L)).sum(axis=1)
+        out[rows] = (gammaln(0.5 * (nu + k)) - gammaln(0.5 * nu) - 0.5 * k * np.log(nu * np.pi)
+                     - 0.5 * logdet - 0.5 * (nu + k) * np.log1p(maha / nu))
+    return out

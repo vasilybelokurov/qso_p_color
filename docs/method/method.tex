@@ -141,7 +141,7 @@ companion; for a pair search that is the main way of being wrong. The fourth
 exists because both models are sums of Gaussians. Far from everything either
 was fitted to, their ratio is decided by whichever Gaussian tail happens to be
 wider, and an artefact would be called a certain quasar. A small, fitted share
-of the field with a very broad distribution takes those objects instead.
+of the field with a heavy-tailed distribution takes those objects instead.
 
 \paragraph{Why the answer is a ranking rather than a verdict.} Colours locate a
 quasar in redshift only loosely --- typically to $\pm0.4$ --- while a
@@ -610,16 +610,17 @@ smoothly rather than drawing a decision boundary.
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{../../plots/method/model_two_densities.png}
-\caption{\emph{Left:} the quasar density at $z=1.8$ and the field density, in the
-same Legacy $g-r$, $r-z$ plane, both conditioned on $u_r=20.8$; the field is the
-dedicated Legacy $g,r,z$ fit that the scorer uses for Legacy-only input
+\caption{\emph{Left:} the quasar density at $z=1.8$ and the field density in
+the Legacy $g-r$, $r-z$ plane, both conditioned on $u_r=20.8$; the field is the
+dedicated Legacy $g,r,z$ fit the scorer uses for Legacy-only input
 (\S\ref{sec:marginals}). Contours at $5$, $30$ and $80\%$ of each peak.
-\emph{Right:} the colour Bayes factor of the two densities; the black contour is
-$\mathrm{BF}=1$, and black points are field sources within $0.4$ of $u_r=20.8$.
-Most of the field sits where the Bayes factor strongly disfavours a quasar, but
-the loci are not disjoint. The red regions far to the left, where neither
-density has support, are the Gaussian-tail extrapolation of
-\S\ref{sec:outliers}; the unmodelled term, not shown here, takes them over.}
+\emph{Centre:} the Bayes factor against the field model alone, as three
+hypotheses would have it: far from both loci, where neither density has
+support, it is set by which Gaussian tail is wider. \emph{Right:} the Bayes
+factor as scored, against $(1-\eta)p_B+\eta p_U$ with the Student-t $U$ of
+\S\ref{sec:outliers}: positive values remain only on and around the quasar
+locus. The black contour is $\mathrm{BF}=1$; black points are field sources
+within $0.4$ of $u_r=20.8$.}
 \label{fig:densities}
 \end{figure}
 
@@ -1055,85 +1056,110 @@ standard device for data containing points no component describes
 \begin{equation}
 p(\uvec\mid\text{field}) = (1-\eta)\,p(\uvec\mid B) + \eta\,p(\uvec\mid U),
 \qquad
-p(\uvec\mid U)=\mathcal N\bigl(\uvec\mid\bar\uvec,\;\kappa^2\mathbf E+\mathbf S\bigr),
+p(\uvec\mid U)=t_\nu\bigl(\uvec\mid\bar\uvec,\;c^2\boldsymbol\Sigma_B+\mathbf S\bigr),
 \label{eq:field_u}
 \end{equation}
 %
-one joint Gaussian over all $41$ bands, conditioned on the reference band like
-everything else. It gives $\lambda_{\rm out}$ of \eqref{eq:lam_out}, which joins
-every denominator, and the Bayes factor \eqref{eq:bf} compares against the whole
-field. With $\eta=0$ the scorer reduces exactly to three hypotheses (a unit
-test).
+a multivariate Student-t over all $41$ bands with $\nu$ degrees of freedom,
+centred on the field and with scale $c^2$ times the field's own covariance
+$\boldsymbol\Sigma_B$, conditioned on the reference band like everything else.
+Marginals of a $t$ are $t$ with the same $\nu$ and the sub-block of the scale,
+so missing bands are marginalised exactly and the conditional is the joint over
+the reference marginal, in closed form. The object's covariance $\mathbf S$ is
+added to the scale, which is exact only in the Gaussian limit; the tail, which
+is the point of $U$, is unaffected. $U$ gives $\lambda_{\rm out}$ of
+\eqref{eq:lam_out}, which joins every denominator, and the Bayes factor
+\eqref{eq:bf} compares against the whole field. With $\eta=0$ the scorer reduces
+exactly to three hypotheses (a unit test).
 
-\paragraph{The shape must dominate every component.} If
-$\kappa^2\mathbf E-\mathbf V_k\succ0$ for every component $k$ --- every quasar
-slice, the joint field fit, and each dedicated Legacy fit embedded with zeros in
-the other bands --- then $U$ eventually dominates every component in every
-direction, for any noise and in every observed subspace. Conditioning preserves
-this: Schur complements are monotone in the Loewner order, because
-$(\mathbf A/\mathbf A_{aa})^{-1}=(\mathbf A^{-1})_{\setminus a\setminus a}$ and
-$\mathbf A\succeq\mathbf B\succ0$ implies $\mathbf A^{-1}\preceq\mathbf B^{-1}$
-(tested). The smallest such $\kappa$ is
-$\kappa_{\min}^2=\max_k\lambda_{\max}(\mathbf V_k,\mathbf E)$, from a Cholesky
-factor of $\mathbf E$.
+\paragraph{Why a heavy tail, and not a wide Gaussian.} $U$ must eventually
+exceed every Gaussian component of both models, in every direction. A $t$ does
+so whatever its scale, because its density falls as a power of the distance and
+every Gaussian's falls exponentially. A Gaussian $U$ can do it only by being
+wider than every component in every direction, and a first version was built
+that way: an anisotropic envelope $\mathbf E\succeq\mathbf V_k$ for all $224$
+components, obtained by bounding each whitened component by its absolute row
+sums in a common eigenbasis. It worked where both models are hopeless --- no
+non-quasar more than $3\sigma$ from both was then called a quasar --- but not in
+between. A few components are very wide in some band, so the envelope, projected
+onto Legacy $g,r,z$ at $u_r=20.8$, had standard deviations of $3.8$ and $5.0$
+luptitudes against $\sim0.5$ for the field; its fitted share, spread over that
+volume, contributed a density of $e^{-10.5}$ at its peak. Where the quasar
+density was a per cent of its peak and the field model's far below, the ratio of
+two Gaussian tails still decided: $28\%$ of the plane with both densities below
+$1\%$ of their peaks had $\ln\mathrm{BF}>0$, and $6\%$ had $\ln\mathrm{BF}>5$
+(Figure~\ref{fig:densities}). Building the envelope from the observed bands'
+blocks alone narrowed it only to $2.6\times2.9$ luptitudes and left the fraction
+at $26\%$.
 
-A scaled field covariance would not do: in the predecessor's flux-ratio
-coordinates a few rare, infrared-bright quasar components were $67$ times wider
-than the field, and an isotropic scaling would have made $U$ $67$ times too
-broad in every other direction. $\mathbf E$ is therefore an anisotropic
-envelope. Whiten every component by the field covariance
-$\boldsymbol\Sigma_B=\mathbf L\mathbf L^T$,
-$\mathbf A_k=\mathbf L^{-1}\mathbf V_k\mathbf L^{-T}$; rotate to the eigenbasis
-$\mathbf Q$ of the mean $\mathbf A_k$; and set
-%
-\begin{equation}
-\mathbf E = \mathbf L\mathbf Q\,\mathrm{diag}(D)\,\mathbf Q^T\mathbf L^T,\qquad
-D_i=\max\Bigl(1,\;\max_k\sum_j\bigl|(\mathbf Q^T\mathbf A_k\mathbf Q)_{ij}\bigr|\Bigr).
-\label{eq:envelope}
-\end{equation}
-%
-A diagonal matrix of absolute row sums exceeds the symmetric matrix they come
-from (the difference is diagonally dominant with a non-negative diagonal), so
-$\mathbf E\succeq\mathbf V_k$ for every $k$ and $\mathbf E\succeq\boldsymbol\Sigma_B$.
-For the shipped model $\kappa_{\min}=0.861$ over $224$ components: $43$ slices of
-two or four, eight in the joint field fit, and $32+32$ in the Legacy fits.
-
-\subsection{Calibration}
-
-$\kappa$ and $\eta$ are set by field likelihood
-(\path{scripts/fit_multisurvey_outlier.py}). The fitting set (A) is the
-$112{,}074$ training-field sources that the field fit did not use --- it drew
-$20{,}000$ --- and the check set (B) is the $42{,}493$ sources of the reserved
-fields. For each $\kappa$,
-$\eta$ is fitted by EM in each of three reference-luptitude bins, separately for
-each reference band with enough objects, and once over all objects as the
-fallback for the rest; the log-likelihood is concave in $\eta$, so EM reaches
-the global maximum (checked against a direct optimiser in a unit test).
+\paragraph{The field model's own tails are measurably wrong.} Bright field
+sources ($\sigma<0.03$ in $g$ and $z$) within $0.25$ of a reference $u_r$,
+counted where the field model's density is a given fraction of its peak, against
+what the model predicts there:
 
 \begin{center}
-\begin{tabular}{lcccccc}
+\small
+\begin{tabular}{lccccccccc}
 \toprule
-$\kappa/\kappa_{\min}$ & $1.02$ & $1.25$ & $1.5$ & $2$ & $3$ & $5$ \\
+ & \multicolumn{3}{c}{below $10^{-4}$ of peak} & \multicolumn{3}{c}{$10^{-3}$--$10^{-2}$} &
+\multicolumn{3}{c}{$10^{-2}$--$10^{-1}$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+$u_r$ & observed & field model & with $U$ & observed & field & with $U$ & observed & field & with $U$ \\
 \midrule
-gain on A (nats per object) & $+0.025$ & $+0.024$ & $+0.022$ & $+0.021$ & $+0.019$ & $+0.017$ \\
-gain on B (nats per object) & $+0.077$ & $+0.072$ & $+0.069$ & $+0.064$ & $+0.058$ & $+0.051$ \\
+$19.5$ & $2$ & $0.3$ & $4.4$ & $4$  & $12.4$ & $13.5$ & $85$ & $128$ & $128$ \\
+$20.0$ & $4$ & $0.2$ & $5.0$ & $0$  & $14.0$ & $15.5$ & $50$ & $144$ & $144$ \\
+$20.5$ & $5$ & $0.2$ & $5.6$ & $10$ & $16.1$ & $18.1$ & $41$ & $168$ & $169$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \noindent
-The gain is the mean per-object improvement over the unmodified field density,
-$\ln[(1-\eta)p_B+\eta p_U]-\ln p_B$. The likelihood prefers the narrowest $U$
-that still dominates, so the dominance constraint binds and
-$\kappa=1.02\,\kappa_{\min}$ is adopted. The gain on the reserved fields is three
-times that on A: the $41$-band field fit describes fields it was not fitted to
-less well, and $U$ absorbs part of that. Six reference bands have their own
-$\eta$, in three luptitude bins each: SDSS $r$ $(1.3,0.5,0.2)\times10^{-3}$,
-Legacy south $r$ $(3.7,0.7,1.2)\times10^{-3}$, Legacy north $r$
-$(2.4,0.2,0.0)\times10^{-3}$, AllWISE $W1$ $(0.0,0.9,0.0)\times10^{-3}$, PS1 $g$
-$(34,0,1.1)\times10^{-3}$ and PS1 $r$ $(29,3.3,4.3)\times10^{-3}$; the rest use
-the pooled $2.3\times10^{-3}$. The large PS1 values are in the brightest bin,
-where the field fit is least constrained.
+Far out the field model predicts $10$--$25$ times too few sources, and those are
+the regions where the three-hypothesis Bayes factor was large; the Gaussian $U$
+raised the prediction only to $0.6$--$0.7$, the $t$ raises it to the observed
+level. At $10^{-3}$--$10^{-1}$ of peak the field model predicts two to four times
+too many; that makes the Bayes factor conservative there, not inflated, and $U$
+cannot remove density, so it remains a limitation of the eight-component field
+fit.
+
+\subsection{Calibration}
+
+$\nu$, $c$ and $\eta$ are set by field likelihood
+(\path{scripts/fit_multisurvey_outlier.py}). The fitting set (A) is the
+$112{,}074$ training-field sources that the field fit did not use --- it drew
+$20{,}000$ --- and the check set (B) is the $42{,}493$ sources of the reserved
+fields. For each $(\nu, c)$, $\eta$ is fitted by EM in each of three
+reference-luptitude bins, separately for each reference band with enough objects
+and once over all objects as the fallback for the rest; the log-likelihood is
+concave in $\eta$, so EM reaches the global maximum (checked against a direct
+optimiser). The gain is the mean per-object improvement over the unmodified
+field density, $\ln[(1-\eta)p_B+\eta p_U]-\ln p_B$, in nats:
+
+\begin{center}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+ & $c=0.5$ & $0.75$ & $1$ & $1.5$ & $2$ & $3$ \\
+\midrule
+$\nu=1$, A / B & $.0289/.0763$ & $.0293/.0784$ & $.0295/.0801$ & $.0296/.0821$ & $.0295/.0831$ & $.0287/.0827$ \\
+$\nu=2$, A / B & $.0284/.0715$ & $.0292/.0750$ & $.0295/.0779$ & $\mathbf{.0298/.0815}$ & $.0297/.0830$ & $.0286/.0826$ \\
+$\nu=4$, A / B & $.0266/.0611$ & $.0281/.0670$ & $.0287/.0720$ & $.0296/.0787$ & $.0296/.0817$ & $.0284/.0820$ \\
+$\nu=8$, A / B & $.0229/.0451$ & $.0256/.0538$ & $.0268/.0619$ & $.0288/.0733$ & $.0292/.0788$ & $.0281/.0811$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+$\nu=2$ and $c=1.5$ maximise the likelihood on A and are adopted; on B they give
+$+0.082$, against $+0.077$ for the Gaussian envelope at its best. Heavy tails,
+$\nu\le2$, are preferred at every scale, as the tail counts above lead one to
+expect. Six reference
+bands have their own $\eta$, in three luptitude bins each: SDSS $r$
+$(4.9,2.5,2.2)\times10^{-3}$, Legacy south $r$ $(12,5.8,11)\times10^{-3}$, Legacy
+north $r$ $(7.4,1.3,0.0)\times10^{-3}$, AllWISE $W1$ $(0,3.9,0)\times10^{-3}$, PS1
+$g$ $(43,0,0)\times10^{-3}$ and PS1 $r$ $(51,13,3.8)\times10^{-3}$; the rest use the
+pooled $8.3\times10^{-3}$. The large PS1 values are in the brightest bin, where
+the field fit is least constrained.
 
 \subsection{What it changes}
 
@@ -1147,21 +1173,21 @@ where the field fit is least constrained.
 band & $s$ & $d_Q$, $d_B$ & $\ln\mathrm{BF}$ & $P(Q)$ & $\ln R$ &
 $\ln\mathrm{BF}$ & $P(Q)$ & $P(U)$ \\
 \midrule
---    & 1  & 0.4, 2.3  & $+3.9$  & 0.58  & $-1.73$ & $+3.9$  & 0.58  & 0.000 \\
-$g$   & 4  & 3.5, 5.3  & $+14.0$ & 1.000 & $-2.5$  & $+3.0$  & 0.67  & 0.33 \\
-$g$   & 8  & 4.8, 7.3  & $+14.4$ & 1.000 & $-8.3$  & $-11.1$ & 0.001 & 0.999 \\
-$g$   & 32 & 7.5, 11.2 & $+14.4$ & 1.000 & $-36.8$ & $-57.3$ & 0.000 & 1.000 \\
-$z$   & 16 & 3.8, 6.6  & $-30.9$ & 1.000 & $-60.6$ & $-60.5$ & 0.009 & 0.991 \\
-$W2$  & 8  & 2.4, 3.6  & $+11.2$ & 0.999 & $-0.18$ & $+5.7$  & 0.76  & 0.24 \\
-$W2$  & 32 & 2.9, 4.7  & $+13.4$ & 1.000 & $-8.5$  & $-5.1$  & 0.19  & 0.81 \\
+--    & 1  & 0.4, 2.3  & $+3.9$  & 0.58  & $-1.73$ & $+3.9$  & 0.58  & 0.001 \\
+$g$   & 4  & 3.5, 5.3  & $+14.0$ & 1.000 & $-2.5$  & $+0.7$  & 0.18  & 0.82 \\
+$g$   & 8  & 4.8, 7.3  & $+14.4$ & 1.000 & $-8.3$  & $-11.7$ & 0.000 & 1.000 \\
+$g$   & 32 & 7.5, 11.2 & $+14.4$ & 1.000 & $-36.8$ & $-55.6$ & 0.000 & 1.000 \\
+$z$   & 4  & 2.0, 3.5  & $+7.0$  & 1.000 & $-7.8$  & $-7.1$  & 0.016 & 0.98 \\
+$W2$  & 4  & 1.9, 3.1  & $+9.8$  & 0.989 & $+0.55$ & $+5.2$  & 0.48  & 0.52 \\
+$W2$  & 32 & 2.9, 4.7  & $+13.4$ & 1.000 & $-8.5$  & $-6.5$  & 0.06  & 0.94 \\
 \bottomrule
 \end{tabular}
-\caption{The README candidate (Legacy south $g,r,z,W1,W2$, $z_0=1.8$, $r\approx21$)
+\caption{The README candidate (Legacy south $g,r,z,W1,W2$, $z_0=1.8$, $u_r\approx21$)
 with one band flux multiplied by $s$ at fixed error. $P(Q)$ is the posterior
 probability of a quasar at any redshift; $d_Q$ and $d_B$ are in $\sigma$. With
 three hypotheses the candidate is a certain quasar however far it is pushed, and
-$\ln\mathrm{BF}$ saturates at $+14$; with $U$ it goes to ``unmodelled''. The
-full sweep is in \texttt{data/outlier\_sweep\_multisurvey.json}.}
+$\ln\mathrm{BF}$ saturates at $+14$; with $U$ it goes to ``unmodelled'' once it is
+a few $\sigma$ from both models. The full sweep is in \texttt{data/outlier\_sweep\_multisurvey.json}.}
 \label{tab:sweep}
 \end{table}
 
@@ -1174,32 +1200,35 @@ redshift; blue: the same with $U$; grey dashed: $P(U)$. Numbers along the top
 are $\min(d_Q,d_B)$ in $\sigma$. \emph{Right:} the $21{,}284$ spectroscopic
 non-quasars of the pair validation, in bins of distance to the nearer model
 (counts along the top): the fraction called quasars. With $U$ it is zero in
-every bin beyond $3\sigma$.}
+every bin beyond $2\sigma$.}
 \label{fig:outliers}
 \end{figure}
 
-\paragraph{Far from both models it decides.} In the sweep
-(Table~\ref{tab:sweep}, Figure~\ref{fig:outliers}) every step beyond about
-$4\sigma$ from the nearer model goes to $U$, and the Bayes factor turns strongly
-negative. Among the $95$ spectroscopic non-quasars more than $3\sigma$ from both
-models, $17$ are called quasars with three hypotheses and none with $U$; between
-$2$ and $3\sigma$, $14$ of $1{,}060$ become $8$. In total the non-quasars called
-quasars fall from $191$ to $168$ of $21{,}284$.
+\paragraph{In the colour plane.} Figure~\ref{fig:densities} shows the Bayes
+factor as scored, with $U$, beside the field-model-only one. Of the cells where
+both densities are below $1\%$ of their peaks, $0.2\%$ keep $\ln\mathrm{BF}>5$
+(field model only: $28\%$), and the largest value in the plane falls from $17.6$
+to $7.6$. At the quasar peak $\ln\mathrm{BF}$ moves from $5.31$ to $5.28$.
+$\ln\mathrm{BF}>0$ remains in $19\%$ of those cells, all on the edges of the
+quasar locus where the field model has no support; there the quasar density is
+the only one that is not an extrapolation.
 
-\paragraph{Near the loci it changes little.} On the $50{,}746$ companions the
-median $|\Delta\ln R|$ is $0.003$ and $99.9\%$ move by less than $0.64$; $105$
-move by more than $0.1$. Every held-out AUC is unchanged to three decimals
-except same-/wrong-redshift by $\ln\mathrm{BF}$, which rises from $0.714$ to
-$0.720$. $U$ is more active here than in the predecessor's four flux ratios:
-a conditional $41$-band density leaves more room for the field fit to be poor,
-and the $\eta$ fitted on held-out fields says so.
+\paragraph{On the labelled pairs.} Among the $95$ spectroscopic non-quasars more
+than $3\sigma$ from both models, $17$ are called quasars with three hypotheses
+and none with $U$; between $2$ and $3\sigma$, $14$ of $1{,}060$ become none. In
+total the non-quasars called quasars fall from $191$ to $131$ of $21{,}284$ (the
+Gaussian envelope reached $168$). The ranking is untouched: held-out AUC by
+$\ln R$ stays $0.828$, by $p(z\in W\mid Q)$ $0.865$; by $\ln\mathrm{BF}$ it rises
+from $0.714$ to $0.738$; quasar/star moves from $0.982$ to $0.981$ and
+quasar/galaxy from $0.961$ to $0.960$. The median $|\Delta\ln R|$ is $0.010$;
+$1\%$ of companions move by more than $0.28$.
 
-\paragraph{What it costs.} Real quasars far from the field model pay: of the
-$15$ spectroscopic quasars more than $3\sigma$ from both models, $7$ are called
-quasars with three hypotheses and $2$ with $U$, and between $2$ and $3\sigma$,
-$50$ of $94$ become $42$. Those colours are outside what either model was fitted
-to, and the scorer declines to treat them as evidence. $\eta$ belongs to this
-field model; a refitted or local one needs its own.
+\paragraph{What it costs.} Real quasars far from both models pay: of the $15$
+spectroscopic quasars more than $3\sigma$ from both, $7$ are called quasars with
+three hypotheses and none with $U$, and between $2$ and $3\sigma$, $50$ of $94$
+become $21$. Those colours are outside what either model was fitted to, and the
+scorer declines to treat them as evidence. $\eta$, $\nu$ and $c$ belong to this
+field model; a refitted one needs its own.
 
 %==============================================================================
 \section{What the scorer returns}
@@ -1489,7 +1518,7 @@ $W2$ above all --- that the two plotted colours do not show.}
 \label{fig:examples}
 \end{figure}
 
-All five quasars have positive evidence, from $+5.2$ to $+14.3$, and all five
+All five quasars have positive evidence, from $+5.2$ to $+10.2$, and all five
 field sources negative, from $-1.7$ to $-38.5$ (the Legacy row of the table in
 \S\ref{sec:survey-examples}). The quasars Q1--Q3 lie at $z\approx0.3$, where the
 optical quasar and galaxy colours are close: in the $g-r$, $r-z$ plane they sit
@@ -1539,11 +1568,11 @@ the combination; $P_z$ assumes the object is a quasar and is not $p_{\rm same}$.
 \toprule
 input & Q1 & Q2 & Q3 & Q4 & Q5 & F1 & F2 & F3 & F4 & F5 \\
 \midrule
-SDSS             & $+1.5$ & $+5.6$ & $+2.1$ & $+0.2$ & $+8.2$ & $+0.5$ & $-4.3$ & $-3.4$ & $-20.5$ & $-2.0$ \\
-Legacy           & $+5.2$ & $+9.9$ & $+7.3$ & $+14.3$ & $+11.5$ & $-1.7$ & $-10.7$ & $-7.4$ & $-38.5$ & $-9.7$ \\
+SDSS             & $+1.5$ & $+5.6$ & $+2.1$ & $+0.2$ & $+8.2$ & $+0.5$ & $-4.3$ & $-3.3$ & $-20.5$ & $-2.0$ \\
+Legacy           & $+5.2$ & $+9.2$ & $+7.2$ & $+10.0$ & $+10.2$ & $-1.7$ & $-10.7$ & $-7.4$ & $-38.5$ & $-9.7$ \\
 AllWISE          & $+9.7$ & $+3.1$ & $-1.2$ & $+13.1$ & $+3.5$ & $+1.4$ & $-1.0$ & $-2.1$ & $-5.1$ & $-0.5$ \\
-VHS              & $+5.0$ & $+2.9$ & $+4.4$ & $+2.6$ & $+2.8$ & $+1.7$ & $-1.8$ & $-4.2$ & $+0.9$ & $+1.5$ \\
-Legacy + AllWISE & $+14.0$ & $+9.6$ & $+4.6$ & $+15.8$ & $+6.0$ & $+0.7$ & $-10.5$ & $-9.6$ & $-36.3$ & $-9.7$ \\
+VHS              & $+5.0$ & $+2.9$ & $+4.4$ & $+2.7$ & $+2.8$ & $+1.7$ & $-1.8$ & $-4.2$ & $+0.9$ & $+1.6$ \\
+Legacy + AllWISE & $+14.0$ & $+9.6$ & $+4.7$ & $+15.8$ & $+6.0$ & $+0.7$ & $-10.5$ & $-9.6$ & $-36.3$ & $-9.7$ \\
 all seven        & $+22.2$ & $+30.8$ & $+29.0$ & $+37.8$ & $+39.2$ & $+6.9$ & $-45.5$ & $-36.4$ & $-110.9$ & $-13.9$ \\
 \bottomrule
 \end{tabular}
@@ -1630,9 +1659,11 @@ and components
     \mathbf{V}_{ba,k}.
 \end{align}
 %
-The conditional covariance is a Schur complement, and Schur complements
-preserve the Loewner order, which is what carries the dominance of the
-unmodelled density through conditioning (\S\ref{sec:outliers}). Marginalising
+The conditional covariance is a Schur complement. For a multivariate $t$ the
+marginal over a subset of dimensions is a $t$ with the same $\nu$ and the
+sub-block of the scale, so a conditional is the joint over the marginal of the
+conditioning block; this is how the unmodelled density is conditioned on the
+reference band (\S\ref{sec:outliers}). Marginalising
 over a subset of dimensions deletes the corresponding rows and columns. No
 inverse is ever formed: every quadratic form and log determinant comes from a
 Cholesky factor, and all densities are computed in log space.
