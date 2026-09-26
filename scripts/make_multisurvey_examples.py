@@ -316,10 +316,7 @@ def make_gallery(path: Path, sample: dict, results: list[dict], cfg: dict) -> No
     lines = [f"# Figure 10 versions for {len(results)} survey combinations", "",
         f"[Download the {len(results)}-page PDF](multisurvey_examples.pdf). Each image below also opens at full resolution.", "",
         f"All versions use the same **{n} held-out spectroscopic quasars** (Q1-Q{n}) and "
-        f"**{n} unclassified field sources** (F1-F{n}). These are new examples selected for common coverage, "
-        "rather than the objects in Figure 10. Figure 10 now uses the same luptitude-colour axis convention, "
-        "while retaining its original objects, models and scores; its photometry remains dereddened. "
-        "The [original flux-ratio plot](../../plots/examples/optical_only_examples_flux_ratio.png) is archived.", "",
+        f"**{n} unclassified field sources** (F1-F{n}), selected for common coverage in every survey.", "",
         f"The sample was drawn with seed {sample['selection']['seed']}, before evaluating scores, from "
         f"{q['eligible_count']} eligible quasars in {len(q['groups'])} "
         f"reserved sky blocks and {b['eligible_count']} eligible field sources. Quasars come from {n} different blocks; "
@@ -338,13 +335,14 @@ def make_gallery(path: Path, sample: dict, results: list[dict], cfg: dict) -> No
         "need not explain the full score. `ln BF` is the natural-log quasar-at-target-z/background "
         f"likelihood ratio. `P_z` is `p_zmatch_given_qso` for a +/-{cfg['half_width_kms']:g} km/s window and a flat redshift "
         "prior over model support (0.15-4.35). It assumes the object is a quasar and is not the "
-        "probability of a physical companion. Population posteriors and `log R` remain unavailable "
-        "without matching surface-density priors. The same target redshift is used in the top and "
-        "bottom panel of each column.", "",
+        "probability of a physical companion. The panels annotate evidence only; the population "
+        "posterior and `log R` come from the same scorer with `models/multisurvey_priors.json` and are "
+        "not shown here. The same target redshift is used in the top and bottom panel of each column.", "",
         "Optical bands retain their native AB calibration; ALLWISE and VHS retain Vega calibration. "
         "Colours are differences of the model's saved luptitudes, not ordinary magnitude colours at "
-        "low signal-to-noise. Usable negative fluxes remain measurements. DECaLS-only uses the "
-        "southern grz background marginal; all other versions use the joint background. These figures "
+        "low signal-to-noise. Usable negative fluxes remain measurements. DECaLS-only (Legacy g, r, z "
+        "and forced W1, W2) uses the dedicated southern Legacy background fit; all other versions use "
+        "the joint background. These figures "
         "show catalogue-object photometric diagnostics, without a per-object local background fit or "
         "a claim that the sources meet a close-companion blend policy.", "",
         "## Fixed objects", "", "| ID | RA (deg) | Dec (deg) | Target z | Reserved block/field |",
