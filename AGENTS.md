@@ -20,13 +20,19 @@ arcseconds away. Using broadband photometry only, how strongly does the
 companion's colour support the hypothesis that it is itself a quasar at
 *z* ≈ *z*₀?
 
-Three hypotheses, never two:
+Three hypotheses, never two — plus a fourth that stops the model's tails from deciding:
 
 | symbol | meaning |
 |---|---|
 | `same_z` | quasar whose redshift matches *z*₀ under a declared window |
 | `field_q` | quasar at some other redshift |
 | `bkg` | anything else in the imaging catalogue at that brightness and sky position |
+| `out` | the broad "unmodelled" share η(m) of that same field (`outlier.py`, `models/outlier_south.json`) |
+
+Without `out`, an object far from both colour models is scored by whichever
+Gaussian tail happens to be wider, and is called a quasar with probability one
+(measured, 2026-09-26; `docs/method/method.tex`, section "Colour outliers"). Pass
+`outlier_model=` for real candidates.
 
 Dropping `field_q` is the dominant failure mode: a real quasar at *z* = 2.6
 beats the stellar locus easily and would otherwise be scored as evidence for a
@@ -89,7 +95,10 @@ src/qso_pcolor/
                  (colour, z) backend; RedshiftMatch
   background.py  hierarchical (HEALPix cell, magnitude bin) background colours
   priors.py      Sigma_B(m, l, b) and Sigma_Q(z, m)
-  score.py       the three-hypothesis scorer and PairScore output record
+  outlier.py     the unmodelled hypothesis: dominating envelope covariance,
+                 ML outlier fraction
+  score.py       the scorer (three hypotheses, four with an outlier model)
+                 and PairScore output record
   data.py        WSDB queries, cached to .npz
   multisurvey_data.py  survey-labelled native photometry and catalogue adapters
   multisurvey.py       joint-band mixtures conditioned on an available reference;
@@ -104,8 +113,10 @@ scripts/build_multisurvey_sample.py  cached quasar and all-source field samples
 scripts/train_multisurvey_model.py   cached fits with spatial component selection
 scripts/validate_multisurvey.py      reserved-object checks for all survey subsets
 scripts/plot_colour_redshift.py     intrinsic colour-redshift marginals, including PS1
+scripts/fit_outlier_model.py        kappa and eta(m) on 22 held-out field cones
+scripts/outlier_analysis.py         figure 11: colour outliers with and without `out`
 docs/method/                       method.tex + Makefile -> method.pdf
-tests/                    149 tests; see section 7
+tests/                    166 tests; see section 7
 ```
 
 Saved real-data models and validation scripts now ship for the original
@@ -561,6 +572,34 @@ the broad comparison does not establish velocity resolution. See
 `docs/MAINTENANCE_2026-09-21.md` for the changes and verification. Clustering
 remains outside this maintenance scope; no retraining is needed or performed.
 
+### Colour outliers: the unmodelled hypothesis (2026-09-26)
+
+Far from both colour models, log p(c|Q)/p(c|B) is a difference of Gaussian
+quadratic forms and runs away; with three hypotheses such objects were called
+quasars with P = 1.000 (README candidate with g x 8: 6.6 sigma from every
+quasar component, 14.8 from the background, ln BF +24.7). In the pair
+validation 7 of the 11 non-quasars > 3 sigma from both models were called
+quasars (0.9 % near the loci). Remedy, in `outlier.py`:
+
+- **Two distances, always reported:** `qso_ood_sigma_any_z` (all slices;
+  `qso_ood_sigma` is z0-only and is large for every wrong-z quasar) and
+  `bkg_ood_sigma`. `outside_both_models` needs an explicit `ood_flag_sigma`.
+- **A fourth hypothesis U**, eta(m) of Sigma_B, density N(mean_B, kappa^2 E).
+  E is an envelope >= every component (Gershgorin bound in the whitened,
+  rotated frame); an isotropically scaled field covariance would need kappa =
+  67, because a few IR-bright quasar components are 67x wider than the field
+  in w1/r, w2/r. kappa > kappa_min is enforced on construction.
+- **Calibrated on cones 08-32 of `compare_background_modes.py`** (00-07 are
+  the background's own fields), split A/B: eta = (6.2, 8.6, 4.3, 2.4)e-4,
+  kappa = 1.016 (the dominance limit binds; likelihood wants narrower), gain on
+  B +0.0090 nats/object.
+- **Measured effect:** tail non-quasars called quasars 7/11 -> 0/11; every
+  held-out AUC unchanged to three decimals; 99.9 % of |d ln R| < 0.004. Cost:
+  quasars far from the background but near a quasar component lose Bayes
+  factor (median 26.9 -> 12.4 for 84 objects; 3 fall below 0).
+- **Not for the multi-survey scorer**, whose densities are conditional; it
+  raises if given one, and reports conditional distances.
+
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by
@@ -589,9 +628,14 @@ z_phot_mode
 log_lambda_sameq, log_lambda_fieldq, log_lambda_bkg
 log_r_per_unit_z            window-free evidence; RANK ON THIS
 dz_match_eff                the window area that turns R into p_sameq
-p_sameq_vs_bkg              the two-class number; ignores field quasars
+p_sameq_vs_bkg              same_z vs every non-quasar (bkg + out); ignores field quasars
 p_sameq                     = exp(log_r_per_unit_z) * dz_match_eff
-qso_ood_sigma               distance to the nearest training component
+qso_ood_sigma               distance to the nearest component of the z0 slice
+qso_ood_sigma_any_z         distance to the nearest quasar component at any z
+bkg_ood_sigma               distance to the nearest background component used
+loglike_outlier, outlier_fraction, log_lambda_out, p_outlier
+                            the unmodelled hypothesis; NaN without an outlier model.
+                            With one, loglike_bkg is the whole field density
 background_local_weight     0 => the score came from the pooled model
 background_density_level    0 local, 1 parent, 2 global
 n_bands_used, status, quality_flags, model_manifest_id
@@ -600,7 +644,8 @@ n_bands_used, status, quality_flags, model_manifest_id
 `status` values in use: `ok`, `insufficient_photometry`,
 `no_prior_posterior_unavailable`, `qso_prior_empty_at_this_magnitude`,
 `primary_z_outside_model_support`, `blended_not_scored`. Add to this list
-rather than returning a silent number.
+rather than returning a silent number. Quality flag `outside_both_models` is
+set only when the caller passes `ood_flag_sigma` (no default: rule 2).
 
 ---
 

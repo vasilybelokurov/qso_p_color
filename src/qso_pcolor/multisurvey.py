@@ -112,25 +112,38 @@ class _ConditionalQSO(SlicedColourRedshiftModel):
                                 for m in self.mixtures])
 
     def ood_score(self, x, cov, z, *, observed=None):
-        x = np.atleast_2d(x)
-        obs = np.ones_like(x, bool) if observed is None else observed
         mix = self.mixtures[int(np.argmin(abs(self.z_centres-z)))]
-        out = np.full(len(x), np.nan)
-        for i in range(len(x)):
-            dims = np.flatnonzero(obs[i] & (np.arange(x.shape[1]) != self.anchor))
-            if not len(dims) or not obs[i, self.anchor]:
-                continue
-            best = np.inf
+        return _conditional_min_mahalanobis([mix], x, cov, observed, self.anchor)
+
+    def ood_score_any_z(self, x, cov, *, observed=None):
+        return _conditional_min_mahalanobis(self.mixtures, x, cov, observed, self.anchor)
+
+
+def _conditional_min_mahalanobis(mixtures, x, cov, observed, anchor):
+    """Nearest-component distance of the non-reference bands given the reference.
+
+    Same conditioning as :func:`conditional_log_prob`: noise is added to the
+    joint covariance first, then each component is conditioned on the anchor.
+    """
+    x = np.atleast_2d(x)
+    obs = np.ones_like(x, bool) if observed is None else observed
+    out = np.full(len(x), np.nan)
+    for i in range(len(x)):
+        dims = np.flatnonzero(obs[i] & (np.arange(x.shape[1]) != anchor))
+        if not len(dims) or not obs[i, anchor]:
+            continue
+        best = np.inf
+        for mix in mixtures:
             for mu, intrinsic in zip(mix.means, mix.covs):
                 total = intrinsic + (0 if cov is None else cov[i])
-                va = total[self.anchor, self.anchor]
-                cross = total[dims, self.anchor]
-                mean = mu[dims] + cross / va * (x[i, self.anchor] - mu[self.anchor])
+                va = total[anchor, anchor]
+                cross = total[dims, anchor]
+                mean = mu[dims] + cross / va * (x[i, anchor] - mu[anchor])
                 conditional = total[np.ix_(dims, dims)] - np.outer(cross, cross) / va
                 residual = np.linalg.solve(np.linalg.cholesky(conditional), x[i, dims]-mean)
                 best = min(best, float(np.sqrt(residual @ residual)))
-            out[i] = best
-        return out
+        out[i] = best
+    return out
 
 
 def _background_log_prob(model, marginals, x, cov, observed, anchor):
@@ -174,6 +187,14 @@ class _ConditionalBackground:
         obs = np.ones_like(x, bool) if observed is None else observed
         lp = _background_log_prob(self.model, self.marginals, x, cov, obs, self.anchor)
         return (lp, np.zeros(len(x))) if return_level else lp
+
+    def ood_score(self, x, cov, ref_mag, l_deg, b_deg, *, observed=None):
+        """Nearest joint-background component, conditioned on the reference.
+
+        Uses the joint fit only; a declared marginal, where it applies, is a
+        refit of the same population in fewer bands.
+        """
+        return _conditional_min_mahalanobis([self.model], x, cov, observed, self.anchor)
 
     def out_of_mag_range(self, ref_mag):
         lo, hi = self.bounds[self.anchor]
@@ -253,6 +274,10 @@ class MultiSurveyModel:
         """
         if min_bands < 2:
             raise ValueError("colour evidence requires at least two measured bands")
+        if kwargs.get("outlier_model") is not None:
+            raise ValueError(
+                "no outlier model exists for the conditional multi-survey densities; "
+                "an unconditional one would have the wrong units")
         features = self.transform(photometry, flux_covariance=flux_covariance)
         n = features.n_obs
         if not n:

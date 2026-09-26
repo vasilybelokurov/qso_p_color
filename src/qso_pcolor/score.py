@@ -17,9 +17,20 @@ The intensities are
         p(\\mathbf{c}\\mid Q,z)\\,\\mathrm{d}z \\\\
     \\lambda_{\\rm fieldQ} &= \\int [1 - W(z\\mid z_0)]\\,\\Sigma_Q(z,m)\\,
         p(\\mathbf{c}\\mid Q,z)\\,\\mathrm{d}z \\\\
-    \\lambda_{\\rm bkg} &= \\Sigma_B(m,l,b)\\,p(\\mathbf{c}\\mid B,m,l,b)
+    \\lambda_{\\rm bkg} &= [1-\\eta(m)]\\,\\Sigma_B(m,l,b)\\,p(\\mathbf{c}\\mid B,m,l,b) \\\\
+    \\lambda_{\\rm out} &= \\eta(m)\\,\\Sigma_B(m,l,b)\\,p(\\mathbf{c}\\mid U)
 
 all in deg^-2 mag^-1 per unit colour volume, so their ratios are meaningful.
+The fourth term is the broad "unmodelled" share of the field
+(:mod:`qso_pcolor.outlier`); without an outlier model :math:`\\eta=0` and the
+scorer reduces exactly to three hypotheses.
+
+Why ``out`` has to be there
+---------------------------
+Far from both colour loci the quasar/background ratio is set by which Gaussian
+tail is wider, and grows without bound.  Without :math:`U` such an object is
+called a quasar with probability one.  With it, the object goes to
+"unmodelled", and ``p_outlier`` says so.
 
 Why ``field_q`` has to be there
 -------------------------------
@@ -44,6 +55,7 @@ import numpy as np
 
 from .background import BackgroundColourModel
 from .features import FeatureSet
+from .outlier import OutlierModel
 from .priors import BackgroundSurfaceDensity, GridQSOPrior
 from .qso_model import (RedshiftMatch, SlicedColourRedshiftModel,
                         _integration_grid, _window_subgrid, _window_integral)
@@ -179,6 +191,20 @@ class PairScore:
     quality_flags: tuple[str, ...] = ()
     model_manifest_id: str = ""
 
+    # -- tail diagnostics and the unmodelled hypothesis
+    # Distance in sigma to the nearest quasar component at ANY trained redshift
+    # (qso_ood_sigma above is at z0 only, and is large for any wrong-z quasar)
+    # and to the nearest component of the background model actually used.
+    # Large values of BOTH mean every density here is a tail extrapolation.
+    qso_ood_sigma_any_z: float = float("nan")
+    bkg_ood_sigma: float = float("nan")
+    # log p(c | U) and the U share of the field; NaN without an outlier model.
+    # With one, loglike_bkg is the whole field, log[(1-eta) p_B + eta p_U].
+    loglike_outlier: float = float("nan")
+    outlier_fraction: float = float("nan")
+    log_lambda_out: float = float("nan")
+    p_outlier: float = float("nan")
+
     def as_row(self) -> dict:
         d = asdict(self)
         d["quality_flags"] = ",".join(self.quality_flags)
@@ -210,6 +236,8 @@ def score_candidates(
     blend_policy: "BlendPolicy | None" = None,
     separation_arcsec: np.ndarray | None = None,
     fracflux: np.ndarray | None = None,
+    outlier_model: OutlierModel | None = None,
+    ood_flag_sigma: float | None = None,
 ) -> list[PairScore]:
     """Score a batch of companions against a batch of primary redshifts.
 
@@ -248,6 +276,15 @@ def score_candidates(
         Angular separation from the primary and reference-band ``fracflux``.
         Required by ``blend_policy``; a missing value counts as a violation,
         because a companion cannot be certified clean without them.
+    outlier_model : OutlierModel, optional
+        The broad unmodelled share of the field.  Enters the Bayes factor (the
+        field density includes it) and the denominators of every posterior and
+        of ``R``.  ``None`` keeps the three-hypothesis scorer, whose ratios run
+        away for colours far from both models; state it for real candidates.
+    ood_flag_sigma : float, optional
+        If given, ``outside_both_models`` is added to ``quality_flags`` when both
+        ``qso_ood_sigma_any_z`` and ``bkg_ood_sigma`` exceed it.  No default:
+        the threshold is a choice, and the distances are reported regardless.
 
     Returns
     -------
@@ -264,6 +301,12 @@ def score_candidates(
                 f"Checking only one of the two models would let a reversed "
                 f"feature order corrupt the Bayes factor silently."
             )
+    if outlier_model is not None:
+        outlier_model.check_system(sysname)
+        if tuple(features.labels) != tuple(outlier_model.labels):
+            raise ValueError(
+                f"feature layout mismatch against the outlier model: it expects "
+                f"{outlier_model.labels}, candidate features are {features.labels}.")
 
     n = features.n_obs
     z_primary = np.atleast_1d(np.asarray(z_primary, dtype=float))
@@ -314,12 +357,34 @@ def score_candidates(
         dens_level = np.full(n, -1)
 
     out_of_mag = background_model.out_of_mag_range(features.ref_mag)
+
+    # -- tail diagnostics, one vectorised pass --------------------------------
+    nan_n = np.full(n, np.nan)
+    d_q = (qso_model.ood_score_any_z(features.x, features.cov, observed=features.observed)
+           if hasattr(qso_model, "ood_score_any_z") else nan_n)
+    d_b = (background_model.ood_score(features.x, features.cov, features.ref_mag,
+                                      l_deg, b_deg, observed=features.observed)
+           if hasattr(background_model, "ood_score") else nan_n)
+    if outlier_model is not None:
+        log_pu = outlier_model.log_prob(features.x, features.cov,
+                                        observed=features.observed)
+        eta = outlier_model.fraction_at(features.ref_mag)
+        with np.errstate(divide="ignore"):
+            # Field density: (1 - eta) p_B + eta p_U; eta = 0 reproduces p_B.
+            log_field = np.logaddexp(np.log1p(-eta) + log_pb, np.log(eta) + log_pu)
+    else:
+        log_pu, eta, log_field = nan_n, nan_n, log_pb
     out: list[PairScore] = []
     for i in range(n):
         flags = [k for k, v in features.flags.items() if bool(np.atleast_1d(v)[i])]
         status = "ok"
         if out_of_mag[i]:
             flags.append("background_out_of_mag_range")
+        if (ood_flag_sigma is not None and np.isfinite(d_q[i]) and np.isfinite(d_b[i])
+                and min(d_q[i], d_b[i]) > ood_flag_sigma):
+            flags.append("outside_both_models")
+        tail = dict(qso_ood_sigma_any_z=float(d_q[i]), bkg_ood_sigma=float(d_b[i]),
+                    loglike_outlier=float(log_pu[i]), outlier_fraction=float(eta[i]))
 
         if blended[i]:
             flags = flags + ["blended"]
@@ -353,7 +418,7 @@ def score_candidates(
                 _log_slices=log_slices[i : i + 1],
             )[0, 0]
         )
-        log_bf = log_lq - float(log_pb[i])
+        log_bf = log_lq - float(log_field[i])
 
         z_sub = _window_subgrid(
             match, float(z_primary[i]), qso_model.support, n_window_sub
@@ -391,8 +456,10 @@ def score_candidates(
                 "qso_prior_empty_at_this_magnitude", flags, manifest_id, int(n_bands[i]),
             )
             row.loglike_qso_zprimary = log_lq
-            row.loglike_bkg = float(log_pb[i])
+            row.loglike_bkg = float(log_field[i])
             row.log_bayes_factor_qz_bkg = log_bf
+            for k, v in tail.items():
+                setattr(row, k, v)
             row.dz_match_eff = dz_eff
             row.background_local_weight = float(local_w[i])
             row.background_density_level = int(dens_level[i])
@@ -439,29 +506,42 @@ def score_candidates(
         )
 
         # -- intensities ---------------------------------------------------
+        log_lam_o = p_out = np.nan
         if qso_prior is None or background_density is None:
             log_lam_s = log_lam_f = log_lam_b = np.nan
             log_r = np.nan
             p_vs_bkg = p_full = np.nan
             status = "no_prior_posterior_unavailable"
         else:
-            log_b = float(log_pb[i]) + (
-                np.log(sigma_b[i]) if sigma_b[i] > 0 else -np.inf
-            )
-            scale = max(shift, log_b)
+            with np.errstate(divide="ignore"):
+                log_sb = np.log(sigma_b[i]) if sigma_b[i] > 0 else -np.inf
+                if outlier_model is None:
+                    log_b, log_o = float(log_pb[i]) + log_sb, -np.inf
+                else:
+                    log_b = float(np.log1p(-eta[i]) + log_pb[i]) + log_sb
+                    log_o = float(np.log(eta[i]) + log_pu[i]) + log_sb
+            scale = max(shift, log_b, log_o)
             total_q = norm * np.exp(shift - scale)
             s_rel = same * np.exp(shift - scale)
             f_rel = max(total_q - s_rel, 0.0)  # protect round-off only
             b_rel = float(np.exp(log_b - scale))
+            o_rel = float(np.exp(log_o - scale))
 
-            denom = s_rel + f_rel + b_rel
-            p_vs_bkg = s_rel / (s_rel + b_rel) if (s_rel + b_rel) > 0 else np.nan
+            # "vs_bkg" is same-z quasar against every non-quasar explanation.
+            denom = s_rel + f_rel + b_rel + o_rel
+            nonq = s_rel + b_rel + o_rel
+            p_vs_bkg = s_rel / nonq if nonq > 0 else np.nan
             p_full = s_rel / denom if denom > 0 else np.nan
+            if outlier_model is not None:
+                p_out = o_rel / denom if denom > 0 else np.nan
+                with np.errstate(divide="ignore"):
+                    log_lam_o = float(np.log(o_rel) + scale)
 
             # R is the window-AVERAGED same-redshift intensity per unit
             # redshift, divided by the total intensity of every explanation:
             #
-            #     R = [ (1/dZ) \int W Sigma_Q p dz ] / (Lambda_Q,tot + lambda_bkg)
+            #     R = [ (1/dZ) \int W Sigma_Q p dz ]
+            #         / (Lambda_Q,tot + lambda_bkg + lambda_out)
             #
             # so p_sameq = R * dz_match_eff by construction.  R tends to the
             # point value Sigma_Q(z0,m) p(c|Q,z0) / (...) as the window narrows,
@@ -489,7 +569,7 @@ def score_candidates(
                 ref_mag=float(features.ref_mag[i]),
                 photometric_system=sysname,
                 loglike_qso_zprimary=log_lq,
-                loglike_bkg=float(log_pb[i]),
+                loglike_bkg=float(log_field[i]),
                 log_bayes_factor_qz_bkg=log_bf,
                 p_zmatch_given_qso=p_zmatch,
                 z_phot_mode=z_mode,
@@ -508,6 +588,9 @@ def score_candidates(
                 status=status,
                 quality_flags=tuple(flags),
                 model_manifest_id=manifest_id,
+                log_lambda_out=log_lam_o,
+                p_outlier=p_out,
+                **tail,
             )
         )
     return out

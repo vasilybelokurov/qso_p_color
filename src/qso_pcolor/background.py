@@ -233,6 +233,45 @@ class BackgroundColourModel:
             return out, w_local_out
         return out
 
+    def ood_score(
+        self,
+        x: np.ndarray,
+        cov: np.ndarray | None,
+        ref_mag: np.ndarray,
+        l_deg: np.ndarray,
+        b_deg: np.ndarray,
+        *,
+        observed: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Distance to the nearest background component, in sigma, shape (n,).
+
+        The minimum is over every mixture that :meth:`log_prob` blends for the
+        object (global, and parent and cell where they exist), so a large value
+        means no part of the field model describes these colours and its
+        density there is a Gaussian-tail extrapolation.
+        """
+        x = np.atleast_2d(np.asarray(x, dtype=float))
+        n, d = x.shape
+        s = (np.zeros((n, d, d)) if cov is None
+             else np.broadcast_to(np.asarray(cov, float).reshape(-1, d, d), (n, d, d)))
+        obs = (np.ones((n, d), bool) if observed is None
+               else np.broadcast_to(np.asarray(observed, bool), (n, d)))
+        imag = self.mag_bin(ref_mag)
+        ipix = galactic_healpix(l_deg, b_deg, self.nside)
+        ppix = _parent_pix(ipix, self.nside, self.nside_parent)
+        out = np.full(n, np.inf)
+        for mb in np.unique(imag):
+            sel = np.flatnonzero(imag == mb)
+            out[sel] = self.global_[int(mb)].min_mahalanobis(
+                x[sel], s[sel], observed=obs[sel])
+        for table, pix in ((self.parent, ppix), (self.local, ipix)):
+            for (p, mb), mix in table.items():
+                sel = np.flatnonzero((pix == p) & (imag == mb))
+                if sel.size:
+                    out[sel] = np.fmin(out[sel], mix.min_mahalanobis(
+                        x[sel], s[sel], observed=obs[sel]))
+        return np.where(np.isfinite(out), out, np.nan)
+
     def to_dict(self) -> dict:
         def pack(d):
             return {f"{k[0]}|{k[1]}": v.to_dict() for k, v in d.items()}

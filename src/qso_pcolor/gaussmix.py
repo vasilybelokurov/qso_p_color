@@ -226,6 +226,52 @@ class GaussianMixture:
             out[sel] = logsumexp(lp + np.log(self.weights)[None, :], axis=1)
         return out
 
+    def min_mahalanobis(
+        self,
+        x: np.ndarray,
+        cov: np.ndarray | None = None,
+        *,
+        observed: np.ndarray | None = None,
+        chunk: int = 4096,
+    ) -> np.ndarray:
+        """Distance to the nearest component, in sigma, shape (n,).
+
+        :math:`\\min_k \\sqrt{(\\mathbf{x}-\\boldsymbol{\\mu}_k)^T
+        (\\mathbf{V}_k+\\mathbf{S}_i)^{-1}(\\mathbf{x}-\\boldsymbol{\\mu}_k)}`
+        in each object's observed subspace; NaN where nothing is observed.
+        The number of observed dimensions differs between objects, so the same
+        distance is a different tail probability in 3 and in 4 dimensions.
+        """
+        x = np.atleast_2d(np.asarray(x, dtype=float))
+        n, d = x.shape
+        s = (
+            np.zeros((n, d, d))
+            if cov is None
+            else np.broadcast_to(np.asarray(cov, float).reshape(-1, d, d), (n, d, d))
+        )
+        obs = (
+            np.ones((n, d), dtype=bool)
+            if observed is None
+            else np.broadcast_to(np.asarray(observed, bool), (n, d))
+        )
+        out = np.full(n, np.nan)
+        packed = np.packbits(obs, axis=1)
+        _, inverse = np.unique(packed, axis=0, return_inverse=True)
+        for g in range(inverse.max() + 1 if n else 0):
+            rows = np.flatnonzero(inverse == g)
+            idx = np.flatnonzero(obs[rows[0]])
+            if idx.size == 0:
+                continue
+            mus = self.means[:, idx]
+            vs = self.covs[np.ix_(np.arange(self.n_components), idx, idx)]
+            for lo in range(0, rows.size, chunk):
+                r = rows[lo:lo + chunk]
+                delta = x[np.ix_(r, idx)][:, None, :] - mus[None]          # (m, K, dg)
+                chol = np.linalg.cholesky(vs[None] + s[np.ix_(r, idx, idx)][:, None])
+                y = np.linalg.solve(chol, delta[..., None])[..., 0]
+                out[r] = np.sqrt(np.einsum("mki,mki->mk", y, y).min(axis=1))
+        return out
+
     def responsibilities(
         self,
         x: np.ndarray,

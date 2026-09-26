@@ -458,37 +458,31 @@ class SlicedColourRedshiftModel:
         Defined as :math:`\\min_k \\sqrt{(\\mathbf{c}-\\boldsymbol{\\mu}_k)^T
         (\\mathbf{V}_k+\\mathbf{S})^{-1}(\\mathbf{c}-\\boldsymbol{\\mu}_k)}` over
         the components of the slice nearest ``z``, evaluated in the observed
-        subspace.  Large values mean the object sits outside the region the model
-        was trained on, where the density is an extrapolation.  Reported
-        alongside every score; never used to silently modify one.
+        subspace.  Large values mean the object is unlike a quasar *at z*; a
+        quasar at another redshift also scores high here.  Reported alongside
+        every score; never used to silently modify one.
         """
         j = int(np.argmin(np.abs(self.z_centres - z)))
-        mix = self.mixtures[j]
-        x = np.atleast_2d(np.asarray(x, dtype=float))
-        n, d = x.shape
-        s = (
-            np.zeros((n, d, d))
-            if cov is None
-            else np.broadcast_to(np.asarray(cov, float).reshape(-1, d, d), (n, d, d))
+        return self.mixtures[j].min_mahalanobis(x, cov, observed=observed)
+
+    def ood_score_any_z(
+        self,
+        x: np.ndarray,
+        cov: np.ndarray | None,
+        *,
+        observed: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Distance to the nearest component of ANY slice, in sigma, shape (n,).
+
+        Unlike :meth:`ood_score` this does not depend on the primary: a large
+        value means the colours are unlike a quasar at every trained redshift,
+        so the model's density there is a Gaussian-tail extrapolation.
+        """
+        return np.min(
+            np.stack([m.min_mahalanobis(x, cov, observed=observed)
+                      for m in self.mixtures], axis=1),
+            axis=1,
         )
-        obs = (
-            np.ones((n, d), dtype=bool)
-            if observed is None
-            else np.broadcast_to(np.asarray(observed, bool), (n, d))
-        )
-        out = np.full(n, np.nan)
-        for i in range(n):
-            idx = np.flatnonzero(obs[i])
-            if idx.size == 0:
-                continue
-            best = np.inf
-            for k in range(mix.n_components):
-                delta = x[i, idx] - mix.means[k, idx]
-                cc = mix.covs[np.ix_([k], idx, idx)][0] + s[np.ix_([i], idx, idx)][0]
-                y = np.linalg.solve(np.linalg.cholesky(cc), delta)
-                best = min(best, float(np.sqrt(y @ y)))
-            out[i] = best
-        return out
 
     # -- serialisation ----------------------------------------------------
 

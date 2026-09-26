@@ -17,6 +17,7 @@
 \newcommand{\Hsame}{H_{\rm same}}
 \newcommand{\Hfield}{H_{\rm field}}
 \newcommand{\Hbkg}{H_{\rm bkg}}
+\newcommand{\Hout}{H_{\rm out}}
 \newcommand{\kms}{\,\mathrm{km\,s^{-1}}}
 
 \title{Colour evidence that the companion of a quasar is\\
@@ -53,7 +54,11 @@ stars with AUC $0.988$ and from galaxies with $0.964$ in the full sample, and un
 same-redshift probability by a
 factor that falls from $10.0$ at $3$--$5''$ to $3.3$ at $20$--$30''$ --- the
 signature of quasar clustering, which the scorer deliberately omits and which
-this measurement is the first to size. Section~\ref{sec:multisurvey} describes
+this measurement is the first to size. Far from both colour models the
+three-hypothesis ratio is set by Gaussian tails and called such objects quasars
+with certainty; a broad fourth hypothesis, calibrated on held-out fields,
+removes that without changing any validation AUC (\S\ref{sec:outliers}).
+Section~\ref{sec:multisurvey} describes
 the additional model for arbitrary combinations of SDSS, Legacy DR9,
 AllWISE, PS1, NSC, SkyMapper, and VHS, including infrared-only inputs.
 Matched Legacy $grz$ tests give original/new redshift-discrimination AUCs
@@ -288,6 +293,14 @@ Alongside this we always report the prior-independent colour Bayes factor
 which depends on the two density models but on neither surface density. If the
 surface densities change, \eqref{eq:posterior} must move and \eqref{eq:bf} must
 not; this is enforced by a unit test rather than by intention.
+
+A fourth hypothesis, $\Hout$, takes a small, fitted share $\eta(m)$ of the
+field and gives it a density broader than every component of both colour
+models. It adds $\lambda_{\rm out}$ to every denominator above and enters the
+Bayes factor through the field density. Near the loci it changes nothing
+measurable. Far from both models, where \eqref{eq:posterior} would otherwise be
+decided by which Gaussian tail happens to be wider, it takes over
+(\S\ref{sec:outliers}).
 
 \section{Photometric features and their covariance}
 \label{sec:features}
@@ -815,6 +828,260 @@ sources per square degree, or wherever a candidate's neighbourhood is known to
 be unusual. Whether the picture changes toward the plane cannot be measured
 with this imaging, which does not go there.
 
+\section{Colour outliers: the unmodelled hypothesis}
+\label{sec:outliers}
+
+\subsection{The defect}
+
+Both colour densities are Gaussian mixtures convolved with the object's own
+measurement covariance $\mathbf S$. Far from every component of both, each is
+dominated by its widest component in the direction of the displacement
+$\Delta\cvec$, and their log ratio becomes a difference of quadratic forms,
+%
+\begin{equation}
+\ln\frac{p(\cvec\mid Q,z)}{p(\cvec\mid B)} \;\approx\;
+-\tfrac12\,\Delta\cvec^{T}\Bigl[(\mathbf V_Q+\mathbf S)^{-1}
+-(\mathbf V_B+\mathbf S)^{-1}\Bigr]\Delta\cvec \;+\;\text{const},
+\label{eq:tailratio}
+\end{equation}
+%
+which grows without bound, quadratically in $|\Delta\cvec|$, in any direction
+where the widest quasar component is wider than the widest background
+component. Neither model was fitted to objects there, so the sign and size of
+\eqref{eq:tailratio} reflect how the tails of two fits happened to fall, not
+evidence about the object. With three hypotheses the ratio of two vanishing
+densities decides the classification: an artefact, a moving object, or a
+population absent from both training sets is called a quasar with probability
+one. The question was raised in review and is measured here
+(\texttt{scripts/outlier\_analysis.py}, 2026-09-26).
+
+Two distances identify the regime. For each object the scorer reports the
+Mahalanobis distance to the nearest component,
+%
+\begin{equation}
+d = \min_k \sqrt{(\cvec-\boldsymbol\mu_k)^T(\mathbf V_k+\mathbf S)^{-1}
+    (\cvec-\boldsymbol\mu_k)},
+\label{eq:ood}
+\end{equation}
+%
+taken over every component of every redshift slice ($d_Q$,
+\texttt{qso\_ood\_sigma\_any\_z}) and over every background mixture that the
+hierarchy \eqref{eq:hierarchy} blends for the object ($d_B$,
+\texttt{bkg\_ood\_sigma}), in the observed subspace. The existing
+\texttt{qso\_ood\_sigma} is the same distance to the $z_0$ slice only. It is
+large for every wrong-redshift quasar and so cannot identify this regime.
+$\min(d_Q,d_B)$ large means that every density in the calculation is an
+extrapolation.
+
+\paragraph{Synthetic sweep.} The README candidate ($z_0=1.8$, $r\approx21.0$)
+has one band flux multiplied by $s$ at fixed inverse variance, which walks it
+away from both loci (Table~\ref{tab:sweep}, Figure~\ref{fig:outliers}). At
+$g\times8$ it is $6.6\sigma$ from the nearest quasar component and $14.8\sigma$
+from the nearest background component, and the three-hypothesis scorer gives
+$P(\text{quasar at any }z)=1.000$ with $\ln\mathrm{BF}=+24.7$. At $g\times32$,
+$22\sigma$ from every quasar component, the answer is unchanged. $\ln R$ in these
+examples is strongly negative, because the tail's implied redshift happens to
+lie away from $z_0$. Nothing guarantees that. Along the $g$ direction $\ln R$ is
+not even monotonic ($-139$ at $s=16$, $-129$ at $s=32$).
+
+\paragraph{Real companions.} Among the $21{,}284$ spectroscopic non-quasars of
+the pair validation (\S\ref{sec:validation}), $11$ lie more than $3\sigma$ from
+both models, and $7$ of those are called quasars (posterior above one half),
+against $198$ of the $21{,}151$ that lie within $2\sigma$ ($0.9\%$). The regime
+is rare in this sample, $3.4\%$ of all $205$ misclassified non-quasars, but
+inside it misclassification is the norm. The sample is a lower bound on how
+often the regime occurs. Its non-quasars are DESI targets, chosen from these
+same colours; a blind search over every neighbour of a quasar will also meet
+artefacts, blends, moving objects, brown dwarfs and quasars beyond the trained
+redshift range.
+
+\subsection{A fourth hypothesis}
+
+The field is written as a two-part mixture, a modelled part and a broad
+unmodelled part $U$. This is the standard device for data that contain
+points no component of the model describes \citep[\S3]{hogg2010}:
+%
+\begin{equation}
+p(\cvec\mid\text{field},m) = \bigl[1-\eta(m)\bigr]\,p(\cvec\mid B,m,\ell,b)
+  + \eta(m)\,p(\cvec\mid U),
+\qquad
+p(\cvec\mid U) = \mathcal N\bigl(\cvec\mid\bar\cvec,\;\kappa^2\mathbf E+\mathbf S\bigr),
+\label{eq:field_u}
+\end{equation}
+%
+so the background intensity \eqref{eq:lam_bkg} splits into
+%
+\begin{equation}
+\lambda_{\rm bkg} = [1-\eta(m)]\,\Sb\,p(\cvec\mid B),\qquad
+\lambda_{\rm out} = \eta(m)\,\Sb\,p(\cvec\mid U),
+\label{eq:lam_out}
+\end{equation}
+%
+and $\lambda_{\rm out}$ joins every denominator: the posteriors
+\eqref{eq:posterior}, $R$ \eqref{eq:R}, and the non-quasar side of
+\texttt{p\_sameq\_vs\_bkg}. The Bayes factor \eqref{eq:bf} compares against
+the whole field density \eqref{eq:field_u}. It remains independent of both
+surface densities, because $\eta$ is a property of the field's composition, not
+a prior on quasars. With $\eta=0$ the scorer reduces exactly to three
+hypotheses, which is a unit test. Missing bands are marginalised and noise is
+convolved exactly as for the other densities.
+
+\paragraph{The shape must dominate every component.} If
+$\kappa^2\mathbf E-\mathbf V_k\succ0$ for every component $k$ of both models,
+then $\kappa^2\mathbf E+\mathbf S-(\mathbf V_k+\mathbf S)\succ0$ for any noise,
+and in every observed subspace, since a principal submatrix of a positive-definite
+matrix is positive definite. The quadratic form of $U$ then grows more slowly
+than that of every component in every direction, so far enough out $U$
+dominates and the object goes to ``unmodelled'', not to ``quasar''. The smallest
+such $\kappa$ is
+$\kappa_{\min}^2=\max_k\lambda_{\max}(\mathbf V_k,\mathbf E)$, the largest
+generalised eigenvalue, obtained from a Cholesky factor of $\mathbf E$.
+
+A scaled field covariance, $\mathbf E=\boldsymbol\Sigma_B$, does not work in
+these coordinates. A few low-weight quasar components (for example $z=0.65$,
+weight $0.0012$, $\langle w1/r\rangle=55$) are up to $67$ times wider than the
+field in the $w1/r$--$w2/r$ plane, so dominance would need
+$\kappa_{\min}=67.4$. That is $67$ times too broad in $g/r$ as well, where the
+field's spread is $0.17$. $\mathbf E$ is therefore an anisotropic envelope.
+Whiten each component by $\boldsymbol\Sigma_B=\mathbf L\mathbf L^T$,
+$\mathbf A_k=\mathbf L^{-1}\mathbf V_k\mathbf L^{-T}$. Rotate to the eigenbasis
+$\mathbf Q$ of the mean $\mathbf A_k$, and set
+%
+\begin{equation}
+\mathbf E = \mathbf L\mathbf Q\,\mathrm{diag}(D)\,\mathbf Q^T\mathbf L^T,\qquad
+D_i=\max\Bigl(1,\;\max_k\sum_j\bigl|(\mathbf Q^T\mathbf A_k\mathbf Q)_{ij}\bigr|\Bigr).
+\label{eq:envelope}
+\end{equation}
+%
+A diagonal matrix of absolute row sums exceeds the symmetric matrix they come
+from, because the difference is diagonally dominant with a non-negative
+diagonal. Hence $\mathbf E\succeq\mathbf V_k$ for every $k$, and
+$\mathbf E\succeq\boldsymbol\Sigma_B$. For the shipped models, checked against
+all $768$ components, $\kappa_{\min}=0.996$. The envelope's standard deviations
+are $(2.1,\,16.6,\,84.5,\,114.0)$ in $(g/r,\,z/r,\,w1/r,\,w2/r)$, against the
+field's $(0.17,\,1.35,\,3.28,\,2.46)$. Its log-volume is $8.8$~nats smaller than
+the isotropic alternative, and it fits held-out field data better (below). The
+centre $\bar\cvec$ is the mean of the background mixture.
+
+\subsection{Calibration on fields the background never saw}
+
+$\kappa$ and $\eta(m)$ are set by held-out field likelihood
+(\texttt{scripts/fit\_outlier\_model.py}). The fields are the latitude-stratified
+$0.5^\circ$ cones of \S\ref{sec:bkg-modes}, excluding the eight that coincide
+with the fields of the shipped background: $22$ cones,
+$27^\circ<|b|<73^\circ$, $347{,}568$ sources after the background's own
+selection ($\texttt{maskbits}=0$, known quasars removed, $\ge3$ usable
+dimensions, $17\le r<22.5$). They are split alternately into a fitting set A
+($11$ cones, $173{,}684$ sources) and a check set B ($11$ cones,
+$173{,}884$). For each $\kappa$, $\eta$ is fitted by EM in each magnitude bin
+on A; the log-likelihood is concave in $\eta$, so EM reaches the global
+maximum, and a unit test checks it against a direct one-dimensional optimiser.
+The quantity compared is the mean per-object gain over the unmodified
+background, $\ln[(1-\eta)p_B+\eta p_U]-\ln p_B$.
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+$\kappa/\kappa_{\min}$ & $1.02$ & $1.5$ & $3$ & $8$ \\
+\midrule
+gain on A (nats per object) & $+0.0071$ & $+0.0066$ & $+0.0059$ & $+0.0051$ \\
+gain on B (nats per object) & $+0.0090$ & $+0.0085$ & $+0.0078$ & $+0.0069$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The likelihood prefers the narrowest $U$ that still dominates, so the
+constraint binds and $\kappa=1.016$ is adopted. The fitted fractions are
+$\eta=(6.2,\,8.6,\,4.3,\,2.4)\times10^{-4}$ in the magnitude bins
+$[17,19.5,20.5,21.5,22.5]$. The gain on B is positive in every bin but falls
+from $0.020$ to $0.0008$ nats per object in the faintest, where the larger
+errors let the mixture's own tails absorb more. The isotropic shape at its own
+$\kappa_{\min}$ gives $+0.0078$ on B, below the envelope's $+0.0090$.
+The result ships as \texttt{models/outlier\_south.json}, with the cones, the
+split and the scan recorded in its metadata.
+
+\subsection{What it changes}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & & & \multicolumn{3}{c}{three hypotheses} & \multicolumn{3}{c}{with $U$} \\
+\cmidrule(lr){4-6}\cmidrule(lr){7-9}
+band & $s$ & $\min(d_Q,d_B)$ & $\ln\mathrm{BF}$ & $P(Q)$ & $\ln R$ &
+$\ln\mathrm{BF}$ & $P(Q)$ & $P(U)$ \\
+\midrule
+--   & 1  & 0.2  & $+3.4$  & 0.70  & $-2.52$ & $+3.4$  & 0.70  & 0.000 \\
+$g$  & 4  & 1.5  & $+16.9$ & 1.000 & $-7.2$  & $+0.7$  & 0.96  & 0.04 \\
+$g$  & 8  & 6.6  & $+24.7$ & 1.000 & $-58.6$ & $-67.6$ & 0.000 & 1.000 \\
+$g$  & 32 & 22.3 & $+24.1$ & 1.000 & $-129$  & $-302$  & 0.000 & 1.000 \\
+$z$  & 16 & 3.9  & $-136$  & 1.000 & $-187$  & $-187$  & 0.018 & 0.98 \\
+$W2$ & 8  & 1.0  & $+19.6$ & 1.000 & $+0.00$ & $+6.7$  & 0.88  & 0.12 \\
+$W2$ & 32 & 4.0  & $+212$  & 1.000 & $-20.8$ & $-22.1$ & 0.002 & 1.00 \\
+\bottomrule
+\end{tabular}
+\caption{The README candidate with one band flux multiplied by $s$ at fixed
+inverse variance, scored with the shipped models. $P(Q)$ is the posterior
+probability of a quasar at any redshift; distances are in $\sigma$. The full
+sweep, including $W1{+}W2$, is in \texttt{data/outlier\_analysis.json}.}
+\label{tab:sweep}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../../plots/method/fig11_outlier_tails.png}
+\caption{\emph{Left, centre:} the README candidate with its $g$ or $z$ flux
+multiplied by $s$. Orange: the three-hypothesis posterior probability of a
+quasar at any redshift; blue: the same with the unmodelled term; grey dashed:
+$P(U)$. Numbers along the top are $\min(d_Q,d_B)$ in $\sigma$. \emph{Right:} the
+$21{,}284$ spectroscopic non-quasars of the pair validation, in bins of the
+distance to the nearer model (counts along the top): the fraction called
+quasars. With $U$ that fraction is zero in every bin beyond $2\sigma$.}
+\label{fig:outliers}
+\end{figure}
+
+\paragraph{Far from both models it decides.} In the sweep, every step beyond
+about $4\sigma$ from the nearer model goes to $U$ with $P(U)\ge0.98$, and the
+Bayes factor turns strongly negative (Table~\ref{tab:sweep}). In the pair
+validation, the non-quasars called quasars beyond $3\sigma$ fall from $7$ of
+$11$ to $0$ of $11$; the total falls from $205$ to $197$ of $21{,}284$.
+
+\paragraph{Near the loci it changes nothing measurable.} On the same $50{,}746$
+companions, the median change in $\ln R$ is $2\times10^{-4}$. $99.9\%$ of
+objects move by less than $0.004$, and $12$ by more than $0.1$: nine are at
+least $3\sigma$ from both models, and three lie within $1.3\sigma$ of a quasar
+component but at least $4.7\sigma$ from the background. Every held-out AUC is unchanged to three decimals:
+$0.815$ by $\ln R$, $0.760$ by $\ln\mathrm{BF}$ (was $0.759$), $0.855$ by
+$p(z\in W\mid Q)$, $0.970$ for quasar against non-quasar, and $0.488$ against
+the hard negatives at $3000$--$6000\kms$. The README candidate moves by less
+than $0.01$ in both $\ln R$ and $\ln\mathrm{BF}$, with $P(U)<10^{-6}$.
+
+\paragraph{What it does not fix, and what it costs.} $U$ acts only where
+\emph{both} models are extrapolating. An object within $1\sigma$ of a quasar
+component but $15\sigma$ from the background has genuinely quasar-like colours,
+and stays quasar-like. One such galaxy was the third-ranked non-quasar by
+$\ln R$ before the change. Its Bayes factor falls from $+102$ to $+8.1$, since
+the background's tail no longer sets it, but its $\ln R$ moves only from $0.97$
+to $0.88$. The cost falls on real quasars in the same position: for the $84$
+spectroscopic quasars more than $6\sigma$ from the background and within $3\sigma$
+of a quasar component, the median $\ln\mathrm{BF}$ falls from $26.9$ to $12.4$,
+and $3$ fall below zero. The one spectroscopic quasar more than $3\sigma$ from
+both models, previously called a quasar, now is not ($P(U)=0.98$). This is the
+intended behaviour: those colours carry no information the models can use.
+$\eta$ was measured at $|b|>27^\circ$ in the southern footprint and belongs to
+this background model; a refitted or local background needs its own. The
+multi-survey scorer evaluates conditional densities (\S\ref{sec:multisurvey}),
+for which an unconditional $U$ would have the wrong units, so it refuses an
+outlier model rather than applying one. It reports the conditional distances.
+
+\paragraph{Using it.} Load the model with
+\texttt{OutlierModel.load("models/outlier\_south.json")} and pass it to
+\texttt{score\_candidates} as \texttt{outlier\_model}; omitting it keeps the
+three-hypothesis scorer. The distances $d_Q$ and $d_B$ are always
+reported. The quality flag \texttt{outside\_both\_models} is raised when both
+exceed \texttt{ood\_flag\_sigma}, which has no default, because a threshold is a
+choice. With $4\sigma$ it flags $5$ of the $50{,}746$ validation companions.
+
 \section{Surface densities}
 \label{sec:priors}
 
@@ -1027,7 +1294,10 @@ The step that makes this clean is the denominator. Since $\Hsame$ and $\Hfield$
 \label{eq:partition}
 \end{equation}
 %
-where $\Lambda_{Q,{\rm tot}}=\int\Sq(z,m)\,p(\cvec\mid Q,z)\,\dd z$. Defining
+where $\Lambda_{Q,{\rm tot}}=\int\Sq(z,m)\,p(\cvec\mid Q,z)\,\dd z$. (With the
+unmodelled hypothesis of \S\ref{sec:outliers}, $\lambda_{\rm bkg}$ here and
+below stands for $\lambda_{\rm bkg}+\lambda_{\rm out}$; nothing else
+changes.) Defining
 %
 \begin{equation}
 \boxed{\;
@@ -1248,9 +1518,19 @@ $p_{\rm same}=R\,\Delta Z_{\rm eff}$ \\
 \texttt{log\_lambda\_sameq}, \texttt{\_fieldq}, \texttt{\_bkg} &
 \eqref{eq:lam_same}--\eqref{eq:lam_bkg} in logs \\
 \texttt{p\_sameq} & \eqref{eq:posterior}, the three-hypothesis posterior \\
-\texttt{p\_sameq\_vs\_bkg} & the two-hypothesis number; ignores field quasars \\
-\texttt{qso\_ood\_sigma} & distance to the nearest training component, in
-$\sigma$ \\
+\texttt{p\_sameq\_vs\_bkg} & same-redshift quasar against every non-quasar
+explanation ($\lambda_{\rm bkg}+\lambda_{\rm out}$); ignores field quasars \\
+\texttt{qso\_ood\_sigma} & distance \eqref{eq:ood} to the nearest component of
+the $z_0$ slice, in $\sigma$ \\
+\texttt{qso\_ood\_sigma\_any\_z} & $d_Q$ of \S\ref{sec:outliers}: nearest
+quasar component at any redshift \\
+\texttt{bkg\_ood\_sigma} & $d_B$: nearest component of the background actually
+used \\
+\texttt{loglike\_outlier} & $\ln p(\cvec\mid U)$ \eqref{eq:field_u}; NaN without an
+outlier model, and with one \texttt{loglike\_bkg} is the whole field density \\
+\texttt{outlier\_fraction} & $\eta(m)$ used for this object \\
+\texttt{log\_lambda\_out}, \texttt{p\_outlier} & \eqref{eq:lam_out} and its
+posterior share \\
 \texttt{background\_local\_weight} & $a_\ell$ from \eqref{eq:hierarchy}; zero
 means a pooled model \\
 \texttt{background\_density\_level} & 0 local, 1 parent, 2 global \\
@@ -2047,6 +2327,14 @@ factor, and this is the clearest example we have measured. Morphology remains
 useful evidence ($3\%$ of those galaxies are \textsf{PSF} against $91$--$94\%$
 of quasars) and is reported as a flag rather than used as a gate.
 
+\paragraph{Colours unlike anything either model has seen.} Mixture tails are
+extrapolations, and with three hypotheses their ratio classified such objects
+as certain quasars. The unmodelled hypothesis of \S\ref{sec:outliers} removes
+that, at the cost of weaker Bayes factors for real quasars that lie far from the
+background. It does not make the scorer informative there. An object flagged
+\texttt{outside\_both\_models} needs a spectrum or another look at its
+photometry, not a number.
+
 \paragraph{Unused evidence.} Gaia parallax and proper motion settle the question
 outright for bright companions and are available in the same catalogue; WISE
 photometry is the single strongest star/quasar discriminant but has a $\sim6''$
@@ -2146,6 +2434,11 @@ Bovy J., et al., 2012,
 \emph{Photometric redshifts and quasar probabilities from a single, data-driven
 generative model},
 \url{https://arxiv.org/abs/1105.3975}
+
+\bibitem[Hogg et al.(2010)]{hogg2010}
+Hogg D.~W., Bovy J., Lang D., 2010,
+\emph{Data analysis recipes: Fitting a model to data},
+\url{https://arxiv.org/abs/1008.4686}
 
 \bibitem[Lyke et al.(2020)]{lyke2020dr16q}
 Lyke B.~W., et al., 2020,

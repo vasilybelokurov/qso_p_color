@@ -15,9 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 BANDS = ("g", "r", "z", "w1", "w2")
 
 
-def score_readme_candidate():
+def score_readme_candidate(g_factor: float = 1.0, outlier: bool = False):
+    """The README candidate; ``g_factor`` scales its g flux to make it an outlier."""
     from qso_pcolor.background import BackgroundColourModel
     from qso_pcolor.features import RelativeFluxTransform, deredden
+    from qso_pcolor.outlier import OutlierModel
     from qso_pcolor.priors import BackgroundSurfaceDensity, GridQSOPrior
     from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
     from qso_pcolor.score import BlendPolicy, score_candidates
@@ -28,7 +30,7 @@ def score_readme_candidate():
     prior = GridQSOPrior.load(ROOT / "models/sigma_q_south.json")
 
     tr = RelativeFluxTransform(reference_band="r")
-    flux = np.array([[1.9, 2.6, 3.1, 11.0, 14.0]])
+    flux = np.array([[1.9 * g_factor, 2.6, 3.1, 11.0, 14.0]])
     ivar = np.array([[120.0, 150.0, 60.0, 8.0, 3.0]])
     trans = np.array([[0.97, 0.98, 0.99, 1.0, 1.0]])
     f, v = deredden(flux, ivar, trans)
@@ -41,13 +43,15 @@ def score_readme_candidate():
         qso_prior=prior, match=RedshiftMatch(half_width_kms=2000.0),
         blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
         separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
+        outlier_model=(OutlierModel.load(ROOT / "models/outlier_south.json")
+                       if outlier else None),
     )
     return rows[0]
 
 
 def test_shipped_files_exist_and_load():
     for name in ("qso_south_full", "background_south_global",
-                 "background_density_south_global", "sigma_q_south"):
+                 "background_density_south_global", "sigma_q_south", "outlier_south"):
         p = ROOT / f"models/{name}.json"
         assert p.exists(), f"{p} must ship with the repository"
     s = score_readme_candidate()
@@ -59,6 +63,9 @@ def test_shipped_files_exist_and_load():
     # the README quotes these; a drift here means the README is stale
     assert abs(s.log_bayes_factor_qz_bkg - 3.42) < 0.05, s.log_bayes_factor_qz_bkg
     assert abs(s.log_r_per_unit_z - (-2.52)) < 0.05, s.log_r_per_unit_z
+    u = score_readme_candidate(outlier=True)       # the README's recommended call
+    assert abs(u.log_bayes_factor_qz_bkg - 3.42) < 0.05, u.log_bayes_factor_qz_bkg
+    assert abs(u.log_r_per_unit_z - (-2.52)) < 0.05, u.log_r_per_unit_z
 
 
 def test_shipped_background_records_its_provenance():

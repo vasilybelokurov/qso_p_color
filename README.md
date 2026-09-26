@@ -45,10 +45,11 @@ The saved files are:
 | [background_south_global.json](models/background_south_global.json) | Original southern background colour model |
 | [background_density_south_global.json](models/background_density_south_global.json) | Original background surface density |
 | [sigma_q_south.json](models/sigma_q_south.json) | Original quasar surface-density prior |
+| [outlier_south.json](models/outlier_south.json) | The broad "unmodelled" share of the original background, fitted on 22 held-out fields |
 | [multisurvey.json](models/multisurvey.json) | Current seven-survey model: quasar/background fits, transform, band schema, and automatic southern `grz` background selection |
 | [multisurvey_joint_20260921.json](models/multisurvey_joint_20260921.json) | Archived initial seven-survey version, with only the joint background; retained to reproduce the initial comparison |
 
-The first four files form **one original model bundle**. The current and
+The first five files form **one original model bundle**. The current and
 archived seven-survey versions each load from one file. Both use
 `MultiSurveyModel.load(...)`; select the archived path only when reproducing
 that version's results. The current `multisurvey.json` is the choice used by
@@ -63,7 +64,7 @@ so follow the example for the model you load.
 ## State of play — read this before trusting a number
 
 **What is solid.** The statistical machinery, checked against independent routes
-(quadrature, Monte Carlo, closed forms) by 149 tests. The original quasar colour model,
+(quadrature, Monte Carlo, closed forms) by 166 tests. The original quasar colour model,
 trained on 1,106,986 spectroscopic quasars — 917,489 DESI DR1 and 189,497 SDSS
 DR16Q, all with `maskbits = 0` — with 20 % of nside=4 sky blocks reserved before
 fitting. The
@@ -141,7 +142,7 @@ cd qso_p_color
 python3 -m venv .venv                        # Python 3.11 or newer
 source .venv/bin/activate
 pip install -e ".[dev]"                      # package plus pytest
-python -m pytest -q                          # 149 tests, ~43 s
+python -m pytest -q                          # 166 tests, ~43 s
 ```
 
 Installation supplies the numerical dependencies, including numpy, scipy,
@@ -169,6 +170,7 @@ quasar surface density. No database access is required for this.
 import numpy as np
 from qso_pcolor.background import BackgroundColourModel
 from qso_pcolor.features import RelativeFluxTransform, deredden
+from qso_pcolor.outlier import OutlierModel
 from qso_pcolor.priors import BackgroundSurfaceDensity, GridQSOPrior
 from qso_pcolor.qso_model import RedshiftMatch, SlicedColourRedshiftModel
 from qso_pcolor.score import BlendPolicy, score_candidates
@@ -178,6 +180,7 @@ qso   = SlicedColourRedshiftModel.load("models/qso_south_full.json")
 bkg   = BackgroundColourModel.load("models/background_south_global.json")
 dens  = BackgroundSurfaceDensity.load("models/background_density_south_global.json")
 prior = GridQSOPrior.load("models/sigma_q_south.json")
+out   = OutlierModel.load("models/outlier_south.json")   # the "unmodelled" hypothesis
 tr = RelativeFluxTransform(reference_band="r")
 
 # Legacy Surveys fluxes, inverse variances and transmissions (nanomaggies)
@@ -194,13 +197,23 @@ rows = score_candidates(
     qso_prior=prior, match=RedshiftMatch(half_width_kms=2000.0),
     blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
     separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
+    outlier_model=out, ood_flag_sigma=4.0,
 )
 s = rows[0]
-print(s.log_bayes_factor_qz_bkg)   # +3.42   evidence: quasar at z0 vs background
+print(s.log_bayes_factor_qz_bkg)   # +3.42   evidence: quasar at z0 vs the field
 print(s.log_r_per_unit_z)          # -2.52   the ranking statistic
 print(s.p_sameq)                   # 3.0e-03 posterior for the ±2000 km/s window
+print(s.p_outlier)                 # 2.1e-08 share taken by "unmodelled"
+print(s.qso_ood_sigma_any_z, s.bkg_ood_sigma)   # 0.15 1.37  sigma to each model
 print(s.status)                    # 'ok'
 ```
+
+Without `outlier_model` the scorer uses three hypotheses and gives the same
+numbers for this candidate, but not for colours far from both models: there the
+quasar/background ratio is set by which Gaussian tail is wider, and such an
+object is called a quasar with probability one. With it, those objects go to
+`p_outlier` instead; nothing near the loci moves measurably (validation AUCs
+unchanged to three decimals). Method note, "Colour outliers".
 
 `tests/test_shipped_models.py` is this example, executed; if the numbers drift
 the suite fails. The shipped background is a footprint average from eight
@@ -248,10 +261,11 @@ An empty prior at the candidate magnitude likewise retains the likelihoods and
 Bayes factor, with `status='qso_prior_empty_at_this_magnitude'`.
 
 Every row also carries `log_r_per_unit_z` (the ranking statistic),
-`dz_match_eff`, the three log intensities, an out-of-distribution score,
+`dz_match_eff`, the log intensities, distances in σ to the nearest quasar
+component (at *z*₀ and at any *z*) and to the nearest background component,
 `frac_norm_outside_support` (how much of the redshift normalisation the scorer
 discarded as lying outside the trained range), quality flags and a status code.
-§10 of the method note lists them all.
+The method note's "What the scorer returns" section lists them all.
 
 ### Things that will bite you
 
@@ -266,6 +280,10 @@ discarded as lying outside the trained range), quality flags and a status code.
   galaxies as a serious contaminant (AUC 0.80, 10.7 % above the same-*z*
   median). With the shipped all-source background those numbers are 0.96 and
   0.3 %. The background must contain everything a chance neighbour can be.
+- **Trusting a number for colours neither model has seen.** Far from both loci
+  every density is a Gaussian-tail extrapolation. Pass `outlier_model`, and
+  treat `outside_both_models` (set when both distances exceed your
+  `ood_flag_sigma`) as "needs another look", not as a score.
 - **Feeding it blended pairs.** Below ~3″ the survey photometry does not give two
   independent measurements. `BlendPolicy` exists to refuse them, not to
   down-weight them.
@@ -285,6 +303,8 @@ discarded as lying outside the trained range), quality flags and a status code.
 | `scripts/validate_pairs.py` | the validation: ROC, reliability, contaminants by spectype, figure |
 | `scripts/make_method_figures.py` | the method note's figures |
 | `scripts/build_global_background.py` | the shipped footprint-average background, with provenance |
+| `scripts/fit_outlier_model.py` | the unmodelled hypothesis: envelope breadth and η(m) by held-out field likelihood |
+| `scripts/outlier_analysis.py` | colour outliers with and without it: sweep, validation tails, figure 11 |
 | `scripts/compare_background_modes.py` | global vs local field model in 30 cones: when does local matter? (measured: |b| ≲ 25°) |
 | `scripts/recover_holdout_blocks.py` | recover a trained model's spatial holdout and record it |
 | `scripts/extend_qso_model_redshift.py` | widen a trained model's redshift range by appending slices |
@@ -300,7 +320,7 @@ discarded as lying outside the trained range), quality flags and a status code.
 
 ## Models and data
 
-The **original southern model bundle** consists of these four committed files.
+The **original southern model bundle** consists of these five committed files.
 Together they supply its colour models and population priors. The two
 seven-survey versions are listed under [Choose a saved model](#choose-a-saved-model).
 
@@ -310,6 +330,7 @@ seven-survey versions are listed under [Choose a saved model](#choose-a-saved-mo
 | `models/background_south_global.json` | footprint-average background colour model (all source types, `maskbits = 0`, known quasars removed) |
 | `models/background_density_south_global.json` | its surface density Σ_B, mask-corrected area |
 | `models/sigma_q_south.json` | the quasar surface density Σ_Q(z, m), global and isotropic |
+| `models/outlier_south.json` | the unmodelled hypothesis: a normalised Gaussian broader than every quasar and background component, and its share η(m) of Σ_B (2.4–8.6 × 10⁻⁴), fitted on 22 held-out cones |
 
 `models/qso_south_full.json` is 1,106,986 training quasars
 (917,489 DESI DR1 + 189,497 SDSS DR16Q, de-duplicated at 1″, `maskbits = 0` on

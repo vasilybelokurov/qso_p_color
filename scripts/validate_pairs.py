@@ -118,6 +118,15 @@ def main() -> None:
                          "~5e5 and the sanity check needs nothing like that many")
     ap.add_argument("--out", type=Path, default=Path("data/pair_validation_results.npz"))
     ap.add_argument("--report", type=Path, default=Path("data/pair_validation_report.json"))
+    ap.add_argument("--outlier", type=Path, default=None,
+                    help="outlier model (models/outlier_south.json) adding the "
+                         "unmodelled hypothesis; omitted = three hypotheses")
+    ap.add_argument("--ood-flag-sigma", type=float, default=None,
+                    help="threshold for the outside_both_models flag")
+    ap.add_argument("--tail-bins", type=float, nargs="+", default=[0, 2, 3, 4, 6, 10],
+                    help="edges in sigma of min(qso_ood_sigma_any_z, bkg_ood_sigma) "
+                         "for the tail report; the last bin is open")
+    ap.add_argument("--no-figure", action="store_true")
     ap.add_argument("--figure", type=str, default="validation/pair_validation",
                     help="figure name under plots/; change it when validating a "
                          "candidate model so the shipped model's figure survives")
@@ -191,6 +200,10 @@ def main() -> None:
 
     # -- score ---------------------------------------------------------------
     prior = GridQSOPrior.load(args.prior)
+    outlier = None
+    if args.outlier is not None:
+        from qso_pcolor.outlier import OutlierModel
+        outlier = OutlierModel.load(args.outlier)
     match = RedshiftMatch(half_width_kms=args.half_width_kms)
     frac = np.asarray(d["comp_fracflux_r"], float)[idx]
     t0 = time.time()
@@ -201,6 +214,7 @@ def main() -> None:
         blend_policy=BlendPolicy(min_separation_arcsec=args.min_sep, max_fracflux=args.max_fracflux),
         separation_arcsec=sep, fracflux=frac, min_bands=3,
         candidate_id=d["comp_targetid"][idx], primary_id=d["prim_targetid"][idx],
+        outlier_model=outlier, ood_flag_sigma=args.ood_flag_sigma,
     )
     print(f"scored {len(rows):,} companions in {time.time() - t0:.0f} s")
 
@@ -219,7 +233,8 @@ def main() -> None:
     report = {"n": {}, "auc": {}, "reliability": {}, "non_qso_above_same_z_median": {},
               "selection_counts": selection, "hard_negatives": {}, "evidence_n": {},
               "model_sha256": {str(p): hashlib.sha256(p.read_bytes()).hexdigest()
-                               for p in (args.model, args.background, args.background_density, args.prior)},
+                               for p in (args.model, args.background, args.background_density, args.prior)
+                               + ((args.outlier,) if args.outlier else ())},
               "settings": vars(args) | {"maskbits": 0, "fracflux_band": "r",
                   "magnitude_range": bkg.mag_edges[[0, -1]].tolist(),
                   "background_note": "saved all-source global background; no refit"}}
@@ -291,6 +306,41 @@ def main() -> None:
             "frac_above_same_z_median_log_bf": float((logbf[m] > np.median(logbf[scored & (label == "same_z")])).mean()),
         }
 
+    # 4. the tails: objects far from BOTH colour models, where every density is
+    #    a Gaussian extrapolation.  "Called a quasar" means ln[(same + field) /
+    #    (bkg + out)] > 0, i.e. P(quasar at any z) > 1/2.
+    def col(k):
+        return np.array([getattr(r, k) for r in rows], float)
+    far = np.fmin(col("qso_ood_sigma_any_z"), col("bkg_ood_sigma"))
+    with np.errstate(invalid="ignore"):
+        lq = np.logaddexp(col("log_lambda_sameq"), col("log_lambda_fieldq"))
+        lnq = col("log_lambda_bkg")
+        lo = col("log_lambda_out")
+        lnq = np.where(np.isfinite(lo), np.logaddexp(lnq, lo), lnq)
+    called = (lq - lnq) > 0
+    isq = np.isin(spectype, ["QSO"])
+    edges = list(args.tail_bins) + [np.inf]
+    report["tails"] = {"bins_sigma": [[a, b] for a, b in zip(edges[:-1], edges[1:])],
+                       "rows": []}
+    for a, b in zip(edges[:-1], edges[1:]):
+        m = scored & (far >= a) & (far < b)
+        nq, qq = m & ~isq, m & isq
+        report["tails"]["rows"].append({
+            "sigma": [a, b], "n_non_qso": int(nq.sum()), "n_qso": int(qq.sum()),
+            "non_qso_called_quasar": int((nq & called).sum()),
+            "qso_called_quasar": int((qq & called).sum()),
+            "median_p_outlier": (float(np.nanmedian(col("p_outlier")[m])) if m.any()
+                                 and np.isfinite(col("p_outlier")[m]).any() else float("nan")),
+        })
+    report["tails"]["non_qso_called_quasar_total"] = int((scored & ~isq & called).sum())
+    report["tails"]["n_non_qso_total"] = int((scored & ~isq).sum())
+    report["tails"]["qso_called_quasar_total"] = int((scored & isq & called).sum())
+    report["tails"]["n_qso_total"] = int((scored & isq).sum())
+    print("  tails: min(qso_ood_sigma_any_z, bkg_ood_sigma), non-QSO / QSO called quasar")
+    for r in report["tails"]["rows"]:
+        print(f"    {r['sigma'][0]:>4}-{r['sigma'][1]:<4}  non-QSO {r['non_qso_called_quasar']:5d}/{r['n_non_qso']:<6d}"
+              f"  QSO {r['qso_called_quasar']:6d}/{r['n_qso']:<6d}  median p_outlier {r['median_p_outlier']:.2e}")
+
     for k, v in report["settings"].items():
         if isinstance(v, Path):
             report["settings"][k] = str(v)
@@ -334,7 +384,8 @@ def main() -> None:
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=1))
     print(f"\nwrote {args.out} and {args.report}")
-    make_figure(label, scored, in_held, logr, logbf, pz, report, args.figure)
+    if not args.no_figure:
+        make_figure(label, scored, in_held, logr, logbf, pz, report, args.figure)
 
 
 def make_figure(label, scored, in_held, logr, logbf, pz, report, fig_name="validation/pair_validation"):
