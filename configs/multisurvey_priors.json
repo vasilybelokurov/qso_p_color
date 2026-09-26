@@ -21,5 +21,6 @@
       22.5
     ],
     "why": "one spectroscopic-completeness constant for every anchor, fixed so the Legacy-south r prior integrates to the validated original prior over its own range"
-  }
+  },
+  "exclude_heldout": true
 }

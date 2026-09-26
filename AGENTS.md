@@ -614,6 +614,14 @@ quasars (0.9 % near the loci). Remedy, in `outlier.py`:
 - **Not for the multi-survey scorer**, whose densities are conditional; it
   raises if given one, and reports conditional distances.
 
+### Clustering is an odds multiplier (2026-09-26)
+
+The separation table used to give observed/predicted mean probability (9.8,
+7.4, 4.9, 3.3) and say "multiply the odds by it". Wrong: if clustering
+multiplies the same-z intensity by A, p' = A p / (1 - p + A p). Fitted by the
+Bernoulli likelihood on each companion's own p: A = 24.8, 13.3, 6.7, 3.9 for
+3-5, 5-10, 10-20, 20-30''. Found by an external (ChatGPT) review.
+
 ### M7 — blends, and other extensions
 
 Everything above assumes a cleanly deblended companion, enforced by
@@ -767,7 +775,8 @@ held-out same/wrong-z AUC by log R 0.828 vs 0.815, quasar/star 0.982 vs 0.988.
   supply one colour. Do not multiply separate survey Bayes factors.
 - **Priors are per reference band**, per unit native luptitude of that band,
   counted inside that survey's footprint, for objects with that band measured.
-  One completeness constant (C = 2.30) ties them to the archived original
+  Built outside the reserved sky blocks (quasars, parent counts and area).
+  One completeness constant (C = 2.37) ties them to the archived original
   prior. A prior must carry the reference label and `transform_id`; a new
   transform needs new priors.
 - **Dedicated field fits** apply only when every observed band is inside their

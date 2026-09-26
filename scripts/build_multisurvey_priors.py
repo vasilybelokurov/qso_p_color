@@ -45,8 +45,13 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 
 
-def parent_bin_counts(cfg: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Eligible de-duplicated parent: counts per sampling bin, and positions."""
+def parent_bin_counts(cfg: dict, exclude_heldout: bool = True
+                      ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Eligible de-duplicated parent: counts per sampling bin, and positions.
+
+    With ``exclude_heldout`` the counts are of the parent outside the reserved
+    sky blocks, matching the quasars and the area the prior is built from.
+    """
     from build_multisurvey_sample import deduplicate
     from qso_pcolor.data import galactic_from_equatorial
 
@@ -57,8 +62,15 @@ def parent_bin_counts(cfg: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     l, b = galactic_from_equatorial(ra, dec)
     eligible = np.abs(b) >= cfg["min_abs_b_deg"]
     edges = np.arange(cfg["z_min"], cfg["z_max"] + cfg["z_step"] / 2, cfg["z_step"])
-    counts, _ = np.histogram(z[eligible], edges)
-    return edges, counts, np.column_stack([l[eligible], b[eligible]])
+    positions = np.column_stack([l[eligible], b[eligible]])
+    keep = np.ones(eligible.sum(), bool)
+    if exclude_heldout:
+        from qso_pcolor.background import galactic_healpix
+        hm = json.loads(Path(cfg["holdout_model"]).read_text())["meta"]
+        blk = galactic_healpix(positions[:, 0], positions[:, 1], int(hm["holdout_nside"]))
+        keep = ~np.isin(blk, [int(x) for x in hm["holdout_blocks"]])
+    counts, _ = np.histogram(z[eligible][keep], edges)
+    return edges, counts, positions[keep]
 
 
 def main() -> None:
@@ -84,18 +96,30 @@ def main() -> None:
 
     # -- quasars ---------------------------------------------------------------
     t0 = time.time()
-    z_edges, n_parent, parent_lb = parent_bin_counts(cfg)
+    z_edges, n_parent, parent_lb = parent_bin_counts(cfg, pc.get("exclude_heldout", True))
     q = dict(np.load(Path(cfg["data_dir"]) / "quasars.npz"))
     qp = Photometry(q["flux"], q["variance"], tuple(str(x) for x in q["bands"])).align(bands)
     qf = model.transform(qp)
     qobs = qf.observed & (qf.observed.sum(1) >= pc["min_bands"])[:, None]
     ibin = np.clip(np.digitize(q["zspec"], z_edges) - 1, 0, n_parent.size - 1)
-    n_drawn = np.bincount(ibin, minlength=n_parent.size)
-    w = n_parent[ibin] / n_drawn[ibin]
+    # Quasars in the reserved sky blocks are left out, so that the whole scorer --
+    # colour densities AND surface densities -- is held out from them. The draw is
+    # uniform within a bin, so weighting the remaining quasars by
+    # N_parent / n_drawn_outside_the_blocks keeps the density unbiased.
+    train = ~q["held"].astype(bool) if pc.get("exclude_heldout", True) else np.ones(len(ibin), bool)
+    n_drawn = np.bincount(ibin[train], minlength=n_parent.size)
+    w = np.where(train, n_parent[ibin] / np.maximum(n_drawn[ibin], 1), 0.0)
     assert np.isclose(w.sum(), n_parent.sum()), "weights must restore the parent count"
     ppix = galactic_healpix(parent_lb[:, 0], parent_lb[:, 1], nside)
     pc_counts = np.bincount(ppix, minlength=hp.nside2npix(nside))
     parent_cells = pc_counts >= pc["parent_min_per_cell"]
+    if pc.get("exclude_heldout", True):
+        # drop the reserved sky blocks from the AREA too, not only their quasars;
+        # nested HEALPix, so a cell's block at nside_h is a bit shift
+        hm = json.loads(Path(cfg["holdout_model"]).read_text())["meta"]
+        shift = 2 * int(round(np.log2(nside / hm["holdout_nside"])))
+        blocks = np.arange(parent_cells.size) >> shift
+        parent_cells &= ~np.isin(blocks, [int(x) for x in hm["holdout_blocks"]])
     qpix = galactic_healpix(q["l"], q["b"], nside)
     print(f"parent: {n_parent.sum():,} eligible quasars, {parent_cells.sum()} cells "
           f"= {parent_cells.sum() * cell_area:,.0f} deg^2 ({time.time() - t0:.0f} s)")
@@ -118,7 +142,7 @@ def main() -> None:
         fp_cells = parent_cells & (det >= pc["footprint_min_detections"])
         in_fp = fp_cells[qpix]
         area_q = fp_cells.sum() * cell_area
-        use_q = in_fp & qobs[:, a]
+        use_q = in_fp & qobs[:, a] & train
         # field footprint: cones in which this survey detected anything
         cones = [k for k in field_ids if fobs[f["field"] == k][:, cols].any()]
         use_b = np.isin(f["field"], cones) & fobs[:, a]
@@ -165,6 +189,8 @@ def main() -> None:
            "built": time.strftime("%Y-%m-%d"), "by": "scripts/build_multisurvey_priors.py",
            "config": pc, "completeness_constant": completeness_c,
            "parent_eligible": int(n_parent.sum()),
+           "heldout_excluded": bool(pc.get("exclude_heldout", True)),
+           "n_quasars_used": int(train.sum()),
            "parent_area_deg2": float(parent_cells.sum() * cell_area),
            "anchors": {}, "report": report}
     for label, (s, m_edges) in raw_q.items():

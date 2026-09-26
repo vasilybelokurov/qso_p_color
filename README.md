@@ -78,8 +78,8 @@ blocks the model never saw (method note §10):
 Across all 127 survey combinations, reserved quasars are separated from
 reserved field sources with median AUC 0.996 (VHS alone is the weakest, 0.662;
 [report](docs/MULTISURVEY_VALIDATION.md)). The predicted same-redshift
-probability is low by a factor that falls from 9.8 at 3–5″ to 3.3 at 20–30″:
-that is quasar clustering, which the scorer deliberately leaves out.
+probability is too low, by an odds multiplier that falls from 25 at 3–5″ to 3.9
+at 20–30″: that is quasar clustering, which the scorer deliberately leaves out.
 
 ---
 
@@ -128,8 +128,8 @@ s = model.score(
     separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
 )[0]
 print(s.log_bayes_factor_qz_bkg)   # +3.91    evidence: quasar at z0 vs the field
-print(s.log_r_per_unit_z)          # -1.73    the ranking statistic
-print(s.p_sameq, s.dz_match_eff)   # 6.6e-03  posterior for the ±2000 km/s window, and its width
+print(s.log_r_per_unit_z)          # -1.75    the ranking statistic
+print(s.p_sameq, s.dz_match_eff)   # 6.5e-03  posterior for the ±2000 km/s window, and its width
 print(s.p_outlier)                 # 1.4e-03  share taken by "unmodelled"
 print(s.qso_ood_sigma_any_z, s.bkg_ood_sigma)   # 0.43 2.33  distance to each model, in sigma
 print(s.reference_band, s.status)  # decals_dr9_south:r ok
@@ -179,9 +179,10 @@ print(row.reference_band, row.bands_used, row.status)      # allwise:w1 ('allwis
   exactly; never quote `p_sameq` without `dz_match_eff`.
 - **`p_sameq` is small even for a perfect candidate.** A ±2000 km/s window at
   *z* = 1.8 is Δ*z* = 0.037; the photometric redshift width is ~0.6. It is also
-  not the probability of a physical pair: multiply the odds by the clustering
-  factor for the separation (9.8 at 3–5″, 7.4, 4.9, 3.3 at 20–30″) if you want
-  one.
+  not the probability of a physical pair. If you want one, apply the clustering
+  odds multiplier A for the separation, p′ = A p / (1 − p + A p), with
+  A = 24.8 (3–5″), 13.3 (5–10″), 6.7 (10–20″), 3.9 (20–30″). A is an odds
+  factor, not the observed/predicted probability ratio (9.8, 7.4, 4.9, 3.3).
 - **The Bayes factor is not an alternative ranking statistic.** It has no
   field-quasar term: AUC 0.720 against 0.828 for same- vs wrong-*z*. Use it to
   reject stars.

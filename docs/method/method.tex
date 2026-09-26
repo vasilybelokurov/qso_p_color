@@ -59,9 +59,9 @@ $R$. On $50{,}746$ companions of DESI quasars that have spectra of their own,
 Legacy $g,r,z,W1,W2$ photometry ranks a same-redshift quasar above a
 wrong-redshift one with held-out AUC $0.828$, and separates quasars from
 stars and galaxies with AUC $0.982$ and $0.961$; the same-redshift
-probability is low by a factor that falls from $9.8$ at $3$--$5''$ to
-$3.3$ at $20$--$30''$, the signature of quasar clustering that the scorer
-deliberately omits. Quasars just outside a $\pm3000\kms$ window cannot be
+probability is low by a factor that falls with separation --- an odds
+multiplier of $25$ at $3$--$5''$ falling to $3.9$ at $20$--$30''$ --- the
+signature of quasar clustering that the scorer deliberately omits. Quasars just outside a $\pm3000\kms$ window cannot be
 distinguished from those inside it. The model replaces an earlier
 Legacy-only model (Appendix~\ref{app:predecessor}): on identical inputs it
 ranks redshift better ($0.828$ against $0.815$) and rejects stars slightly less
@@ -684,14 +684,18 @@ the footprint if the survey detected at least two quasars in it; shallow
 surveys such as SkyMapper and VHS miss many faint quasars even inside their
 footprint, which is why presence rather than a detected fraction defines it.
 
-\paragraph{Quasars.} Each quasar of the flat draw is weighted by
-$N_{\rm parent}(\text{bin})/n_{\rm drawn}(\text{bin})$, which restores the
-parent's redshift distribution exactly (the weights sum to the $1{,}856{,}961$
-parent quasars); within a redshift bin the draw is uniform, so the brightness
-distribution is the parent's. The weighted counts in (redshift $0.1$,
-luptitude $0.5$) cells, inside the footprint, are divided by the footprint's
-share of the parent coverage ($13{,}825\,{\rm deg}^2$ in all; $10{,}048$ for
-Legacy south):
+\paragraph{Quasars.} The prior is built entirely outside the sixteen reserved
+sky blocks --- their quasars, their parent counts and their area are all left
+out --- so that the whole scorer, surface densities included, is held out from
+the objects it is validated on. Each of the $67{,}675$ quasars of the flat draw
+outside those blocks is weighted by $N_{\rm parent}(\text{bin})/n_{\rm
+drawn}(\text{bin})$, both counted outside the blocks, which restores the
+parent's redshift distribution exactly (the weights sum to the $1{,}521{,}637$
+parent quasars there); within a redshift bin the draw is uniform, so the
+brightness distribution is the parent's. The weighted counts in (redshift
+$0.1$, luptitude $0.5$) cells, inside the footprint, are divided by the
+footprint's share of the parent coverage outside the blocks
+($11{,}659\,{\rm deg}^2$ in all; $7{,}940$ for Legacy south):
 %
 \begin{equation}
 \Sq(z,u_a) = C\,\frac{\sum_i w_i\,[\,z_i,u_{a,i}\in\text{cell},\ a\text{ measured},\
@@ -703,8 +707,9 @@ Legacy south):
 incomplete, unevenly over the sky. We apply one constant $C$ to every band,
 fixed so that the Legacy-south $r$ density integrates over $17\le u_r<22.5$ to
 the predecessor's validated prior, which was normalised to DESI's best-covered
-sky: $C=2.30$. That assumes the completeness does not depend on which band is the
-reference.
+sky: $C=2.37$. That assumes the completeness does not depend on which band is the
+reference. Including the reserved blocks' quasars, as a first version did, gave
+$C=2.30$ and moved every held-out validation AUC by at most $0.001$.
 
 \paragraph{Field.} $\Sb(u_a)$ is the number of clean field sources with band $a$
 measured, per unit $u_a$, divided by the area of the cones that survey covers.
@@ -722,10 +727,10 @@ bands agree without being forced to:
 reference band & $\Sq$, $17\le u_a<22.5$ (deg$^{-2}$) & $\Sb$, same range (deg$^{-2}$) \\
 \midrule
 Legacy south $r$ & $254.9$ & $18{,}945$ \\
-Legacy north $r$ & $212.1$ & $13{,}415$ \\
-SDSS $r$         & $245.1$ & $12{,}312$ \\
-PS1 $r$          & $263.0$ & $15{,}021$ \\
-NSC $r$          & $216.1$ & $12{,}577$ \\
+Legacy north $r$ & $220.1$ & $13{,}415$ \\
+SDSS $r$         & $249.4$ & $12{,}303$ \\
+PS1 $r$          & $264.4$ & $15{,}016$ \\
+NSC $r$          & $217.2$ & $12{,}577$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -934,15 +939,15 @@ $g,r,z,W1,W2$ with the priors and the unmodelled term:
 population & $n$ & median $\ln R$ \\
 \midrule
 quasars with $|z-z_0|<0.05$   & $282$ & $-0.2$ \\
-quasars with $|z-z_0|>0.6$    & $397$ & $-4.2$ \\
+quasars with $|z-z_0|>0.6$    & $397$ & $-4.3$ \\
 field sources, $19.5<u_r<21.5$ & $400$ & $-14.3$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 Two very different gaps. Against the field population the statistic is
-decisive: $e^{14.1}\approx10^{6}$. Against \emph{quasars at the wrong redshift}
-it is worth a factor of about $55$ ($e^{4.0}$). That asymmetry is a statement
+decisive: $e^{14.2}\approx10^{6}$. Against \emph{quasars at the wrong redshift}
+it is worth a factor of about $60$ ($e^{4.1}$). That asymmetry is a statement
 about the information in $g,r,z,W1,W2$: these bands identify quasars very well
 and place them in redshift only weakly, as the overlapping loci of
 Figure~\ref{fig:slices} and the posterior widths of Figure~\ref{fig:window} show.
@@ -1353,20 +1358,38 @@ all non-quasars, $0.966$; ranking by $\ln R$ instead, same-redshift quasars
 against non-quasars, $0.995$.
 
 \paragraph{Calibration, and what the miscalibration measures.} The predicted
-$p(z\in W\mid\uvec,Q)$ is low by a factor that depends on separation:
+$p(z\in W\mid\uvec,Q)$ is too low, by an amount that depends on separation. If
+clustering multiplies the same-redshift intensity by $A$, an object's
+probability $p$ becomes
+%
+\begin{equation}
+p' = \frac{A\,p}{1-p+A\,p},
+\label{eq:clustering}
+\end{equation}
+%
+so $A$ is an \emph{odds} multiplier. It is not the ratio of mean observed to
+mean predicted probability, which is what an earlier version of this note
+tabulated and told the reader to multiply the odds by; the two agree only while
+both probabilities are small. $A$ is fitted in each separation bin by maximising
+the Bernoulli likelihood of the \textsf{same\_z} labels under \eqref{eq:clustering}
+with each quasar companion's own $p$ (uncertainties from the likelihood's
+curvature):
 
 \begin{center}
-\begin{tabular}{crccc}
+\begin{tabular}{crcccc}
 \toprule
-separation & $n$ & mean predicted & observed & ratio \\
+separation & $n$ & mean predicted & observed & ratio of means & odds multiplier $A$ \\
 \midrule
-$3$--$5''$   & $674$      & $0.038$ & $0.368$ & $9.8$ \\
-$5$--$10''$  & $2{,}754$  & $0.032$ & $0.235$ & $7.4$ \\
-$10$--$20''$ & $9{,}912$  & $0.025$ & $0.123$ & $4.9$ \\
-$20$--$30''$ & $16{,}122$ & $0.022$ & $0.074$ & $3.3$ \\
+$3$--$5''$   & $674$      & $0.038$ & $0.368$ & $9.8$ & $24.8\times\!/\,1.10$ \\
+$5$--$10''$  & $2{,}754$  & $0.032$ & $0.235$ & $7.4$ & $13.3\times\!/\,1.05$ \\
+$10$--$20''$ & $9{,}912$  & $0.025$ & $0.123$ & $4.9$ & $6.7\times\!/\,1.03$ \\
+$20$--$30''$ & $16{,}122$ & $0.022$ & $0.074$ & $3.3$ & $3.9\times\!/\,1.03$ \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\noindent
+With these $A$ the mean of $p'$ equals the observed fraction in every bin.
 
 \noindent
 The scorer draws the companion's redshift from the field distribution $\Sq$, but
@@ -1376,10 +1399,11 @@ not contain. The shape of the prediction is right --- the ranking says so --- an
 its normalisation is short by the projected quasar--quasar correlation
 integrated over the window. The excess is left out of the scorer on purpose, so
 that the ranking carries no cosmological assumption; a user who wants a
-probability multiplies the odds by the factor for their separation. The
-predecessor measured the same factors to two significant figures ($10.0$, $7.4$,
-$4.9$, $3.3$), as it should: the ratio measures the sky, not the model. Whether
-it reaches unity beyond $30''$ is not yet measured.
+probability applies \eqref{eq:clustering} with the $A$ for their separation. The
+predecessor measured the same ratios of means to two significant figures
+($10.0$, $7.4$, $4.9$, $3.3$), as it should: they measure the sky, not the model.
+Whether $A$ reaches unity beyond $30''$ is not yet measured, and these $A$ apply
+to candidates selected like DESI's spectroscopic companions.
 
 \subsection{Against the predecessor, on identical inputs}
 \label{sec:predecessor-compare}
@@ -1607,8 +1631,8 @@ classification posterior under field priors. A physical-pair calculation
 additionally conditions the quasar intensity on angular separation through
 small-scale quasar clustering \citep{hennawi2006,eftekharzadeh2017}. That layer
 is deliberately separate; its size is measured in \S\ref{sec:validation-results},
-and a user who wants a probability multiplies the odds by that factor for their
-separation. The ranking statistic is unaffected.
+and a user who wants a probability applies the odds multiplier $A$ for their
+separation through \eqref{eq:clustering}. The ranking statistic is unaffected.
 
 \paragraph{Colour cannot resolve the velocity window.} Quasars just outside
 $\pm3000\kms$ are indistinguishable from those inside (\S\ref{sec:validation-results}).

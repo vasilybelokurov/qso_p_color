@@ -48,8 +48,8 @@ def test_the_readme_example():
     assert s.surveys_used == ("decals",)
     # the README quotes these
     assert s.log_bayes_factor_qz_bkg == pytest.approx(3.91, abs=0.05)
-    assert s.log_r_per_unit_z == pytest.approx(-1.73, abs=0.05)
-    assert s.p_sameq == pytest.approx(6.6e-3, rel=0.05)
+    assert s.log_r_per_unit_z == pytest.approx(-1.75, abs=0.05)
+    assert s.p_sameq == pytest.approx(6.5e-3, rel=0.05)
     assert s.p_outlier < 1e-2                         # 1.4e-3: near the loci U is minor
     assert s.p_sameq == pytest.approx(np.exp(s.log_r_per_unit_z) * s.dz_match_eff, rel=1e-10)
     assert "outside_both_models" not in s.quality_flags
