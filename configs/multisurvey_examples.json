@@ -1,7 +1,7 @@
 {
   "model": "models/multisurvey.json",
-  "quasars": "data/multisurvey/quasars.npz",
-  "field_sources": "data/multisurvey/validation_background.npz",
+  "quasars": "data/multisurvey_lsw/quasars.npz",
+  "field_sources": "data/multisurvey_lsw/validation_background.npz",
   "sample": "docs/examples/multisurvey_sample.json",
   "output_dir": "docs/examples",
   "figure_dir": "examples/multisurvey",

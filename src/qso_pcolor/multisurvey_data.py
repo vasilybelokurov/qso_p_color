@@ -246,3 +246,37 @@ def cone_catalogue(name: str, ra: float, dec: float, radius_deg: float, cache: P
           AND ({spec.where})"""
     Path(cache).mkdir(parents=True, exist_ok=True)
     return cached_query(query, Path(cache) / f"cone_{name}.npz")
+
+
+# Keys of a training configuration that name input files rather than choices.
+# A file may move (e.g. into models/archive/) without changing the training;
+# its content hash, not its path, is what must match.
+_RELOCATABLE_CONFIG_KEYS = ("holdout_model", "desi_cache", "sdss_cache")
+
+
+def same_training_config(a: dict, b: dict) -> bool:
+    """True if two sample/training configurations describe the same run.
+
+    Every key must be equal except the input-file keys above.  Those may differ
+    in path when a file has moved: accepted if both exist with identical
+    content, or if the recorded path no longer exists and the file name is
+    unchanged.  The second case relies on the run's own content hashes (e.g.
+    ``targets_sha256``) to pin what was actually used, which every consumer of
+    a cached sample checks separately.
+    """
+    import hashlib
+
+    if set(a) != set(b):
+        return False
+    for k in a:
+        if a[k] == b[k]:
+            continue
+        if k not in _RELOCATABLE_CONFIG_KEYS:
+            return False
+        pa, pb = Path(a[k]), Path(b[k])
+        if pa.exists() and pb.exists():
+            if hashlib.sha256(pa.read_bytes()).digest() != hashlib.sha256(pb.read_bytes()).digest():
+                return False
+        elif pa.name != pb.name or (pa.exists() and pb.exists()):
+            return False
+    return True

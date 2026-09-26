@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree
 from qso_pcolor.background import galactic_healpix
 from qso_pcolor.data import (_save_npz, drop_known_quasars, fetch_known_quasars,
                              galactic_from_equatorial)
-from qso_pcolor.multisurvey_data import (Photometry, band_labels,
+from qso_pcolor.multisurvey_data import (same_training_config, Photometry, band_labels,
     catalogue_photometry, cone_catalogue, match_catalogue)
 
 
@@ -246,7 +246,7 @@ def main():
     args = ap.parse_args(); cfg = json.loads(args.config.read_text())
     root = Path(cfg["data_dir"]); root.mkdir(parents=True, exist_ok=True)
     stamp = root / "config.json"
-    if stamp.exists() and json.loads(stamp.read_text()) != cfg:
+    if stamp.exists() and not same_training_config(json.loads(stamp.read_text()), cfg):
         raise ValueError("sample configuration changed: choose a new data_dir")
     stamp.write_text(json.dumps(cfg, indent=2))
     if args.part in ("quasars", "all"):

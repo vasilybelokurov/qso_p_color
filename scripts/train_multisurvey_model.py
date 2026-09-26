@@ -13,7 +13,7 @@ import numpy as np
 from qso_pcolor.gaussmix import GaussianMixture
 from qso_pcolor.multisurvey import (BandLuptitudeTransform, MultiSurveyModel,
                                    conditional_log_prob)
-from qso_pcolor.multisurvey_data import Photometry
+from qso_pcolor.multisurvey_data import same_training_config, Photometry
 from qso_pcolor.qso_model import SlicedColourRedshiftModel
 from qso_pcolor.xd import _init_mixture, fit_xd
 
@@ -122,7 +122,7 @@ def main():
     args = ap.parse_args(); cfg=json.loads(args.config.read_text());root=Path(cfg["data_dir"])
     if args.z_step is None:
         args.z_step=cfg["z_step"]
-    if json.loads((root/"config.json").read_text()) != cfg:
+    if not same_training_config(json.loads((root/"config.json").read_text()), cfg):
         raise ValueError("training configuration differs from the cached sample selection")
     b=dict(np.load(root/"background.npz"));bands=tuple(b["bands"])
     bp=Photometry(b["flux"],b["variance"],bands)

@@ -12,7 +12,7 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.stats import rankdata
 
 from qso_pcolor.multisurvey import MultiSurveyModel, _ConditionalQSO, conditional_log_prob
-from qso_pcolor.multisurvey_data import Photometry, survey_of
+from qso_pcolor.multisurvey_data import same_training_config, Photometry, survey_of
 from qso_pcolor.plotting import save_figure
 from qso_pcolor.qso_model import RedshiftMatch
 
@@ -70,7 +70,8 @@ def main():
     args=ap.parse_args();cfg=json.loads(args.config.read_text());vc=json.loads(args.validation_config.read_text())
     root=Path(cfg["data_dir"]);model_path=str(args.model or cfg["model_path"])
     model=MultiSurveyModel.load(model_path)
-    if json.loads((root/"config.json").read_text()) != cfg or model.meta["settings"]["config"] != cfg:
+    if (not same_training_config(json.loads((root/"config.json").read_text()), cfg)
+            or not same_training_config(model.meta["settings"]["config"], cfg)):
         raise ValueError("validation sample, fit, and requested configuration differ")
     q,b=[dict(np.load(root/f"{name}.npz")) for name in ("quasars","background")]
     n_background_original = len(b["ra"])
@@ -80,7 +81,7 @@ def main():
     if extra_fields:
         extra_path = root / "validation_background.npz"
         selection = json.loads(extra_path.with_suffix(".json").read_text())
-        if (selection["fields"] != extra_fields or selection["training_config"] != cfg):
+        if (selection["fields"] != extra_fields or not same_training_config(selection["training_config"], cfg)):
             raise ValueError("additional validation field selection differs from its cache")
         extra = dict(np.load(extra_path))
         if not np.array_equal(extra["bands"], b["bands"]) or not extra["held"].all():

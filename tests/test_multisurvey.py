@@ -303,3 +303,19 @@ def test_query_preserves_input_identity_and_reuses_completed_cache(tmp_path,monk
     again=match_catalogue("sdss",ra,dec,tmp_path,radius_arcsec=1.)
     assert len(calls)==1
     assert np.array_equal(again["ra"],ra)
+
+
+def test_a_relocated_input_file_is_the_same_run_but_a_changed_choice_is_not(tmp_path):
+    from qso_pcolor.multisurvey_data import same_training_config
+
+    a = tmp_path / "a"; a.mkdir(); b = tmp_path / "b"; b.mkdir()
+    (a / "m.json").write_text("x"); (b / "m.json").write_text("x")
+    base = {"seed": 1, "holdout_model": str(a / "m.json")}
+    moved = {"seed": 1, "holdout_model": str(b / "m.json")}
+    assert same_training_config(base, moved)                     # same content, new place
+    (b / "m.json").write_text("y")
+    assert not same_training_config(base, moved)                 # content changed
+    (a / "m.json").unlink()
+    assert same_training_config(base, moved)                     # old path gone, same name
+    assert not same_training_config(base, {"seed": 2, "holdout_model": str(b / "m.json")})
+    assert not same_training_config(base, {**moved, "holdout_model": str(b / "other.json")})
