@@ -1637,6 +1637,89 @@ a spectrum or another look at its photometry.
 outright for bright companions. Variability, where it exists, is a further
 factor. The likelihood is modular so that such a term can be added as a factor.
 
+\subsection{Quasar clustering: why it matters, and how to add it later}
+\label{sec:clustering-later}
+
+\paragraph{Why it matters.} Every intensity in \S\ref{sec:hypotheses} treats
+the companion as a random draw from the field: its redshift is distributed as
+$\Sq(z,u_a)$, independently of the primary. That is exactly right for a chance
+projection and exactly wrong for a physical pair. Quasars cluster, and on the
+scales of a few arcseconds --- tens of kiloparsecs at $z\sim1$--$2$ --- the
+excess is large \citep{hennawi2006,eftekharzadeh2017}. Conditional on a
+companion being found at angular separation $\theta$ from a quasar at $z_0$,
+the probability that it is itself a quasar at $z_0$ is therefore higher than the
+field prior says, by an amount that grows as $\theta$ shrinks. The pair
+validation sees this directly: the observed same-redshift fraction among quasar
+companions exceeds the prediction by a factor that rises steadily towards small
+separation (\S\ref{sec:validation-results}), which a defect in the scorer would
+not do.
+
+What this does and does not change is simple to state. Clustering multiplies
+$\lambda_{\rm same}$ by a factor $A(\theta,z_0)$ that depends only on the
+separation and the primary's redshift. So among candidates at the same $\theta$
+and $z_0$ the ranking by $R$ is unchanged, and every evidence quantity ---
+$\ln\mathrm{BF}$, $p(z\in W\mid\uvec,Q)$ --- is untouched. What changes is the
+comparison of candidates at \emph{different} separations, where a companion at
+$3''$ should be promoted over an otherwise identical one at $25''$, and the
+absolute value of $p_{\rm same}$, which without $A$ understates the probability
+of a physical pair by an order of magnitude at the smallest separations.
+
+\paragraph{How to implement it.} The clean place is a single factor on the
+same-redshift intensity, reported beside --- not instead of --- the field-prior
+quantities:
+%
+\begin{equation}
+\lambda_{\rm same}^{\rm pair} = A(\theta,z_0)\,\lambda_{\rm same},
+\qquad
+p_{\rm same}^{\rm pair} =
+\frac{A\,\lambda_{\rm same}}{A\,\lambda_{\rm same}+\lambda_{\rm field}+\lambda_{\rm bkg}+\lambda_{\rm out}}
+= \frac{A\,p_{\rm same}}{1-p_{\rm same}+A\,p_{\rm same}} ,
+\end{equation}
+%
+with $\lambda_{\rm field}$ left alone (clustering at other redshifts is
+irrelevant to the window). $A$ is an \emph{odds} multiplier: it scales the odds
+of a same-redshift quasar, not its probability, and equals a ratio of
+probabilities only while both are small. There are two ways to obtain it.
+
+\begin{enumerate}
+\item \emph{From a clustering measurement.} For a real-space correlation
+function $\xi(r)$ of quasars, the excess expected inside the window is its
+average over the window's line-of-sight extent,
+%
+\begin{equation}
+A(\theta,z_0) = 1 + \frac{1}{\Delta\chi}\int_{-\Delta\chi/2}^{\Delta\chi/2}
+\xi\Bigl(\sqrt{r_p^2+\pi^2}\Bigr)\,\dd\pi,
+\qquad r_p = D_M(z_0)\,\theta,\quad
+\Delta\chi = \frac{(1+z_0)\,2\Delta v}{H(z_0)},
+\end{equation}
+%
+in comoving units, for a window of half-width $\Delta v$. $\xi$ would come from
+a published small-scale measurement, used only within the separations,
+redshifts and luminosities it was measured over.
+\item \emph{Empirically, from the labelled pairs.} Fit a smooth form such as
+$A(\theta)=1+(\theta/\theta_0)^{-\beta}$, possibly with a redshift dependence, by
+maximising the Bernoulli likelihood of the \textsf{same\_z} labels under the
+expression above, using each quasar companion's own $p_{\rm same}$, on the
+reserved sky blocks. The same-redshift excess tabulated in
+\S\ref{sec:validation-results} is a ratio of mean probabilities, a summary for
+that purpose rather than the fitted $A$.
+\end{enumerate}
+
+Either way the factor is an external, switchable layer: a separate output
+(\texttt{p\_sameq\_pair}, $\ln R^{\rm pair}=\ln R+\ln A$) with its own provenance,
+so that the photometric evidence and the field-prior ranking remain free of any
+cosmological assumption.
+
+\paragraph{Why it can wait.} Nothing in the photometric model depends on it:
+the colour densities, the priors, the unmodelled term and every validation
+number in \S\ref{sec:validation} are the same with or without $A$, and adding it
+later changes no fitted quantity. It needs care that is best spent once, on its
+own: the labelled pair sample is itself selected by DESI fibre assignment,
+which is incomplete for close pairs; the excess depends on redshift and
+luminosity; and below $3''$ the photometry is blended and out of scope anyway.
+It becomes necessary when a physical-pair probability, rather than a ranking, is
+the product.
+
 %==============================================================================
 \appendix
 
