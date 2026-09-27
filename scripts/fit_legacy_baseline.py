@@ -87,50 +87,94 @@ def roles_of(design):
 
 # -- mixtures --------------------------------------------------------------------
 
+def _fit_one(task):
+    """One (floor, K, start) fit and its selection score; runs in a worker process."""
+    from qso_pcolor.multisurvey import conditional_log_prob
+    from qso_pcolor.xd import _init_mixture, fit_xd
+    (key, x, cov, obs, w, xs, cs, os_, ws, k, reg, seed, max_iter, tol, anchor, labels) = task
+    init = _init_mixture(x, obs, k, np.random.default_rng(seed))
+    r = fit_xd(x, cov, observed=obs, weights=w, init=init, max_iter=max_iter, tol=tol,
+               regularization=reg, labels=labels, n_threads=1)
+    lp = conditional_log_prob(r.mixture, xs, cs, os_, anchor)
+    return key, dict(converged=bool(r.converged), n_iter=r.n_iter, train_ll=r.mean_loglike,
+                     select_score=float(np.average(lp, weights=ws)), _mixture=r.mixture)
+
+
+_POOL = None
+
+
+def pool(n_workers):
+    """One process pool for the run; workers are single-threaded (BLAS pinned to 1)."""
+    global _POOL
+    if _POOL is None:
+        import os
+        from concurrent.futures import ProcessPoolExecutor
+        for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                  "VECLIB_MAXIMUM_THREADS"):
+            os.environ[v] = "1"
+        _POOL = ProcessPoolExecutor(n_workers)
+    return _POOL
+
+
+def grid_tasks(name, features, fit_rows, sel_rows, weights, grid, fc, seed, anchor, regs, starts):
+    """The independent fits of one grid, as picklable tasks keyed by (name, floor, K, start)."""
+    x, cov, obs = features.x, features.cov, features.observed
+    wf = None if weights is None else weights[fit_rows]
+    ws = None if weights is None else weights[sel_rows]
+    base = (x[fit_rows], cov[fit_rows], obs[fit_rows], wf,
+            x[sel_rows], cov[sel_rows], obs[sel_rows], ws)
+    return [((name, reg, k, s),) + base + (k, reg, seed + 1000 * k + s, fc["max_iter"], fc["tol"],
+                                           anchor, features.labels)
+            for reg in regs for k in grid for s in range(starts)]
+
+
+def run_grids(grids, fc):
+    """Fit every task of several grids in parallel; return per-grid (mixture, record).
+
+    ``grids`` maps name -> (tasks, grid, n_fit, n_select). Selection within a grid:
+    the best converged fit by selection score, as before.
+    """
+    t0 = time.time()
+    tasks = [t for g in grids.values() for t in g[0]]
+    # largest K first so the long fits start early
+    tasks.sort(key=lambda t: -t[9])
+    done = {}
+    ex = pool(fc["n_workers"])
+    for i, (key, res) in enumerate(ex.map(_fit_one, tasks, chunksize=1)):
+        done[key] = res
+        name, reg, k, s = key
+        if k >= 16 or (i + 1) % 100 == 0:
+            print(f"  [{i + 1}/{len(tasks)}] {name}: floor {reg:.0e} K={k:3d} start {s}: "
+                  f"{'conv' if res['converged'] else 'NOT conv'} after {res['n_iter']:5d} it, "
+                  f"select {res['select_score']:.4f} ({time.time() - t0:.0f} s)", flush=True)
+    out = {}
+    for name, (tl, grid, n_fit, n_sel) in grids.items():
+        trials = [dict(k=t[0][2], start=t[0][3], regularization=t[0][1], **done[t[0]]) for t in tl]
+        ok = [t for t in trials if t["converged"]]
+        if not ok:
+            raise RuntimeError(f"{name}: no fit converged; refusing to publish")
+        best = max(ok, key=lambda t: t["select_score"])
+        same = [t["select_score"] for t in ok
+                if t["k"] == best["k"] and t["regularization"] == best["regularization"]]
+        out[name] = (best["_mixture"], dict(
+            selected_k=best["k"], selected_start=best["start"],
+            selected_regularization=best["regularization"], largest_k_won=best["k"] == max(grid),
+            start_spread_at_selected_k=float(max(same) - min(same)), n_fit=n_fit, n_select=n_sel,
+            trials=[{k: v for k, v in t.items() if not k.startswith("_")} for t in trials]))
+    return out
+
+
 def fit_grid(name, features, fit_rows, sel_rows, weights, grid, fc, seed, anchor, regs=None,
              starts=None):
-    """Every (floor, K, start) fitted to convergence; the best converged by selection score.
+    """Every (floor, K, start) fitted to convergence, in parallel; best converged by selection.
 
     The covariance floor (``regularization``) is a hyperparameter like K and is
     chosen the same way: a floor of 1e-3 mag^2 made every colour direction at
     least 0.045 mag wide, broader than the stellar locus.
     """
-    from qso_pcolor.multisurvey import conditional_log_prob
-    from qso_pcolor.xd import _init_mixture, fit_xd
-    x, cov, obs = features.x, features.cov, features.observed
-    trials = []
-    t0 = time.time()
-    for reg in (regs or [fc["regularization"]]):
-        for k in grid:
-            for s in range(starts or fc["starts"]):
-                rng = np.random.default_rng(seed + 1000 * k + s)
-                init = _init_mixture(x[fit_rows], obs[fit_rows], k, rng)
-                r = fit_xd(x[fit_rows], cov[fit_rows], observed=obs[fit_rows],
-                           weights=None if weights is None else weights[fit_rows], init=init,
-                           max_iter=fc["max_iter"], tol=fc["tol"], regularization=reg,
-                           labels=features.labels, n_threads=fc["n_threads"])
-                lp = conditional_log_prob(r.mixture, x[sel_rows], cov[sel_rows], obs[sel_rows], anchor)
-                ws = None if weights is None else weights[sel_rows]
-                score = float(np.average(lp, weights=ws))
-                trials.append(dict(k=k, start=s, regularization=reg, converged=bool(r.converged),
-                                   n_iter=r.n_iter, train_ll=r.mean_loglike, select_score=score,
-                                   _mixture=r.mixture, _history=r.history[-3:]))
-                print(f"  {name}: floor {reg:.0e} K={k:3d} start {s}: "
-                      f"{'conv' if r.converged else 'NOT conv'} after {r.n_iter:5d} it, "
-                      f"select {score:.4f} ({time.time() - t0:.0f} s)", flush=True)
-    ok = [t for t in trials if t["converged"]]
-    if not ok:
-        raise RuntimeError(f"{name}: no fit converged; refusing to publish")
-    best = max(ok, key=lambda t: t["select_score"])
-    same_k = [t["select_score"] for t in ok
-              if t["k"] == best["k"] and t["regularization"] == best["regularization"]]
-    record = dict(selected_k=best["k"], selected_start=best["start"],
-                  selected_regularization=best["regularization"],
-                  largest_k_won=best["k"] == max(grid),
-                  start_spread_at_selected_k=float(max(same_k) - min(same_k)),
-                  n_fit=int(fit_rows.sum()), n_select=int(sel_rows.sum()),
-                  trials=[{k: v for k, v in t.items() if not k.startswith("_")} for t in trials])
-    return best["_mixture"], record
+    tasks = grid_tasks(name, features, fit_rows, sel_rows, weights, grid, fc, seed, anchor,
+                       regs or [fc["regularization"]], starts or fc["starts"])
+    return run_grids({name: (tasks, grid, int(fit_rows.sum()), int(sel_rows.sum()))}, fc)[name]
 
 
 def prepare_field(h, rows, cones, w_cone, sel, fc, cfg, roles):
@@ -248,6 +292,7 @@ def quasar_model(h, q, rows, dq_point, transform, fc, cfg, sample_cfg, roles, ir
     mixtures, records, counts = [], [], []
     print(f"[{h}] quasars: {m.sum():,} accepted; fit {train.sum():,}, select {select.sum():,}",
           flush=True)
+    grids, names = {}, []
     for j, (a, b) in enumerate(zip(edges[:-1], edges[1:])):
         s = (z >= a - 0.5 * (b - a)) & (z < b + 0.5 * (b - a))
         tr, va = train & s, select & s
@@ -256,10 +301,16 @@ def quasar_model(h, q, rows, dq_point, transform, fc, cfg, sample_cfg, roles, ir
             # neighbouring slices' selection objects instead (recorded)
             s2 = (z >= a - 2 * (b - a)) & (z < b + 2 * (b - a))
             va = select & s2
-        mix, rec = fit_grid(f"{h} z={centres[j]:.2f}", f, tr, va, None, fc["qso_k_grid"], fc,
-                            cfg["seed"] + 7 * j, ir, regs=fc["regularization_grid"])
-        rec["n_select_used"] = int(va.sum())
-        mixtures.append(mix); records.append(rec); counts.append(int(tr.sum()))
+        name = f"{h} z={centres[j]:.2f}"
+        grids[name] = (grid_tasks(name, f, tr, va, None, fc["qso_k_grid"], fc, cfg["seed"] + 7 * j,
+                                  ir, fc["regularization_grid"], fc["starts"]),
+                       fc["qso_k_grid"], int(tr.sum()), int(va.sum()))
+        names.append(name); counts.append(int(tr.sum()))
+    fitted = run_grids(grids, fc)
+    for name in names:
+        mix, rec = fitted[name]
+        rec["n_select_used"] = rec["n_select"]
+        mixtures.append(mix); records.append(rec)
     return SlicedColourRedshiftModel(centres, mixtures, np.array(counts), f"legacy_psf_{h}",
                                      transform.bands, meta=dict(per_slice=records)), dict(
         n_accepted=int(m.sum()), n_fit=int(train.sum()), n_select=int(select.sum()))

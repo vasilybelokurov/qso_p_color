@@ -514,6 +514,27 @@ def main():
     report["retention_quasars_by_z"] = ret_z
     print("PSF retention by z: " + "; ".join(f"{k} {v['psf_fraction']:.2f}" for k, v in ret_z.items()))
 
+    # -- does the quasar colour model depend on brightness? conditional mean colours
+    #    (band minus r) at r = 18 and r = 22 in each slice, noiseless
+    def cond_mean(mix, a, ua):
+        lw = np.log(mix.weights) - 0.5 * ((ua - mix.means[:, a]) ** 2 / mix.covs[:, a, a]
+                                          + np.log(mix.covs[:, a, a]))
+        p_ = np.exp(lw - lw.max()); p_ /= p_.sum()
+        mu = mix.means + mix.covs[:, :, a] / mix.covs[:, a, a][:, None] * (ua - mix.means[:, a])[:, None]
+        return (p_[:, None] * mu).sum(0) - ua
+    report["quasar_magnitude_dependence"] = {}
+    for h, m in bl.models.items():
+        shifts = np.array([cond_mean(mx, 1, 22.0) - cond_mean(mx, 1, 18.0) for mx in m.qso.mixtures])
+        shifts = np.delete(shifts, 1, axis=1)                       # colours: g, z, W1, W2 minus r
+        report["quasar_magnitude_dependence"][h] = dict(
+            colours=[b.split(":")[1] + "-r" for i, b in enumerate(m.transform.bands) if i != 1],
+            z=m.qso.z_centres.tolist(), shift_22_minus_18=shifts.tolist(),
+            median_abs_shift=np.median(np.abs(shifts), 0).tolist(), max_abs_shift=np.abs(shifts).max(0).tolist())
+        print(f"[{h}] quasar colours, r=22 minus r=18: median |shift| "
+              + ", ".join(f"{c} {v:.3f}" for c, v in zip(report["quasar_magnitude_dependence"][h]["colours"],
+                                                         report["quasar_magnitude_dependence"][h]["median_abs_shift"]))
+              + " mag", flush=True)
+
     # -- fit records: convergence, start agreement, K
     report["fits"] = {}
     for h, m in bl.models.items():
