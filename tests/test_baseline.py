@@ -99,3 +99,21 @@ def test_selection_mismatch_is_refused(tmp_path):
     (root / "manifest.json").write_text(json.dumps(man))
     with pytest.raises(ValueError, match="identity"):
         LegacyBaseline.load(root)
+
+
+def test_declared_latitude_limit_is_enforced(tmp_path):
+    root = write_bundle(tmp_path / "b")
+    man = json.loads((root / "manifest.json").read_text())
+    man["domain"]["min_abs_b_deg"] = 25.0
+    (root / "manifest.json").write_text(json.dumps(man))
+    bl = LegacyBaseline.load(root)
+    r = rows(1)
+    r["ra"], r["dec"] = np.array([280.0]), np.array([-5.0])        # Galactic plane, south rule
+    _, dec = bl.score_rows(r, z_primary=1.0, match=RedshiftMatch(2000.0))
+    assert dec["reason"][0] == "outside_latitude" and not dec["eligible"][0]
+
+
+def test_unsupported_redshift_is_not_eligible(tmp_path):
+    bl = LegacyBaseline.load(write_bundle(tmp_path / "b"))
+    scores, dec = bl.score_rows(rows(1), z_primary=6.0, match=RedshiftMatch(2000.0))
+    assert not dec["eligible"][0] and dec["reason"][0].startswith("status:")

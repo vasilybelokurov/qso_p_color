@@ -128,15 +128,19 @@ def ranking_metrics(c, scores, mask):
     ok = mask & np.array([s is not None and s.status == "ok" for s in scores])
 
     def aucs(i):
-        m = np.zeros(len(lab), bool); m[i] = True; m &= ok
-        S, F, N = m & (lab == "same_z"), m & (lab == "field_q"), m & (lab == "non_qso")
-        return dict(same_vs_field_log_r=auc_rank(logr[S], logr[F]),
-                    same_vs_field_p_zmatch=auc_rank(pz[S], pz[F]),
-                    same_vs_hard_log_r=auc_rank(logr[S], logr[F & (c["dv"] < 6000)]),
-                    quasar_vs_star_log_bf=auc_rank(logbf[S | F], logbf[N & (spt == "STAR")]),
-                    quasar_vs_galaxy_log_bf=auc_rank(logbf[S | F], logbf[N & (spt == "GALAXY")]),
-                    n=[int(S.sum()), int(F.sum()), int((N & (spt == "STAR")).sum()),
-                       int((N & (spt == "GALAXY")).sum())])
+        # i may repeat (bootstrap): index, never mask, so multiplicities are kept
+        i = np.asarray(i, int)
+        i = i[ok[i]]
+        L, T = lab[i], spt[i]
+        S, F, N = L == "same_z", L == "field_q", L == "non_qso"
+        lr, lbf, pzi, dv = logr[i], logbf[i], pz[i], c["dv"][i]
+        return dict(same_vs_field_log_r=auc_rank(lr[S], lr[F]),
+                    same_vs_field_p_zmatch=auc_rank(pzi[S], pzi[F]),
+                    same_vs_hard_log_r=auc_rank(lr[S], lr[F & (dv < 6000)]),
+                    quasar_vs_star_log_bf=auc_rank(lbf[S | F], lbf[N & (T == "STAR")]),
+                    quasar_vs_galaxy_log_bf=auc_rank(lbf[S | F], lbf[N & (T == "GALAXY")]),
+                    n=[int(S.sum()), int(F.sum()), int((N & (T == "STAR")).sum()),
+                       int((N & (T == "GALAXY")).sum())])
     return aucs, ok, logr, logbf
 
 
@@ -224,95 +228,108 @@ def counts_gate(bl, h, parts, edges_lo, edges_hi):
                             ci=np.percentile(pooled_boot / pooled_pred, [2.5, 97.5]).tolist()))
 
 
-def draw_conditional(model, outlier, x, cov, obs, anchor, eta, rng):
-    """One draw of the observed non-reference bands given the observed reference."""
-    from qso_pcolor.outlier import mixture_moments  # noqa: F401  (documentation of the pairing)
-    mix = model.background
+def _draw_mixture(mix, x, S, a, o, rng):
+    """Observed bands o given observed reference a, from a Gaussian mixture with noise S."""
+    V = mix.covs + S[None]
+    lw = np.log(mix.weights) - 0.5 * ((x[a] - mix.means[:, a]) ** 2 / V[:, a, a] + np.log(V[:, a, a]))
+    pw = np.exp(lw - lw.max()); pw /= pw.sum()
+    k = rng.choice(mix.n_components, p=pw)
+    mu = mix.means[k, o] + V[k, o, a] / V[k, a, a] * (x[a] - mix.means[k, a])
+    C = V[k][np.ix_(o, o)] - np.outer(V[k, o, a], V[k, o, a]) / V[k, a, a]
+    return rng.multivariate_normal(mu, C)
+
+
+_LG = np.linspace(-25.0, 4.5, 400)
+
+
+def _draw_t_exact(mean, scale, nu, x, S, a, o, rng):
+    """Same, from the t as a Gaussian scale mixture convolved with the noise (noise='exact')."""
+    from scipy.special import gammaln
+    g = np.exp(_LG)
+    va = scale[a, a] / g + S[a, a]
+    lp = (0.5 * nu * _LG - 0.5 * nu * g + _LG - 0.5 * np.log(va) - 0.5 * (x[a] - mean[a]) ** 2 / va)
+    p = np.exp(lp - lp.max()); p /= p.sum()
+    gi = g[rng.choice(g.size, p=p)]
+    V = scale / gi + S
+    mu = mean[o] + V[o, a] / V[a, a] * (x[a] - mean[a])
+    C = V[np.ix_(o, o)] - np.outer(V[o, a], V[o, a]) / V[a, a]
+    return rng.multivariate_normal(mu, C)
+
+
+def draw_observable(model, outlier, gq, sigma_b_at, x, cov, obs, anchor, kappa, eta, rng):
+    """One draw of the observed colours of every source from the full observable model.
+
+    Class by its prior share at the source's reference magnitude: unrecognised
+    quasar (1 - kappa) Sigma_Q against non-quasar Sigma_B; within non-quasars the
+    unmodelled term with probability eta. Quasar redshift by Sigma_Q(z, u_r).
+    """
     n, d = x.shape
     out = x.copy()
-    use_t = rng.random(n) < eta
+    u = x[:, anchor]
+    sq_z = np.array([np.interp(u, gq.mag_centres, gq.sigma[j]) for j in range(gq.z_centres.size)]).T
+    sq_z = sq_z * np.diff(gq.z_edges)[None]
+    s_unk = (1 - kappa) * sq_z.sum(1)
+    p_q = s_unk / (s_unk + sigma_b_at)
+    student = outlier.family == "student_t" and outlier.noise == "exact"
     for i in range(n):
         o = np.flatnonzero(obs[i] & (np.arange(d) != anchor))
         if not o.size:
             continue
-        a = anchor
-        if not use_t[i]:
-            V = mix.covs + cov[i][None]
-            lw = np.log(mix.weights) - 0.5 * ((x[i, a] - mix.means[:, a]) ** 2 / V[:, a, a]
-                                              + np.log(V[:, a, a]))
-            pw = np.exp(lw - lw.max()); pw /= pw.sum()
-            k = rng.choice(mix.n_components, p=pw)
-            mu = mix.means[k, o] + V[k, o, a] / V[k, a, a] * (x[i, a] - mix.means[k, a])
-            C = V[k][np.ix_(o, o)] - np.outer(V[k, o, a], V[k, o, a]) / V[k, a, a]
-            out[i, o] = rng.multivariate_normal(mu, C)
+        r = rng.random()
+        if r < p_q[i]:
+            j = rng.choice(gq.z_centres.size, p=sq_z[i] / sq_z[i].sum())
+            out[i, o] = _draw_mixture(model.qso.mixtures[j], x[i], cov[i], anchor, o, rng)
+        elif rng.random() < eta[i]:
+            if not student:
+                raise ValueError("tails simulator implements the exact Student-t only")
+            out[i, o] = _draw_t_exact(outlier.mean, outlier.cov, outlier.nu, x[i], cov[i], anchor, o, rng)
         else:
-            S = outlier.cov + cov[i]
-            nu = outlier.nu
-            d1 = (x[i, a] - outlier.mean[a]) ** 2 / S[a, a]
-            mu = outlier.mean[o] + S[o, a] / S[a, a] * (x[i, a] - outlier.mean[a])
-            C = (S[np.ix_(o, o)] - np.outer(S[o, a], S[o, a]) / S[a, a]) * (nu + d1) / (nu + 1)
-            g = rng.chisquare(nu + 1) / (nu + 1)
-            out[i, o] = mu + rng.multivariate_normal(np.zeros(o.size), C) / np.sqrt(g)
-    return out
+            out[i, o] = _draw_mixture(model.background, x[i], cov[i], anchor, o, rng)
+    return out, p_q
 
 
 def tails_gate(bl, h, parts, n_draws, rng, lo, hi):
+    """Observed test field sources (known quasars removed) against draws of the full
+    observable model, in bins of distance from the nearest non-quasar component."""
     from qso_pcolor.multisurvey import _conditional_min_mahalanobis
     model, outlier = bl.models[h], bl.outliers[h]
     f = [p["features"] for p in parts]
     x = np.concatenate([q.x for q in f]); cov = np.concatenate([q.cov for q in f])
     obs = np.concatenate([q.observed for q in f])
     ir = 1
-    dom = obs[:, ir] & (x[:, ir] >= lo) & (x[:, ir] < hi) & (obs.sum(1) >= 2)
-    x, cov, obs = x[dom], cov[dom], obs[dom]
     label = model.transform.bands[ir]
-    cond = outlier.conditional(ir, label, model.qso.system)
-    eta = cond.fraction_at(x[:, ir])
-    sig = _conditional_min_mahalanobis([model.background], x, cov, obs, ir)
-    # probability each test source is a non-quasar, as in the fit
-    import fit_legacy_baseline as F
     gq, bd = bl.priors[h][label]
     q_total = float(np.sum(((gq.sigma * np.diff(gq.z_edges)[:, None]).sum(0) * np.diff(gq.mag_edges))[
         (gq.mag_edges[:-1] >= lo - 1e-9) & (gq.mag_edges[1:] <= hi + 1e-9)]))
-    kappa = np.concatenate([np.full(p["features"].n_obs,
-                                    min(1.0, p["n_known_candidate"] / (p["area"] * q_total)))
-                            for p in parts])[dom]
-    from qso_pcolor.features import FeatureSet  # noqa: F401
-    class _F:  # minimal container for log_quasar_colour_density
-        pass
-    fs = _F(); fs.x, fs.cov, fs.observed = x, cov, obs
-    lq, sq = F.log_quasar_colour_density(model.qso, gq, fs, np.ones(len(x), bool), ir)
-    counted = np.array(bd.meta["counted_per_deg2_per_mag"])
-    s_cnt = counted[np.clip(np.digitize(x[:, ir], bd.mag_edges) - 1, 0, counted.size - 1)]
-    from qso_pcolor.multisurvey import conditional_log_prob
-    lb = conditional_log_prob(model.background, x, cov, obs, ir)
-    s_unk = (1 - kappa) * sq
-    s_b = np.maximum(s_cnt - s_unk, 0.05 * s_cnt)
-    with np.errstate(divide="ignore"):
-        lo_odds = np.log(s_unk) + lq - np.log(s_b) - lb
-    wnq = 1 - 1 / (1 + np.exp(-np.clip(lo_odds, -700, 700)))
+    kappa = np.concatenate([np.full(p["features"].n_obs, min(1.0, p["n_known_candidate"] / (p["area"] * q_total)))
+                            for p in parts])
+    dom = obs[:, ir] & (x[:, ir] >= lo) & (x[:, ir] < hi) & (obs.sum(1) >= 2)
+    x, cov, obs, kappa = x[dom], cov[dom], obs[dom], kappa[dom]
+    sig_b = bd(x[:, ir], np.zeros(len(x)), np.full(len(x), 90.0))
+    eta = outlier.conditional(ir, label, model.qso.system).fraction_at(x[:, ir])
+    sig = _conditional_min_mahalanobis([model.background], x, cov, obs, ir)
     edges = np.array([0, 1, 2, 3, 4, 6, 10, np.inf])
-    n_obs = np.histogram(sig, edges, weights=wnq)[0]
+    n_obs = np.histogram(sig, edges)[0]
     sims = []
     for _ in range(n_draws):
-        xd = draw_conditional(model, outlier, x, cov, obs, ir, eta, rng)
-        sims.append(np.histogram(_conditional_min_mahalanobis([model.background], xd, cov, obs, ir),
-                                 edges, weights=wnq)[0])
+        xd, p_q = draw_observable(model, outlier, gq, sig_b, x, cov, obs, ir, kappa, eta, rng)
+        sims.append(np.histogram(_conditional_min_mahalanobis([model.background], xd, cov, obs, ir), edges)[0])
     sims = np.array(sims, float)
     exp = sims.mean(0)
     rows = []
     for i in range(edges.size - 1):
         e = exp[i]
-        # Poisson + draw-to-draw scatter of the expectation
-        s = np.sqrt(e + sims[:, i].var() / n_draws) if e > 0 else np.nan
-        z = (n_obs[i] - e) / s if e > 0 else np.nan
+        s_ = np.sqrt(e + sims[:, i].var() / n_draws) if e > 0 else np.nan
+        z = (n_obs[i] - e) / s_ if e > 0 else np.nan
         fail = bool(e >= GATES["tails_min_expected"] and
                     max(n_obs[i] / e, e / max(n_obs[i], 1e-9)) > GATES["tails_factor"]
                     and abs(z) > GATES["tails_sigma"])
-        rows.append(dict(sigma=[float(edges[i]), float(edges[i + 1])], observed=float(n_obs[i]),
+        rows.append(dict(sigma=[float(edges[i]), float(edges[i + 1])], observed=int(n_obs[i]),
                          expected=float(e), z=float(z) if np.isfinite(z) else None, fail=fail))
-    return dict(n=int(dom.sum()), n_nonquasar_weighted=float(wnq.sum()), n_draws=n_draws, bins=rows,
-                note="observed and expected both weighted by P(non-quasar)")
+    return dict(n=int(dom.sum()), expected_unrecognised_quasars=float(p_q.sum()), n_draws=n_draws,
+                bins=rows, pass_=not any(r["fail"] for r in rows),
+                note="observed (unweighted) vs draws of the full observable model: non-quasars, "
+                     "unmodelled term and unrecognised quasars by their prior shares")
 
 
 # -- main --------------------------------------------------------------------------
@@ -516,13 +533,23 @@ def main():
             pf = F.prepare_field(h, rows_f, cones_f, w_cone, bl.selection, cfg["fit"], cfg, roles)
             f, fr, sr = pf["features"], pf["fit_rows"], pf["sel_rows"]
             mix = m.background
-            res = fit_xd(f.x[fr], f.cov[fr], observed=f.observed[fr], weights=pf["weights"][fr], init=mix,
+            # the weights of the final fit: 1 - P(unrecognised quasar) under the shipped model
+            uq = m.meta["field_fit"]["unrecognised_quasars"]
+            kap = {int(k): v for k, v in uq["kappa_by_cone"].items()}
+            gq_h = bl.priors[h][m.transform.bands[1]][0]
+            need = fr | sr
+            lq_, sq_ = F.log_quasar_colour_density(m.qso, gq_h, f, need, 1)
+            r_ = np.zeros(f.n_obs)
+            r_[need] = F.unrecognised_probability(pf, mix, lq_, sq_, kap, np.array(uq["sigma_b"]),
+                                                  gq_h.mag_edges, need)
+            w_nq = pf["weights"] * (1 - r_)
+            res = fit_xd(f.x[fr], f.cov[fr], observed=f.observed[fr], weights=w_nq[fr], init=mix,
                          max_iter=args.convergence, tol=0.0,
                          regularization=m.meta["field_fit"].get("selected_regularization",
                                                                 cfg["fit"]["regularization"]),
                          labels=f.labels, n_threads=cfg["fit"]["n_threads"])
             sc = lambda mm: float(np.average(conditional_log_prob(mm, f.x[sr], f.cov[sr], f.observed[sr], 1),  # noqa: E731
-                                             weights=pf["weights"][sr]))
+                                             weights=w_nq[sr]))
             ds = sc(res.mixture) - sc(mix)
             # ln R of test companions with the continued field mixture
             idx_c = np.flatnonzero(eligible & held & (dec["hemisphere"] == h))
@@ -541,9 +568,31 @@ def main():
             print(f"[{h}] continuation {args.convergence} it: select score {ds:+.4f} nats/obj, "
                   f"median |d lnR| {np.median(dl):.4f}", flush=True)
 
+    # -- verdict: the hard requirements (docs/PLAN_FIELD_MODEL.md section 9)
+    t = rank["test"]
+    checks = {
+        "delta_auc_same_vs_field": t["delta_same_vs_field_log_r"]["pass_"],
+        "delta_auc_star": t["delta_quasar_vs_star_log_bf"]["pass_"],
+        "delta_auc_psf_galaxy": t["delta_quasar_vs_galaxy_log_bf"]["pass_"],
+        "numerics": report["numerics"]["pass_"],
+        "normalisation": all(v["pass_"] for v in norm.values()),
+        "fits_converged": all(v["all_converged"] and v["quasar_slices_all_converged"]
+                              for v in report["fits"].values()),
+        "tails_south": report["tails"].get("south", {}).get("pass_", False),
+    }
+    if args.convergence:
+        checks["continuation"] = all(v["continuation"]["pass_"] for v in report["fits"].values()
+                                     if "continuation" in v)
+    report["verdict"] = dict(checks=checks, pass_=all(checks.values()),
+                             reported_not_gated=["counts (spatial scatter of a global model)",
+                                                 "start agreement", "north ranking (39 same-z)"],
+                             status=bl.manifest.get("status"))
     out = args.out or Path(cfg["data_dir"]) / f"validation_{bl.bundle_id}.json"
     out.write_text(json.dumps(report, indent=1, default=float))
+    print("verdict: " + ("PASS" if report["verdict"]["pass_"] else "FAIL") + "  " +
+          ", ".join(f"{k} {'ok' if v else 'FAIL'}" for k, v in checks.items()))
     print(f"wrote {out} ({time.time() - t0:.0f} s)")
+    sys.exit(0 if report["verdict"]["pass_"] else 1)
 
 
 if __name__ == "__main__":

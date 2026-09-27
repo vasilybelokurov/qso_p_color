@@ -294,3 +294,12 @@ def test_shipped_models_send_a_g_band_outlier_to_unmodelled():
     assert abs(b.log_r_per_unit_z - a.log_r_per_unit_z) < 0.01
     assert abs(b.log_bayes_factor_qz_bkg - a.log_bayes_factor_qz_bkg) < 0.01
     assert b.p_outlier < 1e-6
+
+
+def test_weighted_outlier_fraction_equals_duplicated_rows():
+    from qso_pcolor.outlier import fit_outlier_fraction
+    rng = np.random.default_rng(0)
+    a, b = rng.normal(-2, 1, 400), rng.normal(-3, 2, 400)
+    w = rng.integers(0, 4, 400).astype(float)
+    rep = np.repeat(np.arange(400), w.astype(int))
+    assert fit_outlier_fraction(a, b, weights=w) == pytest.approx(fit_outlier_fraction(a[rep], b[rep]), rel=1e-8)

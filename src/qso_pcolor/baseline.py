@@ -100,8 +100,10 @@ class LegacyBaseline:
 
         ``scores[i]`` is a :class:`MultiSurveyScore`, or None when row i was
         not eligible; ``decision["reason"][i]`` then says why: a selection
-        failure (see :meth:`LegacySelection.decide`) or ``outside_domain``
-        (reference luptitude outside the candidate range).
+        failure (see :meth:`LegacySelection.decide`), ``outside_latitude``,
+        ``outside_domain`` (reference luptitude outside the candidate range) or
+        ``status:<...>`` (scored, but the scorer's status is not ok, e.g. the
+        primary redshift is outside the model's support).
         """
         from .data import galactic_from_equatorial
         n = len(np.asarray(rows["ra"]))
@@ -111,6 +113,11 @@ class LegacyBaseline:
         l, b = galactic_from_equatorial(np.asarray(rows["ra"], float), np.asarray(rows["dec"], float))
         out = [None] * n
         lo, hi = self.candidate_range
+        b_min = self.manifest["domain"].get("min_abs_b_deg")
+        if b_min is not None:
+            low_b = dec["accepted"] & (np.abs(b) < b_min)
+            reason[low_b] = "outside_latitude"
+            dec = dict(dec, accepted=dec["accepted"] & ~low_b)
         extra = dict(separation_arcsec=separation_arcsec, fracflux=fracflux,
                      candidate_id=candidate_id, primary_id=primary_id)
         for h, model in self.models.items():
@@ -137,5 +144,9 @@ class LegacyBaseline:
                 if s.reference_band != ref:
                     raise RuntimeError("baseline scored with a reference other than the declared one")
                 out[i] = s
-        dec = dict(dec, reason=reason, eligible=np.array([s is not None for s in out]))
+        for i, s_ in enumerate(out):
+            if s_ is not None and s_.status != "ok":
+                reason[i] = f"status:{s_.status}"[:24]
+        dec = dict(dec, reason=reason,
+                   eligible=np.array([s_ is not None and s_.status == "ok" for s_ in out]))
         return out, dec

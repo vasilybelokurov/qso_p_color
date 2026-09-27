@@ -193,22 +193,23 @@ def cone_recognised_fraction(pf, gq, known_by_cone, area, lo, hi):
     ins = (mc > lo) & (mc < hi)
     expected = float((gq.sigma[:, ins] * np.diff(gq.z_edges)[:, None]
                       * np.diff(gq.mag_edges)[None, ins]).sum())
-    return {c: min(1.0, known_by_cone[c] / (area[c] * expected)) for c in known_by_cone}
+    raw = {c: known_by_cone[c] / (area[c] * expected) for c in known_by_cone}
+    return {c: min(1.0, v) for c, v in raw.items()}, raw
 
 
-def unrecognised_probability(pf, mix, lq, sq, kappa, sigma_cnt, m_edges, rows):
+def unrecognised_probability(pf, mix, lq, sq, kappa, sigma_b, m_edges, rows):
     """r_i: probability a field-sample source is an unrecognised quasar.
 
-    odds = (1 - kappa_cone) Sigma_Q(u) p_Q(c|u) / [(Sigma_cnt(u) - <1-kappa> Sigma_Q(u)) p_B(c|u)]
+    odds = (1 - kappa_cone) Sigma_Q(u) p_Q(c|u) / [Sigma_B(u) p_B(c|u)], with
+    Sigma_B the one non-quasar density the bundle ships.
     """
     from qso_pcolor.multisurvey import conditional_log_prob
     f, ir = pf["features"], pf["ir"]
     lb = conditional_log_prob(mix, f.x[rows], f.cov[rows], f.observed[rows], ir)
     u = f.x[rows, ir]
     k = np.array([kappa[int(c)] for c in pf["cone"][rows]])
-    s_cnt = sigma_cnt[np.clip(np.digitize(u, m_edges) - 1, 0, sigma_cnt.size - 1)]
+    s_b = sigma_b[np.clip(np.digitize(u, m_edges) - 1, 0, sigma_b.size - 1)]
     s_unk = (1 - k) * sq
-    s_b = np.maximum(s_cnt - s_unk, 0.05 * s_cnt)
     with np.errstate(divide="ignore"):
         lo = np.log(s_unk) + lq - np.log(s_b) - lb
     return 1.0 / (1.0 + np.exp(-np.clip(lo, -700, 700)))
@@ -357,7 +358,8 @@ def fit_student_t(h, model, fm, oc, bundle_meta):
             edges = np.concatenate([[lo], inner, [hi]])
             ib = lambda s: np.clip(np.digitize(f.x[s, ir], edges) - 1, 0, oc["n_mag_bins"] - 1)  # noqa: E731
             ic = ib(cal)
-            eta = np.array([fit_outlier_fraction(log_pb[cal][ic == j], log_pu[cal][ic == j])
+            eta = np.array([fit_outlier_fraction(log_pb[cal][ic == j], log_pu[cal][ic == j],
+                                                 weights=wts[cal][ic == j])
                             for j in range(oc["n_mag_bins"])])
             gain = {}
             for name, s in (("calib", cal), ("select", chk)):
@@ -488,10 +490,20 @@ def main():
         counts, _ = np.histogram(f.x[usable, ir], m_edges, weights=pf["weights"][usable])
         sigma_cnt = counts / total_area / np.diff(m_edges)
 
-        # 4. unrecognised quasars: recognised fraction per cone, then r_i
+        # 4. unrecognised quasars: recognised fraction per cone, then one Sigma_B of
+        #    non-quasars (counted minus the expected unrecognised quasars, cones weighted
+        #    exactly as in the counts), then r_i against that same Sigma_B
         known = {c["cone"]: cone_report[c["cone"]]["n_known_quasar_candidate_range"]
                  for c in cones.values() if c["hemisphere"] == h}
-        kappa = cone_recognised_fraction(pf, gq, known, cone_area, lo_c, hi_c)
+        kappa, kappa_raw = cone_recognised_fraction(pf, gq, known, cone_area, lo_c, hi_c)
+        sq_m = (gq.sigma * np.diff(z_edges)[:, None]).sum(0)                 # Sigma_Q(u) per mag
+        a_cell = {c: design["cells"][str(c)]["by_hemisphere"][h] for c in cells_h}
+        cone_cell = {c["cone"]: c["cell"] for c in cones_h}
+        cell_cone_area = {c: sum(cone_area[k] for k in cone_cell if cone_cell[k] == c) for c in cells_h}
+        wc = {k: a_cell[cone_cell[k]] * cone_area[k] / cell_cone_area[cone_cell[k]] for k in cone_cell}
+        unk = sum(wc[k] * (1 - kappa[k]) for k in wc) / sum(wc.values())
+        sigma_b = np.maximum(sigma_cnt - unk * sq_m, 0.05 * sigma_cnt)
+        floor_active = (sigma_cnt - unk * sq_m < 0.05 * sigma_cnt).tolist()
         need = pf["in_fit"] & (pf["role"] != "test")
         lq = np.full(f.n_obs, np.nan); sq = np.full(f.n_obs, np.nan)
         lq[need], sq[need] = log_quasar_colour_density(qso, gq, f, need, ir)
@@ -502,7 +514,7 @@ def main():
                       init=init, max_iter=fc["max_iter"], tol=fc["tol"],
                       regularization=fc["regularization"], n_threads=fc["n_threads"]).mixture
         r = np.zeros(f.n_obs)
-        r[need] = unrecognised_probability(pf, mix0, lq[need], sq[need], kappa, sigma_cnt, m_edges, need)
+        r[need] = unrecognised_probability(pf, mix0, lq[need], sq[need], kappa, sigma_b, m_edges, need)
         history = [dict(step="initial K=32 fit, all sources", mean_r_fit=float(r[fr].mean()))]
         print(f"[{h}] unrecognised quasars: mean r {r[fr].mean():.4f} on fit rows "
               f"(weighted expected {np.sum(pf['weights'][fr] * r[fr]):.0f} of {fr.sum()})", flush=True)
@@ -517,7 +529,7 @@ def main():
         rec["regularization_choice"] = rec_reg
         for it in range(fc.get("contamination_iterations", 2)):
             r_new = np.zeros(f.n_obs)
-            r_new[need] = unrecognised_probability(pf, mix, lq[need], sq[need], kappa, sigma_cnt,
+            r_new[need] = unrecognised_probability(pf, mix, lq[need], sq[need], kappa, sigma_b,
                                                    m_edges, need)
             change = float(np.abs(r_new[fr] - r[fr]).mean())
             history.append(dict(step=f"update {it + 1}", mean_r_fit=float(r_new[fr].mean()),
@@ -534,7 +546,9 @@ def main():
             if not res.converged:
                 raise RuntimeError(f"{h}: refit after the r update did not converge")
             mix = res.mixture
-        rec["unrecognised_quasars"] = dict(history=history, kappa_by_cone={str(k): v for k, v in kappa.items()})
+        rec["unrecognised_quasars"] = dict(history=history, kappa_by_cone={str(k): v for k, v in kappa.items()},
+                                           kappa_uncapped_by_cone={str(k): v for k, v in kappa_raw.items()},
+                                           sigma_b=sigma_b.tolist(), mean_unrecognised_fraction=unk)
         pf["weights_nonq"] = w_nonq
         pf["r"] = r
         bounds = np.array([[np.min(f.x[fr & f.observed[:, j], j]), np.max(f.x[fr & f.observed[:, j], j])]
@@ -545,20 +559,15 @@ def main():
                                                    by="scripts/fit_legacy_baseline.py"))
         gq.meta["transform_id"] = model.transform_id
 
-        # 5. Sigma_B of non-quasars: counted minus the expected unrecognised quasars
-        sq_m = (gq.sigma * np.diff(z_edges)[:, None]).sum(0)                 # Sigma_Q(u) per mag
-        a_cell = {c: design["cells"][str(c)]["by_hemisphere"][h] for c in cells_h}
-        cone_cell = {c["cone"]: c["cell"] for c in cones_h}
-        unk = sum(a_cell[cone_cell[k]] * (1 - kappa[k]) * cone_area[k] for k in cone_cell) \
-            / sum(a_cell[cone_cell[k]] * cone_area[k] for k in cone_cell)
-        sigma_b = np.maximum(sigma_cnt - unk * sq_m, 0.05 * sigma_cnt)
-        # check: the model-based expectation sum_i w_i r_i over the same rows
+        # 5. Sigma_B (computed in step 4); report the model-based expectation of
+        #    unrecognised quasars too (not an independent check: both use Sigma_Q, kappa)
         model_unk = np.histogram(f.x[usable, ir], m_edges, weights=(pf["weights"] * r)[usable])[0] \
             / total_area / np.diff(m_edges)
         mc = 0.5 * (m_edges[1:] + m_edges[:-1]); ins = (mc > lo_c) & (mc < hi_c)
         check = dict(prior_based_per_deg2=float(np.sum((unk * sq_m * np.diff(m_edges))[ins])),
                      model_based_per_deg2=float(np.sum((model_unk * np.diff(m_edges))[ins])),
-                     note="model-based uses r_i only where computed (fit range, non-test)")
+                     note="not independent: both use Sigma_Q and kappa; r_i only where computed",
+                     floor_active_by_bin=floor_active)
         bd = BackgroundSurfaceDensity(1, 1, m_edges,
                                       {(pix, i): float(v * total_area * dm) for i, (v, dm)
                                        in enumerate(zip(sigma_b, np.diff(m_edges)))},
@@ -583,6 +592,9 @@ def main():
               f"{total_area:.0f} deg^2 in {len(cells_h)} cells; unrecognised quasars "
               f"{check['prior_based_per_deg2']:.0f} (prior) vs {check['model_based_per_deg2']:.0f} "
               f"(model) deg^-2 in {lo_c}-{hi_c} ({time.time() - t0:.0f} s)", flush=True)
+    manifest["status"] = {h: ("validated_cells" if any(roles[c["cell"]] == "test" for c in cones.values()
+                                                       if c["hemisphere"] == h) else "provisional: no held-out field cells")
+                          for h in manifest["hemispheres"]}
     for h, files in manifest["hemispheres"].items():
         for name in files.values():
             manifest["files"][name] = sha(tmp / name)

@@ -151,7 +151,8 @@ def envelope_covariance(base_cov: np.ndarray, mixtures: list[GaussianMixture],
 
 
 def fit_outlier_fraction(log_p_bkg: np.ndarray, log_p_out: np.ndarray, *,
-                         tol: float = 1e-10, max_iter: int = 10_000) -> float:
+                         tol: float = 1e-10, max_iter: int = 10_000,
+                         weights: np.ndarray | None = None) -> float:
     """Maximum-likelihood eta for p = (1 - eta) p_B + eta p_U, by EM.
 
     Parameters
@@ -168,8 +169,9 @@ def fit_outlier_fraction(log_p_bkg: np.ndarray, log_p_out: np.ndarray, *,
     """
     a = np.asarray(log_p_bkg, float)
     b = np.asarray(log_p_out, float)
-    good = np.isfinite(a) | np.isfinite(b)
-    a, b = a[good], b[good]
+    w = np.ones_like(a) if weights is None else np.asarray(weights, float)
+    good = (np.isfinite(a) | np.isfinite(b)) & (w > 0)
+    a, b, w = a[good], b[good], w[good]
     if a.size == 0:
         raise ValueError("no finite densities to fit")
     # Responsibility of U at eta: expit(log(eta / (1 - eta)) - (a - b)), in log
@@ -177,7 +179,7 @@ def fit_outlier_fraction(log_p_bkg: np.ndarray, log_p_out: np.ndarray, *,
     d = np.where(np.isfinite(a - b), a - b, np.where(np.isfinite(a), 745.0, -745.0))
     eta = 0.5
     for _ in range(max_iter):
-        new = float(np.mean(expit(np.log(eta) - np.log1p(-eta) - d)))
+        new = float(np.average(expit(np.log(eta) - np.log1p(-eta) - d), weights=w))
         if abs(new - eta) < tol * max(eta, 1e-300):
             eta = new
             break
