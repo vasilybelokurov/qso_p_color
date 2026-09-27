@@ -528,6 +528,26 @@ class SlicedColourRedshiftModel:
         return cls.from_dict(json.loads(Path(path).read_text()))
 
 
+def _fit_slice(job: dict):
+    """One slice: optional K selection on spatial folds, then the full fit."""
+    from .xd import select_n_components
+    fit_kwargs = job["fit_kwargs"]
+    k, k_scores = job["k"], {}
+    if job["select"] is not None:
+        # comparison only: fewer iterations are fine for RANKING K (the EM
+        # cap study measured 100 vs 300 iterations at 0.004 nats), and the
+        # winning K is then fitted below with the full settings
+        sk_kwargs = {a: b for a, b in fit_kwargs.items() if a != "seed"}
+        sk_kwargs["max_iter"] = min(int(fit_kwargs.get("max_iter", 300)), 100)
+        k, k_scores = select_n_components(
+            job["x"], job["cov"], job["select"]["grid"], observed=job["observed"],
+            weights=job["weights"], groups=job["select"]["groups"],
+            n_folds=job["select"]["n_folds"], seed=int(fit_kwargs.get("seed", 0)), **sk_kwargs)
+    res = fit_xd(job["x"], job["cov"], n_components=k, observed=job["observed"],
+                 weights=job["weights"], labels=job["labels"], **fit_kwargs)
+    return res.mixture, k, k_scores, res.converged, res.n_iter
+
+
 def fit_sliced_model(
     x: np.ndarray,
     cov: np.ndarray | None,
@@ -543,9 +563,13 @@ def fit_sliced_model(
     labels: tuple[str, ...] = (),
     meta: dict | None = None,
     select_k: dict | None = None,
+    n_workers: int = 1,
     **fit_kwargs,
 ) -> SlicedColourRedshiftModel:
     """Fit one extreme-deconvolution mixture per redshift slice.
+
+    ``n_workers > 1`` fits the slices in parallel processes (each single-threaded);
+    the fits themselves are unchanged.
 
     ``select_k``, when given, chooses K per slice **where the slice is sparse**
     instead of asserting ``n_components`` everywhere.  Measured on the shipped
@@ -595,15 +619,15 @@ def fit_sliced_model(
     counts = np.zeros(centres.size)
     per_slice: list[dict] = []
     t_start = time.time()
+    sk_grid, sk_groups, sk_folds, sk_below = None, None, None, np.inf
     if select_k is not None:
-        from .xd import select_n_components
-
         sk_groups = np.asarray(select_k["groups"])
         if sk_groups.shape[0] != x.shape[0]:
             raise ValueError("select_k['groups'] must have one entry per object")
         sk_grid = [int(k) for k in select_k.get("grid", (2, 4, 8, 12, 20)) if k <= n_components]
         sk_below = int(select_k.get("below_n", 10000))
         sk_folds = int(select_k.get("n_folds", 2))
+    jobs = []
     for j in range(centres.size):
         w = z_edges[j + 1] - z_edges[j]
         lo = z_edges[j] - overlap * w
@@ -616,47 +640,37 @@ def fit_sliced_model(
                 f"training objects; widen the slice or narrow the redshift range"
             )
         k = n_components if counts[j] >= min_per_slice else 1
-        k_scores: dict = {}
-        if select_k is not None and min_per_slice <= counts[j] < sk_below:
-            # comparison only: fewer iterations are fine for RANKING K (the EM
-            # cap study measured 100 vs 300 iterations at 0.004 nats), and the
-            # winning K is then fitted below with the full settings
-            sk_kwargs = {a: b for a, b in fit_kwargs.items() if a != "seed"}
-            sk_kwargs["max_iter"] = min(int(fit_kwargs.get("max_iter", 300)), 100)
-            k, k_scores = select_n_components(
-                x[sel],
-                None if cov is None else np.asarray(cov)[sel],
-                sk_grid,
-                observed=None if observed is None else observed[sel],
-                weights=None if weights is None else np.asarray(weights)[sel],
-                groups=sk_groups[sel],
-                n_folds=sk_folds,
-                seed=int(fit_kwargs.get("seed", 0)),
-                **sk_kwargs,
-            )
-        res = fit_xd(
-            x[sel],
-            None if cov is None else np.asarray(cov)[sel],
-            n_components=k,
+        do_select = select_k is not None and min_per_slice <= counts[j] < sk_below
+        jobs.append(dict(
+            j=j, lo=lo, hi=hi, k=k, x=x[sel],
+            cov=None if cov is None else np.asarray(cov)[sel],
             observed=None if observed is None else observed[sel],
             weights=None if weights is None else np.asarray(weights)[sel],
-            labels=labels,
-            **fit_kwargs,
-        )
-        mixtures.append(res.mixture)
+            select=dict(grid=sk_grid, groups=sk_groups[sel], n_folds=sk_folds) if do_select else None,
+            labels=labels, fit_kwargs=fit_kwargs))
+    if n_workers > 1:
+        import os
+        from concurrent.futures import ProcessPoolExecutor
+        for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+            os.environ[v] = "1"
+        # largest slices first, so the long fits start early
+        order = sorted(range(len(jobs)), key=lambda i: -jobs[i]["x"].shape[0])
+        with ProcessPoolExecutor(n_workers) as ex:
+            done = dict(zip(order, ex.map(_fit_slice, [jobs[i] for i in order])))
+        results = [done[i] for i in range(len(jobs))]
+    else:
+        results = [_fit_slice(job) for job in jobs]
+    for job, (mix, k, k_scores, conv, n_iter) in zip(jobs, results):
+        mixtures.append(mix)
         per_slice.append({
-            "z": float(centres[j]), "n": int(counts[j]), "k": int(k),
-            "converged": bool(res.converged), "n_iter": int(res.n_iter),
+            "z": float(centres[job["j"]]), "n": int(counts[job["j"]]), "k": int(k),
+            "converged": bool(conv), "n_iter": int(n_iter),
             **({"k_scores": {str(a): float(b) for a, b in k_scores.items()}} if k_scores else {}),
         })
-        # A million-object fit takes hours; silence for that long makes a stall
-        # indistinguishable from progress.
-        log.info(
-            "slice %d/%d  z %.2f-%.2f  n=%d  K=%d%s  iters=%d  %s  [%.0f s elapsed]",
-            j + 1, centres.size, lo, hi, int(counts[j]), k,
-            " (selected)" if k_scores else "", res.n_iter,
-            "converged" if res.converged else "hit max_iter", time.time() - t_start,
-        )
+        log.info("slice %d/%d  z %.2f-%.2f  n=%d  K=%d%s  iters=%d  %s  [%.0f s elapsed]",
+                 job["j"] + 1, centres.size, job["lo"], job["hi"], int(counts[job["j"]]), k,
+                 " (selected)" if k_scores else "", n_iter,
+                 "converged" if conv else "hit max_iter", time.time() - t_start)
 
     return SlicedColourRedshiftModel(
         centres,

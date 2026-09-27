@@ -181,3 +181,18 @@ def test_row_chunking_changes_memory_not_the_fit(monkeypatch):
     b = xd.fit_xd(x, cov, n_components=3, observed=obs, max_iter=20, seed=1)
     assert np.allclose(a.mixture.means, b.mixture.means, atol=1e-12)
     assert a.mean_loglike == pytest.approx(b.mean_loglike, abs=1e-12)
+
+
+def test_parallel_slice_fits_equal_serial():
+    from qso_pcolor.qso_model import fit_sliced_model
+    rng = np.random.default_rng(2)
+    n = 3000
+    z = rng.uniform(0.5, 2.5, n)
+    x = np.column_stack([z + rng.normal(0, .1, n), -z + rng.normal(0, .1, n)])
+    cov = np.repeat(0.01 * np.eye(2)[None], n, 0)
+    kw = dict(z_edges=np.linspace(0.5, 2.5, 5), n_components=2, min_per_slice=50, seed=0,
+              max_iter=50, labels=("a", "b"))
+    a = fit_sliced_model(x, cov, z, **kw)
+    b = fit_sliced_model(x, cov, z, n_workers=2, **kw)
+    for ma, mb in zip(a.mixtures, b.mixtures):
+        assert np.allclose(ma.means, mb.means, atol=1e-12) and np.allclose(ma.covs, mb.covs, atol=1e-12)

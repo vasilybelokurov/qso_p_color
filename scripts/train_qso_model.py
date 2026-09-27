@@ -201,6 +201,9 @@ def main() -> None:
                     help="output file name; default qso_<system>_<date>.json. The "
                          "shipped model is never overwritten by this script")
     ap.add_argument("--no-sdss", action="store_true")
+    ap.add_argument("--n-workers", type=int, default=1, help="parallel slice fits")
+    ap.add_argument("--morphology", choices=("all", "point"), default="all",
+                    help="point: Legacy TYPE = PSF only (qso_pcolor.legacy.LegacySelection)")
     ap.add_argument("--max-objects", type=int, default=None,
                     help="subsample for a quick run; omit to use everything")
     ap.add_argument("--holdout-frac", type=float, default=0.2,
@@ -248,6 +251,21 @@ def main() -> None:
                   f"({100 * (n_rel - int(sel.sum())) / n_rel:.2f}%)")
         else:
             print(f"  {tag}: {n_rel:,} in release {rel}")
+        if args.morphology == "point":
+            from qso_pcolor.legacy import morphology_status
+            if "morphtype" in r:
+                ttype = np.asarray(r["morphtype"])
+            else:
+                # DR16Q rows carry Legacy positions from the match; their TYPE
+                # comes from the same DR9 table (hemisphere-aware nearest row)
+                from qso_pcolor.legacy import legacy_match
+                mm = legacy_match(np.asarray(r["ra"], float), np.asarray(r["dec"], float),
+                                  args.cache / "legacy_type", radius_arcsec=0.2)
+                ttype = np.where(np.asarray(mm["release"]) == np.asarray(r["release"]),
+                                 np.asarray(mm["type"]), "")
+            before = int(sel.sum())
+            sel &= morphology_status(ttype) == "point"
+            print(f"  {tag}: {before - int(sel.sum()):,} not PSF removed, {int(sel.sum()):,} remain")
         ra.append(np.asarray(r["ra"])[sel])
         dec.append(np.asarray(r["dec"])[sel])
         z.append(np.asarray(r["zspec"])[sel])
@@ -326,11 +344,14 @@ def main() -> None:
         fs.x[fit_idx], fs.cov[fit_idx], z[fit_idx],
         z_edges=np.linspace(args.zmin, args.zmax, args.n_slices + 1),
         observed=fs.observed[fit_idx], n_components=n_comp, min_per_slice=500,
-        overlap=0.5, system=f"ls_dr9_{args.system}_grzw", labels=fs.labels,
+        overlap=0.5,
+        system=f"ls_dr9_{args.system}_grzw" + ("_psf" if args.morphology == "point" else ""),
+        labels=fs.labels,
         seed=0, max_iter=300, tol=1e-6, regularization=1e-6,
-        select_k=select_k,
+        select_k=select_k, n_workers=args.n_workers,
         meta={
             "maskbits_cut_applied": not args.no_maskbits_cut,
+            "morphology": args.morphology,
             "n_masked_removed": int(n_masked_removed),
             "holdout_source": holdout_source,
             "k_rule": {"fixed_k": n_comp, "select_below_n": args.select_k_below,

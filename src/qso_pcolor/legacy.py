@@ -275,8 +275,9 @@ def cone_usable_fraction(ra: float, dec: float, radius_deg: float, hemisphere: s
 # -- catalogue access ------------------------------------------------------------
 
 CATALOGUE_COLUMNS = ("ra", "dec", "release", "brickid", "objid", "type", "maskbits",
-                     "fracflux_r") + tuple(f"{p}_{b}" for b in BANDS
-                                          for p in ("flux", "flux_ivar", "nobs"))
+                     "fracflux_r", "ebv") + tuple(f"{p}_{b}" for b in BANDS
+                                                 for p in ("flux", "flux_ivar", "nobs",
+                                                           "mw_transmission"))
 
 
 def _columns(prefix: str = "c.") -> str:
