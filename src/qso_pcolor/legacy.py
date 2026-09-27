@@ -144,6 +144,26 @@ def legacy_photometry(rows: dict, hemisphere: str, *, maskbits_zero: bool = True
     return Photometry(f, v, hemisphere_labels(hemisphere))
 
 
+def dereddened_relative_fluxes(rows: dict, hemisphere: str, *, min_ref_snr: float = 5.0,
+                               min_dims: int = 3):
+    """XDQSO-style features of catalogue rows: dereddened fluxes relative to r.
+
+    flux / mw_transmission and variance / mw_transmission^2 (Galactic
+    extinction removed, as in the original model), then
+    :class:`~qso_pcolor.features.RelativeFluxTransform`. Returns the feature
+    set and the usable mask (>= ``min_dims`` relative fluxes, finite r
+    magnitude). Used identically for training, counting and candidates.
+    """
+    from .features import RelativeFluxTransform, deredden
+    p = legacy_photometry(rows, hemisphere)
+    trans = np.stack([np.asarray(rows[f"mw_transmission_{b}"], float) for b in BANDS], 1)
+    ivar = np.where(p.observed, 1.0 / np.where(p.observed, p.variance, 1.0), 0.0)
+    f, v = deredden(np.where(p.observed, p.flux, 0.0), ivar, trans)
+    v = np.where(p.observed, v, np.inf)
+    fs = RelativeFluxTransform(reference_band="r", min_ref_snr=min_ref_snr)(f, v, BANDS)
+    return fs, fs.usable(min_dims=min_dims) & np.isfinite(fs.ref_mag)
+
+
 # -- usable area from the brick images ----------------------------------------
 
 BRICK_URL = "https://portal.nersc.gov/cfs/cosmo/data/legacysurvey/dr9/{hemi}/coadd/{d}/{b}/legacysurvey-{b}-{kind}.fits.fz"

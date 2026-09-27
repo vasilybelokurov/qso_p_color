@@ -150,3 +150,101 @@ class LegacyBaseline:
         dec = dict(dec, reason=reason,
                    eligible=np.array([s_ is not None and s_.status == "ok" for s_ in out]))
         return out, dec
+
+
+@dataclass
+class XDQSOBaseline:
+    """The Legacy-PSF baseline in the original XDQSO-style design.
+
+    Per hemisphere: quasar slices, field mixtures per r bin, Sigma_Q, Sigma_B
+    and the broad unmodelled term (``scripts/fit_legacy_psf_xdqso.py``).
+    Candidates are Legacy DR9 catalogue rows with the ``mw_transmission_*``
+    columns; they are selected, dereddened and scored exactly as the training
+    data were.
+    """
+    manifest: dict
+    selection: LegacySelection
+    parts: dict
+
+    @property
+    def bundle_id(self) -> str:
+        return self.manifest["bundle_id"]
+
+    @classmethod
+    def load(cls, path: str | Path) -> "XDQSOBaseline":
+        from .background import BackgroundColourModel
+        from .outlier import OutlierModel
+        from .priors import BackgroundSurfaceDensity, GridQSOPrior
+        from .qso_model import SlicedColourRedshiftModel
+        root = resolve_bundle(path)
+        man = json.loads((root / "manifest.json").read_text())
+        if man.get("kind") != "legacy_xdqso_bundle":
+            raise ValueError("not a Legacy XDQSO baseline bundle")
+        for name, digest in man["files"].items():
+            if file_sha256(root / name) != digest:
+                raise ValueError(f"{name}: content does not match the manifest")
+        sel = LegacySelection(**{k: man["selection"][k] for k in
+                                 ("morphology", "maskbits_zero", "reference", "version")})
+        if sel.identity != man["selection_id"]:
+            raise ValueError("manifest selection does not reproduce its recorded identity")
+        loaders = dict(qso=SlicedColourRedshiftModel.load, background=BackgroundColourModel.load,
+                       qso_prior=GridQSOPrior.load, background_density=BackgroundSurfaceDensity.load,
+                       outlier=OutlierModel.load)
+        parts = {}
+        for h, files in man["hemispheres"].items():
+            parts[h] = {k: loaders[k](root / f) for k, f in files.items()}
+            for k, obj in parts[h].items():
+                if obj.meta.get("bundle_id") != man["bundle_id"]:
+                    raise ValueError(f"{h} {k} belongs to a different bundle")
+            systems = {parts[h]["qso"].system, parts[h]["background"].system, parts[h]["outlier"].system}
+            if len(systems) != 1:
+                raise ValueError(f"{h}: photometric systems differ: {systems}")
+        return cls(man, sel, parts)
+
+    def score_rows(self, rows: dict, *, z_primary, match, separation_arcsec=None, fracflux=None,
+                   blend_policy=None, candidate_id=None, primary_id=None):
+        """Score catalogue rows; returns (scores, decision) as for LegacyBaseline."""
+        from .data import galactic_from_equatorial
+        from .legacy import dereddened_relative_fluxes
+        from .score import score_candidates
+        n = len(np.asarray(rows["ra"]))
+        dec = self.selection.decide(rows)
+        reason = dec["reason"].astype("<U24")
+        l, b = galactic_from_equatorial(np.asarray(rows["ra"], float), np.asarray(rows["dec"], float))
+        dom = self.manifest["domain"]
+        low_b = dec["accepted"] & (np.abs(b) < dom["min_abs_b_deg"])
+        reason[low_b] = "outside_latitude"
+        accepted = dec["accepted"] & ~low_b
+        z_primary = np.broadcast_to(np.asarray(z_primary, float), (n,))
+        lo, hi = dom["ref_mag"]
+        out = [None] * n
+        extra = dict(separation_arcsec=separation_arcsec, fracflux=fracflux,
+                     candidate_id=candidate_id, primary_id=primary_id)
+        for h, p in self.parts.items():
+            use = np.flatnonzero(accepted & (dec["hemisphere"] == h))
+            if not use.size:
+                continue
+            sub = {k: np.asarray(v)[use] for k, v in rows.items() if np.ndim(v) and len(v) == n}
+            fs, ok = dereddened_relative_fluxes(sub, h, min_ref_snr=dom["min_ref_snr"],
+                                                min_dims=dom["min_dims"])
+            inside = ok & (fs.ref_mag >= lo) & (fs.ref_mag < hi)
+            reason[use[~inside]] = "outside_domain"
+            keep = np.flatnonzero(inside)
+            use = use[keep]
+            if not use.size:
+                continue
+            kw = {k: np.broadcast_to(np.asarray(v), (n,))[use] for k, v in extra.items() if v is not None}
+            if blend_policy is not None:
+                kw["blend_policy"] = blend_policy
+            scores = score_candidates(fs.subset(keep), z_primary=z_primary[use], l_deg=l[use],
+                                      b_deg=b[use], qso_model=p["qso"], background_model=p["background"],
+                                      match=match, qso_prior=p["qso_prior"],
+                                      background_density=p["background_density"],
+                                      outlier_model=p["outlier"], min_bands=3, **kw)
+            for i, s_ in zip(use, scores):
+                out[i] = s_
+        for i, s_ in enumerate(out):
+            if s_ is not None and s_.status != "ok":
+                reason[i] = f"status:{s_.status}"[:24]
+        return out, dict(dec, accepted=accepted, reason=reason,
+                         eligible=np.array([s_ is not None and s_.status == "ok" for s_ in out]))

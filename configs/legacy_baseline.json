@@ -110,5 +110,34 @@
     "regularization_why": "covariance floor chosen on the select cells: at K=32 south, select score -1.978 (1e-3), -1.786 (1e-4), -1.759 (1e-5); 'regularization' is only the floor of the initial contamination fit",
     "n_workers": 13
   },
-  "photometry": "dereddened: flux / mw_transmission, ivar * mw_transmission^2 (as the original Legacy model)"
+  "photometry": "dereddened: flux / mw_transmission, ivar * mw_transmission^2 (as the original Legacy model)",
+  "xdqso": {
+    "field_k_grid": [
+      4,
+      8,
+      12,
+      16
+    ],
+    "floor_grid": [
+      1e-06,
+      1e-05,
+      0.0001
+    ],
+    "starts": 2,
+    "max_iter": 500,
+    "tol": 1e-06,
+    "max_fit": 120000,
+    "max_select": 60000,
+    "n_workers": 13,
+    "contamination_iterations": 3,
+    "contamination_tol": 0.001,
+    "kappa_factors": [
+      1.05,
+      1.5,
+      2.0,
+      3.0
+    ],
+    "bundle_dir": "models/legacy_psf_xdqso",
+    "why": "original XDQSO-style design (relative fluxes, dereddened; field per r bin 17/19.5/20.5/21.5/22.5, original K=8 inside the grid; broad Gaussian outlier); only the PSF selection, test cells and unrecognised-quasar weighting are new"
+  }
 }
