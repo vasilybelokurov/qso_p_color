@@ -330,3 +330,39 @@ final test set is looked at.
 | "The deepest survey decides morphology" is underspecified | agreed | fixed precedence with a quality criterion per classifier |
 | The 127-subset validation runs without priors or the outlier term | confirmed | `scripts/validate_multisurvey.py:134` calls `model.score` with neither; to be fixed in step 0 |
 | Cost estimates in days | accepted as rough | not measured |
+
+## 8. Baseline progress (2026-09-27)
+
+**Built and tested.**
+- **Selection:** `src/qso_pcolor/legacy.py`, one selection used for training, counts and candidates.
+  - Hemisphere is taken from the position (DESI rule). WSDB holds both north and south rows in the overlap stripe, and north-release rows with `nobs_r = 0` at dec ≈ 2°.
+  - Morphology comes from Tractor `TYPE`.
+  - Usable area comes from the brick MASKBITS and nexp-r images. On a test cone the pixel condition reproduces the catalogue's `maskbits == 0 & nobs_r > 0` for all 28,117 sources.
+- **Bundles:** `src/qso_pcolor/baseline.py`, with a manifest of hashes and bundle and selection ids. Mixed or tampered bundles are refused.
+- **Sample:** `scripts/build_legacy_baseline_sample.py`.
+  - Field: 304 cones of 0.3°. The footprint at |b| ≥ 25° covers 124 nside-4 cells (18,288 deg²), not the ~60 estimated in §3.
+  - Quasars: 82,489 targets, 82,333 matched to a DR9 row of their own hemisphere.
+  - Companions: 568,287 matched.
+- **Fitter and validation:** `scripts/fit_legacy_baseline.py` and `scripts/validate_legacy_baseline.py`.
+
+**First bundle (`e71820f57f83`, test cells, against the current model on identical PSF rows).**
+
+| gate | result | pass? |
+|---|---|---|
+| same-z vs wrong-z, ln R AUC | 0.849 vs 0.822 | ✓ |
+| quasar vs star | 0.986 vs 0.990 | ✓ |
+| quasar vs PSF galaxy | 0.664 vs 0.817 | ✗ |
+| uninformative band | moves ln R by up to 0.19 | ✗ |
+
+Three causes were found:
+1. **Unrecognised quasars in the PSF field sample.** The recognised fraction per cone has a median of 0.37 and is zero in 36 % of south cones. Refitting on covered cones only raises quasar ln BF by +0.9 and leaves galaxies (+0.01) and stars (+0.10) unchanged. Fix: each field source is weighted by 1 − P(unrecognised quasar), and Σ_B subtracts (1 − κ) Σ_Q. The prior-based and model-based expectations of the unrecognised quasars agree to 13 %.
+2. **The fixed covariance floor 10⁻³ mag².** It makes every colour direction at least 0.045 mag wide. The held-out score at K = 32 is −1.978, −1.786 and −1.759 for floors of 10⁻³, 10⁻⁴ and 10⁻⁵. Fix: the floor is chosen on the select cells.
+3. **Student-t with noise added to its scale.** Fix: the exact scale-mixture convolution, which reproduces the closed form to 3 × 10⁻¹⁴. Opt-in, so the shipped model is unchanged.
+
+**Other measurements.**
+- **PSF retention** among quasars that pass every other condition: 0.18 at z < 0.5, 0.73 at 0.5–1, and 0.98–1.00 above z = 1.
+- **Completeness constant** from the all-morphology south quasars: C = 2.256. The current model's 2.37 came from a different matching and mask setup.
+
+**Open.**
+- The north has no held-out field cones, because the archived test blocks are all in the south. It has only 39 same-z companions in test cells.
+- Field counts in the 15 south test cells are 1.25 times the prediction, 95 % interval 0.83–1.84. This spatial scatter is expected for a global model.
