@@ -57,8 +57,14 @@ def load_field(cfg, root, sel):
         r = dict(np.load(root / "cones" / f"cone_{k:03d}.npz", allow_pickle=False))
         d = sel.decide(r)
         keep = d["accepted"] & ~r["known_quasar"].astype(bool) & (d["hemisphere"] == c["hemisphere"])
+        kq = d["accepted"] & r["known_quasar"].astype(bool) & (d["hemisphere"] == c["hemisphere"])
+        # candidate range in r magnitude (luptitude = magnitude to < 1e-3 mag here: flux >> softening)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            mag_r = 22.5 - 2.5 * np.log10(np.asarray(r["flux_r"], float))
+        lo, hi = cfg["fit"]["candidate_ref_range"]
         report[k] = dict(n_rows=int(len(r["ra"])), n_accepted=int(d["accepted"].sum()),
-                         n_known_quasar=int((d["accepted"] & r["known_quasar"].astype(bool)).sum()),
+                         n_known_quasar=int(kq.sum()),
+                         n_known_quasar_candidate_range=int((kq & (mag_r >= lo) & (mag_r < hi)).sum()),
                          n_kept=int(keep.sum()))
         parts.append({kk: np.asarray(v)[keep] for kk, v in r.items() if np.ndim(v) == 1})
     rows = {k: np.concatenate([p[k] for p in parts]) for k in parts[0]}
@@ -117,7 +123,8 @@ def fit_grid(name, features, fit_rows, sel_rows, weights, grid, fc, seed, anchor
     return best["_mixture"], record
 
 
-def field_model(h, rows, cones, w_cone, sel, fc, cfg, roles):
+def prepare_field(h, rows, cones, w_cone, sel, fc, cfg, roles):
+    """Features, roles, cell-area weights and the fit/select subsamples of one hemisphere."""
     from qso_pcolor.legacy import legacy_photometry
     from qso_pcolor.multisurvey import BandLuptitudeTransform
     cone_role = np.array([roles[cones[int(c)]["cell"]] for c in rows["cone"]])
@@ -127,10 +134,8 @@ def field_model(h, rows, cones, w_cone, sel, fc, cfg, roles):
     role = cone_role[m]
     phot = legacy_photometry(sub, h, maskbits_zero=sel.maskbits_zero)
     train = role == "fit"
-    softening = []
-    for j, label in enumerate(phot.bands):
-        e = np.sqrt(phot.variance[train & phot.observed[:, j], j])
-        softening.append(float(np.median(e)))
+    softening = [float(np.median(np.sqrt(phot.variance[train & phot.observed[:, j], j])))
+                 for j in range(len(phot.bands))]
     transform = BandLuptitudeTransform(phot.bands, np.array(softening))
     f = transform(phot)
     ir = phot.bands.index(f"decals_dr9_{h}:{sel.reference}")
@@ -148,13 +153,55 @@ def field_model(h, rows, cones, w_cone, sel, fc, cfg, roles):
     sel_rows = np.zeros(len(role), bool); sel_rows[sel_idx] = True
     print(f"[{h}] field: {m.sum():,} accepted sources; fit {fit_rows.sum():,}, select "
           f"{sel_rows.sum():,}", flush=True)
-    mix, rec = fit_grid(f"{h} field", f, fit_rows, sel_rows, weights, fc["field_k_grid"], fc,
-                        cfg["seed"], ir)
-    bounds = np.array([[np.min(f.x[fit_rows & f.observed[:, j], j]),
-                        np.max(f.x[fit_rows & f.observed[:, j], j])] for j in range(len(BANDS_))])
-    return dict(transform=transform, mixture=mix, record=rec, bounds=bounds, features=f,
-                role=role, weights=weights, in_fit=in_fit, cone=sub["cone"], ir=ir,
-                softening=softening)
+    return dict(transform=transform, features=f, role=role, weights=weights, in_fit=in_fit,
+                cone=sub["cone"], ir=ir, softening=softening, fit_rows=fit_rows, sel_rows=sel_rows)
+
+
+# -- unrecognised quasars in the field sample --------------------------------------
+
+def log_quasar_colour_density(qso, gq, f, rows, ir):
+    """log p_Q(colours | u_r) = log sum_z Sigma_Q(z, u_r) p(colours | u_r, z) / Sigma_Q(u_r)."""
+    from qso_pcolor.multisurvey import _ConditionalQSO
+    x, cov, obs = f.x[rows], f.cov[rows], f.observed[rows]
+    lp = _ConditionalQSO(qso, ir)._log_p_slices(x, cov, obs)            # (n, J)
+    u = x[:, ir]
+    sig = np.array([np.interp(u, gq.mag_centres, gq.sigma[j]) for j in range(gq.z_centres.size)]).T
+    # slices sit at the prior's z centres (both 0.15 ... 4.35 in 0.1)
+    if not np.allclose(qso.z_centres, gq.z_centres):
+        raise ValueError("quasar slices and prior redshift grid differ")
+    w = sig * np.diff(gq.z_edges)[None]
+    tot = w.sum(1)
+    from scipy.special import logsumexp
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lq = logsumexp(lp + np.log(w), axis=1) - np.log(tot)
+    return np.where(tot > 0, lq, -np.inf), tot
+
+
+def cone_recognised_fraction(pf, gq, known_by_cone, area, lo, hi):
+    """kappa = known quasars / expected quasars in each cone, candidate range, capped at 1."""
+    mc = 0.5 * (gq.mag_edges[1:] + gq.mag_edges[:-1])
+    ins = (mc > lo) & (mc < hi)
+    expected = float((gq.sigma[:, ins] * np.diff(gq.z_edges)[:, None]
+                      * np.diff(gq.mag_edges)[None, ins]).sum())
+    return {c: min(1.0, known_by_cone[c] / (area[c] * expected)) for c in known_by_cone}
+
+
+def unrecognised_probability(pf, mix, lq, sq, kappa, sigma_cnt, m_edges, rows):
+    """r_i: probability a field-sample source is an unrecognised quasar.
+
+    odds = (1 - kappa_cone) Sigma_Q(u) p_Q(c|u) / [(Sigma_cnt(u) - <1-kappa> Sigma_Q(u)) p_B(c|u)]
+    """
+    from qso_pcolor.multisurvey import conditional_log_prob
+    f, ir = pf["features"], pf["ir"]
+    lb = conditional_log_prob(mix, f.x[rows], f.cov[rows], f.observed[rows], ir)
+    u = f.x[rows, ir]
+    k = np.array([kappa[int(c)] for c in pf["cone"][rows]])
+    s_cnt = sigma_cnt[np.clip(np.digitize(u, m_edges) - 1, 0, sigma_cnt.size - 1)]
+    s_unk = (1 - k) * sq
+    s_b = np.maximum(s_cnt - s_unk, 0.05 * s_cnt)
+    with np.errstate(divide="ignore"):
+        lo = np.log(s_unk) + lq - np.log(s_b) - lb
+    return 1.0 / (1.0 + np.exp(-np.clip(lo, -700, 700)))
 
 
 BANDS_ = ("g", "r", "z", "w1", "w2")
@@ -376,33 +423,24 @@ def main():
                     partition={str(k): v for k, v in sorted(roles.items())},
                     cones=cone_report, hemispheres={}, files={})
 
-    # C from the all-morphology south quasars, then applied to every PSF prior
+    # 1. per hemisphere: field features, then the quasar colour model
     from qso_pcolor.legacy import legacy_photometry
-    results = {}
+    prep, qsos = {}, {}
     for h in args.hemispheres:
         t0 = time.time()
-        fm = field_model(h, rows, cones, w_cone, sel, fc, cfg, roles)
-        qso, qrec = quasar_model(h, q, qrows, dq_point, fm["transform"], fc, cfg, sample_cfg,
-                                 roles, fm["ir"])
-        model = MultiSurveyModel(
-            qso, fm["mixture"], fm["transform"],
-            (fm["transform"].bands[fm["ir"]],) + tuple(b for i, b in enumerate(fm["transform"].bands)
-                                                     if i != fm["ir"]),
-            fm["bounds"], meta=dict(artifact_meta, hemisphere=h, field_fit=fm["record"],
-                                    quasar_fit=qrec, softening=fm["softening"],
-                                    by="scripts/fit_legacy_baseline.py"))
-        results[h] = dict(model=model, fm=fm)
-        print(f"[{h}] mixtures done ({time.time() - t0:.0f} s)", flush=True)
+        prep[h] = pf = prepare_field(h, rows, cones, w_cone, sel, fc, cfg, roles)
+        qsos[h] = quasar_model(h, q, qrows, dq_point, pf["transform"], fc, cfg, sample_cfg,
+                               roles, pf["ir"])
+        print(f"[{h}] quasar model done ({time.time() - t0:.0f} s)", flush=True)
 
-    # priors (needs the south transform for C: C is defined on south r)
+    # 2. Sigma_Q: C from the all-morphology south quasars, applied unchanged to PSF
     dens = {}
-    for h, r in results.items():
-        tr = r["model"].transform
-        ir = r["fm"]["ir"]
+    for h, pf in prep.items():
+        tr, ir = pf["transform"], pf["ir"]
         for name, d in (("point", dq_point), ("all", dq_all)):
             m = d["accepted"] & (d["hemisphere"] == h)
             phot = legacy_photometry({k: np.asarray(v)[m] for k, v in qrows.items() if np.ndim(v) == 1},
-                                     h, maskbits_zero=True)
+                                     h, maskbits_zero=sel.maskbits_zero)
             u = tr(phot).x[:, ir]
             inarea = pcells[h][qpix[m]]
             dens[(h, name)] = raw_qso_density(inarea & np.isfinite(u), q["target_zspec"][m], u,
@@ -414,45 +452,121 @@ def main():
           f"{raw_total:.1f} deg^-2)", flush=True)
     manifest["completeness"] = dict(C=C, reference_total=ref_total, raw_total_all_south=raw_total,
                                     defined_on="south, all morphologies, " + str(fc["normalisation"]))
-    for h, r in results.items():
-        model, fm = r["model"], r["fm"]
-        tr, ir, f = model.transform, fm["ir"], fm["features"]
+    zc = 0.5 * (z_edges[:-1] + z_edges[1:])
+    lo_c, hi_c = fc["candidate_ref_range"]
+    from qso_pcolor.background import galactic_healpix
+    pix = int(galactic_healpix(np.zeros(1), np.full(1, 90.0), 1)[0])
+
+    for h, pf in prep.items():
+        t0 = time.time()
+        tr, ir, f = pf["transform"], pf["ir"], pf["features"]
+        qso, qrec = qsos[h]
         label = tr.bands[ir]
-        zc = 0.5 * (z_edges[:-1] + z_edges[1:])
-        meta_q = dict(artifact_meta, reference_band=label, transform_id=model.transform_id,
+        meta_q = dict(artifact_meta, reference_band=label, transform_id=None,
                       completeness_constant=C,
-                      retention_point_over_all=integrate(dens[(h, "point")], z_edges, m_edges,
-                                                         *fc["candidate_ref_range"])
-                      / integrate(dens[(h, "all")], z_edges, m_edges, *fc["candidate_ref_range"]),
+                      retention_point_over_all=integrate(dens[(h, "point")], z_edges, m_edges, lo_c, hi_c)
+                      / integrate(dens[(h, "all")], z_edges, m_edges, lo_c, hi_c),
                       kind="Sigma_Q(z,u_r): weighted draw, PSF, parent coverage x footprint, C from all-morphology south")
         gq = GridQSOPrior(zc, 0.5 * (m_edges[:-1] + m_edges[1:]), dens[(h, "point")] * C, meta_q,
                           z_edges=z_edges, mag_edges=m_edges)
-        # field density: non-test cones, each cell by its footprint area
-        usable = (fm["role"] != "test") & f.observed[:, ir]
+
+        # 3. counted field density (known quasars removed), non-test cones, cell-area weights
         cones_h = [c for c in cones.values() if c["hemisphere"] == h and roles[c["cell"]] != "test"]
         cells_h = {c["cell"] for c in cones_h}
         total_area = sum(design["cells"][str(c)]["by_hemisphere"][h] for c in cells_h)
-        counts, _ = np.histogram(f.x[usable, ir], m_edges, weights=fm["weights"][usable])
-        pix = 0
-        from qso_pcolor.background import galactic_healpix
-        pix = int(galactic_healpix(np.zeros(1), np.full(1, 90.0), 1)[0])
-        bd = BackgroundSurfaceDensity(1, 1, m_edges, {(pix, i): float(c) for i, c in enumerate(counts)},
+        usable = (pf["role"] != "test") & f.observed[:, ir]
+        counts, _ = np.histogram(f.x[usable, ir], m_edges, weights=pf["weights"][usable])
+        sigma_cnt = counts / total_area / np.diff(m_edges)
+
+        # 4. unrecognised quasars: recognised fraction per cone, then r_i
+        known = {c["cone"]: cone_report[c["cone"]]["n_known_quasar_candidate_range"]
+                 for c in cones.values() if c["hemisphere"] == h}
+        kappa = cone_recognised_fraction(pf, gq, known, cone_area, lo_c, hi_c)
+        need = pf["in_fit"] & (pf["role"] != "test")
+        lq = np.full(f.n_obs, np.nan); sq = np.full(f.n_obs, np.nan)
+        lq[need], sq[need] = log_quasar_colour_density(qso, gq, f, need, ir)
+        from qso_pcolor.xd import _init_mixture, fit_xd
+        fr = pf["fit_rows"]
+        init = _init_mixture(f.x[fr], f.observed[fr], 32, np.random.default_rng(cfg["seed"] + 5))
+        mix0 = fit_xd(f.x[fr], f.cov[fr], observed=f.observed[fr], weights=pf["weights"][fr],
+                      init=init, max_iter=fc["max_iter"], tol=fc["tol"],
+                      regularization=fc["regularization"], n_threads=fc["n_threads"]).mixture
+        r = np.zeros(f.n_obs)
+        r[need] = unrecognised_probability(pf, mix0, lq[need], sq[need], kappa, sigma_cnt, m_edges, need)
+        history = [dict(step="initial K=32 fit, all sources", mean_r_fit=float(r[fr].mean()))]
+        print(f"[{h}] unrecognised quasars: mean r {r[fr].mean():.4f} on fit rows "
+              f"(weighted expected {np.sum(pf['weights'][fr] * r[fr]):.0f} of {fr.sum()})", flush=True)
+        w_nonq = pf["weights"] * (1 - r)
+        mix, rec = fit_grid(f"{h} field", f, fr, pf["sel_rows"], w_nonq, fc["field_k_grid"], fc,
+                            cfg["seed"], ir)
+        for it in range(fc.get("contamination_iterations", 2)):
+            r_new = np.zeros(f.n_obs)
+            r_new[need] = unrecognised_probability(pf, mix, lq[need], sq[need], kappa, sigma_cnt,
+                                                   m_edges, need)
+            change = float(np.abs(r_new[fr] - r[fr]).mean())
+            history.append(dict(step=f"update {it + 1}", mean_r_fit=float(r_new[fr].mean()),
+                                mean_abs_change=change, max_abs_change=float(np.abs(r_new - r).max())))
+            print(f"[{h}] r update {it + 1}: mean {r_new[fr].mean():.4f}, mean |change| {change:.2e}",
+                  flush=True)
+            r = r_new
+            w_nonq = pf["weights"] * (1 - r)
+            if change < fc.get("contamination_tol", 1e-3):
+                break
+            res = fit_xd(f.x[fr], f.cov[fr], observed=f.observed[fr], weights=w_nonq[fr], init=mix,
+                         max_iter=fc["max_iter"], tol=fc["tol"], regularization=fc["regularization"],
+                         labels=f.labels, n_threads=fc["n_threads"])
+            if not res.converged:
+                raise RuntimeError(f"{h}: refit after the r update did not converge")
+            mix = res.mixture
+        rec["unrecognised_quasars"] = dict(history=history, kappa_by_cone={str(k): v for k, v in kappa.items()})
+        pf["weights_nonq"] = w_nonq
+        pf["r"] = r
+        bounds = np.array([[np.min(f.x[fr & f.observed[:, j], j]), np.max(f.x[fr & f.observed[:, j], j])]
+                           for j in range(len(tr.bands))])
+        model = MultiSurveyModel(qso, mix, tr, (label,) + tuple(b for b in tr.bands if b != label),
+                                 bounds, meta=dict(artifact_meta, hemisphere=h, field_fit=rec,
+                                                   quasar_fit=qrec, softening=pf["softening"],
+                                                   by="scripts/fit_legacy_baseline.py"))
+        gq.meta["transform_id"] = model.transform_id
+
+        # 5. Sigma_B of non-quasars: counted minus the expected unrecognised quasars
+        sq_m = (gq.sigma * np.diff(z_edges)[:, None]).sum(0)                 # Sigma_Q(u) per mag
+        a_cell = {c: design["cells"][str(c)]["by_hemisphere"][h] for c in cells_h}
+        cone_cell = {c["cone"]: c["cell"] for c in cones_h}
+        unk = sum(a_cell[cone_cell[k]] * (1 - kappa[k]) * cone_area[k] for k in cone_cell) \
+            / sum(a_cell[cone_cell[k]] * cone_area[k] for k in cone_cell)
+        sigma_b = np.maximum(sigma_cnt - unk * sq_m, 0.05 * sigma_cnt)
+        # check: the model-based expectation sum_i w_i r_i over the same rows
+        model_unk = np.histogram(f.x[usable, ir], m_edges, weights=(pf["weights"] * r)[usable])[0] \
+            / total_area / np.diff(m_edges)
+        mc = 0.5 * (m_edges[1:] + m_edges[:-1]); ins = (mc > lo_c) & (mc < hi_c)
+        check = dict(prior_based_per_deg2=float(np.sum((unk * sq_m * np.diff(m_edges))[ins])),
+                     model_based_per_deg2=float(np.sum((model_unk * np.diff(m_edges))[ins])),
+                     note="model-based uses r_i only where computed (fit range, non-test)")
+        bd = BackgroundSurfaceDensity(1, 1, m_edges,
+                                      {(pix, i): float(v * total_area * dm) for i, (v, dm)
+                                       in enumerate(zip(sigma_b, np.diff(m_edges)))},
                                       {pix: float(total_area)},
                                       meta=dict(artifact_meta, reference_band=label,
-                                                transform_id=model.transform_id,
-                                                n_cones=len(cones_h), n_cells=len(cells_h),
-                                                kind="Sigma_B(u_r): PSF field, known quasars removed, cone counts x cell footprint area"))
+                                                transform_id=model.transform_id, n_cones=len(cones_h),
+                                                n_cells=len(cells_h), mean_unrecognised_fraction=unk,
+                                                counted_per_deg2_per_mag=sigma_cnt.tolist(),
+                                                unrecognised_check=check,
+                                                kind="Sigma_B(u_r): PSF non-quasars = counted (known quasars removed) - (1 - kappa) Sigma_Q"))
         priors = dict(kind="multisurvey_priors", transform_id=model.transform_id,
                       completeness_constant=C, **artifact_meta,
                       anchors={label: {"qso_prior": gq.to_dict(), "background_density": bd.to_dict()}})
-        out = fit_student_t(h, model, fm, fc["outlier"], bundle_meta)
+        pf["mixture_for_outlier"] = mix
+        out = fit_student_t(h, model, dict(pf, weights=pf["weights_nonq"]), fc["outlier"], bundle_meta)
         files = {"model": f"{h}_model.json", "priors": f"{h}_priors.json", "outlier": f"{h}_outlier.json"}
         model.save(tmp / files["model"])
         (tmp / files["priors"]).write_text(json.dumps(priors))
         out.save(tmp / files["outlier"])
         manifest["hemispheres"][h] = files
-        print(f"[{h}] priors: PSF/all quasar retention {meta_q['retention_point_over_all']:.3f}; "
-              f"Sigma_B over {total_area:.0f} deg^2 in {len(cells_h)} cells", flush=True)
+        print(f"[{h}] PSF/all quasar retention {meta_q['retention_point_over_all']:.3f}; Sigma_B over "
+              f"{total_area:.0f} deg^2 in {len(cells_h)} cells; unrecognised quasars "
+              f"{check['prior_based_per_deg2']:.0f} (prior) vs {check['model_based_per_deg2']:.0f} "
+              f"(model) deg^-2 in {lo_c}-{hi_c} ({time.time() - t0:.0f} s)", flush=True)
     for h, files in manifest["hemispheres"].items():
         for name in files.values():
             manifest["files"][name] = sha(tmp / name)
