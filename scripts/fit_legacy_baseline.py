@@ -87,35 +87,45 @@ def roles_of(design):
 
 # -- mixtures --------------------------------------------------------------------
 
-def fit_grid(name, features, fit_rows, sel_rows, weights, grid, fc, seed, anchor):
-    """Every (K, start) fitted to convergence; the best converged by selection score."""
+def fit_grid(name, features, fit_rows, sel_rows, weights, grid, fc, seed, anchor, regs=None,
+             starts=None):
+    """Every (floor, K, start) fitted to convergence; the best converged by selection score.
+
+    The covariance floor (``regularization``) is a hyperparameter like K and is
+    chosen the same way: a floor of 1e-3 mag^2 made every colour direction at
+    least 0.045 mag wide, broader than the stellar locus.
+    """
     from qso_pcolor.multisurvey import conditional_log_prob
     from qso_pcolor.xd import _init_mixture, fit_xd
     x, cov, obs = features.x, features.cov, features.observed
     trials = []
     t0 = time.time()
-    for k in grid:
-        for s in range(fc["starts"]):
-            rng = np.random.default_rng(seed + 1000 * k + s)
-            init = _init_mixture(x[fit_rows], obs[fit_rows], k, rng)
-            r = fit_xd(x[fit_rows], cov[fit_rows], observed=obs[fit_rows],
-                       weights=None if weights is None else weights[fit_rows], init=init,
-                       max_iter=fc["max_iter"], tol=fc["tol"], regularization=fc["regularization"],
-                       labels=features.labels, n_threads=fc["n_threads"])
-            lp = conditional_log_prob(r.mixture, x[sel_rows], cov[sel_rows], obs[sel_rows], anchor)
-            ws = None if weights is None else weights[sel_rows]
-            score = float(np.average(lp, weights=ws))
-            trials.append(dict(k=k, start=s, converged=bool(r.converged), n_iter=r.n_iter,
-                               train_ll=r.mean_loglike, select_score=score,
-                               _mixture=r.mixture, _history=r.history[-3:]))
-            print(f"  {name}: K={k:3d} start {s}: {'conv' if r.converged else 'NOT conv'} "
-                  f"after {r.n_iter:5d} it, select {score:.4f} ({time.time() - t0:.0f} s)", flush=True)
+    for reg in (regs or [fc["regularization"]]):
+        for k in grid:
+            for s in range(starts or fc["starts"]):
+                rng = np.random.default_rng(seed + 1000 * k + s)
+                init = _init_mixture(x[fit_rows], obs[fit_rows], k, rng)
+                r = fit_xd(x[fit_rows], cov[fit_rows], observed=obs[fit_rows],
+                           weights=None if weights is None else weights[fit_rows], init=init,
+                           max_iter=fc["max_iter"], tol=fc["tol"], regularization=reg,
+                           labels=features.labels, n_threads=fc["n_threads"])
+                lp = conditional_log_prob(r.mixture, x[sel_rows], cov[sel_rows], obs[sel_rows], anchor)
+                ws = None if weights is None else weights[sel_rows]
+                score = float(np.average(lp, weights=ws))
+                trials.append(dict(k=k, start=s, regularization=reg, converged=bool(r.converged),
+                                   n_iter=r.n_iter, train_ll=r.mean_loglike, select_score=score,
+                                   _mixture=r.mixture, _history=r.history[-3:]))
+                print(f"  {name}: floor {reg:.0e} K={k:3d} start {s}: "
+                      f"{'conv' if r.converged else 'NOT conv'} after {r.n_iter:5d} it, "
+                      f"select {score:.4f} ({time.time() - t0:.0f} s)", flush=True)
     ok = [t for t in trials if t["converged"]]
     if not ok:
         raise RuntimeError(f"{name}: no fit converged; refusing to publish")
     best = max(ok, key=lambda t: t["select_score"])
-    same_k = [t["select_score"] for t in ok if t["k"] == best["k"]]
+    same_k = [t["select_score"] for t in ok
+              if t["k"] == best["k"] and t["regularization"] == best["regularization"]]
     record = dict(selected_k=best["k"], selected_start=best["start"],
+                  selected_regularization=best["regularization"],
                   largest_k_won=best["k"] == max(grid),
                   start_spread_at_selected_k=float(max(same_k) - min(same_k)),
                   n_fit=int(fit_rows.sum()), n_select=int(sel_rows.sum()),
@@ -246,7 +256,7 @@ def quasar_model(h, q, rows, dq_point, transform, fc, cfg, sample_cfg, roles, ir
             s2 = (z >= a - 2 * (b - a)) & (z < b + 2 * (b - a))
             va = select & s2
         mix, rec = fit_grid(f"{h} z={centres[j]:.2f}", f, tr, va, None, fc["qso_k_grid"], fc,
-                            cfg["seed"] + 7 * j, ir)
+                            cfg["seed"] + 7 * j, ir, regs=fc["regularization_grid"])
         rec["n_select_used"] = int(va.sum())
         mixtures.append(mix); records.append(rec); counts.append(int(tr.sum()))
     return SlicedColourRedshiftModel(centres, mixtures, np.array(counts), f"legacy_psf_{h}",
@@ -497,8 +507,14 @@ def main():
         print(f"[{h}] unrecognised quasars: mean r {r[fr].mean():.4f} on fit rows "
               f"(weighted expected {np.sum(pf['weights'][fr] * r[fr]):.0f} of {fr.sum()})", flush=True)
         w_nonq = pf["weights"] * (1 - r)
+        _, rec_reg = fit_grid(f"{h} field floor", f, fr, pf["sel_rows"], w_nonq,
+                              [fc["regularization_choice_k"]], fc, cfg["seed"] + 11, ir,
+                              regs=fc["regularization_grid"], starts=1)
+        reg = rec_reg["selected_regularization"]
+        print(f"[{h}] field covariance floor chosen: {reg:.0e}", flush=True)
         mix, rec = fit_grid(f"{h} field", f, fr, pf["sel_rows"], w_nonq, fc["field_k_grid"], fc,
-                            cfg["seed"], ir)
+                            cfg["seed"], ir, regs=[reg])
+        rec["regularization_choice"] = rec_reg
         for it in range(fc.get("contamination_iterations", 2)):
             r_new = np.zeros(f.n_obs)
             r_new[need] = unrecognised_probability(pf, mix, lq[need], sq[need], kappa, sigma_cnt,
@@ -513,7 +529,7 @@ def main():
             if change < fc.get("contamination_tol", 1e-3):
                 break
             res = fit_xd(f.x[fr], f.cov[fr], observed=f.observed[fr], weights=w_nonq[fr], init=mix,
-                         max_iter=fc["max_iter"], tol=fc["tol"], regularization=fc["regularization"],
+                         max_iter=fc["max_iter"], tol=fc["tol"], regularization=reg,
                          labels=f.labels, n_threads=fc["n_threads"])
             if not res.converged:
                 raise RuntimeError(f"{h}: refit after the r update did not converge")

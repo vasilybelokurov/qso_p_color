@@ -517,7 +517,9 @@ def main():
             f, fr, sr = pf["features"], pf["fit_rows"], pf["sel_rows"]
             mix = m.background
             res = fit_xd(f.x[fr], f.cov[fr], observed=f.observed[fr], weights=pf["weights"][fr], init=mix,
-                         max_iter=args.convergence, tol=0.0, regularization=cfg["fit"]["regularization"],
+                         max_iter=args.convergence, tol=0.0,
+                         regularization=m.meta["field_fit"].get("selected_regularization",
+                                                                cfg["fit"]["regularization"]),
                          labels=f.labels, n_threads=cfg["fit"]["n_threads"])
             sc = lambda mm: float(np.average(conditional_log_prob(mm, f.x[sr], f.cov[sr], f.observed[sr], 1),  # noqa: E731
                                              weights=pf["weights"][sr]))
