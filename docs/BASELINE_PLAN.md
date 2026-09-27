@@ -67,9 +67,40 @@ Bovy et al. 2011, [arXiv:1011.6392](https://arxiv.org/abs/1011.6392); 2012, [arX
 
 | # | step | test | status |
 |---|---|---|---|
-| 1 | Local store: DESI DR1 QSO, DR16Q × DR9, pairs, quasar draw, cones | row counts, match rates, `nobs`/extinction columns present | copies done; DESI and DR16Q fetching |
-| 2 | Quasar slices, south then north, from the store | all slices converged; K per slice; held-out density by channel (DESI vs SDSS) | code ready |
-| 3 | Field mixtures, Σ_Q, Σ_B, contamination weighting | converged; K and floor per bin; the correction's iteration converges; the 5 % Σ_B floor does not activate; compare with covered cones only | code ready |
-| 4 | Broad Gaussian term on the calib cells | extreme colours, missing and useless bands | code ready |
-| 5 | Validate once on the test cells | ΔAUC vs original and current (same-z/wrong-z, stars, PSF galaxies) with block bootstrap; convergence; normalisation; coarse tails | validator to be pointed at the new bundle |
-| 6 | Publish the bundle if it passes; update the method note | load/score round trip; mixed-bundle refusal | — |
+| 1 | Local store: DESI DR1 QSO, DR16Q × DR9, pairs, quasar draw, cones | row counts, match rates, `nobs`/extinction columns present | **done**: DESI 1,641,243; DR16Q 750,414 (99.3 % matched, 0.06″) |
+| 2 | Quasar slices, south then north, from the store | all slices converged; K per slice; held-out density by channel (DESI vs SDSS) | **done**: south 1.33 M / north 0.46 M PSF quasars; K 4–20; most slices at the 300-iteration cap, as in the original |
+| 3 | Field mixtures, Σ_Q, Σ_B, contamination weighting | converged; K and floor per bin; the correction's iteration converges; the 5 % Σ_B floor does not activate; compare with covered cones only | **done**: K = 16 (largest) in every bin; C = 2.198; r iteration 5e-4 (S), 1.4e-3 (N); covered-cone comparison not yet run |
+| 4 | Broad Gaussian term on the calib cells | extreme colours, missing and useless bands | **done**: η ≈ 1e-4 (S), 0 (N): essentially unused |
+| 5 | Validate once on the test cells | ΔAUC vs original and current (same-z/wrong-z, stars, PSF galaxies) with block bootstrap; convergence; normalisation; coarse tails | **PASS** (bundle `8e2a27c013ed`, see below); tails check not yet implemented |
+| 6 | Publish the bundle if it passes; update the method note | load/score round trip; mixed-bundle refusal | bundle published (`models/legacy_psf_xdqso/current`); method note not yet updated |
+
+## Result (2026-09-27): bundle `8e2a27c013ed`, validation PASS
+
+The comparison uses the test cells and the same PSF companions for all three
+models. The intervals are 95 %, from a paired bootstrap over nside-8 sky blocks.
+
+| measure | baseline | original archived Legacy model | current multi-survey model |
+|---|---|---|---|
+| same-z vs wrong-z (ln R AUC) | 0.832 / 0.830 | 0.808; Δ +0.023 [+0.017, +0.030] | 0.819; Δ +0.012 [+0.003, +0.022] |
+| quasar vs star (ln BF AUC) | 0.994 | 0.991; Δ +0.003 [+0.002, +0.005] | 0.990; Δ +0.005 [+0.004, +0.006] |
+| quasar vs PSF galaxy (ln BF AUC) | 0.817 / 0.815 | 0.793; Δ +0.025 [+0.010, +0.041] | 0.810; Δ +0.005 [−0.009, +0.019] |
+
+The first baseline value in each row is from the comparison with the original
+model, the second from the comparison with the current model. The two use
+slightly different row sets: each keeps only the rows both models can score.
+
+The other gates:
+
+- uninformative W2: max |Δ ln R| = 6 × 10⁻¹⁰;
+- normalisation: exact;
+- continuing the field fits for 200 iterations changes the held-out density by at most 0.007 nats/object (south) and 0.003 (north).
+
+Full record: `docs/VALIDATION_legacy_psf_xdqso_8e2a27c013ed.json`.
+
+Open items:
+
+- the north is provisional (no held-out field cells);
+- the tails check is not yet implemented;
+- the unrecognised-quasar correction has not yet been compared with fitting covered cones only;
+- K = 16 was the largest value on the grid;
+- the method note is not yet updated.

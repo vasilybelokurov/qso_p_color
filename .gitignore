@@ -23,3 +23,8 @@ models/*
 
 # External review reports (local working material, like JOURNAL.md)
 docs/reviews/
+# The Legacy-PSF baseline (XDQSO-style): the validated bundle and its pointer.
+!models/legacy_psf_xdqso/
+models/legacy_psf_xdqso/*
+!models/legacy_psf_xdqso/current
+!models/legacy_psf_xdqso/8e2a27c013ed/

@@ -1,0 +1,396 @@
+{
+ "bundle": "8e2a27c013ed",
+ "gates": {
+  "delta_auc_lower": -0.01,
+  "numerics_max": 0.001,
+  "normalisation_rel": 0.001,
+  "continuation": 0.01,
+  "tails_factor": 2.0,
+  "tails_sigma": 3.0,
+  "tails_min_expected": 20.0
+ },
+ "built": "2026-09-27 21:20",
+ "status": {
+  "south": "validated_cells",
+  "north": "provisional: no held-out field cells"
+ },
+ "companion_eligibility": {
+  "": 38883,
+  "masked": 8456,
+  "morphology": 41281,
+  "no_match": 96,
+  "outside_domain": 10195,
+  "outside_latitude": 3969,
+  "reference_unusable": 6,
+  "status:blended_not_score": 537
+ },
+ "ranking": {
+  "original": {
+   "baseline": {
+    "same_vs_field_log_r": 0.8315906706145135,
+    "same_vs_field_p_zmatch": 0.8456504077710248,
+    "same_vs_hard_log_r": 0.4784783092324805,
+    "quasar_vs_star_log_bf": 0.9944075650830727,
+    "quasar_vs_galaxy_log_bf": 0.8173136252705254,
+    "n": [
+     775,
+     6210,
+     1995,
+     171
+    ]
+   },
+   "reference": {
+    "same_vs_field_log_r": 0.8083247623500078,
+    "same_vs_field_p_zmatch": 0.8453638772011843,
+    "same_vs_hard_log_r": 0.4923515016685206,
+    "quasar_vs_star_log_bf": 0.9912636996930407,
+    "quasar_vs_galaxy_log_bf": 0.7926927794312792,
+    "n": [
+     775,
+     6210,
+     1995,
+     171
+    ]
+   },
+   "delta_same_vs_field_log_r": {
+    "value": 0.023265908264505697,
+    "ci95": [
+     0.017410452348006904,
+     0.030358056612216175
+    ]
+   },
+   "delta_quasar_vs_star_log_bf": {
+    "value": 0.0031438653900319746,
+    "ci95": [
+     0.0018642064438227385,
+     0.005039522154814862
+    ]
+   },
+   "delta_quasar_vs_galaxy_log_bf": {
+    "value": 0.024620845839246175,
+    "ci95": [
+     0.010337471096390594,
+     0.041030939895992956
+    ]
+   },
+   "delta_same_vs_field_p_zmatch": {
+    "value": 0.00028653056984051517,
+    "ci95": [
+     -0.001312833094728047,
+     0.0026498756437862343
+    ]
+   },
+   "delta_same_vs_hard_log_r": {
+    "value": -0.013873192436040072,
+    "ci95": [
+     -0.032504531801717564,
+     0.01102479356841275
+    ]
+   },
+   "contamination_at_90pc_retention": {
+    "baseline": {
+     "threshold": 1.357784488116791,
+     "star": 0.014536340852130326,
+     "galaxy": 0.5321637426900585
+    },
+    "reference": {
+     "threshold": 0.39353549494763024,
+     "star": 0.02155388471177945,
+     "galaxy": 0.5321637426900585
+    }
+   },
+   "by_mag": {
+    "17-20": {
+     "baseline": {
+      "same_vs_field_log_r": 0.881256038647343,
+      "same_vs_field_p_zmatch": 0.8834178743961353,
+      "same_vs_hard_log_r": 0.5145679012345679,
+      "quasar_vs_star_log_bf": 0.9998924884107586,
+      "quasar_vs_galaxy_log_bf": 0.9434951013898383,
+      "n": [
+       150,
+       1104,
+       1884,
+       14
+      ]
+     },
+     "reference": {
+      "same_vs_field_log_r": 0.8773007246376812,
+      "same_vs_field_p_zmatch": 0.8886654589371981,
+      "same_vs_hard_log_r": 0.5153086419753087,
+      "quasar_vs_star_log_bf": 0.9995860380540234,
+      "quasar_vs_galaxy_log_bf": 0.953235361130098,
+      "n": [
+       150,
+       1104,
+       1884,
+       14
+      ]
+     }
+    },
+    "20-21.5": {
+     "baseline": {
+      "same_vs_field_log_r": 0.8418735903166876,
+      "same_vs_field_p_zmatch": 0.8495473704622231,
+      "same_vs_hard_log_r": 0.49361598440545806,
+      "quasar_vs_star_log_bf": 0.9209032222211931,
+      "quasar_vs_galaxy_log_bf": 0.7346176859740938,
+      "n": [
+       342,
+       2865,
+       101,
+       37
+      ]
+     },
+     "reference": {
+      "same_vs_field_log_r": 0.8318769582478593,
+      "same_vs_field_p_zmatch": 0.847944031107437,
+      "same_vs_hard_log_r": 0.5045808966861598,
+      "quasar_vs_star_log_bf": 0.8649674134859697,
+      "quasar_vs_galaxy_log_bf": 0.782401672018136,
+      "n": [
+       342,
+       2865,
+       101,
+       37
+      ]
+     }
+    },
+    "21.5-22.5": {
+     "baseline": {
+      "same_vs_field_log_r": 0.7915367792331477,
+      "same_vs_field_p_zmatch": 0.8176214871263617,
+      "same_vs_hard_log_r": 0.43140002436944075,
+      "quasar_vs_star_log_bf": 0.905784469096672,
+      "quasar_vs_galaxy_log_bf": 0.7289091389329108,
+      "n": [
+       283,
+       2241,
+       10,
+       120
+      ]
+     },
+     "reference": {
+      "same_vs_field_log_r": 0.759722044834225,
+      "same_vs_field_p_zmatch": 0.8149456877372072,
+      "same_vs_hard_log_r": 0.43207018398927743,
+      "quasar_vs_star_log_bf": 0.8530507131537243,
+      "quasar_vs_galaxy_log_bf": 0.731108029582673,
+      "n": [
+       283,
+       2241,
+       10,
+       120
+      ]
+     }
+    }
+   }
+  },
+  "current": {
+   "baseline": {
+    "same_vs_field_log_r": 0.8303681048764023,
+    "same_vs_field_p_zmatch": 0.8435052152784175,
+    "same_vs_hard_log_r": 0.47655477200931745,
+    "quasar_vs_star_log_bf": 0.9944959119442459,
+    "quasar_vs_galaxy_log_bf": 0.8152370589806547,
+    "n": [
+     814,
+     6508,
+     2037,
+     181
+    ]
+   },
+   "reference": {
+    "same_vs_field_log_r": 0.8186426005264358,
+    "same_vs_field_p_zmatch": 0.8519606940012595,
+    "same_vs_hard_log_r": 0.47207951753406296,
+    "quasar_vs_star_log_bf": 0.9895538787551842,
+    "quasar_vs_galaxy_log_bf": 0.8101800220632288,
+    "n": [
+     814,
+     6508,
+     2037,
+     181
+    ]
+   },
+   "delta_same_vs_field_log_r": {
+    "value": 0.011725504349966553,
+    "ci95": [
+     0.003082628835407206,
+     0.022231597845166293
+    ]
+   },
+   "delta_quasar_vs_star_log_bf": {
+    "value": 0.004942033189061723,
+    "ci95": [
+     0.003700490920135657,
+     0.006482340490057058
+    ]
+   },
+   "delta_quasar_vs_galaxy_log_bf": {
+    "value": 0.005057036917425872,
+    "ci95": [
+     -0.008646096152579228,
+     0.019001774561691193
+    ]
+   },
+   "delta_same_vs_field_p_zmatch": {
+    "value": -0.008455478722842025,
+    "ci95": [
+     -0.015218437450020555,
+     -0.0013635913841977185
+    ]
+   },
+   "delta_same_vs_hard_log_r": {
+    "value": 0.0044752544752544865,
+    "ci95": [
+     -0.03088810052415629,
+     0.0404108180886172
+    ]
+   },
+   "contamination_at_90pc_retention": {
+    "baseline": {
+     "threshold": 1.3253055571255568,
+     "star": 0.014727540500736377,
+     "galaxy": 0.5414364640883977
+    },
+    "reference": {
+     "threshold": 0.3251257910766187,
+     "star": 0.027000490918016692,
+     "galaxy": 0.569060773480663
+    }
+   },
+   "by_mag": {
+    "17-20": {
+     "baseline": {
+      "same_vs_field_log_r": 0.8808791015871449,
+      "same_vs_field_p_zmatch": 0.8826291852510191,
+      "same_vs_hard_log_r": 0.5186533212010919,
+      "quasar_vs_star_log_bf": 0.9998947638097866,
+      "quasar_vs_galaxy_log_bf": 0.9438543247344461,
+      "n": [
+       157,
+       1161,
+       1925,
+       14
+      ]
+     },
+     "reference": {
+      "same_vs_field_log_r": 0.8699726240831263,
+      "same_vs_field_p_zmatch": 0.8795075626656134,
+      "same_vs_hard_log_r": 0.5029572338489536,
+      "quasar_vs_star_log_bf": 0.9975689257631595,
+      "quasar_vs_galaxy_log_bf": 0.9474311727725991,
+      "n": [
+       157,
+       1161,
+       1925,
+       14
+      ]
+     }
+    },
+    "20-21.5": {
+     "baseline": {
+      "same_vs_field_log_r": 0.8414057674948928,
+      "same_vs_field_p_zmatch": 0.8486416310659742,
+      "same_vs_hard_log_r": 0.48926854395604397,
+      "quasar_vs_star_log_bf": 0.9213765636427185,
+      "quasar_vs_galaxy_log_bf": 0.7252127878054903,
+      "n": [
+       364,
+       3007,
+       101,
+       39
+      ]
+     },
+     "reference": {
+      "same_vs_field_log_r": 0.8450383171866378,
+      "same_vs_field_p_zmatch": 0.8622043071660631,
+      "same_vs_hard_log_r": 0.4703382554945055,
+      "quasar_vs_star_log_bf": 0.8580260873907029,
+      "quasar_vs_galaxy_log_bf": 0.7657394518859959,
+      "n": [
+       364,
+       3007,
+       101,
+       39
+      ]
+     }
+    },
+    "21.5-22.5": {
+     "baseline": {
+      "same_vs_field_log_r": 0.7874697354219539,
+      "same_vs_field_p_zmatch": 0.8124427525451416,
+      "same_vs_hard_log_r": 0.4253550589012441,
+      "quasar_vs_star_log_bf": 0.9094016503815212,
+      "quasar_vs_galaxy_log_bf": 0.72898665970376,
+      "n": [
+       293,
+       2340,
+       11,
+       128
+      ]
+     },
+     "reference": {
+      "same_vs_field_log_r": 0.7769741256089379,
+      "same_vs_field_p_zmatch": 0.8199410752311777,
+      "same_vs_hard_log_r": 0.38995926456016733,
+      "quasar_vs_star_log_bf": 0.8000207160860409,
+      "quasar_vs_galaxy_log_bf": 0.7440360330421573,
+      "n": [
+       293,
+       2340,
+       11,
+       128
+      ]
+     }
+    }
+   }
+  }
+ },
+ "numerics": {
+  "n": 500,
+  "max_abs": 6.407709918221371e-10
+ },
+ "normalisation": {
+  "south": {
+   "relative_error": 0.0,
+   "retention": 0.9228279237549789
+  },
+  "north": {
+   "relative_error": 0.0,
+   "retention": 0.9040646005706549
+  }
+ },
+ "continuation": {
+  "south": {
+   "iterations": 200,
+   "max_abs_delta_select": 0.007097803695200078
+  },
+  "north": {
+   "iterations": 200,
+   "max_abs_delta_select": 0.0034014688036694274
+  }
+ },
+ "verdict": {
+  "checks": {
+   "original:same_vs_field_log_r": true,
+   "original:quasar_vs_star_log_bf": true,
+   "original:quasar_vs_galaxy_log_bf": true,
+   "current:same_vs_field_log_r": true,
+   "current:quasar_vs_star_log_bf": true,
+   "current:quasar_vs_galaxy_log_bf": true,
+   "numerics": true,
+   "normalisation:south": true,
+   "normalisation:north": true,
+   "continuation:south": true,
+   "continuation:north": true
+  },
+  "pass_": true,
+  "reported_not_gated": [
+   "counts",
+   "north ranking (few held-out companions)",
+   "tails (to add)"
+  ]
+ }
+}

@@ -124,7 +124,7 @@
       0.0001
     ],
     "starts": 2,
-    "max_iter": 500,
+    "max_iter": 1000,
     "tol": 1e-06,
     "max_fit": 120000,
     "max_select": 60000,

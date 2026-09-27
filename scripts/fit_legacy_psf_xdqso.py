@@ -84,12 +84,14 @@ def fit_bins(fs, fit, sel, w, fc, seed, pool, ks=None, regs=None, starts=None):
     for mb in range(MAG_EDGES.size - 1):
         trials = [dict(k=k, floor=reg, start=s, **{kk: v for kk, v in r.items() if kk != "mixture"})
                   for (m_, k, reg, s), r in res.items() if m_ == mb]
-        ok = [(key, r) for key, r in res.items() if key[0] == mb and r["converged"]]
-        if not ok:
-            raise RuntimeError(f"r bin {mb}: no fit converged; refusing to publish")
-        key, best = max(ok, key=lambda kv: kv[1]["select_score"])
+        in_bin = [(key, r) for key, r in res.items() if key[0] == mb]
+        conv = [kv for kv in in_bin if kv[1]["converged"]]
+        # prefer converged fits; otherwise the best at the iteration cap, recorded as such
+        # (the ship criterion is stability under continuation, checked by the validator)
+        key, best = max(conv or in_bin, key=lambda kv: kv[1]["select_score"])
         mixtures.append(best["mixture"])
         records.append(dict(mag=[float(MAG_EDGES[mb]), float(MAG_EDGES[mb + 1])], selected_k=key[1],
+                            selected_converged=bool(best["converged"]), n_converged=len(conv),
                             selected_floor=key[2], largest_k_won=key[1] == max(ks),
                             n_fit=int((fit & (imag == mb)).sum()), n_select=int((sel & (imag == mb)).sum()),
                             trials=sorted(trials, key=lambda t: (t["k"], t["floor"], t["start"]))))
