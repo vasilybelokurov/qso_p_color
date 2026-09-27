@@ -32,8 +32,8 @@ source (table at the end). Clustering is parked and not part of this plan.
    component number chosen on held-out data, fits run to convergence, and a
    refitted Student-t term. It is validated with the pair head-to-head, star
    and galaxy rejection, counts per magnitude, tail counts, and quasar
-   retention after the PSF cut. Everything after the baseline must beat it on
-   held-out data.
+   retention after the PSF cut. Later spatial models must improve a
+   predeclared held-out objective while still passing the baseline gates (§7).
 2. **Morphology rule v1:** Legacy DR9 `TYPE = PSF`. `unknown` never counts as
    point.
 3. **HEALPix.** The earlier design used local cells at nside=8 with parents at
@@ -58,8 +58,15 @@ source (table at the end). Clustering is parked and not part of this plan.
    which is common and uninformative; or (b) the area was covered and the
    object is too faint, which is informative. Using case (b) requires a
    coverage map per survey, to tell (a) from (b), and the local depth, to give
-   P(not detected | f) = Φ((L − f)/σ). Until a survey has both, every absence
-   is treated as (a): this loses information but adds no bias. The baseline is
+   P(not detected | f) = Φ((L − f)/σ). Coverage and depth are necessary but not
+   sufficient: an absence can also come from confusion, blending, a quality
+   rejection, a deblending failure, association policy (nearest match within
+   a radius for quasars, greedy one-to-one for the field; competing matches
+   are left unassigned) or variability. The states to keep apart are: outside
+   coverage, masked/unusable, valid forced measurement (negative fluxes
+   kept), covered non-detection, ambiguous association, and unknown. Until a
+   survey has this, every absence is treated as missing; this is an
+   approximation whose effect is measured, not a guarantee of no bias. The baseline is
    unaffected: Legacy forced photometry gives every source g, r, z, W1, W2
    fluxes. AllWISE is the first candidate for a detection model, because it
    covers the whole sky and almost every absence is case (b).
@@ -190,8 +197,11 @@ It is not exact when the band is missing because the source is too faint.
 
 **Non-detections in catalogue surveys** (AllWISE, VHS, SkyMapper, SDSS):
 
-- v1 keeps treating them as uninformative. This is conservative: it loses
-  information but does not bias anything.
+- v1 keeps treating them as missing (marginalised). This is an
+  approximation: when a band is missing *because* the source is faint, the
+  result can be biased, and neither the size nor the sign of that bias is
+  guaranteed. It has to be measured, for example by deleting bands from
+  objects that have them. The baseline does not depend on it.
 - "0 ± σ_lim" is dropped. For a limit L and Gaussian errors,
   P(not detected | f) = Φ((L − f)/σ), whereas a fake zero flux gives a
   likelihood of exp(−f²/2σ²). Example: at L = 5σ, a source of true flux
@@ -215,10 +225,94 @@ It is not exact when the band is missing because the source is too faint.
 | 4 | Method note: all figures regenerated from the new model | — | 1 day |
 | later | Detection model for one catalogue survey; measured completeness for Σ_Q | synthetic censoring recovery; calibration by depth | days per survey |
 
-A cheaper alternative to test against before steps 2–3 grow in scope:
-a Legacy-PSF-only model with a converged global fit and correct counts, and no
-per-cell adaptation. If the per-cell model does not beat it on held-out cells,
-this simpler model ships.
+**This table is superseded by §7**, which puts the baseline first and makes
+it a gated deliverable. Steps 2–3 above (new cell-spread field sample,
+per-cell adaptation) start only after the baseline passes its gates. A later
+spatial model must improve a predeclared held-out objective, with
+uncertainty, while still passing the baseline gates. It does not have to
+improve every metric.
+
+## 7. The baseline: specification and gates
+
+The immediate deliverable is a global Legacy-PSF model. It has no sky
+dependence, uses the single reference band Legacy r, and uses the five
+bands g, r, z, W1 and W2. The items below were added after Codex's second
+review; the numerical tolerances are **judgement calls**, frozen before the
+final test set is looked at.
+
+**Population and domain**
+- Legacy DR9, `TYPE = PSF`, where the r measurement is usable (valid ivar,
+  nobs > 0, maskbits = 0). The other four bands may be missing or low-S/N;
+  forced fluxes, including negative ones, are kept.
+- Candidate domain 17 ≤ r < 22.5 (Legacy r, native luptitude) and quasar
+  support z 0.15–4.35. Outside the domain the scorer refuses; it does not
+  extrapolate.
+- The fits use a margin (16–23.5). Truncation is checked, not assumed:
+  compare the conditional densities near 17 and 22.5 against a fit to a wider
+  cache, and on synthetic truncated data.
+- **South and north are separate five-band fits** (they are different
+  photometric systems), with south and north ownership as in the adapter
+  (releases 9010/9012 south, 9011 north). The pair validator is extended to
+  north, since today it builds south-band inputs only.
+
+**Normalisation (C)**
+- C comes from the all-source quasar population (reference and matched
+  counts before the morphology cut), is frozen with its provenance, and is
+  then applied unchanged to the PSF counts. The builder must not recompute
+  reference / PSF-total, because that would undo the retention loss.
+- Sampling weights are set on the draw before the morphology cut.
+- Applying the south C to north is an assumption; a sensitivity test goes
+  with it.
+- `test_legacy_south_r_prior_reproduces_the_validated_original` (1 %
+  against the all-source total) is replaced by a retention-aware identity:
+  the PSF prior's integral equals C × the weighted PSF count / area, to a
+  relative 10⁻³.
+
+**Selection, partitions and provenance**
+- One selection function, used everywhere. The test is identical decisions
+  on shared fixtures, not identical catalogue memberships.
+- The fit, selection, calibration and test partitions are frozen as saved
+  ID lists and sky blocks before anything is fitted. The Student-t
+  calibration set is reserved up front; today it is rebuilt from a seed and a
+  budget argument (`fit_multisurvey_outlier.py:70–71`). The test partition is
+  kept out of C, priors, K and start selection, and Student-t tuning.
+- Every artifact (model, prior, outlier) records the selection, domain,
+  sample and partition IDs. Loading refuses mixed bundles even when the
+  transform matches. Bundles are versioned, and a manifest is switched only
+  after validation passes.
+
+**Counts and area**
+- Per-magnitude-bin counts come from a server-side aggregate over the
+  sampled area with exactly the downloaded sample's cuts (PSF, release, mask,
+  usable r, known quasars removed). Aggregate counts must equal the
+  downloaded counts on test regions, bin edges and duplicates included.
+- Area comes from Legacy randoms with the same mask.
+- The baseline uses λ_B = Σ_B(m) p_B(colours | m): the counts give Σ_B and
+  the mixture gives the conditional colours, so there is no second implied
+  magnitude distribution competing with the counts. (For the later per-cell
+  model this factorisation, or fitting the weights to the counts, is chosen
+  explicitly.)
+
+**Fitting**
+- K ∈ {8, 16, 32, 64}, three starts each. The rule is the best conditional
+  held-out likelihood among fits that pass the convergence rule. If the
+  largest K wins, the grid is extended.
+- A fit that does not converge cannot be published. Today `converged=False`
+  is recorded and ignored, and there is one start per K.
+
+**Gates (all must pass)**
+
+| gate | criterion |
+|---|---|
+| selection/provenance | 0 selection disagreements on fixtures; 0 partition overlaps; mixed bundles and unknown morphology refused |
+| normalisation | C unchanged by the PSF cut; prior integral = C × weighted PSF count / area to 10⁻³ |
+| counts | aggregate = downloaded counts exactly on test regions; areas agree within randoms noise |
+| convergence | continuing a fit changes held-out mean log density < 0.01 nat/object and median \|Δ ln R\| < 0.02; best starts agree similarly |
+| count prediction | on held-out regions: ≤ 5 % pooled, ≤ 10 % per well-populated bin, errors from spatial blocks |
+| tails | predeclared model-density regions; combined field + Student-t; fail if observed/expected differs by > ×2 **and** > 3σ where ≥ 20 are expected |
+| ranking | on identical eligible PSF rows vs the current model: lower 95 % spatial-bootstrap bound on ΔAUC > −0.01 for same-z/wrong-z, stars, PSF galaxies; contamination at a fixed quasar retention; north/south and magnitude strata reported |
+| morphology loss | quasar retention after the cut by z, magnitude, separation, with intervals; galaxy-rejection results reported on PSF galaxies only |
+| numerics | negative fluxes kept; missing-band patterns exercised; p_sameq = e^{ln R} Δz_eff identity; a band with vanishing information changes ln R by < 10⁻³ (synthetic) |
 
 ## 6. Codex's points, checked
 
