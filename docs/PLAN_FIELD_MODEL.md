@@ -366,3 +366,29 @@ Three causes were found:
 **Open.**
 - The north has no held-out field cones, because the archived test blocks are all in the south. It has only 39 same-z companions in test cells.
 - Field counts in the 15 south test cells are 1.25 times the prediction, 95 % interval 0.83–1.84. This spatial scatter is expected for a global model.
+
+## 9. Ship criterion (after Codex's pragmatic review, 2026-09-27)
+
+Goal: a sound, tested baseline, without over-optimising.
+
+**Hard requirements**, checked by `scripts/validate_legacy_baseline.py`, which exits non-zero if any fails:
+- selection, partition isolation and bundle integrity (unit tests);
+- the normalisation identity;
+- the uninformative-band numerics (< 10⁻³);
+- all fits converged, and continuing the final field fit under its own non-quasar weights for 200 iterations changes the select score by < 0.01 nat/object and the test companions' median |Δ ln R| by < 0.02;
+- ranking on identical test-cell PSF companions against the current model: the lower 95 % block-bootstrap bound of ΔAUC is above −0.01 for same-z vs wrong-z, quasar vs star, and quasar vs PSF galaxy;
+- a coarse tails check against draws of the full observable model (non-quasars, unmodelled term, unrecognised quasars): no bin with ≥ 20 expected sources differs by more than a factor of 2 **and** more than 3σ.
+
+**Reported, not gated:**
+- field counts against Σ_B: the spatial scatter of a global model over 15 test cells is not a pass/fail;
+- agreement between starts;
+- whether the largest K won: K is capped at 128;
+- north ranking: only 39 held-out same-z companions.
+
+**North** ships marked `provisional` in the manifest. A validated north needs whole north cells reserved and the north refitted without them. The target draw and the parent counts use the archived held-out blocks, so relabelling cells is not enough. This is a separate, later step.
+
+**Assumptions stated, not tested here:**
+- the completeness constant C is scientifically accurate;
+- recognition of quasars does not depend on magnitude (κ per cone). Uncapped κ is recorded.
+
+The prior-based and model-based counts of unrecognised quasars both use Σ_Q and κ, so their agreement is not an independent check.
