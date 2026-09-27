@@ -321,7 +321,11 @@ def legacy_match(ra: np.ndarray, dec: np.ndarray, cache: str | Path, *,
     if path.exists():
         return _load_npz(path)
     t0 = time.monotonic()
-    res = sqlutil.local_join(q, "mytmptable", (np.arange(ra.size), ra, dec, north),
+    # Upload in HEALPix order: nearby rows then share index and table pages.
+    # RA-ordered input made each row a random disk read (7 ms/row vs 0.2 ms).
+    import healpy as hp
+    order = np.argsort(hp.ang2pix(1024, ra, dec, nest=True, lonlat=True), kind="stable")
+    res = sqlutil.local_join(q, "mytmptable", (order, ra[order], dec[order], north[order]),
                              ("idx", "ra", "dec", "north"), asDict=True, intNullVal=-1,
                              preamb="SET jit=off; SET statement_timeout='7200s'")
     o = np.argsort(res["idx"])
