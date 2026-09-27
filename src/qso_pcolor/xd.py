@@ -78,6 +78,60 @@ def _chunked(groups, k: int, d: int, budget: float = 2.5e7):
             yield rows[lo:lo + m], dims
 
 
+
+def _estep_chunk(rows, dims, mix, x, s, w_i):
+    """E-step sums of one chunk of rows sharing an observed pattern."""
+    k, d = mix.n_components, x.shape[1]
+    xs = x[np.ix_(rows, dims)]                                # (m, p)
+    ss = s[np.ix_(rows, dims, dims)]                          # (m, p, p)
+    ws = w_i[rows]                                            # (m,)
+    mu_o = mix.means[:, dims]                                 # (K, p)
+    v_do = mix.covs[:, :, dims]                               # (K, d, p)
+    v_oo = v_do[:, dims, :]                                   # (K, p, p)
+
+    t = v_oo[None, :, :, :] + ss[:, None, :, :]               # (m, K, p, p)
+    lp = log_gauss_batch(xs[:, None, :], mu_o[None, :, :], t)  # (m, K)
+    lq = lp + np.log(np.maximum(mix.weights, 1e-300))[None, :]
+    ll = logsumexp(lq, axis=1)                                # (m,)
+    total_ll = float((ws * ll).sum())
+    q = np.exp(lq - ll[:, None])                              # (m, K)
+
+    resid = xs[:, None, :] - mu_o[None, :, :]                 # (m, K, p)
+    # gain = V^{.O} T^{-1}  -> (m, K, d, p); solve instead of inverting.
+    rhs = np.broadcast_to(v_do[None], (rows.size, k, d, dims.size))
+    gain = np.linalg.solve(
+        np.swapaxes(t, -1, -2), np.swapaxes(rhs, -1, -2)
+    )
+    gain = np.swapaxes(gain, -1, -2)                          # (m, K, d, p)
+
+    b = mix.means[None, :, :] + np.einsum("mkdp,mkp->mkd", gain, resid)
+
+    qw = q * ws[:, None]                                      # (m, K)
+    acc_q = qw.sum(axis=0)
+    acc_mu = np.einsum("mk,mkd->kd", qw, b)
+    # sum_m q B with B = V - V^{.O} T^-1 V^{O.} (v_do[k, e, p] = V^{O.}[p, e]),
+    # summed over rows before the product: never forms the (m, K, d, d) array
+    acc_v = (acc_q[:, None, None] * mix.covs
+             - np.einsum("kdp,kep->kde", np.einsum("mk,mkdp->kdp", qw, gain), v_do))
+    # Second moment about the *current* mean rather than about zero.
+    # Accumulating E[bb^T] and subtracting mu mu^T later loses all
+    # precision when |mu| greatly exceeds the spread: for data at
+    # 1e8 +/- 1 it returned a variance of 0 instead of 1.
+    db = b - mix.means[None, :, :]
+    acc_v += np.einsum("mk,mkd,mke->kde", qw, db, db)
+    acc_dmu = np.einsum("mk,mkd->kd", qw, db)
+    return acc_q, acc_mu, acc_dmu, acc_v, total_ll
+
+
+def _map(fn, items, n_threads):
+    """Map in order; numpy's batched linear algebra releases the GIL."""
+    if n_threads <= 1 or len(items) < 2:
+        return [fn(c) for c in items]
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(n_threads) as ex:
+        return list(ex.map(fn, items))
+
+
 def _init_mixture(
     x: np.ndarray,
     observed: np.ndarray,
@@ -116,6 +170,7 @@ def fit_xd(
     init: GaussianMixture | None = None,
     seed: int = 0,
     labels: tuple[str, ...] = (),
+    n_threads: int = 1,
 ) -> XDFitResult:
     """Fit an intrinsic Gaussian mixture by extreme deconvolution.
 
@@ -202,46 +257,10 @@ def fit_xd(
         acc_v = np.zeros((k, d, d))
         total_ll = 0.0
 
-        for rows, dims in _chunked(groups, k, d):
-            if dims.size == 0:
-                continue
-            xs = x[np.ix_(rows, dims)]                                # (m, p)
-            ss = s[np.ix_(rows, dims, dims)]                          # (m, p, p)
-            ws = w_i[rows]                                            # (m,)
-            mu_o = mix.means[:, dims]                                 # (K, p)
-            v_do = mix.covs[:, :, dims]                               # (K, d, p)
-            v_oo = v_do[:, dims, :]                                   # (K, p, p)
-
-            t = v_oo[None, :, :, :] + ss[:, None, :, :]               # (m, K, p, p)
-            lp = log_gauss_batch(xs[:, None, :], mu_o[None, :, :], t)  # (m, K)
-            lq = lp + np.log(np.maximum(mix.weights, 1e-300))[None, :]
-            ll = logsumexp(lq, axis=1)                                # (m,)
-            total_ll += float((ws * ll).sum())
-            q = np.exp(lq - ll[:, None])                              # (m, K)
-
-            resid = xs[:, None, :] - mu_o[None, :, :]                 # (m, K, p)
-            # gain = V^{.O} T^{-1}  -> (m, K, d, p); solve instead of inverting.
-            rhs = np.broadcast_to(v_do[None], (rows.size, k, d, dims.size))
-            gain = np.linalg.solve(
-                np.swapaxes(t, -1, -2), np.swapaxes(rhs, -1, -2)
-            )
-            gain = np.swapaxes(gain, -1, -2)                          # (m, K, d, p)
-
-            b = mix.means[None, :, :] + np.einsum("mkdp,mkp->mkd", gain, resid)
-            # B = V - V^{.O} T^-1 V^{O.}; v_do[k, e, p] is already V^{O.}[p, e].
-            bmat = mix.covs[None, :, :, :] - np.einsum("mkdp,kep->mkde", gain, v_do)
-
-            qw = q * ws[:, None]                                      # (m, K)
-            acc_q += qw.sum(axis=0)
-            acc_mu += np.einsum("mk,mkd->kd", qw, b)
-            acc_v += np.einsum("mk,mkde->kde", qw, bmat)
-            # Second moment about the *current* mean rather than about zero.
-            # Accumulating E[bb^T] and subtracting mu mu^T later loses all
-            # precision when |mu| greatly exceeds the spread: for data at
-            # 1e8 +/- 1 it returned a variance of 0 instead of 1.
-            db = b - mix.means[None, :, :]
-            acc_v += np.einsum("mk,mkd,mke->kde", qw, db, db)
-            acc_dmu += np.einsum("mk,mkd->kd", qw, db)
+        chunks = [c for c in _chunked(groups, k, d) if c[1].size]
+        parts = _map(lambda c: _estep_chunk(c[0], c[1], mix, x, s, w_i), chunks, n_threads)
+        for pq, pmu, pdmu, pv, pll in parts:            # fixed order: deterministic sums
+            acc_q += pq; acc_mu += pmu; acc_dmu += pdmu; acc_v += pv; total_ll += pll
 
         if acc_q.sum() <= 0:
             raise RuntimeError("EM collapsed: total responsibility is zero")
