@@ -212,18 +212,19 @@ class GaussianMixture:
             if idx.size == 0:
                 out[sel] = 0.0  # nothing observed: density of an empty vector
                 continue
-            xs = x[np.ix_(sel, idx)]                       # (m, dg)
-            ss = s[np.ix_(sel, idx, idx)]                  # (m, dg, dg)
             mus = self.means[:, idx]                       # (K, dg)
             vs = self.covs[np.ix_(np.arange(self.n_components), idx, idx)]
-
-            # (m, K, dg) and (m, K, dg, dg)
-            lp = log_gauss_batch(
-                xs[:, None, :],
-                mus[None, :, :],
-                vs[None, :, :, :] + ss[:, None, :, :],
-            )
-            out[sel] = logsumexp(lp + np.log(self.weights)[None, :], axis=1)
+            rows = np.flatnonzero(sel)
+            # (m, K, dg, dg) floats per chunk: bound the memory, not the result
+            step = max(256, int(2.5e7 // max(1, self.n_components * idx.size ** 2)))
+            for lo in range(0, rows.size, step):
+                r = rows[lo:lo + step]
+                lp = log_gauss_batch(
+                    x[np.ix_(r, idx)][:, None, :],
+                    mus[None, :, :],
+                    vs[None, :, :, :] + s[np.ix_(r, idx, idx)][:, None, :, :],
+                )
+                out[r] = logsumexp(lp + np.log(self.weights)[None, :], axis=1)
         return out
 
     def min_mahalanobis(

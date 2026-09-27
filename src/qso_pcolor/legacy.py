@@ -167,24 +167,39 @@ def random_in_cone(ra: float, dec: float, radius_deg: float, n: int,
 
 
 def assign_bricks(bricks: dict, ra: np.ndarray, dec: np.ndarray) -> np.ndarray:
-    """Index into ``bricks`` of the brick whose primary area holds each point."""
+    """Index into ``bricks`` of the brick whose primary area holds each point.
+
+    Bricks tile the sky in rows of constant [dec1, dec2) with ascending ra1;
+    a point outside every brick gets -1.
+    """
     ra, dec = np.asarray(ra, float) % 360.0, np.asarray(dec, float)
-    lo = (bricks["dec1"] <= dec.max()) & (bricks["dec2"] >= dec.min())
-    cand = np.flatnonzero(lo)
+    index = bricks.get("_index")
+    if index is None:
+        order = np.lexsort((bricks["ra1"], bricks["dec1"]))
+        d1 = bricks["dec1"][order]
+        starts = np.flatnonzero(np.r_[True, d1[1:] != d1[:-1]])
+        index = (order, d1[starts], np.r_[starts, order.size])
+        bricks["_index"] = index
+    order, row_dec1, bounds = index
     out = np.full(ra.size, -1)
-    for k in cand:
-        r1, r2 = bricks["ra1"][k], bricks["ra2"][k]
-        inside = (dec >= bricks["dec1"][k]) & (dec < bricks["dec2"][k])
-        inside &= (ra >= r1) & (ra < r2) if r1 <= r2 else ((ra >= r1) | (ra < r2))
-        out[inside & (out < 0)] = k
+    row = np.searchsorted(row_dec1, dec, side="right") - 1
+    for r in np.unique(row[row >= 0]):
+        pts = np.flatnonzero(row == r)
+        members = order[bounds[r]:bounds[r + 1]]
+        j = np.searchsorted(bricks["ra1"][members], ra[pts], side="right") - 1
+        ok = j >= 0
+        k = members[np.clip(j, 0, None)]
+        ok &= (ra[pts] < bricks["ra2"][k]) & (dec[pts] < bricks["dec2"][k])
+        out[pts[ok]] = k[ok]
     return out
 
 
 def load_bricks(path: str | Path) -> dict:
     from astropy.io import fits
     t = fits.getdata(path)
-    return {k.lower(): np.asarray(t[k]) for k in ("BRICKNAME", "RA1", "RA2", "DEC1", "DEC2")} | {
-        "brickname": np.char.strip(np.asarray(t["BRICKNAME"]).astype(str))}
+    out = {k.lower(): np.asarray(t[k], float) for k in ("RA1", "RA2", "DEC1", "DEC2")}
+    out["brickname"] = np.char.strip(np.asarray(t["BRICKNAME"]).astype(str))
+    return out
 
 
 def brick_image_fetcher(cache: str | Path) -> Callable:
@@ -255,3 +270,66 @@ def cone_usable_fraction(ra: float, dec: float, radius_deg: float, hemisphere: s
     return dict(fraction=frac, fraction_err=float(np.sqrt(frac * (1 - frac) / n_points)),
                 n_points=n_points, n_bricks=len(per_brick), bricks=per_brick,
                 area_deg2=frac * 2 * np.pi * (1 - np.cos(np.deg2rad(radius_deg))) * (180 / np.pi) ** 2)
+
+
+# -- catalogue access ------------------------------------------------------------
+
+CATALOGUE_COLUMNS = ("ra", "dec", "release", "brickid", "objid", "type", "maskbits",
+                     "fracflux_r") + tuple(f"{p}_{b}" for b in BANDS
+                                          for p in ("flux", "flux_ivar", "nobs"))
+
+
+def _columns(prefix: str = "c.") -> str:
+    return ", ".join(f"{prefix}{c}" for c in CATALOGUE_COLUMNS)
+
+
+def legacy_cone(ra: float, dec: float, radius_deg: float, cache: str | Path, *,
+                min_flux_r: float) -> dict:
+    """Every DR9 row (both releases, every type) in a cone with flux_r > min_flux_r.
+
+    Rows are selected afterwards by :meth:`LegacySelection.decide`, so the
+    same code path decides for field sources, quasars and candidates.
+    """
+    from .data import cached_query
+    q = (f"SELECT {_columns()} FROM decals_dr9.main c "
+         f"WHERE q3c_radial_query(c.ra, c.dec, {ra:.8f}, {dec:.8f}, {radius_deg}) "
+         f"AND c.flux_r > {min_flux_r}")
+    return cached_query(q, Path(cache))
+
+
+def legacy_match(ra: np.ndarray, dec: np.ndarray, cache: str | Path, *,
+                 radius_arcsec: float) -> dict:
+    """Nearest DR9 row of the position's own hemisphere, one row per input.
+
+    The release filter is the hemisphere rule, so a north/south duplicate in
+    the overlap stripe is never chosen. Unmatched inputs have release -1.
+    """
+    import sqlutilpy as sqlutil
+    import time
+    ra, dec = np.asarray(ra, float), np.asarray(dec, float)
+    north = is_north(ra, dec).astype(int)
+    q = f"""SELECT m.idx, x.* FROM mytmptable m LEFT JOIN LATERAL (
+        SELECT {_columns()}, q3c_dist(m.ra, m.dec, c.ra, c.dec)*3600 AS match_sep_arcsec
+        FROM decals_dr9.main c
+        WHERE q3c_join(m.ra, m.dec, c.ra, c.dec, {radius_arcsec}/3600.)
+          AND ((m.north = 1 AND c.release = 9011) OR (m.north = 0 AND c.release IN (9010, 9012)))
+        ORDER BY q3c_dist(m.ra, m.dec, c.ra, c.dec) LIMIT 1) x ON TRUE"""
+    digest = hashlib.sha256(q.encode() + ra.tobytes() + dec.tobytes()).hexdigest()[:16]
+    cache = Path(cache); cache.mkdir(parents=True, exist_ok=True)
+    path = cache / f"legacy_match_{digest}.npz"
+    from .data import _load_npz, _save_npz
+    if path.exists():
+        return _load_npz(path)
+    t0 = time.monotonic()
+    res = sqlutil.local_join(q, "mytmptable", (np.arange(ra.size), ra, dec, north),
+                             ("idx", "ra", "dec", "north"), asDict=True, intNullVal=-1,
+                             preamb="SET jit=off; SET statement_timeout='7200s'")
+    o = np.argsort(res["idx"])
+    res = {k: (v.astype(str) if v.dtype == object else v)[o] for k, v in res.items()}
+    if not np.array_equal(res["idx"], np.arange(ra.size)):
+        raise RuntimeError("positional join did not preserve one row per input")
+    res["input_ra"], res["input_dec"] = ra, dec
+    _save_npz(path, **res)
+    path.with_suffix(".json").write_text(json.dumps(
+        {"query": q, "n": int(ra.size), "elapsed_s": time.monotonic() - t0}, indent=2))
+    return res

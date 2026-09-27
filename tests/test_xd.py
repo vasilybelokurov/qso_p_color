@@ -168,3 +168,16 @@ def test_spatial_groups_do_not_leak_between_folds():
     for gid in g:
         assert np.unique(fold_of[groups == gid]).size == 1
     _ = x  # the fit itself is exercised elsewhere
+
+
+def test_row_chunking_changes_memory_not_the_fit(monkeypatch):
+    from qso_pcolor import xd
+    rng = np.random.default_rng(0)
+    x = rng.normal(size=(3000, 4)); cov = np.repeat(0.1 * np.eye(4)[None], 3000, 0)
+    obs = rng.random((3000, 4)) > 0.2
+    a = xd.fit_xd(x, cov, n_components=3, observed=obs, max_iter=20, seed=1)
+    orig = xd._chunked
+    monkeypatch.setattr(xd, "_chunked", lambda g, k, d, budget=2.5e7: orig(g, k, d, budget=50.0))
+    b = xd.fit_xd(x, cov, n_components=3, observed=obs, max_iter=20, seed=1)
+    assert np.allclose(a.mixture.means, b.mixture.means, atol=1e-12)
+    assert a.mean_loglike == pytest.approx(b.mean_loglike, abs=1e-12)

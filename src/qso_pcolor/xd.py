@@ -65,6 +65,19 @@ def _mask_groups(observed: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
     return groups
 
 
+def _chunked(groups, k: int, d: int, budget: float = 2.5e7):
+    """Split each pattern group into row chunks bounding the (m, K, d, p) arrays.
+
+    The E step allocates arrays of m * K * d * p floats per group; for 10^5
+    rows and K = 64 that is gigabytes. Chunking changes only memory, not the
+    sums the M step accumulates.
+    """
+    for rows, dims in groups:
+        m = max(256, int(budget // max(1, k * d * max(1, dims.size))))
+        for lo in range(0, rows.size, m):
+            yield rows[lo:lo + m], dims
+
+
 def _init_mixture(
     x: np.ndarray,
     observed: np.ndarray,
@@ -189,7 +202,7 @@ def fit_xd(
         acc_v = np.zeros((k, d, d))
         total_ll = 0.0
 
-        for rows, dims in groups:
+        for rows, dims in _chunked(groups, k, d):
             if dims.size == 0:
                 continue
             xs = x[np.ix_(rows, dims)]                                # (m, p)
