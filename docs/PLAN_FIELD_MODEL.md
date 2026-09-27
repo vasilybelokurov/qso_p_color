@@ -24,6 +24,46 @@ source (table at the end). Clustering is parked and not part of this plan.
   uninformative in v1. The "0 ± σ_lim" pseudo-measurement is dropped: it is
   statistically wrong (details in §4).
 
+## Decisions (2026-09-27, after discussion)
+
+1. **The baseline comes first:** a Legacy-PSF-only model in Legacy DR9
+   g, r, z, W1, W2, built and tested thoroughly before any other infrastructure.
+   It includes PSF quasars with their Σ_Q, PSF field sources with their Σ_B,
+   component number chosen on held-out data, fits run to convergence, and a
+   refitted Student-t term. It is validated with the pair head-to-head, star
+   and galaxy rejection, counts per magnitude, tail counts, and quasar
+   retention after the PSF cut. Everything after the baseline must beat it on
+   held-out data.
+2. **Morphology rule v1:** Legacy DR9 `TYPE = PSF`. `unknown` never counts as
+   point.
+3. **HEALPix.** The earlier design used local cells at nside=8 with parents at
+   nside=2 and n₀ tuned over 100–3000 (`configs/example_ls_dr9.yaml:56–60`);
+   what shipped was nside=1, a single footprint average
+   (`background_south_global.json`), plus a local refit in a 0.5° cone. The new
+   plan uses nside=4 cells (192 in the whole sky, 214.9 deg² each; 112 with
+   centre at |b| > 20°; about 60 inside Legacy) under nside=2 parents, and
+   moves to nside=8 if held-out cells show structure that nside=4 misses.
+4. **Cones and counts.** A cone is a small circle (0.3°, 0.28 deg²) in which
+   every catalogue source is downloaded, with its full cross-matched photometry
+   and its usable area. There are 2–3 separated cones per cell. The cones
+   supply the magnitude and colour distribution, which sets the per-cell
+   component weights. **Counts per (cell, magnitude bin) come from a
+   server-side aggregate query over the whole cell where possible**, which
+   gives exact counts instead of cone-sampled ones. Its speed on Legacy DR9 is
+   not yet measured, so one cell is timed first; the cone-sampled count is the
+   fallback. Counts and area must use the same selection and the same mask
+   (Legacy randoms).
+5. **Non-detections.** A survey reports no object for one of two reasons:
+   (a) the area was not covered (outside the footprint, a gap, or masked),
+   which is common and uninformative; or (b) the area was covered and the
+   object is too faint, which is informative. Using case (b) requires a
+   coverage map per survey, to tell (a) from (b), and the local depth, to give
+   P(not detected | f) = Φ((L − f)/σ). Until a survey has both, every absence
+   is treated as (a): this loses information but adds no bias. The baseline is
+   unaffected: Legacy forced photometry gives every source g, r, z, W1, W2
+   fluxes. AllWISE is the first candidate for a detection model, because it
+   covers the whole sky and almost every absence is case (b).
+
 ## 1. Morphology selection
 
 What the user asks for: `train(..., selection="point")`, which gives a model
