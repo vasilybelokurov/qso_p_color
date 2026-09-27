@@ -89,8 +89,22 @@ def copy(src: str, notes: str):
     return f
 
 
+def desi_from_local():
+    """The 20 Sep targetid-join cache (1,641,243 quasars, z 0.1-4.4) already holds
+    every column the baseline uses; re-querying took an hour for nothing."""
+    src = "data/desi_qso_full_5cd2db61c2.npz"
+    d = np.load(src, allow_pickle=True)
+    r = _plain({k: d[k] for k in d.files})
+    r["type"] = r.pop("morphtype")
+    for b in ("w1", "w2"):
+        r[f"nobs_{b}"] = (np.asarray(r[f"flux_ivar_{b}"]) > 0).astype(np.int16)
+    return r, dict(copied_from=src, query=str(d["_query"]),
+                   notes="nobs_w1/w2 not in desi_dr1.photometry: set to 1 where flux_ivar > 0; "
+                         "morphtype renamed type")
+
+
 BUILDERS = {
-    "desi_dr1_qso": build_desi,
+    "desi_dr1_qso": desi_from_local,
     "dr16q_dr9": build_dr16q,
     "pairs_desi_dr1": copy("data/pairs_desi_dr1.npz", "scripts/build_pair_validation.py output"),
     "pairs_desi_dr1_dr9": copy("data/legacy_baseline_v2/companions.npz",
