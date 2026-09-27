@@ -237,6 +237,7 @@ def main():
                     default="all")
     args = ap.parse_args()
     cfg = json.loads(args.config.read_text())
+    cfg.pop("fit", None)                    # fitting settings do not change the sample
     root = Path(cfg["data_dir"]); root.mkdir(parents=True, exist_ok=True)
     stamp = root / "config.json"
     if stamp.exists() and json.loads(stamp.read_text()) != cfg:

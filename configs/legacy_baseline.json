@@ -1,24 +1,100 @@
 {
   "seed": 20260927,
-  "selection": {"morphology": "point", "maskbits_zero": true, "reference": "r"},
+  "selection": {
+    "morphology": "point",
+    "maskbits_zero": true,
+    "reference": "r"
+  },
   "targets": "data/multisurvey_lsw/targets.npz",
   "sample_config": "configs/multisurvey_lsw.json",
   "pairs": "data/pairs_desi_dr1.npz",
   "data_dir": "data/legacy_baseline",
   "bricks": "data/legacy_meta/survey-bricks.fits.gz",
-  "hemisphere_bricks": {"south": "data/legacy_meta/survey-bricks-dr9-south.fits.gz",
-                        "north": "data/legacy_meta/survey-bricks-dr9-north.fits.gz"},
+  "hemisphere_bricks": {
+    "south": "data/legacy_meta/survey-bricks-dr9-south.fits.gz",
+    "north": "data/legacy_meta/survey-bricks-dr9-north.fits.gz"
+  },
   "brick_image_cache": "data/legacy_meta/bricks",
   "holdout_model": "models/archive/original_legacy_south/qso_south_full.json",
   "cell_nside": 4,
   "min_abs_b_deg": 25.0,
   "cone_radius_deg": 0.3,
-  "cones_per_cell": [[50.0, 3], [20.0, 1]],
+  "cones_per_cell": [
+    [
+      50.0,
+      3
+    ],
+    [
+      20.0,
+      1
+    ]
+  ],
   "min_cone_separation_deg": 3.0,
   "boundary_margin_deg": 0.35,
   "min_flux_r_nmgy": 0.1,
   "match_radius_arcsec": 1.0,
   "area_points_per_cone": 50000,
-  "partition": {"select_fraction": 0.15, "calib_fraction": 0.20,
-                "why": "test = the archived held-out nside-4 blocks (never used for fitting, priors, K, C or the Student-t); select = K and start choice; calib = Student-t fraction; fit = everything else"}
+  "partition": {
+    "select_fraction": 0.15,
+    "calib_fraction": 0.2,
+    "why": "test = the archived held-out nside-4 blocks (never used for fitting, priors, K, C or the Student-t); select = K and start choice; calib = Student-t fraction; fit = everything else"
+  },
+  "fit": {
+    "fit_ref_range": [
+      16.0,
+      23.5
+    ],
+    "candidate_ref_range": [
+      17.0,
+      22.5
+    ],
+    "mag_bin_width": 0.5,
+    "field_k_grid": [
+      8,
+      16,
+      32,
+      64
+    ],
+    "qso_k_grid": [
+      1,
+      2,
+      4
+    ],
+    "starts": 3,
+    "max_iter": 5000,
+    "tol": 1e-06,
+    "regularization": 0.001,
+    "max_field_fit": 60000,
+    "max_field_select": 30000,
+    "n_threads": 8,
+    "min_select_per_slice": 30,
+    "prior_footprint_nside": 32,
+    "parent_min_per_cell": 20,
+    "normalisation": {
+      "reference_prior": "models/archive/original_legacy_south/sigma_q_south.json",
+      "mag_range": [
+        17.0,
+        22.5
+      ],
+      "why": "C from the ALL-morphology south quasars, as for the current model, then applied unchanged to the PSF priors"
+    },
+    "outlier": {
+      "nu": [
+        1.0,
+        2.0,
+        4.0,
+        8.0
+      ],
+      "scale": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "n_mag_bins": 3
+    },
+    "bundle_dir": "models/legacy_psf"
+  }
 }
