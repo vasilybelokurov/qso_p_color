@@ -42,7 +42,7 @@ WHERE z.spectype = 'QSO' AND z.zwarn = 0 AND z.zcat_primary
 """
 
 DR16Q_QUERY = """
-SELECT sdss_name, ra, dec, z AS zspec, zwarning, sdss_morpho,
+SELECT sdss_name, ra, dec, z AS zspec, zwarning, source_z, is_qso_final,
        boss_target1, eboss_target0, eboss_target1, eboss_target2, ancillary_target1,
        ancillary_target2
 FROM sdssdr16qso.main

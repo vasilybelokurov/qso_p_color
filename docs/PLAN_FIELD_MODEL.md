@@ -1,5 +1,7 @@
 # Plan: morphology selection, field model, sky dependence, survey depth (2026-09-27)
 
+> **Superseded for the baseline by `docs/BASELINE_PLAN.md`** (return to the original XDQSO-style design, dereddened). Kept as the record of the first attempt; §8 lists what went wrong.
+
 Follows `docs/FIELD_MODEL_FINDINGS.md`. Drafted by Claude, critiqued by Codex
 (high effort, read-only); Codex's code citations were checked against the
 source (table at the end). Clustering is parked and not part of this plan.
