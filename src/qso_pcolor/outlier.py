@@ -345,3 +345,69 @@ def student_t_logpdf(x: np.ndarray, mean: np.ndarray, scale: np.ndarray, nu: flo
         out[rows] = (gammaln(0.5 * (nu + k)) - gammaln(0.5 * nu) - 0.5 * k * np.log(nu * np.pi)
                      - 0.5 * logdet - 0.5 * (nu + k) * np.log1p(maha / nu))
     return out
+
+
+def student_t_noisy_logpdf(x: np.ndarray, mean: np.ndarray, scale: np.ndarray, nu: float,
+                           cov: np.ndarray | None = None, *,
+                           observed: np.ndarray | None = None, n_grid: int = 400,
+                           log_g_range: tuple[float, float] = (-25.0, 4.5),
+                           chunk: int = 4000) -> np.ndarray:
+    """log of a multivariate t convolved exactly with Gaussian measurement noise.
+
+    A t is a scale mixture of Gaussians, t_nu(x | mu, Sigma) = int N(x | mu,
+    Sigma/g) Gamma(g | nu/2, rate nu/2) dg, so with noise S
+
+    .. math::
+        p(\\mathbf x) = \\int \\mathcal N(\\mathbf x\\mid\\boldsymbol\\mu,
+        \\boldsymbol\\Sigma/g + \\mathbf S)\\,\\mathrm{Gamma}(g)\\,\\mathrm dg .
+
+    :func:`student_t_logpdf` instead adds S to the scale, which is exact only
+    for S = 0 and makes a band with very large noise still change the density
+    through the shared scale variable. Here a band with S -> infinity factors
+    out exactly, as it does for the Gaussian mixtures.
+
+    Per object, Sigma = A A^T and A^-1 S A^-T = U diag(lam) U^T give
+    |Sigma/g + S| = |Sigma| prod(1/g + lam) and the quadratic form
+    sum y_j^2 / (1/g + lam_j) with y = U^T A^-1 (x - mu). The g integral is a
+    trapezoid in ln g over ``log_g_range`` (smooth integrand; checked against
+    the closed form at S = 0 to 1e-9).
+    """
+    from scipy.special import gammaln, logsumexp
+
+    x = np.atleast_2d(np.asarray(x, float))
+    n, d = x.shape
+    s = (np.zeros((n, d, d)) if cov is None
+         else np.broadcast_to(np.asarray(cov, float).reshape(-1, d, d), (n, d, d)))
+    obs = (np.ones((n, d), bool) if observed is None
+           else np.broadcast_to(np.asarray(observed, bool), (n, d)))
+    lg = np.linspace(*log_g_range, n_grid)
+    g = np.exp(lg)
+    dlg = lg[1] - lg[0]
+    # log[Gamma(g) g] on the grid (the g from dg = g d ln g); trapezoid end weights
+    lprior = (0.5 * nu * np.log(0.5 * nu) - gammaln(0.5 * nu) + 0.5 * nu * lg - 0.5 * nu * g
+              + np.log(dlg))
+    lprior[[0, -1]] += np.log(0.5)
+    out = np.zeros(n)
+    packed = np.packbits(obs, axis=1)
+    _, inverse = np.unique(packed, axis=0, return_inverse=True)
+    for grp in range(inverse.max() + 1 if n else 0):
+        rows_all = np.flatnonzero(inverse == grp)
+        idx = np.flatnonzero(obs[rows_all[0]])
+        k = idx.size
+        if k == 0:
+            continue
+        A = np.linalg.cholesky(scale[np.ix_(idx, idx)])
+        logdet = 2.0 * np.log(np.diag(A)).sum()
+        Ainv = np.linalg.inv(A)
+        for lo in range(0, rows_all.size, chunk):
+            rows = rows_all[lo:lo + chunk]
+            M = Ainv[None] @ s[np.ix_(rows, idx, idx)] @ Ainv.T[None]
+            lam, U = np.linalg.eigh(0.5 * (M + np.swapaxes(M, 1, 2)))
+            lam = np.clip(lam, 0.0, None)
+            z = (x[np.ix_(rows, idx)] - mean[idx]) @ Ainv.T              # A^-1 (x - mu)
+            y2 = np.einsum("nji,nj->ni", U, z) ** 2                     # (U^T z)^2
+            inv = 1.0 / g[None, :, None] + lam[:, None, :]              # (m, G, k)
+            lnorm = (-0.5 * k * np.log(2 * np.pi) - 0.5 * logdet
+                     - 0.5 * np.log(inv).sum(-1) - 0.5 * (y2[:, None, :] / inv).sum(-1))
+            out[rows] = logsumexp(lnorm + lprior[None], axis=1)
+    return out

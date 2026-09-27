@@ -274,7 +274,9 @@ def completeness_constant(cfg, dens_all_south, z_edges, m_edges):
 
 def fit_student_t(h, model, fm, oc, bundle_meta):
     from qso_pcolor.multisurvey import MultiSurveyOutlier
-    from qso_pcolor.outlier import fit_outlier_fraction, mixture_moments, student_t_logpdf
+    from qso_pcolor.outlier import (fit_outlier_fraction, mixture_moments, student_t_logpdf,
+                                    student_t_noisy_logpdf)
+    tpdf = student_t_noisy_logpdf if oc.get("noise", "scale") == "exact" else student_t_logpdf
     f, ir = fm["features"], fm["ir"]
     lo, hi = bundle_meta["domain"]["candidate_ref_range"]
     dom = f.observed[:, ir] & (f.x[:, ir] >= lo) & (f.x[:, ir] < hi)
@@ -291,8 +293,8 @@ def fit_student_t(h, model, fm, oc, bundle_meta):
         for c in oc["scale"]:
             cov = c ** 2 * base
             log_pu = np.full(f.n_obs, np.nan)
-            log_pu[use] = (student_t_logpdf(f.x[use], mean, cov, nu, f.cov[use], observed=f.observed[use])
-                           - student_t_logpdf(f.x[use], mean, cov, nu, f.cov[use], observed=ref[use]))
+            log_pu[use] = (tpdf(f.x[use], mean, cov, nu, f.cov[use], observed=f.observed[use])
+                           - tpdf(f.x[use], mean, cov, nu, f.cov[use], observed=ref[use]))
             u = f.x[cal, ir]
             inner = np.quantile(u, np.linspace(0, 1, oc["n_mag_bins"] + 1)[1:-1])
             edges = np.concatenate([[lo], inner, [hi]])
@@ -319,7 +321,8 @@ def fit_student_t(h, model, fm, oc, bundle_meta):
                 n_calib=int(cal.sum()), n_check_select=int(chk.sum()),
                 scan=[{k: v for k, v in r.items() if k != "_cov"} for r in rows])
     return MultiSurveyOutlier(mean, best["_cov"], best["scale"], 0.0, model.transform.bands,
-                              model.transform_id, fr, meta=meta, family="student_t", nu=best["nu"])
+                              model.transform_id, fr, meta=meta, family="student_t", nu=best["nu"],
+                              noise=oc.get("noise", "scale"))
 
 
 # -- main ------------------------------------------------------------------------

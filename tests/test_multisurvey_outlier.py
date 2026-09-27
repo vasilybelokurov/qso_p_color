@@ -166,3 +166,19 @@ def test_a_student_t_outlier_needs_positive_nu():
     with pytest.raises(ValueError, match="nu"):
         MultiSurveyOutlier(g.mean, g.cov, 1.0, 0.0, LABELS, model.transform_id, g.fractions,
                            family="student_t", nu=None)
+
+
+def test_exact_noisy_t_matches_closed_form_and_factorises_a_useless_band():
+    from scipy.stats import multivariate_t
+    from qso_pcolor.outlier import student_t_noisy_logpdf
+    rng = np.random.default_rng(0); d = 4
+    a = rng.normal(size=(d, d)); sig = a @ a.T + np.eye(d); mu = rng.normal(size=d)
+    x = mu + 5 * rng.normal(size=(100, d))
+    for nu in (1.0, 4.0):
+        assert np.allclose(student_t_noisy_logpdf(x, mu, sig, nu), multivariate_t(mu, sig, df=nu).logpdf(x),
+                           atol=1e-9)
+    s = np.zeros((100, d, d)); s[:, np.arange(d), np.arange(d)] = 0.05
+    huge = s.copy(); huge[:, 3, 3] = 1e10
+    drop = np.ones((100, d), bool); drop[:, 3] = False
+    diff = student_t_noisy_logpdf(x, mu, sig, 2.0, huge) - student_t_noisy_logpdf(x, mu, sig, 2.0, s, observed=drop)
+    assert np.ptp(diff) < 1e-4          # a constant: the band carries no information

@@ -438,8 +438,14 @@ class MultiSurveyOutlier:
     # the scale can be the field's own and no envelope is needed.
     family: str = "gaussian"
     nu: float | None = None
+    # Student-t only. "scale": noise added to the scale matrix (approximate; the
+    # shipped multi-survey outlier). "exact": the t as a Gaussian scale mixture
+    # convolved with the noise (:func:`student_t_noisy_logpdf`).
+    noise: str = "scale"
 
     def __post_init__(self):
+        if self.noise not in ("scale", "exact"):
+            raise ValueError(f"unknown noise treatment {self.noise!r}")
         self.mean = np.asarray(self.mean, float)
         self.cov = np.asarray(self.cov, float)
         self.labels = tuple(self.labels)
@@ -465,7 +471,7 @@ class MultiSurveyOutlier:
 
     def conditional(self, anchor: int, label: str, system: str) -> "_ConditionalOutlier":
         edges, frac = self.fractions.get(label, self.fractions.get("*"))
-        t = (self.mean, self.cov, self.nu) if self.family == "student_t" else None
+        t = (self.mean, self.cov, self.nu, self.noise) if self.family == "student_t" else None
         return _ConditionalOutlier(self._mix, anchor, edges, frac, system, self.labels, t)
 
     def to_dict(self) -> dict:
@@ -473,7 +479,7 @@ class MultiSurveyOutlier:
                 "cov": self.cov.tolist(), "kappa": self.kappa, "kappa_min": self.kappa_min,
                 "labels": list(self.labels), "transform_id": self.transform_id,
                 "fractions": {k: [e.tolist(), f.tolist()] for k, (e, f) in self.fractions.items()},
-                "meta": self.meta, "family": self.family, "nu": self.nu}
+                "meta": self.meta, "family": self.family, "nu": self.nu, "noise": self.noise}
 
     def save(self, path: str | Path) -> None:
         path = Path(path)
@@ -488,7 +494,8 @@ class MultiSurveyOutlier:
             raise ValueError(f"not a multi-survey outlier model: kind={d.get('kind')!r}")
         return cls(d["mean"], d["cov"], d["kappa"], d["kappa_min"], tuple(d["labels"]),
                    d["transform_id"], {k: tuple(v) for k, v in d["fractions"].items()},
-                   d.get("meta", {}), d.get("family", "gaussian"), d.get("nu"))
+                   d.get("meta", {}), d.get("family", "gaussian"), d.get("nu"),
+                   d.get("noise", "scale"))
 
 
 class _ConditionalOutlier:
@@ -497,7 +504,7 @@ class _ConditionalOutlier:
     def __init__(self, mix, anchor, edges, fraction, system, labels, student_t=None):
         self.mix, self.anchor, self.edges, self.fraction = mix, anchor, edges, fraction
         self.system, self.labels = system, labels
-        self.student_t = student_t          # (mean, scale, nu) or None for the Gaussian
+        self.student_t = student_t          # (mean, scale, nu, noise) or None for the Gaussian
 
     def check_system(self, system):
         if system != self.system:
@@ -507,12 +514,12 @@ class _ConditionalOutlier:
         obs = np.ones_like(x, bool) if observed is None else observed
         if self.student_t is None:
             return conditional_log_prob(self.mix, x, cov, obs, self.anchor)
-        from .outlier import student_t_logpdf
-        mean, scale, nu = self.student_t
+        from .outlier import student_t_logpdf, student_t_noisy_logpdf
+        mean, scale, nu, noise = self.student_t
+        f = student_t_noisy_logpdf if noise == "exact" else student_t_logpdf
         ref = np.zeros_like(obs); ref[:, self.anchor] = obs[:, self.anchor]
-        # a conditional of a t is the joint over the marginal, both t with the same nu
-        return (student_t_logpdf(x, mean, scale, nu, cov, observed=obs)
-                - student_t_logpdf(x, mean, scale, nu, cov, observed=ref))
+        # a conditional is the joint over the reference marginal
+        return (f(x, mean, scale, nu, cov, observed=obs) - f(x, mean, scale, nu, cov, observed=ref))
 
     def fraction_at(self, ref_mag):
         idx = np.clip(np.digitize(np.asarray(ref_mag, float), self.edges) - 1, 0,
