@@ -1,5 +1,9 @@
 {
   "seed": 20260927,
+  "science_scoring": {
+    "ood_flag_sigma": 4.0,
+    "why": "Explicit support exclusion for science ranking; distances beyond both models retain diagnostics but no posterior or ln R. This is a selection policy, not a fitted outlier fraction."
+  },
   "selection": {
     "morphology": "point",
     "maskbits_zero": true,

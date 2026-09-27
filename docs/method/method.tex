@@ -37,6 +37,28 @@
 \begin{document}
 \maketitle
 
+\section*{Legacy PSF baseline: recovery and scoring scope (27 September 2026)}
+The later Legacy DR9 PSF baseline is distributed separately as
+\texttt{models/legacy\_psf\_xdqso/current}. It uses dereddened relative fluxes
+$g/r,z/r,W1/r,W2/r$, quasar slices independent of apparent magnitude, and
+field mixtures in reference-magnitude bins. The multi-survey description below
+documents the earlier model; its native-flux convention must not be applied to
+this baseline. The baseline's fitted Gaussian unmodelled fraction is essentially
+zero in some bins and does not protect all finite-distance colour outliers.
+
+The science interface \texttt{XDQSOBaseline.score\_rows} therefore requires an
+explicit excluding blend policy with a finite contamination limit, and an
+explicit positive \texttt{ood\_flag\_sigma}. Missing separation or contamination
+measurements exclude the companion. If both noise-convolved nearest-component
+distances exceed the declared threshold (the quasar distance is over all
+redshifts), the status is \texttt{outside\_both\_models}: likelihoods, model
+intensities and distances remain available for diagnosis, while posteriors and
+$\ln R$ are NaN. The declared validation policy is four standard deviations.
+This defines the population eligible for ranking; it is not a recalibration of
+the outlier density. Every output carries its bundle identifier. The north
+remains provisional, and the original validation PASS omitted a tail check;
+the recovery validation must establish that check separately.
+
 %==============================================================================
 \begin{abstract}
 \noindent

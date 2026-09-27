@@ -21,7 +21,7 @@ reason instead.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import json
 from pathlib import Path
@@ -29,6 +29,8 @@ from pathlib import Path
 import numpy as np
 
 from .legacy import BANDS, LegacySelection, hemisphere_labels, legacy_photometry
+from .qso_model import RedshiftMatch
+from .score import BlendPolicy, PairScore
 
 
 def file_sha256(path: str | Path) -> str:
@@ -196,20 +198,42 @@ class XDQSOBaseline:
             for k, obj in parts[h].items():
                 if obj.meta.get("bundle_id") != man["bundle_id"]:
                     raise ValueError(f"{h} {k} belongs to a different bundle")
+                if obj.meta.get("selection_id") != man["selection_id"]:
+                    raise ValueError(f"{h} {k} was built for a different selection")
             systems = {parts[h]["qso"].system, parts[h]["background"].system, parts[h]["outlier"].system}
-            if len(systems) != 1:
+            if systems != {f"ls_dr9_{h}_grzw_psf"}:
                 raise ValueError(f"{h}: photometric systems differ: {systems}")
         return cls(man, sel, parts)
 
-    def score_rows(self, rows: dict, *, z_primary, match, separation_arcsec=None, fracflux=None,
-                   blend_policy=None, candidate_id=None, primary_id=None):
-        """Score catalogue rows; returns (scores, decision) as for LegacyBaseline."""
+    def score_rows(self, rows: dict, *, z_primary: np.ndarray | float,
+                   match: RedshiftMatch, blend_policy: BlendPolicy, ood_flag_sigma: float,
+                   separation_arcsec=None, fracflux=None, candidate_id=None,
+                   primary_id=None) -> tuple[list[PairScore | None], dict]:
+        """Score clean Legacy companions with explicit blend and support policies.
+
+        Separation is in arcseconds; ``fracflux`` is dimensionless. Both must
+        be measured. The blend policy must exclude failures and supply a finite
+        non-negative fracflux limit. ``ood_flag_sigma`` is a positive distance
+        to the nearest component, measured in noise-convolved standard deviations.
+
+        Outside both fitted populations, retain model likelihoods, intensities,
+        and distances for diagnosis, but withhold all posterior probabilities
+        and the ranking statistic. ``eligible`` is true only for status ``ok``.
+        The underlying Gaussian outlier fit is not a calibrated tail guarantee.
+        """
         from .data import galactic_from_equatorial
         from .legacy import dereddened_relative_fluxes
         from .score import score_candidates
+        if (not isinstance(blend_policy, BlendPolicy) or blend_policy.action != "exclude"
+                or blend_policy.max_fracflux is None
+                or not np.isfinite(blend_policy.max_fracflux) or blend_policy.max_fracflux < 0
+                or not np.isfinite(blend_policy.min_separation_arcsec)):
+            raise ValueError("science scoring requires an excluding BlendPolicy with finite limits")
+        if not np.isfinite(ood_flag_sigma) or ood_flag_sigma <= 0:
+            raise ValueError("ood_flag_sigma must be positive and finite")
         n = len(np.asarray(rows["ra"]))
         dec = self.selection.decide(rows)
-        reason = dec["reason"].astype("<U24")
+        reason = dec["reason"].astype("<U64")
         l, b = galactic_from_equatorial(np.asarray(rows["ra"], float), np.asarray(rows["dec"], float))
         dom = self.manifest["domain"]
         low_b = dec["accepted"] & (np.abs(b) < dom["min_abs_b_deg"])
@@ -218,6 +242,8 @@ class XDQSOBaseline:
         z_primary = np.broadcast_to(np.asarray(z_primary, float), (n,))
         lo, hi = dom["ref_mag"]
         out = [None] * n
+        candidate_id = np.arange(n).astype(str) if candidate_id is None else candidate_id
+        primary_id = np.arange(n).astype(str) if primary_id is None else primary_id
         extra = dict(separation_arcsec=separation_arcsec, fracflux=fracflux,
                      candidate_id=candidate_id, primary_id=primary_id)
         for h, p in self.parts.items():
@@ -240,11 +266,16 @@ class XDQSOBaseline:
                                       b_deg=b[use], qso_model=p["qso"], background_model=p["background"],
                                       match=match, qso_prior=p["qso_prior"],
                                       background_density=p["background_density"],
-                                      outlier_model=p["outlier"], min_bands=3, **kw)
+                                      outlier_model=p["outlier"], min_bands=dom["min_dims"],
+                                      ood_flag_sigma=ood_flag_sigma, manifest_id=self.bundle_id, **kw)
             for i, s_ in zip(use, scores):
+                if s_.status == "ok" and "outside_both_models" in s_.quality_flags:
+                    s_ = replace(s_, status="outside_both_models", log_r_per_unit_z=np.nan,
+                                 p_sameq=np.nan, p_sameq_vs_bkg=np.nan,
+                                 p_zmatch_given_qso=np.nan, p_outlier=np.nan)
                 out[i] = s_
         for i, s_ in enumerate(out):
             if s_ is not None and s_.status != "ok":
-                reason[i] = f"status:{s_.status}"[:24]
+                reason[i] = f"status:{s_.status}"
         return out, dict(dec, accepted=accepted, reason=reason,
                          eligible=np.array([s_ is not None and s_.status == "ok" for s_ in out]))

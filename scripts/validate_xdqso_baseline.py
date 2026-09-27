@@ -125,7 +125,8 @@ def main():
     policy = BlendPolicy(min_separation_arcsec=args.min_sep, max_fracflux=args.max_fracflux)
     match = RedshiftMatch(half_width_kms=args.half_width_kms)
     base, dec = bl.score_rows(c["rows"], z_primary=c["zp"], match=match, separation_arcsec=c["sep"],
-                              fracflux=c["rows"]["fracflux_r"], blend_policy=policy)
+                              fracflux=c["rows"]["fracflux_r"], blend_policy=policy,
+                              ood_flag_sigma=cfg["science_scoring"]["ood_flag_sigma"])
     el = dec["eligible"]
     report["companion_eligibility"] = dict(zip(*[x.tolist() for x in np.unique(dec["reason"], return_counts=True)]))
     ref = dict(original=score_original(c, el, dec["hemisphere"], args),
