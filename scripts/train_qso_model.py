@@ -202,6 +202,8 @@ def main() -> None:
                          "shipped model is never overwritten by this script")
     ap.add_argument("--no-sdss", action="store_true")
     ap.add_argument("--n-workers", type=int, default=1, help="parallel slice fits")
+    ap.add_argument("--from-store", action="store_true",
+                    help="read desi_dr1_qso and dr16q_dr9 from the local store (qso_pcolor.store)")
     ap.add_argument("--morphology", choices=("all", "point"), default="all",
                     help="point: Legacy TYPE = PSF only (qso_pcolor.legacy.LegacySelection)")
     ap.add_argument("--max-objects", type=int, default=None,
@@ -225,11 +227,30 @@ def main() -> None:
     print(f"Training the {args.system} model (release {rel})\n")
 
     print("loading")
-    desi = load_desi(args.cache / "desi_qso_full.npz", args.zmin, args.zmax)
-    parts = [(desi, "desi")]
-    if not args.no_sdss:
-        parts.append((load_sdss(args.cache / "dr16q_ls.npz", args.zmin, args.zmax),
-                      "sdss"))
+    if args.from_store:
+        # the local masters (qso_pcolor.store): no queries
+        from qso_pcolor.store import load as store_load
+        desi = store_load("desi_dr1_qso")
+        zs = (desi["zspec"] > args.zmin) & (desi["zspec"] < args.zmax)
+        desi = {k: v[zs] for k, v in desi.items()}
+        desi["morphtype"] = desi["type"]
+        parts = [(desi, "desi")]
+        if not args.no_sdss:
+            sd = store_load("dr16q_dr9")
+            zs = ((sd["zspec"] > args.zmin) & (sd["zspec"] < args.zmax) & (sd["zwarning"] == 0)
+                  & (np.asarray(sd["release"]) > 0))
+            sd = {k: v[zs] for k, v in sd.items()}
+            sd["ra"], sd["dec"] = sd["ls_ra"], sd["ls_dec"]      # the DR9 object's position
+            sd["morphtype"] = sd["type"]
+            parts.append((sd, "sdss"))
+        print(f"  from the store: DESI {parts[0][0]['zspec'].size:,}"
+              + (f", DR16Q {parts[1][0]['zspec'].size:,}" if len(parts) > 1 else ""))
+    else:
+        desi = load_desi(args.cache / "desi_qso_full.npz", args.zmin, args.zmax)
+        parts = [(desi, "desi")]
+        if not args.no_sdss:
+            parts.append((load_sdss(args.cache / "dr16q_ls.npz", args.zmin, args.zmax),
+                          "sdss"))
 
     ra, dec, z, flux, ivar, trans, channel = [], [], [], [], [], [], []
     n_masked_removed = 0
