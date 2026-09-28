@@ -1,5 +1,12 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
+**Read `PROJECT_STATE.md` first for the current objective, completed data,
+running or paused work, and remaining requirements.** It supersedes older
+operational progress statements below. Update it after substantive progress;
+keep findings and history in `JOURNAL.md`. Acquisition is paused at the user's
+request. The Legacy bulk association audit is stopped: its cross-release counts
+are not valid training ambiguity masks. Do not restart it from an older command.
+
 Read this before touching the repository. It is the working contract for
 `qso_pcolor`. `docs/method/method.tex` is the scientific write-up — the
 formalism, the derivations and the figures — and is the place to look for *why

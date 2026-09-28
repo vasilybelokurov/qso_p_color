@@ -1,5 +1,10 @@
 # Local data locations and reuse inventory
 
+Current operational status is maintained in [PROJECT_STATE.md](../PROJECT_STATE.md).
+Acquisition is paused. The Legacy bulk count audit is stopped and its
+cross-release counts must not be used as training ambiguity masks. Status
+statements below describe earlier preparation stages.
+
 Updated 28 September 2026. Read this before any photometry acquisition.
 The inventory made no database queries and changed no model or acquisition output.
 

@@ -26,10 +26,10 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "Complete running cache-first acquisition of five-survey QSO gaps; saved measurements, nonmatches and corrected PS1 IDs are reused.",
-    "Complete independent QSO association audits",
-    "Assess external-survey footprints and band-specific completeness separately from completed Legacy area measurements",
-    "Verify uncapped trainer accounting and issue readiness report before retraining"
+    "QSO five-survey gaps remain; acquisition paused by the user.",
+    "Assemble final 41-band QSO inputs and review association evidence locally; do not resume the invalid Legacy cross-release count audit.",
+    "Review external-survey coverage and effective-area assumptions for count priors.",
+    "Verify uncapped training accounting and issue readiness report before retraining."
   ],
   "stellar_preparation_cache": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
   "stellar_cleaning": {
@@ -84,7 +84,7 @@
     "failed": []
   },
   "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/64b33f5755fae833",
-  "tests": "318 passed in 60.93s (0:01:00)",
+  "tests": "318 passed in 60.08s; /tmp/qso_reconciliation_tests.log",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -94,7 +94,7 @@
     "native_dr16q_fluxes_substituted": false,
     "association_policy_unchanged": true,
     "remaining_id_targets": 449866,
-    "state": "Complete: all 1657444 target rows saved; independent association audit pending.",
+    "state": "Complete: all target results saved; existing SDSS count audit completed. Final training assembly remains separate.",
     "independent_positional_targets": 857578,
     "independent_positional_directory": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/sdss_without_ids",
     "id_download_complete": true,
@@ -186,7 +186,7 @@
   "local_photometry_inventory": "docs/LOCAL_PHOTOMETRY_INVENTORY_2026-09-28.json",
   "data_location_map": "docs/LOCAL_DATA_LOCATIONS.md",
   "qso_gap_acquisition": {
-    "status": "running",
+    "status": "paused_by_user",
     "worker_log": "/tmp/qso_gap_acquisition.log",
     "cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/gap_acquisition",
     "surveys": [
@@ -203,7 +203,17 @@
       "nsc": 50000,
       "skymapper": 50000,
       "vhs": 50000,
-      "ps1": 0
-    }
-  }
+      "ps1": 50000
+    },
+    "aligned_rows_at_pause": {
+      "allwise": 100000,
+      "ps1": 50000,
+      "nsc": 50000,
+      "skymapper": 50000,
+      "vhs": 50000
+    },
+    "counter_meaning": "Assembled prefixes, not total cached coverage or detection counts. Additional reusable and downloaded results exist."
+  },
+  "authoritative_current_state": "PROJECT_STATE.md",
+  "association_audit_status": "Stopped. Legacy counts include both hemispheres and must not be applied as ambiguity masks. See PROJECT_STATE.md."
 }

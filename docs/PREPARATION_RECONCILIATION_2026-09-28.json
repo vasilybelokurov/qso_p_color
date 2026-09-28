@@ -1,0 +1,100 @@
+{
+  "checked_utc": "2026-09-28T17:58:48.500204+00:00",
+  "new_survey_queries": 0,
+  "eligible_targets": 1657444,
+  "targets_sha256": "4f07015897bd69cbe53883758e5a4126a85bd0d206398518fffebe408e8dbb40",
+  "acquisition": {
+    "sdss": {
+      "aligned_targets_verified": 1657444,
+      "complete": true,
+      "remaining_to_assemble": 0,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_sdss.json"
+    },
+    "decals": {
+      "aligned_targets_verified": 1657444,
+      "complete": true,
+      "remaining_to_assemble": 0,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_decals.json"
+    },
+    "allwise": {
+      "aligned_targets_verified": 100000,
+      "complete": false,
+      "remaining_to_assemble": 1557444,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_allwise.json"
+    },
+    "ps1": {
+      "aligned_targets_verified": 50000,
+      "complete": false,
+      "remaining_to_assemble": 1607444,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_ps1.json"
+    },
+    "nsc": {
+      "aligned_targets_verified": 50000,
+      "complete": false,
+      "remaining_to_assemble": 1607444,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_nsc.json"
+    },
+    "skymapper": {
+      "aligned_targets_verified": 50000,
+      "complete": false,
+      "remaining_to_assemble": 1607444,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_skymapper.json"
+    },
+    "vhs": {
+      "aligned_targets_verified": 50000,
+      "complete": false,
+      "remaining_to_assemble": 1607444,
+      "progress_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/progress_vhs.json"
+    }
+  },
+  "legacy_local_checks": {
+    "photometry_sha256_verified": "be8ebe742db6369e45bad3a1e4d2505b288ea2e3cd0f7c8049b97ab05aba7e33",
+    "raw_batch_hashes_verified": 34,
+    "identities_verified": 1657444,
+    "wrong_hemisphere": 0,
+    "maximum_separation_arcsec": 0.9898724550278293,
+    "targets_sharing_exact_release_and_position": 2,
+    "shared_counterpart_review": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/legacy_local/4d418c295df8aa17/shared_counterpart_review.npz",
+    "limitation": "Exact position reuse is a local diagnostic; no claim that all alternative same-hemisphere counterparts have been counted. No selection masks changed."
+  },
+  "stellar": {
+    "photometry_progress": {
+      "completed": 274,
+      "total": 274,
+      "failed": []
+    },
+    "area_progress": {
+      "completed": 274,
+      "total": 274,
+      "failed": []
+    },
+    "photometry_npz_files": 274,
+    "cleaning": {
+      "raw": 3053059,
+      "psf_mask_clean": 3053059,
+      "own_hemisphere_and_latitude": 2985450,
+      "duplicate_catalogue_keys": 74,
+      "known_qso_removed": 6519,
+      "retained": 2978857
+    },
+    "coverage_report": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0/coverage_report.json",
+    "area_json_files": 274
+  },
+  "active_pointer": {
+    "path": "models/multisurvey_psf/current",
+    "sha256": "e7af2680ab3f07600f3c7fb316f20584f8360fd1b9b5e33dcbd8e2eaa36de471",
+    "contents": {
+      "bundle": "630f47f63b6f0694",
+      "validation": "docs/VALIDATION_psf_catchalls_2026-09-28.json",
+      "scope": "PSF sources; any nonempty subset of 41 bands; spatial and local background; pooled Student-t catch-all",
+      "full_probability_calibration": false
+    }
+  },
+  "audit_disposition": {
+    "worker_pid": 23772,
+    "state": "stopped",
+    "reason": "Legacy query counts all releases without the required target hemisphere; do not apply these counts as training ambiguity masks. Preserve raw results as historical diagnostics. No full-catalogue replacement query authorized by this reconciliation."
+  },
+  "acquisition_state": "paused_by_user",
+  "authoritative_current_state": "PROJECT_STATE.md"
+}
