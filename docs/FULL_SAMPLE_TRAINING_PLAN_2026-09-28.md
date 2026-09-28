@@ -251,6 +251,19 @@ separately versioned candidate passes the declared checks.
 
 ## 6. What must be ready before launch
 
+SDSS acquisition now uses the DR16Q photometric `objid` wherever an eligible
+master object has an unambiguous SDSS membership link, including DESI-preferred
+objects. The identifier is joined to indexed DR14 `photoobjall.objid` in one
+query for the remaining linked targets. It retrieves the existing DR14
+photometric system and quality fields; embedded DR16Q fluxes are not substituted.
+Nonprimary, unresolved, conflicting or out-of-radius links use positional
+fallback. Completed positional batches and exact association-count caches are
+retained. The independent multiple/shared-association masks remain mandatory.
+Resume with `fetch_full_qso_photometry.py --config configs/full_sample_photometry.json
+--resume-cache models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff`.
+The shared batch reader also serves the auditor so it never rematches a batch
+whose switched acquisition is already saved.
+
 1. Verified parent master and explicit source/redshift scope; reviewed ambiguous
    associations and large redshift disagreements.
 2. Uncapped, aligned 41-band QSO photometry and fresh stellar source lists.

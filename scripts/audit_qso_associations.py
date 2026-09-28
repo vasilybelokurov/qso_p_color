@@ -16,6 +16,7 @@ from fetch_full_qso_photometry import write_json
 from qso_pcolor.data import _save_npz
 from qso_pcolor.legacy import is_north
 from qso_pcolor.multisurvey_data import SURVEYS, match_catalogue, catalogue_photometry
+from qso_pcolor.qso_acquisition import read_acquired_batch
 
 
 def match_counts(survey,ra,dec,radius,cache):
@@ -28,8 +29,13 @@ def match_counts(survey,ra,dec,radius,cache):
           AND ({spec.where})) x"""
     digest=hashlib.sha256(sql.encode()+ra.tobytes()+dec.tobytes()).hexdigest()[:16]
     path=cache/f'{survey}_{digest}.npz'
-    if path.exists():
-        with np.load(path) as d: return d['match_count']
+    # SQL + target-coordinate digest is independent of auditor implementation.
+    # Reuse these exact counts when the photometry acquisition strategy changes.
+    candidates=[path] if path.exists() else sorted(cache.parent.parent.glob(f'*/counts/{path.name}'))
+    for previous in candidates:
+        with np.load(previous) as d:
+            if str(d['query'])==sql and d['match_count'].shape==ra.shape:
+                return d['match_count']
     result=sqlutil.local_join(sql,'mytmptable',(np.arange(len(ra)),ra,dec),('idx','ra','dec'),
         asDict=True,intNullVal=-1,preamb="SET jit=off; SET statement_timeout='7200s'")
     order=np.argsort(result['idx'])
@@ -81,8 +87,7 @@ def main():
                 stamp=out/f'{survey}_{lo:07d}.json'
                 # Acquisition updates progress only after this complete raw batch is cached.
                 if not stamp.exists() or done==n:
-                    raw=match_catalogue(survey,targets['ra'][lo:hi],targets['dec'][lo:hi],root/'queries',
-                        radius_arcsec=cfg['match_radius_arcsec'][survey])
+                    raw=read_acquired_batch(root,survey,targets,lo,hi,cfg['match_radius_arcsec'][survey])
                     if done==n: positions.append((raw['ra'],raw['dec']))
                 if not stamp.exists():
                     count=match_counts(survey,targets['ra'][lo:hi],targets['dec'][lo:hi],

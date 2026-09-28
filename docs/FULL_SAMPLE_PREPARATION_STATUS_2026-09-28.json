@@ -74,15 +74,26 @@
     "match_radius_arcsec": 1.0
   },
   "stellar_photometry": {
-    "completed": 13,
+    "completed": 238,
     "total": 274,
     "failed": []
   },
   "legacy_selection_areas": {
-    "completed": 13,
+    "completed": 204,
     "total": 274,
     "failed": []
   },
-  "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/83594072ae5ffd8e",
-  "tests": "289 passed in 60.65 seconds; /tmp/stellar_full_preparation_tests.log"
+  "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/16f14c32960e2fb4",
+  "tests": "293 passed in 62.13 seconds; /tmp/qso_id_pipeline_final_tests.log",
+  "qso_sdss_acquisition": {
+    "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
+    "eligible_targets": 1657444,
+    "targets_with_sdss_membership": 649442,
+    "preserved_completed_targets": 350000,
+    "cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff",
+    "native_dr16q_fluxes_substituted": false,
+    "association_policy_unchanged": true,
+    "remaining_id_targets": 449866,
+    "state": "Replacement running: single indexed ID query launched after identity-map recovery; positional fallback follows."
+  }
 }

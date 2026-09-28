@@ -427,6 +427,16 @@ NSC \texttt{flags}$=0$, SkyMapper per-band \texttt{ngood} and \texttt{flags},
 VHS per-band error bits, AllWISE \texttt{cc\_flags}). An unusable band enters
 the observed-dimension mask and is marginalised exactly.
 
+For the full-sample preparation, SDSS quasar memberships retain the DR16Q
+photometric object identifier. Valid identifiers retrieve measurements from
+the indexed DR14 photometry table directly, including for objects whose adopted
+spectrum comes from DESI. The DR16Q embedded flux arrays are not substituted
+for DR14 measurements. Links must identify a primary detection within the
+declared association radius; missing, conflicting, nonprimary or out-of-radius
+links fall back to positional matching. The existing quality, multiple-match
+and shared-source checks still apply. Previously completed positional matches
+remain cached. This acquisition change does not constitute a new model fit.
+
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}
 

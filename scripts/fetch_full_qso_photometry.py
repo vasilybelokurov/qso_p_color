@@ -14,6 +14,7 @@ import numpy as np
 from build_qso_master import sha256
 from qso_pcolor.data import _save_npz, galactic_from_equatorial
 from qso_pcolor.multisurvey_data import SURVEYS, band_labels, catalogue_photometry, match_catalogue
+from qso_pcolor.qso_acquisition import prepare_sdss_id_photometry, acquire_sdss_batch, read_acquired_batch
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -27,6 +28,8 @@ def main() -> None:
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--surveys', nargs='+', choices=tuple(SURVEYS))
     parser.add_argument('--prepare-only', action='store_true')
+    parser.add_argument('--resume-cache', type=Path,
+                        help='Reuse a previous acquisition with identical config and master')
     args = parser.parse_args()
     cfg = json.loads(args.config.read_text())
     if cfg['batch_size'] < 1:
@@ -39,9 +42,19 @@ def main() -> None:
     identity = dict(config=cfg, master_sha256=sha256(master),
                     script_sha256=sha256(Path(__file__)))
     version = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:16]
-    root = Path(cfg['cache_dir']).expanduser() / version
+    root = args.resume_cache or Path(cfg['cache_dir']).expanduser() / version
     root.mkdir(parents=True, exist_ok=True)
-    write_json(root / 'provenance.json', identity)
+    if args.resume_cache:
+        previous = json.loads((root/'provenance.json').read_text())
+        if previous['config'] != cfg or previous['master_sha256'] != identity['master_sha256']:
+            raise ValueError('resume cache config or master differs from requested acquisition')
+        if not (root/'targets.npz').exists():
+            raise ValueError('resume cache has no target list')
+    else:
+        write_json(root / 'provenance.json', identity)
+    write_json(root / 'acquisition_implementation.json', dict(identity,
+        adapter_sha256=sha256(Path(__file__).resolve().parents[1]/'src/qso_pcolor/qso_acquisition.py'),
+        sdss_strategy=cfg.get('sdss_use_object_ids', True)))
     target_path = root / 'targets.npz'
     if not target_path.exists():
         with np.load(master.parent / 'objects.npz') as data:
@@ -91,16 +104,35 @@ def main() -> None:
         return
     for survey in args.surveys or cfg['surveys']:
         started = time.monotonic()
+        progress_path = root/f'progress_{survey}.json'
+        previous_done = json.loads(progress_path.read_text())['processed'] if progress_path.exists() else 0
+        if previous_done == n:
+            print(f'{survey}: already complete; retaining all cached rows', flush=True)
+            continue
+        if previous_done < 0 or previous_done > n or previous_done % cfg['batch_size']:
+            raise ValueError('invalid acquisition checkpoint')
+        by_id = survey == 'sdss' and cfg.get('sdss_use_object_ids', True)
+        id_rows = {}
+        if by_id:
+            id_rows, report = prepare_sdss_id_photometry(root, targets, master, previous_done)
+            write_json(root/'sdss_id_links.json', report)
         processed = 0
         band_counts = np.zeros(len(band_labels((survey,))), np.int64)
         for lo in range(0, n, cfg['batch_size']):
             hi = min(n, lo + cfg['batch_size'])
-            raw = match_catalogue(survey, targets['ra'][lo:hi], targets['dec'][lo:hi],
-                root / 'queries', radius_arcsec=cfg['match_radius_arcsec'][survey])
+            if lo < previous_done:
+                raw = read_acquired_batch(root, survey, targets, lo, hi, cfg['match_radius_arcsec'][survey])
+            elif by_id:
+                raw = acquire_sdss_batch(root, targets, lo, hi, id_rows, cfg['match_radius_arcsec'][survey])
+            else:
+                raw = match_catalogue(survey, targets['ra'][lo:hi], targets['dec'][lo:hi],
+                    root / 'queries', radius_arcsec=cfg['match_radius_arcsec'][survey])
             phot = catalogue_photometry(survey, raw, clean=cfg['clean'],
                                          vhs_bad_bits=cfg['vhs_bad_bits'])
             band_counts += phot.observed.sum(axis=0)
             processed += hi - lo
+            if processed < previous_done:
+                continue  # never move a checkpoint backwards during replay
             write_json(root / f'progress_{survey}.json', dict(survey=survey,
                 processed=processed, total=n, complete=processed == n,
                 bands=list(phot.bands), observed_counts=band_counts.tolist(),

@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 
 import numpy as np
+import pytest
 
 
 def test_photometry_batches_keep_every_eligible_object_and_original_identity(tmp_path, monkeypatch):
@@ -28,7 +29,7 @@ def test_photometry_batches_keep_every_eligible_object_and_original_identity(tmp
     cfg = dict(master_manifest=str(tmp_path / 'manifest.json'), cache_dir=str(tmp_path / 'cache'),
         batch_size=2, surveys=['sdss'], z_min=.1, z_max=4.4, min_abs_b_deg=0,
         legacy_releases=[9010, 9011, 9012], query_order_nside=4,
-        match_radius_arcsec={'sdss': 1.}, clean=True, vhs_bad_bits=0)
+        match_radius_arcsec={'sdss': 1.}, clean=True, vhs_bad_bits=0, sdss_use_object_ids=False)
     config = tmp_path / 'config.json'; config.write_text(json.dumps(cfg))
     calls = []
 
@@ -52,3 +53,12 @@ def test_photometry_batches_keep_every_eligible_object_and_original_identity(tmp
     progress = json.loads((root / 'progress_sdss.json').read_text())
     assert progress['complete'] and progress['processed'] == progress['total'] == 5
     assert progress['observed_counts'] == [5] * 5  # negative fluxes remain observed
+    provenance = (root/'provenance.json').read_bytes()
+    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config), '--resume-cache', str(root)])
+    module.main()
+    assert len(calls) == 3  # completed acquisition is not fetched again
+    assert (root/'provenance.json').read_bytes() == provenance
+    cfg['z_max'] = 5.
+    config.write_text(json.dumps(cfg))
+    with pytest.raises(ValueError, match='differs'):
+        module.main()

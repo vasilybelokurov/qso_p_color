@@ -42,6 +42,21 @@ samples or validated model artifacts. See
 `docs/FULL_SAMPLE_PREPARATION_STATUS_2026-09-28.json` for outstanding checks. The wider
 stellar cone caches have an r-flux floor and require fresh source queries.
 The user requires a readiness report before any retraining is launched.
+**Reuse catalogue links before spatial matching.** Inspect the live WSDB schema
+and the journal before building acquisition queries. DR16Q has a text `objid`
+that casts exactly to the indexed `sdssdr14.photoobjall.objid` bigint; it is
+not the Legacy brick `objid` in `dr16q_dr9.npz`. Use all SDSS master memberships,
+including DESI-preferred objects, to recover these links by `sdss_name`.
+`fetch_full_qso_photometry.py` now defaults to one ID query for remaining linked
+SDSS targets, then positional fallback for unresolved/nonprimary/out-of-radius
+links. `--resume-cache` preserves prior completed batches and original provenance.
+The association auditor reads the same acquired batches and still checks
+multiple/shared associations. DR16Q's embedded flux arrays are not a silent
+substitute for the DR14 photometry: the measured values can differ.
+Do not assume an indexed spatial plan is optimal, extrapolate cold-cache timings
+across surveys, or add chunking as a speed fix without comparative measurements.
+The WSDB skill's direct `sqlutilpy` workflow does not require the separate MCP
+connector. Preserve known identities and cached measurements before requerying.
 `scripts/prepare_stellar_sample.py` now runs cleaning, spatial roles, photometry
 and Legacy any-optical-band area measurements with `configs/stellar_preparation.json`.
 `scripts/audit_qso_associations.py` checks arriving QSO batches independently.
