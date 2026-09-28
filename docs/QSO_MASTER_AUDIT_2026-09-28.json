@@ -1,0 +1,52 @@
+{
+  "input_desi": 1641243,
+  "input_sdss": 750414,
+  "input_rows": 2391657,
+  "unique_objects": 2047156,
+  "duplicate_memberships": 344501,
+  "position_pairs": 349455,
+  "desi_only": 1296744,
+  "sdss_only": 415586,
+  "both_catalogues": 334826,
+  "redshift_conflicts": 114240,
+  "extended_duplicate_groups": 11,
+  "invalid_adopted_redshifts": 8,
+  "nonclean_adopted_spectra": 60078,
+  "maximum_group_members": 5,
+  "memberships_preserved": true,
+  "checks": {
+    "desi_all_ids_and_rows_preserved": true,
+    "sdss_all_ids_and_rows_preserved": true
+  },
+  "group_sizes_verified": true,
+  "redshift_disagreement_counts": {
+    "0.001": 114240,
+    "0.005": 9146,
+    "0.01": 3225,
+    "0.05": 1791,
+    "0.1": 1755
+  },
+  "redshift_span_quantiles_multiple": {
+    "0.5": 0.0006349754703411826,
+    "0.9": 0.0023557393741051574,
+    "0.95": 0.003517220647182265,
+    "0.99": 0.009654678008093059
+  },
+  "preliminary_training_cutflow": {
+    "valid_catalogue_redshift": 2047148,
+    "current_redshift_range_0p1_4p4": 2045818,
+    "current_abs_b_at_least_25": 1915155,
+    "legacy_dr9_psf": 1746425,
+    "maskbits_zero": 1657469
+  },
+  "preliminary_original_holdout": 292087,
+  "preliminary_other_blocks": 1365382,
+  "by_hemisphere": {
+    "9010": 1220785,
+    "9011": 427326,
+    "9012": 9358
+  },
+  "catalogue_quality_2_selected": 327,
+  "scope": "Readback audit of local snapshots. Photometric availability and new spatial partitions have not yet been applied. Redshift-disagreement thresholds are diagnostics, not cuts.",
+  "build_id": "b0401c528c65a6e5"
+}

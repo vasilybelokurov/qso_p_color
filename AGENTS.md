@@ -26,6 +26,16 @@ Student-t. The fitted Gaussian alternative and comparison are recorded in
 Magnitude bins for the catch-all share do not discretise the stellar colour
 model, which conditions continuously on the reference magnitude.
 
+**Full-sample preparation (2026-09-28).** The active artifacts still use the
+capped input/shape samples. Do not describe them as full-sample retraining.
+`docs/FULL_SAMPLE_TRAINING_PLAN_2026-09-28.md` records the uncapped QSO and
+stellar selection policy and the remaining preflight work. A lossless positional
+SDSS+DESI master is saved under `~/data/qso_p_color/catalogues/qso_sdss_desi/`;
+rebuild it with `scripts/build_qso_master.py` and `configs/qso_master.json`.
+Its initial DESI input has the inherited 0.1 < z < 4.4 restriction. The wider
+stellar cone caches have an r-flux floor and require fresh source queries.
+The user requires a readiness report before any retraining is launched.
+
 **Earlier Legacy-only recovery status (2026-09-28).** The Legacy DR9 PSF baseline in
 `models/legacy_psf_xdqso/current` is available through `XDQSOBaseline` for
 guarded exploratory ranking. Its full release validation **fails** the
