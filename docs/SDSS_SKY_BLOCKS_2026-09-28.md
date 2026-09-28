@@ -33,9 +33,12 @@ after each block. Per-block SQL plans and detailed checkpoints live under
 `queries/`. Both scripts reuse completed whole-list results before issuing new
 queries. The other six surveys retain their existing acquisition schedule.
 
-Use one new SDSS query worker at a time. The existing whole-list positional
-download is allowed to finish: cancelling it would discard data held in memory.
-The main worker can then reuse that result and apply blocks only to missing
+Use one new SDSS query worker at a time. At the user's request at 17:58 CEST,
+the unsaved whole-list positional download was stopped and its database backend
+cancelled. Its partial in-memory results were unavailable as checkpoints, so
+all 857,578 targets in that job are now queried through the block downloader.
+The earlier 350,000 completed targets and the full ID result are reused.
+The main worker waits for the combined block output, then queries failed ID
 associations. No retraining is launched by these scripts.
 
 ## Sizing measurements
@@ -85,11 +88,13 @@ The **10,000-target default** gives roughly three-minute checkpoints at these
 rates; 20,000 targets gives roughly five minutes. This is a checkpoint-frequency
 choice, not a scientific threshold or guaranteed runtime. Applied to the frozen
 857,578-target no-ID list, it would produce 89 blocks (some smaller at parent
-boundaries). The existing whole-list query is not restarted to obtain them.
+boundaries). The user subsequently requested this switch; the 89-block run began at
+17:59 CEST, saving its first 50,000 rows in five blocks of about three seconds
+each. Those initial warm timings are not a forecast for untouched regions.
 
 The completed ID result contains 449,866 distinct target rows: 449,843 pass the
 existing ID association check and 23 require positional fallback. The fallback
-uses the new block path after the original positional download completes.
+uses the new block path after the positional block download completes.
 
 The full suite passes: 301 tests in 61.36 seconds. Tests cover interrupted runs,
 completed-block reuse, reordered and unmatched outputs, negative fluxes, exact

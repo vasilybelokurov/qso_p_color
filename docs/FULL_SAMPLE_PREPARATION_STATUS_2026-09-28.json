@@ -94,12 +94,16 @@
     "native_dr16q_fluxes_substituted": false,
     "association_policy_unchanged": true,
     "remaining_id_targets": 449866,
-    "state": "The 449866-object ID result is saved (7910.34 s). The original 857578-object whole-list positional download continues. New SDSS acquisitions and failed-ID fallback use sequential, resumable sky blocks; completed whole-list results are reused.",
+    "state": "At user request, the unsaved whole-list positional query was stopped at 17:58 CEST and its backend cancellation verified. All 857578 no-ID targets are now being queried in 89 sequential blocks of at most 10000. First 50000 rows saved in five blocks; initial ~3 s/block benefits from prior caching and is not a cold-rate forecast. Earlier 350000 completed rows and all 449866 ID results reused. Main assembler waits for the combined positional output, then handles 23 failed ID associations.",
     "independent_positional_targets": 857578,
     "independent_positional_directory": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/sdss_without_ids",
     "id_download_complete": true,
     "id_download_elapsed_seconds": 7910.339914957993,
     "new_sdss_query_max_targets": 10000,
-    "block_config": "configs/photometry_sky_blocks.json"
+    "block_config": "configs/photometry_sky_blocks.json",
+    "positional_strategy": "sequential checkpointed sky blocks",
+    "positional_blocks_total": 89,
+    "whole_list_positional_cancelled_at_user_request": true,
+    "positional_progress_path": "sdss_without_ids/status.json"
   }
 }

@@ -267,8 +267,8 @@ The shared batch reader also serves the auditor so it never rematches a batch
 whose switched acquisition is already saved.
 Outstanding objects without usable SDSS IDs are downloaded
 with `scripts/fetch_sdss_without_ids.py --cache <cache>`, using sequential
-indexed positional sky blocks for new runs. Existing whole-list downloads are
-allowed to finish. Each route
+indexed positional sky blocks for new runs. The original unsaved whole-list positional download was stopped at the user's
+request at 17:58 CEST and replaced by the block run. Completed results are reused. Each route
 keeps its own results and target identities; the main fetcher combines them
 without requerying the positional results, including recorded nonmatches.
 The local 50,000-row assembly files are separate from the configurable SDSS
