@@ -42,7 +42,12 @@ samples or validated model artifacts. See
 `docs/FULL_SAMPLE_PREPARATION_STATUS_2026-09-28.json` for outstanding checks. The wider
 stellar cone caches have an r-flux floor and require fresh source queries.
 The user requires a readiness report before any retraining is launched.
-**Inventory disk before every survey acquisition.** Legacy photometry for all
+**Inventory disk before every survey acquisition.** First read
+`docs/LOCAL_DATA_LOCATIONS.md` and the three linked inventory manifests. They
+record all known source paths, exact per-target reuse/gap lists and PS1 ID links.
+Never substitute forced PS1/WISE time-series data for the required catalogue
+measurements; never cast the rounded AllWISE ID strings into catalogue IDs.
+ Legacy photometry for all
 1,657,444 eligible QSOs already exists in `desi_dr1_qso.npz` and
 `dr16q_dr9.npz`. `--surveys decals` now assembles those files locally: exact
 DESI target IDs, SDSS source rows and Legacy counterpart coordinates, with

@@ -26,7 +26,7 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "Inventory local QSO photometry for AllWISE, PS1, NSC, SkyMapper and VHS; acquire only demonstrated gaps",
+    "Assemble verified local five-survey results; verify PS1 ID route and survey footprints before acquiring only remaining results",
     "Complete independent QSO association audits",
     "Assess external-survey footprints and band-specific completeness separately from completed Legacy area measurements",
     "Verify uncapped trainer accounting and issue readiness report before retraining"
@@ -84,7 +84,7 @@
     "failed": []
   },
   "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/16f14c32960e2fb4",
-  "tests": "308 passed in 62.19 seconds; /tmp/qso_legacy_reuse_full_tests.log",
+  "tests": "312 passed in 61.21s (0:01:01)",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -182,5 +182,7 @@
     "report": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/legacy_local/4d418c295df8aa17/report.json",
     "photometry": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/legacy_local/4d418c295df8aa17/photometry.npz",
     "metadata_discrepancies_resolved": 8
-  }
+  },
+  "local_photometry_inventory": "docs/LOCAL_PHOTOMETRY_INVENTORY_2026-09-28.json",
+  "data_location_map": "docs/LOCAL_DATA_LOCATIONS.md"
 }

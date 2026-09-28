@@ -1,0 +1,231 @@
+{
+  "target_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/targets.npz",
+  "target_sha256": "4f07015897bd69cbe53883758e5a4126a85bd0d206398518fffebe408e8dbb40",
+  "implementation_sha256": "583fa826aa4287ca034c5f62cdcf255091f9960cd475f97c322efd4a73fbd60d",
+  "discovery_manifest": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/discovered_native.json",
+  "discovery_sha256": "04c09497c20e597dae235a9850966f4ca5f923a08d8548b6631e74a044aeb758",
+  "native_file_manifest": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/native_files.json",
+  "npz_headers_scanned": 5511,
+  "native_files": 1679,
+  "surveys": {
+    "allwise": {
+      "targets": 1657444,
+      "reusable_query_results": 68398,
+      "exact_target_results": 68112,
+      "complete_cone_results": 286,
+      "known_no_counterpart": 28401,
+      "counterpart_present": 39997,
+      "usable_any_band": 39994,
+      "usable_per_band": [
+        39466,
+        39522,
+        39780,
+        39885
+      ],
+      "bands": [
+        "w1",
+        "w2",
+        "w3",
+        "w4"
+      ],
+      "unresolved_targets": 1589046,
+      "unresolved_with_nearby_measurements": 183,
+      "unresolved_without_local_measurements": 1588863,
+      "reference_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/allwise_target_inventory.npz"
+    },
+    "ps1": {
+      "targets": 1657444,
+      "reusable_query_results": 68399,
+      "exact_target_results": 68078,
+      "complete_cone_results": 321,
+      "known_no_counterpart": 1285,
+      "counterpart_present": 67114,
+      "usable_any_band": 67114,
+      "usable_per_band": [
+        66929,
+        67069,
+        67059,
+        66977,
+        66226
+      ],
+      "bands": [
+        "g",
+        "r",
+        "i",
+        "z",
+        "y"
+      ],
+      "unresolved_targets": 1589045,
+      "unresolved_with_nearby_measurements": 10,
+      "unresolved_without_local_measurements": 1589035,
+      "reference_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/ps1_target_inventory.npz"
+    },
+    "nsc": {
+      "targets": 1657444,
+      "reusable_query_results": 68399,
+      "exact_target_results": 68078,
+      "complete_cone_results": 321,
+      "known_no_counterpart": 1236,
+      "counterpart_present": 67163,
+      "usable_any_band": 58700,
+      "usable_per_band": [
+        1106,
+        55474,
+        56377,
+        19977,
+        55468,
+        4283,
+        4926
+      ],
+      "bands": [
+        "u",
+        "g",
+        "r",
+        "i",
+        "z",
+        "y",
+        "vr"
+      ],
+      "unresolved_targets": 1589045,
+      "unresolved_with_nearby_measurements": 14,
+      "unresolved_without_local_measurements": 1589031,
+      "reference_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/nsc_target_inventory.npz"
+    },
+    "skymapper": {
+      "targets": 1657444,
+      "reusable_query_results": 68399,
+      "exact_target_results": 68078,
+      "complete_cone_results": 321,
+      "known_no_counterpart": 60534,
+      "counterpart_present": 7865,
+      "usable_any_band": 7714,
+      "usable_per_band": [
+        294,
+        424,
+        5804,
+        5417,
+        4507,
+        1573
+      ],
+      "bands": [
+        "u",
+        "v",
+        "g",
+        "r",
+        "i",
+        "z"
+      ],
+      "unresolved_targets": 1589045,
+      "unresolved_with_nearby_measurements": 4,
+      "unresolved_without_local_measurements": 1589041,
+      "reference_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/skymapper_target_inventory.npz"
+    },
+    "vhs": {
+      "targets": 1657444,
+      "reusable_query_results": 68399,
+      "exact_target_results": 68078,
+      "complete_cone_results": 321,
+      "known_no_counterpart": 60287,
+      "counterpart_present": 8112,
+      "usable_any_band": 6991,
+      "usable_per_band": [
+        3197,
+        6293,
+        2820,
+        4492
+      ],
+      "bands": [
+        "y",
+        "j",
+        "h",
+        "ks"
+      ],
+      "unresolved_targets": 1589045,
+      "unresolved_with_nearby_measurements": 2,
+      "unresolved_without_local_measurements": 1589043,
+      "reference_file": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/vhs_target_inventory.npz"
+    }
+  },
+  "new_database_queries": 0,
+  "association_audit_complete": false,
+  "model_fitted": false,
+  "output_sha256": {
+    "nsc_target_inventory.npz": "32c657930f491f4d50cd6c9d85e0c93e9cdac2a33b28ea8daf3cdb23c1051003",
+    "ps1_target_inventory.npz": "b85c78d12e6105fcd2b791ac56274ac2e729972ef224aaa51fb45e5ca5e51dfd",
+    "vhs_target_inventory.npz": "40296a04389e21d465f2a636afcd801b75fa8fc3867acce14d2adf89b7663399",
+    "allwise_target_inventory.npz": "303476e03a0ccf324e6da3cfb62da79a40155e7d185b45280664e0b3b4bc3c18",
+    "skymapper_target_inventory.npz": "e436badfaa424cba7428c3650f45df8a86ffb698b90d36f9ddded2e49c9a3ef6"
+  },
+  "identifier_links": {
+    "ps1": {
+      "path": "/Users/vasilybelokurov/data/qso/ps1/qso_ps1_object_index.parquet",
+      "sha256": "11866816ac479464b281dbc19506dc5f2af93719fd3d2c3679944adb4e05b994",
+      "rows": 174842,
+      "eligible_target_identities": 155286,
+      "within_radius_targets": 155286,
+      "status": "Exact integer object IDs; stack primary-detection status and measurement columns still require verification.",
+      "targets_with_multiple_ps1_ids": 0,
+      "candidate_id_targets_without_reusable_photometry": 150273
+    },
+    "allwise": {
+      "path": "/Users/vasilybelokurov/data/qso/wise/snapshots/qso_wise_full_events.parquet",
+      "sha256": "5e5af0b8c5edb7428cd834966031c4f26b640d15deca5f9bf33029b3d5471efa",
+      "bytes": 434859832,
+      "mtime_ns": 1773326730195017135,
+      "total_events": 45084818,
+      "distinct_name_id_pairs": 204121,
+      "invalid_or_missing_id_pairs": 204121,
+      "eligible_targets_with_id": 0,
+      "eligible_targets_with_single_id": 0,
+      "conflicting_target_ids": 0,
+      "status": "No exact AllWISE IDs recovered: stored cntr strings are rounded scientific notation or missing. Do not cast these to integers for catalogue joins. W1/W2 time-series photometry is not the required AllWISE W1-W4 catalogue photometry."
+    },
+    "candidate_file_sha256": {
+      "allwise_identifier_candidates.npz": "9c73237df7d1f02668e2d058859bee0455b38374868176ed50b83369312eb9bb",
+      "ps1_identifier_candidates.npz": "f2827e4c6a633842cfaabd0a9d0198c98c578c8fab899398d121b327472c623a"
+    },
+    "target_sha256": "4f07015897bd69cbe53883758e5a4126a85bd0d206398518fffebe408e8dbb40",
+    "members_sha256": "9e1985e58c3dac3f936b4c834b817890f31509dbda37813e1e923c369fd7ff40",
+    "implementation_sha256": "8ad20adc41394865daa0c414a18a49c4831f45df30d4c36a18454ac7e2578f1f",
+    "new_database_queries": 0
+  },
+  "verification": {
+    "allwise": {
+      "exact_identities": true,
+      "gap_complement": true,
+      "source_hashes": true,
+      "all_band_masks": true
+    },
+    "ps1": {
+      "exact_identities": true,
+      "gap_complement": true,
+      "source_hashes": true,
+      "all_band_masks": true
+    },
+    "nsc": {
+      "exact_identities": true,
+      "gap_complement": true,
+      "source_hashes": true,
+      "all_band_masks": true
+    },
+    "skymapper": {
+      "exact_identities": true,
+      "gap_complement": true,
+      "source_hashes": true,
+      "all_band_masks": true
+    },
+    "vhs": {
+      "exact_identities": true,
+      "gap_complement": true,
+      "source_hashes": true,
+      "all_band_masks": true
+    }
+  },
+  "native_file_manifest_sha256": "fc0f48f1fe0c4a271c75c0afd7b41bae8b466066534684b17b2c15d108e3cdf2",
+  "search_scope": [
+    "All file names under /Users/vasilybelokurov/data and repository models/data; 5511 distinct NPZ headers inspected",
+    "59 external FITS/Parquet catalogue schemas inspected; image cutouts and spectra excluded from catalogue candidates"
+  ],
+  "external_schema_manifest": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28/external_schemas.json",
+  "external_schema_sha256": "3aa3367fee47b3eb0beac89c2d2950129587007ebbec1c2a0a05c528211cedfc"
+}
