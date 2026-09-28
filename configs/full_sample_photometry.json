@@ -1,0 +1,17 @@
+{
+  "master_manifest": "~/data/qso_p_color/catalogues/qso_sdss_desi/77d7aa514e9e3e47/manifest.json",
+  "cache_dir": "models/multisurvey_psf/work/full_sample_photometry",
+  "surveys": ["sdss", "decals", "allwise", "ps1", "nsc", "skymapper", "vhs"],
+  "z_min": 0.1,
+  "z_max": 4.4,
+  "min_abs_b_deg": 25.0,
+  "legacy_releases": [9010, 9011, 9012],
+  "batch_size": 50000,
+  "query_order_nside": 1024,
+  "match_radius_arcsec": {
+    "sdss": 1.0, "decals": 1.0, "allwise": 2.0,
+    "ps1": 1.0, "nsc": 1.0, "skymapper": 1.0, "vhs": 1.0
+  },
+  "clean": true,
+  "vhs_bad_bits": 2147483392
+}

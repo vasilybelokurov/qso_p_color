@@ -32,7 +32,14 @@ capped input/shape samples. Do not describe them as full-sample retraining.
 stellar selection policy and the remaining preflight work. A lossless positional
 SDSS+DESI master is saved under `~/data/qso_p_color/catalogues/qso_sdss_desi/`;
 rebuild it with `scripts/build_qso_master.py` and `configs/qso_master.json`.
-Its initial DESI input has the inherited 0.1 < z < 4.4 restriction. The wider
+The expanded master `77d7aa514e9e3e47` uses all 1,645,842 primary, zwarn=0
+DESI QSOs joined to DR1 photometry, without the old redshift restriction;
+use `configs/qso_master_full.json` to reproduce it. Its union has 2,051,328
+objects. `scripts/fetch_full_qso_photometry.py` and
+`configs/full_sample_photometry.json` acquire every eligible object's seven-survey
+photometry in resumable batches; these are acquisition outputs, not fit-ready
+samples or validated model artifacts. See
+`docs/FULL_SAMPLE_PREPARATION_STATUS_2026-09-28.json` for outstanding checks. The wider
 stellar cone caches have an r-flux floor and require fresh source queries.
 The user requires a readiness report before any retraining is launched.
 

@@ -1,0 +1,35 @@
+{
+  "master_build_id": "77d7aa514e9e3e47",
+  "master_report": {
+    "input_desi": 1645842,
+    "input_sdss": 750414,
+    "input_rows": 2396256,
+    "unique_objects": 2051328,
+    "duplicate_memberships": 344928,
+    "position_pairs": 349892,
+    "desi_only": 1300916,
+    "sdss_only": 415295,
+    "both_catalogues": 335117,
+    "redshift_conflicts": 114455,
+    "extended_duplicate_groups": 11,
+    "invalid_adopted_redshifts": 8,
+    "nonclean_adopted_spectra": 60032,
+    "maximum_group_members": 5,
+    "memberships_preserved": true
+  },
+  "all_input_identities_positions_redshifts_verified": true,
+  "active_model_unchanged": true,
+  "retraining_started": false,
+  "stellar_raw_download": {
+    "regions_completed": 274,
+    "regions_total": 274,
+    "raw_entries": 3053059
+  },
+  "pending": [
+    "QSO seven-survey photometry (download launched)",
+    "Stellar hemisphere checks, catalogue deduplication, known-QSO removal and seven-survey photometry",
+    "Association and redshift-disagreement audits",
+    "Independent spatial roles, including northern test regions, and usable-area/coverage verification",
+    "Uncapped trainer accounting and final launch report"
+  ]
+}

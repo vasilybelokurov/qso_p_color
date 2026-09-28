@@ -4,6 +4,26 @@ Status: selection policy recorded; data preparation is incomplete; **retraining
 has not started**. The active model and its release pointer are unchanged.
 The user requested a report before any retraining is launched.
 
+Preparation update: the unrestricted DESI query and all 274 stellar source
+queries have completed. DESI returned 1,645,842 unique identifiers, including
+all previous identifiers and 4,599 outside the old redshift interval. The new
+combined master is `77d7aa514e9e3e47`, with 2,051,328 positional objects and
+all 2,396,256 original memberships preserved. It is saved under the same
+`~/data/qso_p_color/catalogues/qso_sdss_desi/` root and selected by `current.json`.
+Reproduce it with `configs/qso_master_full.json`; the initial version below
+remains available. The source query still requires primary, zwarn=0 DESI QSOs
+with a matching DR1 photometry-table entry, but has no redshift restriction.
+
+The stellar queries returned 3,053,059 raw PSF, mask-clean entries without a
+flux floor. Hemisphere checks, catalogue deduplication, known-QSO removal,
+seven-survey photometry and the final role/area audit remain outstanding.
+The inherited cone roles have no northern final-test region and will not be
+adopted unchanged. The QSO seven-survey acquisition has now been launched via
+`scripts/fetch_full_qso_photometry.py` and `configs/full_sample_photometry.json`.
+Every eligible target is visited; its 50,000-row batch size only controls query
+size and restart checkpoints. Raw nearest matches still require association
+and hemisphere checks before they become training measurements.
+
 ## 1. What changes
 
 Use all eligible quasars from the combined SDSS DR16Q and DESI DR1 catalogues.
@@ -18,7 +38,7 @@ exact marginalisation over missing bands, continuous magnitude conditioning,
 Galactic HEALPix variation, optional local refitting, and the broad catch-all
 with its support guard. They do not establish probability calibration.
 
-## 2. The saved QSO parent catalogue
+## 2. The initial QSO parent catalogue (retained for provenance)
 
 `scripts/build_qso_master.py --config configs/qso_master.json` builds a versioned
 master under `~/data/qso_p_color/catalogues/qso_sdss_desi/`. The initial version

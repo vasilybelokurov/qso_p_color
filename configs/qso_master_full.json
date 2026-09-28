@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "desi": "~/data/qso_p_color/catalogues/desi_dr1_qso_all_redshifts.npz",
+    "sdss": "~/data/qso_p_color/catalogues/dr16q_dr9.npz"
+  },
+  "output_root": "~/data/qso_p_color/catalogues/qso_sdss_desi",
+  "radius_arcsec": 1.0,
+  "redshift_conflict_tolerance": 0.001,
+  "deduplication": "Connected positional groups; preserve every original catalogue membership.",
+  "representative": "Finite positive redshift, then clean spectroscopic flags, then DESI before SDSS, then sorted source identifier.",
+  "sampling": "All rows of the named input snapshots; no per-bin or total-count cap. Training cuts and held-out regions are separate."
+}

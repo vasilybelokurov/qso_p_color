@@ -33,9 +33,11 @@ def main():
         path=Path(cfg["inputs"][name]).expanduser()
         with np.load(path,allow_pickle=False) as d:
             data[name]={k:d[k] for k in keys}
+            embedded_query = str(d["_query"]) if "_query" in d else None
         sidecar=path.with_suffix(".json")
         sources[name]=dict(path=str(path),sha256=sha256(path),rows=len(data[name]["ra"]),
-            source_provenance=json.loads(sidecar.read_text()) if sidecar.exists() else None)
+            source_provenance=json.loads(sidecar.read_text()) if sidecar.exists()
+                              else dict(query=embedded_query))
     method={k:v for k,v in cfg.items() if k not in ("inputs","output_root")}
     identity=dict(inputs={k:v["sha256"] for k,v in sources.items()},method=method,
         implementation_sha256=sha256(Path(__file__).resolve().parents[1]/"src/qso_pcolor/qso_catalogue.py"))
@@ -63,7 +65,7 @@ def main():
         units=dict(ra="ICRS degrees",dec="ICRS degrees",zspec="dimensionless",max_member_separation_arcsec="arcsec"),
         schema=dict(objects="One row per connected positional group; object_id names its adopted source.",
                     members="All original rows; catalogue + source_id identifies the original entry; input_row indexes the hashed input file; object_index links to objects.npz."),
-        limitations=["DESI local input is already QSO, zwarn=0, zcat_primary and 0.1<z<4.4; this is not all-redshift DESI DR1.",
+        limitations=["Input selections and any inherited redshift restrictions are recorded in sources.*.source_provenance; no additional redshift cut is made by this builder.",
             "SDSS local input retains all DR16Q rows and flags, including invalid redshifts; these remain in membership.",
             "No photometric measurements, morphology cuts, sky cuts, magnitude cuts, training holdouts or random caps applied.",
             "Redshift-discordant or extended positional groups require a declared training policy; no source membership was deleted."])
