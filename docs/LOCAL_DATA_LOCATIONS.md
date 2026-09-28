@@ -1,7 +1,7 @@
 # Local data locations and reuse inventory
 
 Current operational status is maintained in [PROJECT_STATE.md](../PROJECT_STATE.md).
-Acquisition is paused. The Legacy bulk count audit is stopped and its
+Acquisition is authorized for AllWISE and Pan-STARRS only, then stop. The Legacy bulk count audit is stopped and its
 cross-release counts must not be used as training ambiguity masks. Status
 statements below describe earlier preparation stages.
 

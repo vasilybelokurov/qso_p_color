@@ -1,7 +1,7 @@
 # Current project state
 
-Updated 28 September 2026 after reconciling saved data and stopping acquisition
-at the user's request. Read this file before scheduling work. It supersedes
+Updated 28 September 2026 after the user limited further acquisition to
+AllWISE and Pan-STARRS. Read this file before scheduling work. It supersedes
 older progress statements in the dated preparation documents; those documents
 retain the selection rationale and provenance. `JOURNAL.md` records the history.
 
@@ -12,9 +12,15 @@ supports any nonempty subset of 41 bands, spatial stellar variation and local
 refitting. Preserve held-out data. Report readiness before launching retraining.
 The current model is unchanged; full probability calibration remains unfinished.
 
-**Acquisition is paused at the user's request.** The gap downloader and the
-independent association auditor are stopped. Discuss the remaining data work
-before resuming. All completed files remain available for reuse.
+**Acquire AllWISE and Pan-STARRS only, then stop.** The user considers these
+additions sufficient for the current data effort. The downloader runs with
+`--surveys allwise ps1`, completing AllWISE first and then Pan-STARRS; it exits
+after those two surveys. NSC, SkyMapper and VHS acquisition remains paused.
+Retain and use existing measurements from those surveys, with unavailable
+measurements masked; the model's 41-band interface is unchanged. Do not turn
+their incomplete acquisition into a requirement to resume downloads. The
+independent association auditor remains stopped. Retraining still waits for
+the readiness report.
 
 ## Completed data
 
@@ -68,10 +74,12 @@ why local evidence cannot supply it, and the smallest necessary target set.
 
 ## Remaining data work
 
-1. After resumption, finish only the demonstrated QSO gaps in the five surveys.
+1. Finish only the demonstrated QSO gaps in AllWISE and Pan-STARRS, then stop
+   acquisition. Do not proceed to NSC, SkyMapper or VHS.
    Completion means a recorded measurement or nonmatch for every eligible target
-   in each survey, with no repeated acquisition of known results.
-2. Assemble the 41-band QSO training inputs from those results. Verify identities,
+   in each of these two surveys, with no repeated acquisition of known results.
+2. Assemble QSO training inputs from the available results in the 41-band
+   representation, retaining missing-band masks for incomplete surveys. Verify identities,
    quality and association flags, band masks and counts by the frozen spatial
    roles. Review the identified Legacy shared-counterpart rows locally first.
    Unresolved association questions must be stated, not silently passed.
@@ -94,7 +102,7 @@ why local evidence cannot supply it, and the smallest necessary target set.
   paragraphs to several documents.
 - Report acquisition, local assembly and validation separately. Use saved
   output counts and measured timings; a running process alone is not progress.
-- Continue authorized routine work when acquisition resumes; do not repeatedly
+- Continue the authorized two-survey acquisition; do not repeatedly
   ask for permission. Preserve the explicit readiness gate before retraining.
 
 Evidence: [local reconciliation](docs/PREPARATION_RECONCILIATION_2026-09-28.json).

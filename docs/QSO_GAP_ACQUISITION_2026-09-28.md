@@ -1,7 +1,7 @@
 # Five-survey QSO gap acquisition
 
 Current operational status is maintained in [PROJECT_STATE.md](../PROJECT_STATE.md).
-Acquisition is paused. The Legacy bulk count audit is stopped and its
+Current authorization is AllWISE and Pan-STARRS only, then stop. The Legacy bulk count audit is stopped and its
 cross-release counts must not be used as training ambiguity masks. Status
 statements below describe earlier preparation stages.
 
@@ -74,7 +74,7 @@ those measurements were also merged into reuse, leaving one positional fallback.
 python scripts/fetch_qso_photometry_gaps.py \
   --cache models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff \
   --inventory models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/local_inventory/2026-09-28 \
-  --surveys allwise nsc skymapper vhs ps1 --first-checkpoints
+  --surveys allwise ps1
 ```
 
 The running log is `/tmp/qso_gap_acquisition.log`; durable status and timings

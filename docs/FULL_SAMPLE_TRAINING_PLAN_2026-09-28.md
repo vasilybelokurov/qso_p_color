@@ -1,7 +1,9 @@
 # Full-sample training preparation — 28 September 2026
 
 Current operational status is maintained in [PROJECT_STATE.md](../PROJECT_STATE.md).
-Acquisition is paused. The Legacy bulk count audit is stopped and its
+Acquisition is authorized for AllWISE and Pan-STARRS only, then stop. Existing
+NSC, SkyMapper and VHS measurements remain usable; further acquisition for
+those surveys is outside the current scope. The Legacy bulk count audit is stopped and its
 cross-release counts must not be used as training ambiguity masks. Status
 statements below describe earlier preparation stages.
 
