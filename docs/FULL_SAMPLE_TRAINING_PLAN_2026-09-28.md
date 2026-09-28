@@ -24,6 +24,42 @@ Every eligible target is visited; its 50,000-row batch size only controls query
 size and restart checkpoints. Raw nearest matches still require association
 and hemisphere checks before they become training measurements.
 
+The next preparation stage is now running through
+`scripts/prepare_stellar_sample.py --config configs/stellar_preparation.json`.
+Cache `2d43d81d0b5f2af0` contains the completed cleaning and spatial-role
+manifests and the accumulating photometry and area measurements. Cleaning
+retained 2,978,857 entries: 67,609 failed the hemisphere/latitude rule, 74 were
+duplicate catalogue keys, and 6,519 matched known quasars. There are no duplicate
+catalogue keys across retained regions. Negative fluxes and single-band objects
+are retained; no flux, magnitude or random-count cut was added.
+
+The spatial geometry is frozen before fitting: 9 northern and 40 southern test
+cones; 34/112 northern/southern fitting cones; 8/26 selection cones; and 10/35
+calibration cones. The added northern nside=4 test cells are 5, 12, 24, 28 and
+94. All historical test cells and cones remain reserved. Among 12,121 historical
+held-out QSO positions matching current eligible targets, none was reassigned
+outside the test role. Current QSO role counts are 854,202 fit, 195,058 select,
+239,371 calibration and 368,813 test. After model selection, the final shape fit
+uses fit plus selection roles, as specified below. Coverage certification remains
+pending; a fixed geometry does not establish that every band is supported.
+
+The stellar pipeline now performs seven-survey matching and area measurement
+concurrently. Survey measurements with multiple eligible associations or a
+catalogue source shared between distinct targets are masked in the prepared
+photometry, with raw values and ambiguity flags retained. Legacy measurements
+come directly from the selected catalogue entries. Areas use actual mask and
+exposure images and the union of g, r and z coverage, rather than requiring r.
+These are the Legacy population-selection areas; external-survey footprints
+and band-specific detection completeness require separate treatment. The final
+coverage report explicitly retains that limitation.
+
+`scripts/audit_qso_associations.py --watch --cache
+models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff` audits QSO
+batches as they arrive. It checks association counts, separations, hemisphere
+consistency and catalogue sources shared across the full target set. Its flags
+must enter final photometry assembly; the raw acquisition caches are preserved.
+Both jobs checkpoint their results and produce reports without launching fits.
+
 ## 1. What changes
 
 Use all eligible quasars from the combined SDSS DR16Q and DESI DR1 catalogues.

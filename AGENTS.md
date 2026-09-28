@@ -42,6 +42,12 @@ samples or validated model artifacts. See
 `docs/FULL_SAMPLE_PREPARATION_STATUS_2026-09-28.json` for outstanding checks. The wider
 stellar cone caches have an r-flux floor and require fresh source queries.
 The user requires a readiness report before any retraining is launched.
+`scripts/prepare_stellar_sample.py` now runs cleaning, spatial roles, photometry
+and Legacy any-optical-band area measurements with `configs/stellar_preparation.json`.
+`scripts/audit_qso_associations.py` checks arriving QSO batches independently.
+The stellar sample has 2,978,857 cleaned entries and northern/southern test
+regions. Geometry is fixed; per-band coverage and external-survey area precision
+are not certified by that fact. Preparation jobs never launch model fits.
 
 **Earlier Legacy-only recovery status (2026-09-28).** The Legacy DR9 PSF baseline in
 `models/legacy_psf_xdqso/current` is available through `XDQSOBaseline` for

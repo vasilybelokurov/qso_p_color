@@ -26,10 +26,63 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "QSO seven-survey photometry (download launched)",
-    "Stellar hemisphere checks, catalogue deduplication, known-QSO removal and seven-survey photometry",
-    "Association and redshift-disagreement audits",
-    "Independent spatial roles, including northern test regions, and usable-area/coverage verification",
-    "Uncapped trainer accounting and final launch report"
-  ]
+    "Complete running QSO and stellar photometry acquisition and association audits",
+    "Complete running Legacy mask/exposure area measurements; external-survey footprints/completeness are not certified by these measurements",
+    "Inspect automatic per-role band-coverage report and expand regions if any band lacks support",
+    "Verify uncapped trainer accounting and issue readiness report before retraining"
+  ],
+  "stellar_preparation_cache": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
+  "stellar_cleaning": {
+    "raw": 3053059,
+    "psf_mask_clean": 3053059,
+    "own_hemisphere_and_latitude": 2985450,
+    "duplicate_catalogue_keys": 74,
+    "known_qso_removed": 6519,
+    "retained": 2978857
+  },
+  "spatial_roles": {
+    "region_counts": {
+      "south:fit": 112,
+      "south:test": 40,
+      "north:calib": 10,
+      "north:fit": 34,
+      "north:test": 9,
+      "south:calib": 35,
+      "south:select": 26,
+      "north:select": 8
+    },
+    "qso_role_counts": {
+      "fit": 854202,
+      "calib": 239371,
+      "select": 195058,
+      "test": 368813
+    },
+    "additional_northern_test_cells": [
+      5,
+      12,
+      24,
+      28,
+      94
+    ],
+    "geometry_frozen_before_fits": true,
+    "coverage_certified": false
+  },
+  "historical_holdout_audit": {
+    "historical_heldout": 14814,
+    "matched_current_eligible": 12121,
+    "matched_not_test": 0,
+    "match_radius_arcsec": 1.0
+  },
+  "stellar_photometry": {
+    "completed": 13,
+    "total": 274,
+    "failed": []
+  },
+  "legacy_selection_areas": {
+    "completed": 13,
+    "total": 274,
+    "failed": []
+  },
+  "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/83594072ae5ffd8e",
+  "tests": "289 passed in 60.65 seconds; /tmp/stellar_full_preparation_tests.log"
 }

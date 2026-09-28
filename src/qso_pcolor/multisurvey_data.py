@@ -215,8 +215,14 @@ def catalogue_photometry(name: str, rows: dict, *, clean: bool, vhs_bad_bits: in
 
 
 def match_catalogue(name: str, ra: np.ndarray, dec: np.ndarray, cache: Path,
-                    *, radius_arcsec: float, refresh: bool = False) -> dict:
-    """Nearest indexed WSDB match; cache identity includes positions and SQL."""
+                    *, radius_arcsec: float, refresh: bool = False,
+                    include_match_count: bool = False) -> dict:
+    """Nearest indexed WSDB match; cache identity includes positions and SQL.
+
+    With ``include_match_count``, retain the number of eligible catalogue rows
+    inside the radius, before choosing the nearest. This is an association
+    diagnostic, not an automatic source-selection cut.
+    """
     import sqlutilpy as sqlutil
 
     if not np.isfinite(radius_arcsec) or radius_arcsec <= 0:
@@ -225,8 +231,9 @@ def match_catalogue(name: str, ra: np.ndarray, dec: np.ndarray, cache: Path,
     if ra.ndim != 1 or ra.shape != dec.shape or not np.isfinite(ra + dec).all():
         raise ValueError("finite one-dimensional coordinates are required")
     spec = SURVEYS[name]
+    count_column = "count(*) OVER () AS match_count, " if include_match_count else ""
     query = f"""SELECT m.idx, x.* FROM mytmptable m LEFT JOIN LATERAL (
-        SELECT {spec.columns},
+        SELECT {count_column}{spec.columns},
           q3c_dist(m.ra,m.dec,c.{spec.ra},c.{spec.dec})*3600 AS match_sep_arcsec
         FROM {spec.table} c
         WHERE q3c_join(m.ra,m.dec,c.{spec.ra},c.{spec.dec},{radius_arcsec}/3600.)
