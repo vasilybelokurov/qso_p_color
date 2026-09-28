@@ -91,6 +91,15 @@ spatially pooled baseline.
 This model accepts **any combination of 41 bands** from seven
 surveys, including infrared-only input:
 
+The evaluator marginalises the same joint distribution for every subset;
+there is no compulsory band. Use `phot.keep_bands(("sdss:u", "allwise:w2"))`
+to choose individual measurements. The default `min_bands=1` accepts a single
+band and flags `no_colour_information`: its colour Bayes factor is one, and
+only population priors can supply a posterior. Separate fitted subset models
+are used only with `MultiSurveyModel.load(..., legacy_field_fits=True)` for
+historical reproduction. The earlier population fits and calibration below
+have not thereby become a validated PSF/spatial multi-survey release.
+
 | survey | bands |
 |---|---|
 | SDSS | *u g r i z* |
@@ -123,7 +132,7 @@ to **67,574** DESI DR1 and SDSS DR16Q quasars drawn flat in redshift, with
 is fitted to every source, of every type, in 24 cones at |*b*| ≥ 25°, with known
 quasars removed and six whole cones reserved.
 
-**How well it works**, measured on 50,746 companions of DESI DR1 quasars that
+**Historical release results** (including dedicated subset field fits), measured on 50,746 companions of DESI DR1 quasars that
 have their own DESI spectra, scored from Legacy *g, r, z, W1, W2*, in sky
 blocks the model never saw (method note §10):
 
@@ -187,10 +196,10 @@ s = model.score(
     blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
     separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
 )[0]
-print(s.log_bayes_factor_qz_bkg)   # +3.91    evidence: quasar at z0 vs the field
-print(s.log_r_per_unit_z)          # -1.75    the ranking statistic
-print(s.p_sameq, s.dz_match_eff)   # 6.5e-03  posterior for the ±2000 km/s window, and its width
-print(s.p_outlier)                 # 1.4e-03  share taken by "unmodelled"
+print(s.log_bayes_factor_qz_bkg)   # +6.68    evidence: quasar at z0 vs the field
+print(s.log_r_per_unit_z)          # -1.24    the ranking statistic
+print(s.p_sameq, s.dz_match_eff)   # 1.077e-02 posterior for the ±2000 km/s window, and its width
+print(s.p_outlier)                 # 2.3e-03  share taken by "unmodelled"
 print(s.qso_ood_sigma_any_z, s.bkg_ood_sigma)   # 0.43 2.33  distance to each model, in sigma
 print(s.reference_band, s.status)  # decals_dr9_south:r ok
 ```

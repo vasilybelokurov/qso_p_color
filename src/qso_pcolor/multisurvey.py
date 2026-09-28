@@ -18,6 +18,7 @@ import numpy as np
 
 from .features import FeatureSet
 from .gaussmix import GaussianMixture
+from .joint_spatial import JointSpatialWeights
 from .multisurvey_data import Photometry, survey_of
 from .qso_model import RedshiftMatch, SlicedColourRedshiftModel
 from .score import PairScore, score_candidates
@@ -134,6 +135,9 @@ def _conditional_min_mahalanobis(mixtures, x, cov, observed, anchor, chunk=2048)
     vs = np.concatenate([m.covs for m in mixtures])
     out = np.full(n, np.nan)
     pattern = obs & (np.arange(d) != anchor)
+    # The colour vector is empty for a single band: its distance is zero.
+    # An entirely unobserved row still has no defined diagnostic.
+    out[obs[:, anchor] & ~pattern.any(axis=1)] = 0.
     ok = obs[:, anchor] & pattern.any(axis=1)
     packed = np.packbits(pattern, axis=1)
     _, inverse = np.unique(packed, axis=0, return_inverse=True)
@@ -184,10 +188,11 @@ def _background_log_prob(model, marginals, x, cov, observed, anchor):
 
 class _ConditionalBackground:
     def __init__(self, model: GaussianMixture, system: str, anchor: int, bounds: np.ndarray,
-                 marginals=()):
+                 marginals=(), spatial=None):
         self.model, self.system, self.anchor = model, system, anchor
         self.labels, self.bounds = model.labels, bounds
         self.marginals = marginals
+        self.spatial = spatial
 
     def check_system(self, system):
         if system != self.system:
@@ -195,8 +200,16 @@ class _ConditionalBackground:
 
     def log_prob(self, x, cov, ref_mag, l_deg, b_deg, *, observed=None, return_level=False):
         obs = np.ones_like(x, bool) if observed is None else observed
-        lp = _background_log_prob(self.model, self.marginals, x, cov, obs, self.anchor)
-        return (lp, np.zeros(len(x))) if return_level else lp
+        if self.spatial is None:
+            lp = _background_log_prob(self.model, self.marginals, x, cov, obs, self.anchor)
+            share = np.zeros(len(x))
+        else:
+            lp, share = np.empty(len(x)), np.empty(len(x))
+            for rows, mixture, weight in self.spatial.groups(self.model, l_deg, b_deg):
+                lp[rows] = conditional_log_prob(mixture, x[rows],
+                    None if cov is None else cov[rows], obs[rows], self.anchor)
+                share[rows] = weight
+        return (lp, share) if return_level else lp
 
     def ood_score(self, x, cov, ref_mag, l_deg, b_deg, *, observed=None):
         """Nearest joint-background component, conditioned on the reference.
@@ -223,8 +236,9 @@ class MultiSurveyScore(PairScore):
 class MultiSurveyModel:
     """A joint quasar model with declared field densities for arbitrary bands.
 
-    Field likelihoods use the joint background unless a saved marginal fit
-    contains every observed band. Each is a normalised conditional density.
+    Field likelihoods marginalise the same joint background for every subset.
+    Separately fitted marginals are retained only for explicitly requested
+    historical reproduction, never selected by the normal scoring path.
 
     Priors are optional, as in the original scorer. A prior pair must explicitly
     identify this transform and reference band; an optical prior is never used
@@ -238,6 +252,8 @@ class MultiSurveyModel:
     background_bounds: np.ndarray
     meta: dict = field(default_factory=dict)
     background_marginals: tuple[GaussianMixture, ...] = ()
+    legacy_field_fits: bool = False
+    spatial_background: JointSpatialWeights | None = None
 
     def __post_init__(self):
         self.reference_priority = tuple(self.reference_priority)
@@ -255,36 +271,54 @@ class MultiSurveyModel:
             if (not marginal.labels or len(set(marginal.labels)) != marginal.n_dim or
                     not set(marginal.labels) <= set(self.transform.bands)):
                 raise ValueError("background marginal must have unique model band labels")
+        if self.spatial_background is not None:
+            if self.legacy_field_fits:
+                raise ValueError("spatial backgrounds require the single joint field model")
+            if len(self.spatial_background.global_weights) != self.background.n_components:
+                raise ValueError("spatial weights and background components disagree")
 
     def background_log_prob(self, x: np.ndarray, cov: np.ndarray | None,
-                            observed: np.ndarray, anchor: int) -> np.ndarray:
+                            observed: np.ndarray, anchor: int, *,
+                            l_deg: np.ndarray | None = None,
+                            b_deg: np.ndarray | None = None) -> np.ndarray:
         """Field log density per observed non-reference luptitude volume.
 
-        Inputs follow the saved full band schema. Declared marginal fits apply
-        only when they contain every observed band, including the reference.
+        Inputs follow the saved full band schema. Missing coordinates are
+        integrated out, including their noise-covariance rows and columns.
         """
-        return _background_log_prob(self.background, self.background_marginals,
-                                    x, cov, observed, anchor)
+        if self.spatial_background is not None and (l_deg is None or b_deg is None):
+            raise ValueError("Galactic coordinates are required by the spatial background")
+        return _ConditionalBackground(self.background, self.qso.system, anchor,
+            self.background_bounds, self._field_marginals, self.spatial_background).log_prob(
+                x, cov, x[:, anchor], l_deg, b_deg, observed=observed)
+
+    @property
+    def _field_marginals(self):
+        return self.background_marginals if self.legacy_field_fits else ()
 
     @property
     def transform_id(self) -> str:
         return hashlib.sha256(json.dumps(self.transform.to_dict(), sort_keys=True).encode()).hexdigest()
 
     def score(self, photometry: Photometry, *, z_primary: np.ndarray,
-              match: RedshiftMatch, min_bands: int,
+              match: RedshiftMatch, min_bands: int = 1,
               l_deg: np.ndarray, b_deg: np.ndarray,
               priors: dict | None = None, flux_covariance: np.ndarray | None = None,
               outlier: "MultiSurveyOutlier | None" = None,
               **kwargs) -> list[MultiSurveyScore]:
         """Score arbitrary survey subsets; ``min_bands`` counts measured bands.
 
-        With two measured bands there is one colour. The caller supplies the
-        minimum explicitly rather than silently rejecting infrared-only input.
+        Any nonempty subset is accepted by default. With one measured band the
+        colour likelihood is one and any posterior comes only from population
+        priors at that magnitude. The ``no_colour_information`` flag records
+        this case. A caller may explicitly require more measurements.
         Candidate blend policy and measurements are forwarded to the original
         scorer. Priors map an anchor label to (GridQSOPrior, BackgroundDensity).
         """
-        if min_bands < 2:
-            raise ValueError("colour evidence requires at least two measured bands")
+        if (isinstance(min_bands, (bool, np.bool_)) or
+                not isinstance(min_bands, (int, np.integer)) or
+                not 1 <= min_bands <= len(self.transform.bands)):
+            raise ValueError("min_bands must be an integer between one and the model band count")
         if kwargs.get("outlier_model") is not None:
             raise ValueError(
                 "an unconditional outlier model has the wrong units for the conditional "
@@ -301,6 +335,7 @@ class MultiSurveyModel:
         for a in np.unique(anchor):
             rows = np.flatnonzero(anchor == a)
             fs = features.subset(rows)
+            fs.flags["no_colour_information"] = fs.observed.sum(axis=1) == 1
             label = features.labels[a]
             fs.ref_mag = fs.x[:, a].copy()
             aligned = photometry.align(features.labels)
@@ -341,22 +376,30 @@ class MultiSurveyModel:
                 qso_model=_ConditionalQSO(self.qso, int(a)),
                 background_model=_ConditionalBackground(self.background, self.qso.system,
                                                         int(a), self.background_bounds,
-                                                        self.background_marginals),
+                                                        self._field_marginals,
+                                                        self.spatial_background),
                 match=match, min_bands=min_bands, qso_prior=qprior, background_density=density,
                 **local)
             for i, score in zip(rows, scores):
+                if self.spatial_background is not None:
+                    score.background_model_mode = ("local" if "local_scope" in
+                        self.spatial_background.meta else "spatial")
+                    score.background_nside = self.spatial_background.nside
                 used = tuple(b for b, ok in zip(features.labels, features.observed[i]) if ok)
-                result[i] = MultiSurveyScore(**asdict(score), reference_band=label,
+                result[i] = MultiSurveyScore(**asdict(score), reference_band=label if used else "",
                     bands_used=used, surveys_used=tuple(sorted({survey_of(b) for b in used})))
         return result
 
     def to_dict(self) -> dict:
-        return dict(kind="multisurvey_conditional_photometry", version=2 if self.background_marginals else 1,
+        return dict(kind="multisurvey_conditional_photometry", version=3,
                     qso=self.qso.to_dict(), background=self.background.to_dict(),
                     transform=self.transform.to_dict(),
                     reference_priority=list(self.reference_priority),
                     background_bounds=self.background_bounds.tolist(), meta=self.meta,
-                    background_marginals=[m.to_dict() for m in self.background_marginals])
+                    background_marginals=[m.to_dict() for m in self.background_marginals],
+                    legacy_field_fits=self.legacy_field_fits,
+                    spatial_background=(None if self.spatial_background is None else
+                                        self.spatial_background.to_dict()))
 
     def save(self, path: str | Path) -> None:
         path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
@@ -369,9 +412,10 @@ class MultiSurveyModel:
                 tmp.unlink()
 
     @classmethod
-    def load(cls, path: str | Path) -> MultiSurveyModel:
+    def load(cls, path: str | Path, *, legacy_field_fits: bool = False) -> MultiSurveyModel:
+        """Load the joint model; historical subset-fit routing requires opt-in."""
         d = json.loads(Path(path).read_text())
-        if d.get("kind") != "multisurvey_conditional_photometry" or d.get("version") not in (1, 2):
+        if d.get("kind") != "multisurvey_conditional_photometry" or d.get("version") not in (1, 2, 3):
             raise ValueError("unsupported multisurvey model format")
         tr = d["transform"]
         if tr.get("kind")!="native_band_luptitudes" or tr.get("dereddened") is not False:
@@ -380,7 +424,10 @@ class MultiSurveyModel:
                    GaussianMixture.from_dict(d["background"]),
                    BandLuptitudeTransform(tuple(tr["bands"]), np.array(tr["softening"])),
                    tuple(d["reference_priority"]), np.array(d["background_bounds"]), d["meta"],
-                   tuple(GaussianMixture.from_dict(m) for m in d.get("background_marginals", [])))
+                   tuple(GaussianMixture.from_dict(m) for m in d.get("background_marginals", [])),
+                   legacy_field_fits,
+                   None if d.get("spatial_background") is None else
+                   JointSpatialWeights.from_dict(d["spatial_background"]))
 
 
 def load_priors(path: str | Path, model: MultiSurveyModel) -> dict:
@@ -400,6 +447,7 @@ def load_priors(path: str | Path, model: MultiSurveyModel) -> dict:
         reference is one of them get the no-prior status.
     """
     from .priors import BackgroundSurfaceDensity, GridQSOPrior
+    from .spatial import SpatialSurfaceDensity
 
     d = json.loads(Path(path).read_text())
     if d.get("kind") != "multisurvey_priors":
@@ -407,7 +455,8 @@ def load_priors(path: str | Path, model: MultiSurveyModel) -> dict:
     if d["transform_id"] != model.transform_id:
         raise ValueError("priors were built for a different luptitude transform")
     return {label: (GridQSOPrior.from_dict(e["qso_prior"]),
-                    BackgroundSurfaceDensity.from_dict(e["background_density"]))
+                    (SpatialSurfaceDensity if e["background_density"].get("kind") ==
+                     "spatial_surface_density" else BackgroundSurfaceDensity).from_dict(e["background_density"]))
             for label, e in d["anchors"].items()}
 
 

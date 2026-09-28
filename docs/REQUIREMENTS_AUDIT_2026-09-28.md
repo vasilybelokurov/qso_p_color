@@ -1,5 +1,15 @@
 # Implementation against the scientific requirements
 
+**Scope correction:** the user requires arbitrary subsets of **all 41 bands
+across seven surveys**, with straightforward marginalisation of one joint
+model. The five-band restoration described below is only a partial recovery.
+The multi-survey evaluator now supports every nonempty subset, including one
+band (no colour information), and spatial weights applied before marginalising.
+The old subset-specific field-fit routing is confined to explicit historical
+reproduction. PSF-selected training artifacts, matched spatial count priors,
+and local refits must be connected to this same 41-band path before the full
+restoration is described as complete.
+
 This is a requirements audit, not a new method write-up. Its reference is the
 original specification, the explicit PSF-source restriction, and the user's
 requirement for both a survey-wide HEALPix background and a candidate-local

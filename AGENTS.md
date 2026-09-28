@@ -43,6 +43,17 @@ retired Legacy-only model; their rules still hold, their file names are archived
 **Commit and push after every tested step.** Run the suite to a file, commit
 only if it passed (8b), then `git push origin main`.
 
+**Full band requirement (28 September, clarified by the user).** The recovery
+must support any nonempty subset of all 41 bands from the seven surveys, by
+marginalising one joint model. A Legacy-only optical repair is insufficient.
+`MultiSurveyModel` now defaults to joint marginalisation, accepts single-band
+input with `no_colour_information`, and supports shared-shape HEALPix weights
+through `JointSpatialWeights`. Dedicated subset fits require explicit
+`legacy_field_fits=True` for historical reproduction. This code restoration
+does not certify the earlier all-morphology multi-survey artifacts as a PSF
+release. PSF selection, spatial surface densities and candidate-local refitting
+remain part of the same recovery contract; keep their artifact status explicit.
+
 ---
 
 ## 1. The question

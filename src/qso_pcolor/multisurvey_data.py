@@ -143,6 +143,22 @@ class Photometry:
         idx = [i for i, b in enumerate(self.bands) if survey_of(b) in surveys]
         return Photometry(self.flux[:, idx], self.variance[:, idx], tuple(self.bands[i] for i in idx))
 
+    def keep_bands(self, bands: tuple[str, ...]) -> Photometry:
+        """Select any named input bands, preserving the requested order and units.
+
+        This only selects measurements; it neither fits a new model nor fills
+        missing measurements. Empty selections are allowed as input records and
+        receive ``insufficient_photometry`` when scored.
+        """
+        bands = tuple(bands)
+        if len(set(bands)) != len(bands):
+            raise ValueError("duplicate selected band labels")
+        absent = set(bands) - set(self.bands)
+        if absent:
+            raise ValueError(f"selected bands absent from input: {sorted(absent)}")
+        indices = [self.bands.index(b) for b in bands]
+        return Photometry(self.flux[:, indices], self.variance[:, indices], bands)
+
 
 def catalogue_photometry(name: str, rows: dict, *, clean: bool, vhs_bad_bits: int) -> Photometry:
     """Convert a WSDB result, preserving negative raw flux and its variance.

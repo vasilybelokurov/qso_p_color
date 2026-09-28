@@ -37,6 +37,21 @@
 \begin{document}
 \maketitle
 
+\paragraph{Arbitrary-band implementation (28 September 2026).}
+The multi-survey evaluator now uses the same joint Gaussian mixture for every
+nonempty subset of the 41 survey-labelled bands. For observed coordinates $O$,
+each component uses $\mu_{k,O}$ and $(V_k+S)_{OO}$; missing coordinates are
+integrated out, without refitting or switching to a separately fitted subset
+model. Conditional colour density is $p(\uvec_O)/p(u_a)$ for an observed
+reference $a$. A single band therefore has unit colour likelihood and zero
+colour Bayes factor in log space; population priors may still supply magnitude
+information. Empty inputs remain unscored. Spatial component proportions are
+chosen at $(l,b)$ before the same marginalisation and conditioning. Historical
+dedicated-subset routing requires explicit opt-in for reproduction. The
+previously shipped multi-survey field, priors and outlier calibration were
+fitted before this change: the corrected integration path is not by itself a
+validation of those population fits or a PSF-selected release.
+
 \section*{Legacy PSF baseline: recovery and scoring scope (28 September 2026)}
 \paragraph{Spatial implementation restored.}
 The current PSF scorer now supports a survey-wide HEALPix background and a

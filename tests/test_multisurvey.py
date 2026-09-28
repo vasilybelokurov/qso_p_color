@@ -107,6 +107,7 @@ def synthetic_model():
 
 def test_background_marginal_routing_against_gaussian_conditioning():
     model = synthetic_model()
+    model.legacy_field_fits = True
     labels = ('decals_dr9_south:r', 'decals_dr9_south:g')  # reverse input order
     marginal = GaussianMixture(np.ones(1), np.array([[20., 21.]]),
                                np.array([[[.5, .2], [.2, .8]]]), labels)
@@ -129,6 +130,7 @@ def test_background_marginal_routing_against_gaussian_conditioning():
 
 def test_background_marginal_public_scorer_and_serialisation(tmp_path):
     model = synthetic_model()
+    model.legacy_field_fits = True
     labels = ('decals_dr9_south:g','decals_dr9_south:r','decals_dr9_south:z')
     phot = Photometry([[3.,5.,7.]],[[.01,.01,.01]],labels)
     kwargs = dict(z_primary=np.array([1.5]), l_deg=np.array([180.]), b_deg=np.array([45.]),
@@ -136,7 +138,8 @@ def test_background_marginal_public_scorer_and_serialisation(tmp_path):
     original = model.score(phot,**kwargs)[0]
     model.background_marginals = (GaussianMixture(np.ones(1),np.array([[21.,20.,19.]]),
                                                    np.diag([.3,.4,.5])[None],labels),)
-    path = tmp_path/'model.json'; model.save(path); restored = MultiSurveyModel.load(path)
+    path = tmp_path/'model.json'; model.save(path)
+    restored = MultiSurveyModel.load(path, legacy_field_fits=True)
     result = restored.score(phot,**kwargs)[0]
     f = restored.transform(phot); g,r,z = [f.labels.index(b) for b in labels]
     expected = (norm.logpdf(f.x[0,r],20.,np.sqrt(.4+f.cov[0,r,r])) +
