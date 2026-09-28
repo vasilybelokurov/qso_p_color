@@ -11,11 +11,28 @@ says *what to do*.
 commit.** A write-up that describes a previous version of the code is worse
 than none.
 
-**There is one model** (2026-09-26): `MultiSurveyModel` in
+**Current recovery status (2026-09-28).** The Legacy DR9 PSF baseline in
+`models/legacy_psf_xdqso/current` is available through `XDQSOBaseline` for
+guarded exploratory ranking. Its full release validation **fails** the
+observable-field tails and quasar score-stability checks. The north remains
+provisional. Read `docs/RECOVERY_2026-09-28.md` and
+`docs/VALIDATION_legacy_psf_xdqso_recovery.json` before declaring it validated.
+The old `PASS` report checked fewer requirements. Do not promote diagnostic
+continuation fits or alter immutable bundle files to erase these failures.
+
+For this baseline, `score_rows` requires an excluding `BlendPolicy` with finite
+separation and fracflux limits, and a positive finite `ood_flag_sigma`.
+Missing blend measurements exclude the row. Outside both models, posteriors and
+`log_r_per_unit_z` are NaN, with diagnostic likelihoods and distances retained.
+Use only `decision['eligible']` rows for ranking. Validation policy is recorded
+in `configs/legacy_baseline.json`, not hidden in source defaults.
+
+**The earlier multi-survey release** (2026-09-26) is `MultiSurveyModel` in
 `models/multisurvey.json`, with `models/multisurvey_priors.json` and
 `models/multisurvey_outlier.json`. It takes any subset of 41 bands from seven
-surveys. Everything else under `models/` is in `models/archive/` and is not a
-model to score with (section 10). Milestones M1–M7 below are the history of the
+surveys. It remains available for other survey combinations, with the field-model
+limitations in `docs/FIELD_MODEL_FINDINGS.md`. Models in `models/archive/` are
+provenance and comparison artifacts (section 10). Milestones M1–M7 below are the history of the
 retired Legacy-only model; their rules still hold, their file names are archived.
 
 **Commit and push after every tested step.** Run the suite to a file, commit
@@ -659,7 +676,7 @@ n_bands_used, status, quality_flags, model_manifest_id
 `status` values in use: `ok`, `insufficient_photometry`,
 `no_prior_posterior_unavailable`, `qso_prior_empty_at_this_magnitude`,
 `primary_z_outside_model_support`, `window_outside_model_support`,
-`blended_not_scored`. Add to this list
+`blended_not_scored`, and (in the XDQSO science interface) `outside_both_models`. Add to this list
 rather than returning a silent number. Quality flag `outside_both_models` is
 set only when the caller passes `ood_flag_sigma` (no default: rule 2).
 
@@ -747,11 +764,11 @@ pager's.
 - When the answer depends on a choice nobody has measured, measure it and put
   the number in `JOURNAL.md`. Do not pick a default and move on.
 
-## 10. The model (2026-09-26)
+## 10. The earlier multi-survey release (2026-09-26)
 
 `models/multisurvey.json` (run `22820c906d75`; quasar and joint field fits from
 `d1f7f0f7cc78`, training config `configs/multisurvey_lsw.json`) is the only
-model. It was promoted after it matched or beat the retired Legacy-only model
+multi-survey release. It was promoted after it matched or beat the retired Legacy-only model
 on that model's own validation, on identical rows (method note §10.3):
 held-out same/wrong-z AUC by log R 0.828 vs 0.815, quasar/star 0.982 vs 0.988.
 

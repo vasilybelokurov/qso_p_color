@@ -1,5 +1,16 @@
 # Legacy-PSF baseline: what we are building and why (2026-09-27)
 
+**Recovery update, 2026-09-28:** the full validation now **FAILS**. The original
+PASS below is historical and omitted the tail and quasar score-stability
+checks. The science interface now excludes missing blend information and
+objects outside both fitted populations. See
+[the recovery report](RECOVERY_2026-09-28.md) and
+[the complete validation](VALIDATION_legacy_psf_xdqso_recovery.json).
+The bundle is retained for guarded exploratory ranking; the diagnostic fits
+have not been promoted. Future PSF training uses the shared selection,
+including release 9012 and per-band exposure masks; the published quasar
+sample predates that correction.
+
 This replaces the design parts of `docs/PLAN_FIELD_MODEL.md` (§§1–9). That file
 is kept as a record of how we got here. Its §8 lists what went wrong on the
 first attempt.

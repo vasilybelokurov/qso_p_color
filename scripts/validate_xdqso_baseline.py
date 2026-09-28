@@ -12,17 +12,20 @@ ranking      DESI companions accepted by the bundle's selection, scored by the
              quasar vs star and quasar vs PSF galaxy (ln BF), against both.
 numerics     an uninformative W2 changes ln R by < 1e-3.
 normalise    the PSF prior integral equals C x the weighted PSF count / area.
-continuation each field bin's selected mixture, continued 200 EM iterations under
-             its own non-quasar weights: held-out mean log density changes < 0.01.
+continuation original field rows with refreshed non-quasar weights, plus exact-row
+             quasar continuation from check_xdqso_continuation.py; likelihood and
+             companion score stability are both measured.
+tails        full observable field, including unrecognised quasars and noise.
+             Missing measurements cannot count as a passing gate.
 
-Not yet implemented here: the coarse tails check (listed as such in the report).
-Reported, not gated: counts, retention by z, per-hemisphere / magnitude strata.
-
-    python scripts/validate_xdqso_baseline.py --bundle models/legacy_psf_xdqso/<id>
+    python scripts/validate_xdqso_baseline.py --bundle models/legacy_psf_xdqso/current \
+        --quasar-continuation /tmp/qso-continuation --output docs/VALIDATION_recovery.json
 """
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor
+from copy import copy
 import json
 import sys
 import time
@@ -35,10 +38,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from validate_pairs import auc_rank, validation_labels  # noqa: E402
 from validate_legacy_baseline import (block_bootstrap, contamination_at_retention,  # noqa: E402
                                       ranking_metrics, score_current)
-
-GATES = dict(delta_auc_lower=-0.01, numerics_max=1e-3, normalisation_rel=1e-3,
-             continuation=0.01, tails_factor=2.0, tails_sigma=3.0, tails_min_expected=20.0)
-
 
 def companions(cfg, bl, args):
     from qso_pcolor.background import galactic_healpix
@@ -107,10 +106,21 @@ def main():
     ap.add_argument("--max-fracflux", type=float, default=0.2)
     ap.add_argument("--max-non-qso", type=int, default=60000)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--continuation", type=int, default=200)
-    ap.add_argument("--tail-draws", type=int, default=3)
+    ap.add_argument("--continuation", type=int)
+    ap.add_argument("--tail-draws", type=int)
+    ap.add_argument("--quasar-continuation", type=Path,
+                    help="directory written by check_xdqso_continuation.py; absent means FAIL")
+    ap.add_argument("--output", type=Path, required=True)
+    ap.add_argument("--continuation-cache", type=Path,
+                    help="optional cache keyed on the exact fit arrays, weights, mixture and code")
     args = ap.parse_args()
     cfg = json.loads(args.config.read_text())
+    vc = cfg["recovery_validation"]
+    gates = vc["gates"]
+    args.continuation = vc["continuation_iterations"] if args.continuation is None else args.continuation
+    args.tail_draws = vc["tail_draws"] if args.tail_draws is None else args.tail_draws
+    if args.continuation < vc["continuation_iterations"] or args.tail_draws < vc["tail_draws"]:
+        raise ValueError("validation cannot shorten the configured continuation or tail experiment")
 
     from qso_pcolor.baseline import XDQSOBaseline
     from qso_pcolor.legacy import dereddened_relative_fluxes
@@ -118,10 +128,14 @@ def main():
     from qso_pcolor.score import BlendPolicy, score_candidates
 
     bl = XDQSOBaseline.load(args.bundle)
-    report = dict(bundle=bl.bundle_id, gates=GATES, built=time.strftime("%Y-%m-%d %H:%M"),
-                  status=bl.manifest.get("status"))
+    report = dict(bundle=bl.bundle_id, gates=gates, built=time.strftime("%Y-%m-%d %H:%M"),
+                  status=bl.manifest.get("status"), scoring_policy=cfg["science_scoring"],
+                  arguments={k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()})
     t0 = time.time()
     c = companions(cfg, bl, args)
+    held = c["role"] == "test"
+    c = {k: ({kk: vv[held] for kk, vv in v.items()} if k == "rows" else v[held])
+         for k, v in c.items()}
     policy = BlendPolicy(min_separation_arcsec=args.min_sep, max_fracflux=args.max_fracflux)
     match = RedshiftMatch(half_width_kms=args.half_width_kms)
     base, dec = bl.score_rows(c["rows"], z_primary=c["zp"], match=match, separation_arcsec=c["sep"],
@@ -158,7 +172,7 @@ def main():
                            for a, b in ((17, 20), (20, 21.5), (21.5, 22.5))}
         report["ranking"][name] = entry
         for k in ("same_vs_field_log_r", "quasar_vs_star_log_bf", "quasar_vs_galaxy_log_bf"):
-            checks[f"{name}:{k}"] = bool(entry[f"delta_{k}"]["ci95"][0] > GATES["delta_auc_lower"])
+            checks[f"{name}:{k}"] = bool(entry[f"delta_{k}"]["ci95"][0] > gates["delta_auc_lower"])
         print(f"[vs {name}] n(same, field, star, gal) {mb['n']}: " + "; ".join(
             f"{k.split('_log')[0]} {mb[k]:.3f} vs {mr[k]:.3f} (d {entry['delta_' + k]['value']:+.3f} "
             f"[{entry['delta_' + k]['ci95'][0]:+.3f},{entry['delta_' + k]['ci95'][1]:+.3f}])"
@@ -180,7 +194,7 @@ def main():
     lb = np.array([s.log_r_per_unit_z for s in score_candidates(b_, **kw)])
     d = np.abs(la - lb)[np.isfinite(la - lb)]
     report["numerics"] = dict(n=int(d.size), max_abs=float(d.max()))
-    checks["numerics"] = bool(d.max() < GATES["numerics_max"])
+    checks["numerics"] = bool(d.max() < gates["numerics_max"])
     print(f"numerics: dropped vs uninformative W2, max |d lnR| {d.max():.2e}", flush=True)
 
     # -- normalisation, recomputed from the data
@@ -206,15 +220,20 @@ def main():
                               gq.mag_edges, pcells[h].sum() * pix_area)
         rel = abs(integrate(gq.sigma, z_edges, gq.mag_edges, lo, hi) / (C * integrate(raw, z_edges, gq.mag_edges, lo, hi)) - 1)
         report["normalisation"][h] = dict(relative_error=rel, retention=gq.meta.get("retention_point_over_all"))
-        checks[f"normalisation:{h}"] = bool(rel < GATES["normalisation_rel"])
+        checks[f"normalisation:{h}"] = bool(rel < gates["normalisation_rel"])
         print(f"[{h}] normalisation rel error {rel:.1e}; PSF/all quasar retention {gq.meta.get('retention_point_over_all'):.3f}", flush=True)
 
-    # -- continuation of the selected field fits under their own non-quasar weights
+    # -- same fit/select rows; final responsibility weights were not saved.
+    # Recompute at the published model: this is a fixed-point check, not a
+    # claim to have recovered the weights from the preceding outer iteration.
     import fit_legacy_psf_xdqso as X
     from fit_legacy_baseline import load_field
-    from qso_pcolor.xd import fit_xd
+    from qso_pcolor.gaussmix import GaussianMixture
+    from xdqso_recovery_checks import continue_field_bin, field_checks
     rows_f, cones, cone_area, w_cone, _, design = load_field(cfg, root, bl.selection)
     report["continuation"] = {}
+    jobs = []
+    continued_parts = {h: dict(p) for h, p in bl.parts.items()}
     for h, p in bl.parts.items():
         hemi = np.array([cones[int(cc)]["hemisphere"] for cc in rows_f["cone"]])
         sub = {k: v[hemi == h] for k, v in rows_f.items()}
@@ -227,9 +246,9 @@ def main():
         sigma_b = p["background_density"](0.5 * (p["background_density"].mag_edges[1:] + p["background_density"].mag_edges[:-1]),
                                          np.zeros(p["background_density"].mag_edges.size - 1),
                                          np.full(p["background_density"].mag_edges.size - 1, 90.0))
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng(cfg["seed"])
         fit = dom & (role == "fit"); sel_r = dom & (role == "select")
-        for mask, cap in ((fit, 60000), (sel_r, 30000)):
+        for mask, cap in ((fit, cfg["xdqso"]["max_fit"]), (sel_r, cfg["xdqso"]["max_select"])):
             ii = np.flatnonzero(mask)
             if ii.size > cap:
                 mask[:] = False; mask[rng.choice(ii, cap, replace=False)] = True
@@ -242,22 +261,79 @@ def main():
                                  fsf.ref_mag[need])
         wn = w * (1 - r)
         imag = np.clip(np.digitize(fsf.ref_mag, X.MAG_EDGES) - 1, 0, len(mix) - 1)
-        worst = 0.0
         for mb, mx in enumerate(mix):
             a, b = fit & (imag == mb), sel_r & (imag == mb)
-            reg = p["background"].meta["per_bin"][mb]["selected_floor"]
-            res = fit_xd(fsf.x[a], fsf.cov[a], observed=fsf.observed[a], weights=wn[a], init=mx,
-                         max_iter=args.continuation, tol=0.0, regularization=reg, labels=fsf.labels)
-            s0 = np.average(mx.log_prob(fsf.x[b], fsf.cov[b], observed=fsf.observed[b]), weights=wn[b])
-            s1 = np.average(res.mixture.log_prob(fsf.x[b], fsf.cov[b], observed=fsf.observed[b]), weights=wn[b])
-            worst = max(worst, abs(s1 - s0))
-        report["continuation"][h] = dict(iterations=args.continuation, max_abs_delta_select=worst)
-        checks[f"continuation:{h}"] = bool(worst < GATES["continuation"])
-        print(f"[{h}] continuation {args.continuation} it: max |d held-out log density| {worst:.4f} nats/obj", flush=True)
+            saved = p["background"].meta["per_bin"][mb]
+            assert int(a.sum()) == saved["n_fit"] and int(b.sum()) == saved["n_select"]
+            jobs.append((h, mb, mx.to_dict(), fsf.x[a], fsf.cov[a], fsf.observed[a], wn[a],
+                         fsf.x[b], fsf.cov[b], fsf.observed[b], wn[b], saved["selected_floor"], args.continuation,
+                         str(args.continuation_cache) if args.continuation_cache else None))
+    with ProcessPoolExecutor(vc["workers"]) as pool:
+        for h, mb, result in pool.map(continue_field_bin, jobs):
+            report["continuation"].setdefault(h, {})[str(mb)] = result
+            print(f"[{h}] field bin {mb}: select delta {result['delta_select']:+.5f}", flush=True)
+    for h, p in bl.parts.items():
+        rows = report["continuation"][h]
+        bg = copy(p["background"])
+        bg.global_ = [GaussianMixture.from_dict(rows[str(j)].pop("mixture")) for j in range(len(bg.global_))]
+        continued_parts[h]["background"] = bg
+        checks[f"field_continuation:{h}"] = all(abs(r["delta_select"]) < gates["continuation"] for r in rows.values())
+    report["field_continuation_scope"] = "Original rows and seed; weights refreshed at the published model. Original final-fit weights were not saved."
 
+    def score_change(parts):
+        continued = copy(bl); continued.parts = parts
+        rows, decision = continued.score_rows(c["rows"], z_primary=c["zp"], match=match,
+            separation_arcsec=c["sep"], fracflux=c["rows"]["fracflux_r"], blend_policy=policy,
+            ood_flag_sigma=cfg["science_scoring"]["ood_flag_sigma"])
+        after = np.array([s.log_r_per_unit_z if s is not None else np.nan for s in rows])
+        before = np.array([s.log_r_per_unit_z if s is not None else np.nan for s in base])
+        good = np.isfinite(before) & np.isfinite(after)
+        delta = after[good] - before[good]
+        return dict(n=int(good.sum()), median_abs_delta_log_r=float(np.median(np.abs(delta))),
+                    p95_abs_delta_log_r=float(np.percentile(np.abs(delta), 95)),
+                    eligibility_changes=int(np.sum(decision["eligible"] != el)),
+                    by_hemisphere={h: dict(n=int(np.sum(good & (dec["hemisphere"] == h))),
+                        median_abs_delta_log_r=float(np.median(np.abs(
+                            after[good & (dec["hemisphere"] == h)] - before[good & (dec["hemisphere"] == h)]))))
+                        for h in bl.parts if np.any(good & (dec["hemisphere"] == h))})
+
+    report["field_score_stability"] = score_change(continued_parts)
+    checks["field_score_stability"] = report["field_score_stability"]["median_abs_delta_log_r"] < gates["median_abs_delta_log_r"]
+    checks["quasar_continuation_available"] = args.quasar_continuation is not None
+    if args.quasar_continuation is not None:
+        from qso_pcolor.qso_model import SlicedColourRedshiftModel
+        qr = json.loads((args.quasar_continuation / "report.json").read_text())
+        if qr["bundle"] != bl.bundle_id:
+            raise ValueError("quasar continuation belongs to another bundle")
+        report["quasar_continuation"] = qr
+        qp = {h: dict(p) for h, p in bl.parts.items()}
+        for h in qp:
+            qp[h]["qso"] = SlicedColourRedshiftModel.load(args.quasar_continuation / f"{h}_continued_qso.json")
+            rows = qr["hemispheres"][h]
+            if (len(rows) != len(bl.parts[h]["qso"].mixtures)
+                    or {row["slice"] for row in rows} != set(range(len(rows)))
+                    or any(row["iterations"] < vc["continuation_iterations"] for row in rows)
+                    or qp[h]["qso"].meta.get("diagnostic_continuation", 0) < vc["continuation_iterations"]):
+                raise ValueError("quasar continuation must cover every slice for the declared iterations")
+            checks[f"quasar_continuation:{h}"] = all(
+                row["held"]["n"] > 0 and abs(row["held"]["mean_delta"]) < gates["continuation"]
+                for row in qr["hemispheres"][h])
+        report["quasar_score_stability"] = score_change(qp)
+        checks["quasar_score_stability"] = report["quasar_score_stability"]["median_abs_delta_log_r"] < gates["median_abs_delta_log_r"]
+
+    report["field"] = {}
+    for h in bl.parts:
+        result = field_checks(cfg, bl, h, n_draws=args.tail_draws, seed=cfg["seed"], gates=gates)
+        report["field"][h] = result
+        if result["pass_"] is not None:
+            checks[f"tails:{h}"] = result["pass_"]
+        print(f"[{h}] tails: {result['status']}, pass={result['pass_']}", flush=True)
+    checks["southern_tails_available"] = report["field"]["south"]["pass_"] is not None
     report["verdict"] = dict(checks=checks, pass_=all(checks.values()),
-                             reported_not_gated=["counts", "north ranking (few held-out companions)", "tails (to add)"])
-    out = root / f"validation_xdqso_{bl.bundle_id}.json"
+        scope="Southern ranking baseline; north remains provisional even if the southern gates pass.",
+        reported_not_gated=["counts", "north ranking", "north field tails (no test cones)"])
+    out = args.output
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1, default=float))
     print("verdict: " + ("PASS" if report["verdict"]["pass_"] else "FAIL") + "  " +
           ", ".join(f"{k} {'ok' if v else 'FAIL'}" for k, v in checks.items()))

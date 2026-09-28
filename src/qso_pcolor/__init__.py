@@ -3,7 +3,10 @@
 See ``AGENTS.md`` for the working contract and ``docs/method/method.pdf`` for
 the method.  The short version:
 
-- The model is ``MultiSurveyModel`` (``models/multisurvey.json``) with its
+- The Legacy PSF ranking baseline is ``XDQSOBaseline`` in ``baseline.py``;
+  its guarded science interface requires blend and model-support policies.
+  Full release validation fails; see the recovery report.
+- The earlier multi-survey release is ``MultiSurveyModel`` (``models/multisurvey.json``) with its
   reference-band priors (``load_priors``) and its unmodelled term
   (``MultiSurveyOutlier``): any subset of 41 bands from seven surveys.
 - It weighs four hypotheses — a quasar at the primary's redshift, a quasar at

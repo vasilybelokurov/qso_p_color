@@ -4,6 +4,22 @@
     "ood_flag_sigma": 4.0,
     "why": "Explicit support exclusion for science ranking; distances beyond both models retain diagnostics but no posterior or ln R. This is a selection policy, not a fitted outlier fraction."
   },
+  "recovery_validation": {
+    "tail_distance_edges": [0, 1, 2, 3, 4, 6, 10],
+    "tail_draws": 5,
+    "continuation_iterations": 200,
+    "workers": 4,
+    "gates": {
+      "delta_auc_lower": -0.01,
+      "numerics_max": 0.001,
+      "normalisation_rel": 0.001,
+      "continuation": 0.01,
+      "median_abs_delta_log_r": 0.02,
+      "tails_factor": 2.0,
+      "tails_sigma": 3.0,
+      "tails_min_expected": 20.0
+    }
+  },
   "selection": {
     "morphology": "point",
     "maskbits_zero": true,

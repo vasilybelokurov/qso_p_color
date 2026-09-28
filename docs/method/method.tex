@@ -37,8 +37,8 @@
 \begin{document}
 \maketitle
 
-\section*{Legacy PSF baseline: recovery and scoring scope (27 September 2026)}
-The later Legacy DR9 PSF baseline is distributed separately as
+\section*{Legacy PSF baseline: recovery and scoring scope (28 September 2026)}
+The Legacy PSF baseline is distributed as
 \texttt{models/legacy\_psf\_xdqso/current}. It uses dereddened relative fluxes
 $g/r,z/r,W1/r,W2/r$, quasar slices independent of apparent magnitude, and
 field mixtures in reference-magnitude bins. The multi-survey description below
@@ -56,8 +56,39 @@ intensities and distances remain available for diagnosis, while posteriors and
 $\ln R$ are NaN. The declared validation policy is four standard deviations.
 This defines the population eligible for ranking; it is not a recalibration of
 the outlier density. Every output carries its bundle identifier. The north
-remains provisional, and the original validation PASS omitted a tail check;
-the recovery validation must establish that check separately.
+remains provisional.
+
+\paragraph{Full validation fails.} The original PASS report omitted the coarse
+tail check and the quasar continuation check. The completed observable-field
+test uses $97{,}984$ sources in $39$ reserved southern cones. The model predicts
+about $99$ objects at field-component distances of $6$--$10\sigma$, against
+$38$ observed, and $116$ beyond $10\sigma$, against $25$ observed. Both fail
+the declared factor-of-two and three-standard-deviation criterion. Almost all
+of that predicted far-tail population consists of unrecognised quasars under
+the adopted prior, rather than the broad unmodelled term. This calls for an
+independent check of the contamination correction and quasar population model;
+it does not justify tuning the outlier fraction on the test cones.
+
+Continuing every quasar slice for $200$ iterations on its original training
+rows changes the mean held-out density by at most $0.00533$ nat per object in
+the south, but moves candidate $\ln R$ by a median $0.0281$, exceeding the
+declared $0.02$ stability limit. The northern maximum density change is
+$0.0334$ nat per object. Field continuation, with original rows and refreshed
+non-quasar weights, passes: median $|\Delta\ln R|=0.00653$. Original final-fit
+field weights were not saved, so that check measures fixed-point stability.
+Broad same-redshift ranking remains useful (AUC $0.8304$, against $0.8186$
+for the earlier multi-survey model on identical eligible companions), but the
+bundle is retained only as an experimental ranking baseline. No diagnostic
+fit is promoted. The complete record is
+\texttt{docs/VALIDATION\_legacy\_psf\_xdqso\_recovery.json}.
+
+\paragraph{Training provenance.} The published southern quasar slices used
+release $9010$ only and included lower latitudes. Future PSF fits use the
+shared Legacy selection, including southern release $9012$, the declared
+latitude restriction, and exposure masks in each band; this does not change
+the historical bundle. Quasar colours remain independent of apparent
+magnitude. Surface densities and field mixtures retain their magnitude
+dependence. The clustering correction remains outside this recovery work.
 
 %==============================================================================
 \begin{abstract}
@@ -65,7 +96,7 @@ the recovery validation must establish that check separately.
 A quasar has a spectroscopic redshift $z_0$; a companion a few arcseconds away
 has broadband photometry and nothing else. We want to know how strongly the
 companion's photometry supports the hypothesis that it is a quasar at
-$z\simeq z_0$. This note sets out the single model implemented in
+$z\simeq z_0$. The following sections describe the earlier multi-survey model in
 \texttt{qso\_pcolor}. It accepts any combination of $41$ bands from SDSS,
 Legacy Surveys DR9 (including its forced unWISE $W1$, $W2$), AllWISE,
 Pan-STARRS1, NSC, SkyMapper and VHS, including infrared-only input. Quasars

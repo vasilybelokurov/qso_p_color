@@ -114,6 +114,29 @@ def stack(r, prefix):
     return np.stack([np.asarray(r[f"{prefix}{b}"], float) for b in BANDS], axis=1)
 
 
+def point_training_photometry(rows: dict, hemisphere: str, config: dict):
+    """Apply the declared Legacy selection and band masks to a future PSF fit.
+
+    Returns the row mask, native fluxes in nanomaggies and inverse variances.
+    Extinction correction follows in the shared relative-flux transform.
+    Requires the complete store columns; missing survey quality flags are not
+    inferred from a positive inverse variance.
+    """
+    from qso_pcolor.data import galactic_from_equatorial
+    from qso_pcolor.legacy import LegacySelection, legacy_photometry
+    selection = LegacySelection(**config["selection"])
+    if selection.morphology != "point":
+        raise ValueError("point training requires a point selection in the baseline config")
+    decision = selection.decide(rows)
+    _, b = galactic_from_equatorial(rows["ra"], rows["dec"])
+    use = (decision["accepted"] & (decision["hemisphere"] == hemisphere)
+           & (np.abs(b) >= config["min_abs_b_deg"]))
+    phot = legacy_photometry(rows, hemisphere, maskbits_zero=selection.maskbits_zero)
+    ivar = np.zeros_like(phot.variance)
+    np.divide(1., phot.variance, out=ivar, where=phot.observed)
+    return use, phot.flux, ivar
+
+
 def load_desi(cache: Path, zmin: float, zmax: float) -> dict:
     from qso_pcolor.data import fetch_desi_qso_training
 
@@ -206,6 +229,8 @@ def main() -> None:
                     help="read desi_dr1_qso and dr16q_dr9 from the local store (qso_pcolor.store)")
     ap.add_argument("--morphology", choices=("all", "point"), default="all",
                     help="point: Legacy TYPE = PSF only (qso_pcolor.legacy.LegacySelection)")
+    ap.add_argument("--baseline-config", type=Path, default=Path("configs/legacy_baseline.json"),
+                    help="declared row/band selection for future --morphology point fits")
     ap.add_argument("--max-objects", type=int, default=None,
                     help="subsample for a quick run; omit to use everything")
     ap.add_argument("--holdout-frac", type=float, default=0.2,
@@ -214,6 +239,11 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("models"))
     ap.add_argument("--cache", type=Path, default=Path("data"))
     args = ap.parse_args()
+    point_config = None
+    if args.morphology == "point":
+        if not args.from_store or args.no_maskbits_cut:
+            ap.error("point fits require --from-store and the baseline config's maskbits policy")
+        point_config = json.loads(args.baseline_config.read_text())
 
     import logging
     logging.basicConfig(level=logging.INFO, format="  %(message)s")
@@ -255,7 +285,10 @@ def main() -> None:
     ra, dec, z, flux, ivar, trans, channel = [], [], [], [], [], [], []
     n_masked_removed = 0
     for r, tag in parts:
-        sel = np.asarray(r["release"], int) == rel
+        if point_config is not None:
+            sel, point_flux, point_ivar = point_training_photometry(r, args.system, point_config)
+        else:
+            sel = np.asarray(r["release"], int) == rel
         if not sel.any():
             print(f"  {tag}: no objects in release {rel}")
             continue
@@ -263,7 +296,13 @@ def main() -> None:
         # Same quality cut as the background model and the candidates. The
         # SDSS query already imposes it in SQL; applying it here too costs
         # nothing and makes the two channels demonstrably identical.
-        if not args.no_maskbits_cut and "maskbits" in r:
+        if point_config is not None:
+            unmasked = dict(point_config, selection=dict(point_config["selection"], maskbits_zero=False))
+            before, _, _ = point_training_photometry(r, args.system, unmasked)
+            removed = int((before & ~sel).sum())
+            n_masked_removed += removed
+            print(f"  {tag}: {int(sel.sum()):,} pass the {args.system} PSF selection; {removed:,} masked removed")
+        elif not args.no_maskbits_cut and "maskbits" in r:
             mb = np.asarray(r["maskbits"], int)
             sel &= mb == 0
             n_masked_removed += n_rel - int(sel.sum())
@@ -272,26 +311,11 @@ def main() -> None:
                   f"({100 * (n_rel - int(sel.sum())) / n_rel:.2f}%)")
         else:
             print(f"  {tag}: {n_rel:,} in release {rel}")
-        if args.morphology == "point":
-            from qso_pcolor.legacy import morphology_status
-            if "morphtype" in r:
-                ttype = np.asarray(r["morphtype"])
-            else:
-                # DR16Q rows carry Legacy positions from the match; their TYPE
-                # comes from the same DR9 table (hemisphere-aware nearest row)
-                from qso_pcolor.legacy import legacy_match
-                mm = legacy_match(np.asarray(r["ra"], float), np.asarray(r["dec"], float),
-                                  args.cache / "legacy_type", radius_arcsec=0.2)
-                ttype = np.where(np.asarray(mm["release"]) == np.asarray(r["release"]),
-                                 np.asarray(mm["type"]), "")
-            before = int(sel.sum())
-            sel &= morphology_status(ttype) == "point"
-            print(f"  {tag}: {before - int(sel.sum()):,} not PSF removed, {int(sel.sum()):,} remain")
         ra.append(np.asarray(r["ra"])[sel])
         dec.append(np.asarray(r["dec"])[sel])
         z.append(np.asarray(r["zspec"])[sel])
-        flux.append(stack(r, "flux_")[sel])
-        ivar.append(stack(r, "flux_ivar_")[sel])
+        flux.append((point_flux if point_config is not None else stack(r, "flux_"))[sel])
+        ivar.append((point_ivar if point_config is not None else stack(r, "flux_ivar_"))[sel])
         trans.append(stack(r, "mw_transmission_")[sel])
         channel.append(np.full(int(sel.sum()), tag))
 
@@ -373,6 +397,10 @@ def main() -> None:
         meta={
             "maskbits_cut_applied": not args.no_maskbits_cut,
             "morphology": args.morphology,
+            "point_training_selection": (dict(point_config["selection"],
+                min_abs_b_deg=point_config["min_abs_b_deg"],
+                band_quality="nobs > 0 and positive inverse variance in every usable band")
+                if point_config is not None else None),
             "n_masked_removed": int(n_masked_removed),
             "holdout_source": holdout_source,
             "k_rule": {"fixed_k": n_comp, "select_below_n": args.select_k_below,
@@ -383,7 +411,7 @@ def main() -> None:
                 "min_dims": 3,
             },
             "trained": time.strftime("%Y-%m-%d"),
-            "release": rel,
+            "release": rel if point_config is None else ([9010, 9012] if args.system == "south" else [9011]),
             "n_train": int(fit_idx.size),
             "n_holdout": int(is_held.sum()),
             "holdout_frac": args.holdout_frac,

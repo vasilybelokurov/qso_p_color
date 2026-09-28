@@ -26,9 +26,59 @@ being called a certain quasar because of how two Gaussian tails fell.
 
 ---
 
-## The model
+## Current status and model choice
 
-There is one model. It accepts **any combination of 41 bands** from seven
+The Legacy DR9 PSF baseline has returned to dereddened relative fluxes and
+improves broad candidate ranking. **Its full release validation fails:** the
+observable-field tail prediction and quasar score-stability checks do not pass.
+Its science interface now excludes missing blend information and objects
+outside both fitted populations. Use it for exploratory ranking with these
+limits; do not treat the earlier validation PASS as a complete certification.
+See the [recovery report](docs/RECOVERY_2026-09-28.md).
+
+| Input and scope | Interface | Saved files |
+|---|---|---|
+| Legacy DR9 PSF companions, 17 <= dereddened r < 22.5, Galactic \|b\| >= 25 degrees | `XDQSOBaseline` | `models/legacy_psf_xdqso/current` (bundle `8e2a27c013ed`); north provisional |
+| Other survey combinations, earlier multi-survey release | `MultiSurveyModel` | `models/multisurvey*.json`; native observed fluxes, separate field-model limitations |
+
+### Legacy PSF scoring
+
+Supply native catalogue rows, including `mw_transmission_*`; the adapter
+dereddens flux and variance internally. Declare both policies. Missing separation
+or `fracflux` excludes the companion; outside both populations the diagnostic
+row remains, but its ranking and posterior fields are NaN.
+
+```python
+import numpy as np
+from qso_pcolor import BlendPolicy, RedshiftMatch
+from qso_pcolor.baseline import XDQSOBaseline
+
+baseline = XDQSOBaseline.load("models/legacy_psf_xdqso/current")
+# Synthetic catalogue row; unit transmissions mean zero Galactic extinction.
+rows = dict(ra=np.array([180.]), dec=np.array([0.]), release=np.array([9010]),
+            type=np.array(["PSF"]), maskbits=np.array([0]))
+for band, flux in zip(("g", "r", "z", "w1", "w2"), (8., 10., 12., 40., 60.)):
+    rows[f"flux_{band}"] = np.array([flux])
+    rows[f"flux_ivar_{band}"] = np.array([100.])
+    rows[f"nobs_{band}"] = np.array([3])
+    rows[f"mw_transmission_{band}"] = np.array([1.])
+scores, decision = baseline.score_rows(
+    rows, z_primary=1.8, match=RedshiftMatch(half_width_kms=2000.),
+    blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2),
+    separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.,
+)
+print(decision["eligible"], scores[0].status, scores[0].model_manifest_id)
+# Rank only eligible rows. A posterior always travels with its window width.
+print(scores[0].log_r_per_unit_z, scores[0].p_sameq, scores[0].dz_match_eff)
+```
+
+The support threshold is a declared selection policy, not a calibrated outlier
+fraction. The baseline retains its original fitted densities. Current tests
+exercise the published bundle and this adapter directly.
+
+## Multi-survey model (earlier release)
+
+This model accepts **any combination of 41 bands** from seven
 surveys, including infrared-only input:
 
 | survey | bands |
@@ -91,7 +141,7 @@ cd qso_p_color
 python3 -m venv .venv                        # Python 3.11 or newer
 source .venv/bin/activate
 pip install -e ".[dev]"                      # package plus pytest
-python -m pytest -q                          # 185 tests, ~1 min
+python -m pytest -q                          # run the regression suite
 ```
 
 The `wsdb` extra (`sqlutilpy`) is needed only to query the database and
@@ -99,7 +149,7 @@ rebuild samples; the `figures` extra only for the example atlas PDF. Scoring
 with the saved model needs neither. Run from the repository root so the
 `models/` paths resolve; the model files are in Git, not in the wheel.
 
-## Scoring a candidate
+## Scoring with the earlier multi-survey release
 
 Offline, straight from a clone:
 
