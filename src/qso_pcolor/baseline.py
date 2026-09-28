@@ -21,7 +21,7 @@ reason instead.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 import hashlib
 import json
 from pathlib import Path
@@ -173,11 +173,16 @@ class XDQSOBaseline:
         return self.manifest["bundle_id"]
 
     @classmethod
-    def load(cls, path: str | Path) -> "XDQSOBaseline":
+    def load(cls, path: str | Path, *, background: str | Path | None = None) -> "XDQSOBaseline":
         from .background import BackgroundColourModel
         from .outlier import OutlierModel
         from .priors import BackgroundSurfaceDensity, GridQSOPrior
         from .qso_model import SlicedColourRedshiftModel
+        path = Path(path)
+        if background is None and path.is_file():
+            pointer = json.loads(path.read_text())
+            if pointer.get("background"):
+                background = path.parent / pointer["background"]
         root = resolve_bundle(path)
         man = json.loads((root / "manifest.json").read_text())
         if man.get("kind") != "legacy_xdqso_bundle":
@@ -203,7 +208,11 @@ class XDQSOBaseline:
             systems = {parts[h]["qso"].system, parts[h]["background"].system, parts[h]["outlier"].system}
             if systems != {f"ls_dr9_{h}_grzw_psf"}:
                 raise ValueError(f"{h}: photometric systems differ: {systems}")
-        return cls(man, sel, parts)
+        result = cls(man, sel, parts)
+        if background is not None:
+            from .spatial import BackgroundAdaptation
+            result = BackgroundAdaptation.load(background).apply(result)
+        return result
 
     def score_rows(self, rows: dict, *, z_primary: np.ndarray | float,
                    match: RedshiftMatch, blend_policy: BlendPolicy, ood_flag_sigma: float,
@@ -239,6 +248,16 @@ class XDQSOBaseline:
         low_b = dec["accepted"] & (np.abs(b) < dom["min_abs_b_deg"])
         reason[low_b] = "outside_latitude"
         accepted = dec["accepted"] & ~low_b
+        adaptation = self.manifest.get("background_adaptation", {})
+        if adaptation.get("mode") == "local":
+            from astropy.coordinates import SkyCoord
+            import astropy.units as u
+            centre = SkyCoord(adaptation["centre_ra"] * u.deg, adaptation["centre_dec"] * u.deg)
+            positions = SkyCoord(np.asarray(rows["ra"]) * u.deg, np.asarray(rows["dec"]) * u.deg)
+            outside = ((positions.separation(centre).deg > adaptation["radius_deg"])
+                       | (dec["hemisphere"] != adaptation["hemisphere"]))
+            reason[accepted & outside] = "outside_local_background"
+            accepted &= ~outside
         z_primary = np.broadcast_to(np.asarray(z_primary, float), (n,))
         lo, hi = dom["ref_mag"]
         out = [None] * n
@@ -246,6 +265,10 @@ class XDQSOBaseline:
         primary_id = np.arange(n).astype(str) if primary_id is None else primary_id
         extra = dict(separation_arcsec=separation_arcsec, fracflux=fracflux,
                      candidate_id=candidate_id, primary_id=primary_id)
+        scoring_config = json.dumps(dict(match=asdict(match), blend_policy=blend_policy.describe(),
+            ood_flag_sigma=float(ood_flag_sigma), domain=self.manifest["domain"],
+            scorer_sha256=file_sha256(Path(__file__).with_name("score.py"))), sort_keys=True)
+        config_hash = hashlib.sha256(scoring_config.encode()).hexdigest()[:16]
         for h, p in self.parts.items():
             use = np.flatnonzero(accepted & (dec["hemisphere"] == h))
             if not use.size:
@@ -269,6 +292,9 @@ class XDQSOBaseline:
                                       outlier_model=p["outlier"], min_bands=dom["min_dims"],
                                       ood_flag_sigma=ood_flag_sigma, manifest_id=self.bundle_id, **kw)
             for i, s_ in zip(use, scores):
+                s_ = replace(s_, background_model_mode=adaptation.get("mode", "pooled"),
+                    background_nside=p["background"].nside,
+                    scoring_config_json=scoring_config, config_hash=config_hash)
                 if s_.status == "ok" and "outside_both_models" in s_.quality_flags:
                     s_ = replace(s_, status="outside_both_models", log_r_per_unit_z=np.nan,
                                  p_sameq=np.nan, p_sameq_vs_bkg=np.nan,

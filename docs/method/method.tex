@@ -38,6 +38,36 @@
 \maketitle
 
 \section*{Legacy PSF baseline: recovery and scoring scope (28 September 2026)}
+\paragraph{Spatial implementation restored.}
+The current PSF scorer now supports a survey-wide HEALPix background and a
+candidate-local cone refit. The shared Gaussian component shapes remain fixed;
+their proportions vary with magnitude and Galactic position, and the
+non-quasar surface density is measured and pooled separately:
+\[
+ p_B(\mathbf c\mid m,l,b)=\sum_k w_k(m,l,b)\,
+ \mathcal N(\mathbf c\mid\boldsymbol\mu_{mk},V_{mk}+S),
+ \qquad \lambda_B=(1-\eta)\Sigma_B(m,l,b)p_B.
+\]
+Cell estimates pool towards a parent and the hemisphere. Cone-held-out choice
+selects $\mathrm{nside}=4$ with parents at $2$ in both hemispheres, with colour
+pooling $n_0=1000$ and count pooling $n_0=100$. These fits are loaded by the
+active model pointer; the immutable pooled bundle remains available separately.
+Whole cones crossing a partition or latitude boundary are excluded before
+spatial fitting, retaining 274 of 304 cones and their measured usable areas.
+On 97,041 reserved southern field sources in 38 cones and 15 cells, the
+observable-population Poisson log score improves by $0.190$ nat per source
+(95\% sky-cell bootstrap interval $0.039$--$0.300$). Mean absolute fractional
+count error per cone decreases from $0.776$ to $0.442$. Global shapes and priors
+retain their historical training provenance; these checks validate the new
+spatial parameters conditionally, not the complete probability calibration.
+There are no reserved northern field test cells. The local
+mode refits proportions and counts in a declared cone, excludes the primary
+and companion, requires measured usable area, and restricts use to that cone.
+The prior and outlier assumptions are inherited. Details and remaining gaps
+are in \texttt{docs/SPATIAL\_BACKGROUND\_2026-09-28.md}; the coherent rewrite of
+this historical note is deferred. The pooled-bundle measurements below refer
+to the preceding, spatially constant baseline.
+
 The Legacy PSF baseline is distributed as
 \texttt{models/legacy\_psf\_xdqso/current}. It uses dereddened relative fluxes
 $g/r,z/r,W1/r,W2/r$, quasar slices independent of apparent magnitude, and
@@ -78,7 +108,7 @@ non-quasar weights, passes: median $|\Delta\ln R|=0.00653$. Original final-fit
 field weights were not saved, so that check measures fixed-point stability.
 Broad same-redshift ranking remains useful (AUC $0.8304$, against $0.8186$
 for the earlier multi-survey model on identical eligible companions), but the
-bundle is retained only as an experimental ranking baseline. No diagnostic
+pooled bundle is retained as an experimental ranking baseline. No diagnostic
 fit is promoted. The complete record is
 \texttt{docs/VALIDATION\_legacy\_psf\_xdqso\_recovery.json}.
 

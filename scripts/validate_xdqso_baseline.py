@@ -18,7 +18,7 @@ continuation original field rows with refreshed non-quasar weights, plus exact-r
 tails        full observable field, including unrecognised quasars and noise.
              Missing measurements cannot count as a passing gate.
 
-    python scripts/validate_xdqso_baseline.py --bundle models/legacy_psf_xdqso/current \
+    python scripts/validate_xdqso_baseline.py --bundle models/legacy_psf_xdqso/8e2a27c013ed \
         --quasar-continuation /tmp/qso-continuation --output docs/VALIDATION_recovery.json
 """
 from __future__ import annotations
@@ -128,6 +128,9 @@ def main():
     from qso_pcolor.score import BlendPolicy, score_candidates
 
     bl = XDQSOBaseline.load(args.bundle)
+    if bl.manifest.get("background_adaptation"):
+        raise ValueError("this historical continuation test requires the immutable pooled bundle; "
+                         "use validate_spatial_psf_background.py for a spatial adaptation")
     report = dict(bundle=bl.bundle_id, gates=gates, built=time.strftime("%Y-%m-%d %H:%M"),
                   status=bl.manifest.get("status"), scoring_policy=cfg["science_scoring"],
                   arguments={k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()})

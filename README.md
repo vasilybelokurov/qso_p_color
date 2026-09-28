@@ -36,9 +36,16 @@ outside both fitted populations. Use it for exploratory ranking with these
 limits; do not treat the earlier validation PASS as a complete certification.
 See the [recovery report](docs/RECOVERY_2026-09-28.md).
 
+The active PSF model now includes a spatial background: Gaussian component
+weights and source surface densities vary with magnitude and Galactic HEALPix
+cell. Both hemispheres use `nside=4`, parent `nside=2`, with cell-to-parent-to-global
+pooling. Component means and covariances remain shared. The
+[spatial validation report](docs/SPATIAL_BACKGROUND_2026-09-28.md) records the
+field-only tests, configuration and remaining limits.
+
 | Input and scope | Interface | Saved files |
 |---|---|---|
-| Legacy DR9 PSF companions, 17 <= dereddened r < 22.5, Galactic \|b\| >= 25 degrees | `XDQSOBaseline` | `models/legacy_psf_xdqso/current` (bundle `8e2a27c013ed`); north provisional |
+| Legacy DR9 PSF companions, 17 <= dereddened r < 22.5, Galactic \|b\| >= 25 degrees | `XDQSOBaseline` | `models/legacy_psf_xdqso/current` (base `8e2a27c013ed` + spatial background); north provisional |
 | Other survey combinations, earlier multi-survey release | `MultiSurveyModel` | `models/multisurvey*.json`; native observed fluxes, separate field-model limitations |
 
 ### Legacy PSF scoring
@@ -73,8 +80,11 @@ print(scores[0].log_r_per_unit_z, scores[0].p_sameq, scores[0].dz_match_eff)
 ```
 
 The support threshold is a declared selection policy, not a calibrated outlier
-fraction. The baseline retains its original fitted densities. Current tests
-exercise the published bundle and this adapter directly.
+fraction. Quasar densities and Gaussian component shapes retain their original
+fits; the active background uses the fitted sky-dependent weights and counts.
+Scores record the composite model ID, background mode, nside and scoring policy.
+Load `models/legacy_psf_xdqso/8e2a27c013ed` explicitly to reproduce the earlier
+spatially pooled baseline.
 
 ## Multi-survey model (earlier release)
 

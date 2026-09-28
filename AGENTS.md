@@ -17,6 +17,11 @@ guarded exploratory ranking. Its full release validation **fails** the
 observable-field tails and quasar score-stability checks. The north remains
 provisional. Read `docs/RECOVERY_2026-09-28.md` and
 `docs/VALIDATION_legacy_psf_xdqso_recovery.json` before declaring it validated.
+The active pointer now also loads the spatial background described in
+`docs/SPATIAL_BACKGROUND_2026-09-28.md`: shared Gaussian shapes, weights and
+surface densities fitted at nside=4 with parent nside=2. This passes the
+spatial field checks; it does not resolve the inherited full-release failures.
+Load the immutable base directory explicitly for historical continuation tests.
 The old `PASS` report checked fewer requirements. Do not promote diagnostic
 continuation fits or alter immutable bundle files to erase these failures.
 
@@ -150,7 +155,7 @@ scripts/ (the retired model; run against models/archive/)
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
 tools/journal.py          JOURNAL.md updater
 docs/method/              method.tex + Makefile -> method.pdf
-tests/                    185 tests; see section 7
+tests/                    247 tests; see section 7
 ```
 
 A general CLI and the remaining calibration work are not yet complete.

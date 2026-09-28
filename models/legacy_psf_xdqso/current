@@ -1,1 +1,9 @@
-{"bundle": "8e2a27c013ed", "validated": "2026-09-27", "validation": "docs/VALIDATION_legacy_psf_xdqso_8e2a27c013ed.json"}
+{
+  "bundle": "8e2a27c013ed",
+  "background": "spatial_7bbdd562534bcc68.json",
+  "validated": "2026-09-28",
+  "validation": "docs/VALIDATION_legacy_psf_spatial_2026-09-28.json",
+  "validation_scope": "spatial background only; inherited baseline limitations remain",
+  "full_release_validated": false,
+  "base_validation": "docs/VALIDATION_legacy_psf_xdqso_recovery.json"
+}

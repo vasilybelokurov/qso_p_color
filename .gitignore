@@ -28,3 +28,4 @@ docs/reviews/
 models/legacy_psf_xdqso/*
 !models/legacy_psf_xdqso/current
 !models/legacy_psf_xdqso/8e2a27c013ed/
+!models/legacy_psf_xdqso/spatial_7bbdd562534bcc68.json

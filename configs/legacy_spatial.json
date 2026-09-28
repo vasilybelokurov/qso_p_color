@@ -1,0 +1,31 @@
+{
+  "source_bundle": "models/legacy_psf_xdqso/8e2a27c013ed",
+  "sample_config": "configs/legacy_baseline.json",
+  "seed": 20260928,
+  "nside_grid": [
+    2,
+    4
+  ],
+  "parent_ratio": 2,
+  "colour_n0_grid": [
+    100.0,
+    1000.0,
+    10000.0
+  ],
+  "density_n0_grid": [
+    100.0,
+    1000.0,
+    10000.0
+  ],
+  "weight_max_iter": 500,
+  "weight_tol": 1e-05,
+  "min_density_fraction": 0.05,
+  "workers": 4,
+  "local_exclusion_arcsec": 3.0,
+  "selection": "Use whole cones contained within one partition cell and the latitude domain. Hold out one cone per populated fitting stratum to choose nside and pooling. Test cells do not enter spatial fitting or selection; shared global shapes and priors remain fixed.",
+  "model": "Shared component shapes, sky-dependent proportions and separately pooled non-quasar surface density. Local mode refits the same proportions and counts in an explicitly supplied cone.",
+  "validation": {
+    "bootstrap_draws": 500
+  },
+  "boundary_factor": 256
+}

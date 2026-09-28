@@ -204,6 +204,10 @@ class PairScore:
     outlier_fraction: float = float("nan")
     log_lambda_out: float = float("nan")
     p_outlier: float = float("nan")
+    background_model_mode: str = ""
+    background_nside: int = 0
+    scoring_config_json: str = ""
+    config_hash: str = ""
 
     def as_row(self) -> dict:
         d = asdict(self)

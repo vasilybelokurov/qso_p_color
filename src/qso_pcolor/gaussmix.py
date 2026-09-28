@@ -224,7 +224,11 @@ class GaussianMixture:
                     mus[None, :, :],
                     vs[None, :, :, :] + s[np.ix_(r, idx, idx)][:, None, :, :],
                 )
-                out[r] = logsumexp(lp + np.log(self.weights)[None, :], axis=1)
+                # A spatial refit can assign exactly zero mass to a component.
+                # Its log weight is -inf, which correctly removes that term.
+                with np.errstate(divide="ignore"):
+                    log_weights = np.log(self.weights)
+                out[r] = logsumexp(lp + log_weights[None, :], axis=1)
         return out
 
     def min_mahalanobis(
