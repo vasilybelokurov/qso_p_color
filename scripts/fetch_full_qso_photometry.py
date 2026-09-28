@@ -16,6 +16,7 @@ from qso_pcolor.data import _save_npz, galactic_from_equatorial
 from qso_pcolor.multisurvey_data import SURVEYS, band_labels, catalogue_photometry, match_catalogue
 from qso_pcolor.qso_acquisition import (prepare_sdss_id_photometry, acquire_sdss_batch,
                                       read_acquired_batch, wait_for_sdss_positions)
+from qso_pcolor.legacy_acquisition import assemble_legacy_from_cache
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -29,11 +30,16 @@ def main() -> None:
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--surveys', nargs='+', choices=tuple(SURVEYS))
     parser.add_argument('--prepare-only', action='store_true')
+    parser.add_argument('--legacy-desi-cache', type=Path,
+                        default=Path('~/data/qso_p_color/catalogues/desi_dr1_qso.npz').expanduser(),
+                        help='Existing DESI Legacy photometry; Legacy never falls back to a query')
     parser.add_argument('--resume-cache', type=Path,
                         help='Reuse a previous acquisition with identical config and master')
     parser.add_argument('--block-config', type=Path, default=Path('configs/photometry_sky_blocks.json'),
                         help='Operational SDSS sky-block settings; does not change sample selection')
     args = parser.parse_args()
+    if not args.prepare_only and not args.surveys:
+        parser.error('acquisition requires explicit --surveys after reviewing local cache availability')
     cfg = json.loads(args.config.read_text())
     block_config = json.loads(args.block_config.read_text())
     if cfg['batch_size'] < 1:
@@ -108,7 +114,10 @@ def main() -> None:
     print(f'{n:,} targets; all retained; cache {root}', flush=True)
     if args.prepare_only:
         return
-    for survey in args.surveys or cfg['surveys']:
+    for survey in args.surveys:
+        if survey == 'decals':
+            assemble_legacy_from_cache(root, desi_photometry=args.legacy_desi_cache.expanduser())
+            continue
         started = time.monotonic()
         progress_path = root/f'progress_{survey}.json'
         previous_done = json.loads(progress_path.read_text())['processed'] if progress_path.exists() else 0

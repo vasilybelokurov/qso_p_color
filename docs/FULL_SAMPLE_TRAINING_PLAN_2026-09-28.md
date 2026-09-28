@@ -262,7 +262,7 @@ Nonprimary, unresolved, conflicting or out-of-radius links use positional
 fallback. Completed positional batches and exact association-count caches are
 retained. The independent multiple/shared-association masks remain mandatory.
 Resume with `fetch_full_qso_photometry.py --config configs/full_sample_photometry.json
---resume-cache models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff`.
+--resume-cache models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff --surveys sdss`.
 The shared batch reader also serves the auditor so it never rematches a batch
 whose switched acquisition is already saved.
 Outstanding objects without usable SDSS IDs are downloaded
@@ -275,6 +275,18 @@ The local 50,000-row assembly files are separate from the configurable SDSS
 database block size. Failed ID links are handled afterwards. Block limits
 never cap the sample and never restrict the survey side of a match to the
 target block. See `SDSS_SKY_BLOCKS_2026-09-28.md` for the timing assessment.
+
+SDSS acquisition is complete for all 1,657,444 targets. Legacy photometry has
+also been assembled and verified for every target, entirely from existing local
+catalogues: 1,312,233 DESI-preferred objects matched by exact integer target ID
+and 345,211 SDSS-preferred objects taken from their recorded source rows.
+Both hemispheres retain their own band labels. Eight WISE observation-count
+differences affect only zero-inverse-variance measurements and leave final masks
+unchanged. The saved product, hashes and checks are described in
+`LEGACY_LOCAL_ASSEMBLY_2026-09-28.md`. Independent association checks remain
+pending. Before acquiring any other survey, inventory its existing local
+photometry and retrieve only demonstrated gaps. The fetcher now requires an
+explicit survey selection; Legacy uses only local assembly.
 
 1. Verified parent master and explicit source/redshift scope; reviewed ambiguous
    associations and large redshift disagreements.

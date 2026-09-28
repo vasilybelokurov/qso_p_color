@@ -445,6 +445,17 @@ saved target indices, including unmatched rows; failed identifier associations
 are processed afterwards. This scheduling does not change the selection or
 the photometric systems.
 
+Legacy photometry for the full selected QSO list is reused from local source
+catalogues. DESI rows are recovered by exact integer target identifier;
+SDSS rows use the recorded source row and its Legacy counterpart coordinates.
+The assembled rows are checked against the frozen target identities, association
+radius and northern or southern photometric system. In the DESI cache, W1/W2
+exposure fields are documented positive-inverse-variance proxies, not measured
+exposure counts. Eight differences from direct catalogue counts occur only at
+zero inverse variance, so both representations mark those bands unusable.
+Saved fluxes, variances and observed-band masks are checked after writing;
+independent multiple-match and shared-source auditing remains a separate step.
+
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}
 

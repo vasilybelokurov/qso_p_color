@@ -42,6 +42,17 @@ samples or validated model artifacts. See
 `docs/FULL_SAMPLE_PREPARATION_STATUS_2026-09-28.json` for outstanding checks. The wider
 stellar cone caches have an r-flux floor and require fresh source queries.
 The user requires a readiness report before any retraining is launched.
+**Inventory disk before every survey acquisition.** Legacy photometry for all
+1,657,444 eligible QSOs already exists in `desi_dr1_qso.npz` and
+`dr16q_dr9.npz`. `--surveys decals` now assembles those files locally: exact
+DESI target IDs, SDSS source rows and Legacy counterpart coordinates, with
+hemisphere and saved-row checks. It never falls back to a Legacy query.
+DESI W1/W2 `nobs` are documented positive-ivar proxies, not exposure counts;
+the eight differences from queried counts leave the usable-band masks unchanged.
+See `docs/LEGACY_LOCAL_ASSEMBLY_2026-09-28.md`. Actual acquisition requires
+explicit `--surveys`, preventing automatic progression through all surveys.
+Inventory existing files for each remaining survey and query only demonstrated
+gaps. Successful assembly does not complete the independent association audit.
 **Reuse catalogue links before spatial matching.** Inspect the live WSDB schema
 and the journal before building acquisition queries. DR16Q has a text `objid`
 that casts exactly to the indexed `sdssdr14.photoobjall.objid` bigint; it is

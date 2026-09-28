@@ -42,7 +42,7 @@ def test_photometry_batches_keep_every_eligible_object_and_original_identity(tmp
         return rows
 
     monkeypatch.setattr(module, 'match_catalogue', fake_match)
-    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config)])
+    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config), '--surveys', 'sdss'])
     module.main()
     assert sorted(np.concatenate(calls).tolist()) == list(np.arange(5)+150.)
     assert [len(call) for call in calls] == [2, 2, 1]
@@ -54,11 +54,21 @@ def test_photometry_batches_keep_every_eligible_object_and_original_identity(tmp
     assert progress['complete'] and progress['processed'] == progress['total'] == 5
     assert progress['observed_counts'] == [5] * 5  # negative fluxes remain observed
     provenance = (root/'provenance.json').read_bytes()
-    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config), '--resume-cache', str(root)])
+    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config), '--surveys', 'sdss', '--resume-cache', str(root)])
     module.main()
     assert len(calls) == 3  # completed acquisition is not fetched again
     assert (root/'provenance.json').read_bytes() == provenance
+    monkeypatch.setattr(module, 'match_catalogue', lambda *a, **kw: pytest.fail('unexpected network query'))
+    assembled = []
+    monkeypatch.setattr(module, 'assemble_legacy_from_cache', lambda root, **kw: assembled.append(root))
+    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config), '--surveys', 'decals', '--resume-cache', str(root)])
+    module.main()
+    assert assembled == [root]
     cfg['z_max'] = 5.
     config.write_text(json.dumps(cfg))
     with pytest.raises(ValueError, match='differs'):
         module.main()
+    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config)])
+    with pytest.raises(SystemExit) as error:
+        module.main()
+    assert error.value.code == 2

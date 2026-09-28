@@ -26,9 +26,9 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "Complete running QSO and stellar photometry acquisition and association audits",
-    "Complete running Legacy mask/exposure area measurements; external-survey footprints/completeness are not certified by these measurements",
-    "Inspect automatic per-role band-coverage report and expand regions if any band lacks support",
+    "Inventory local QSO photometry for AllWISE, PS1, NSC, SkyMapper and VHS; acquire only demonstrated gaps",
+    "Complete independent QSO association audits",
+    "Assess external-survey footprints and band-specific completeness separately from completed Legacy area measurements",
     "Verify uncapped trainer accounting and issue readiness report before retraining"
   ],
   "stellar_preparation_cache": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
@@ -74,17 +74,17 @@
     "match_radius_arcsec": 1.0
   },
   "stellar_photometry": {
-    "completed": 238,
+    "completed": 274,
     "total": 274,
     "failed": []
   },
   "legacy_selection_areas": {
-    "completed": 204,
+    "completed": 274,
     "total": 274,
     "failed": []
   },
   "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/16f14c32960e2fb4",
-  "tests": "301 passed in 61.36 seconds; /tmp/qso_sky_blocks_full_tests.log",
+  "tests": "308 passed in 62.19 seconds; /tmp/qso_legacy_reuse_full_tests.log",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -94,7 +94,7 @@
     "native_dr16q_fluxes_substituted": false,
     "association_policy_unchanged": true,
     "remaining_id_targets": 449866,
-    "state": "At user request, the unsaved whole-list positional query was stopped at 17:58 CEST and its backend cancellation verified. All 857578 no-ID targets are now being queried in 89 sequential blocks of at most 10000. First 50000 rows saved in five blocks; initial ~3 s/block benefits from prior caching and is not a cold-rate forecast. Earlier 350000 completed rows and all 449866 ID results reused. Main assembler waits for the combined positional output, then handles 23 failed ID associations.",
+    "state": "Complete: all 1657444 target rows saved; independent association audit pending.",
     "independent_positional_targets": 857578,
     "independent_positional_directory": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/sdss_without_ids",
     "id_download_complete": true,
@@ -104,6 +104,83 @@
     "positional_strategy": "sequential checkpointed sky blocks",
     "positional_blocks_total": 89,
     "whole_list_positional_cancelled_at_user_request": true,
-    "positional_progress_path": "sdss_without_ids/status.json"
+    "positional_progress_path": "sdss_without_ids/status.json",
+    "processed": 1657444,
+    "complete": true
+  },
+  "stellar_base_preparation_complete": true,
+  "stellar_role_band_shortfalls": {
+    "fit": [],
+    "select": [],
+    "calib": [],
+    "test": []
+  },
+  "qso_legacy_assembly": {
+    "targets": 1657444,
+    "source_counts": {
+      "desi": 1312233,
+      "sdss": 345211
+    },
+    "comparisons": [
+      {
+        "start": 0,
+        "rows": 50000,
+        "equal_fluxes_and_ivars": 49991,
+        "different_release": 9,
+        "same_release_quality_flag_differences": 4,
+        "same_release_band_mask_differences": 0
+      },
+      {
+        "start": 50000,
+        "rows": 50000,
+        "equal_fluxes_and_ivars": 49863,
+        "different_release": 137,
+        "same_release_quality_flag_differences": 3,
+        "same_release_band_mask_differences": 0
+      },
+      {
+        "start": 100000,
+        "rows": 50000,
+        "equal_fluxes_and_ivars": 48507,
+        "different_release": 1493,
+        "same_release_quality_flag_differences": 1,
+        "same_release_band_mask_differences": 0
+      }
+    ],
+    "wrong_hemisphere": 0,
+    "max_separation_arcsec": 0.9898724550278293,
+    "observed_counts": [
+      1229786,
+      1229929,
+      1229419,
+      1229911,
+      1229909,
+      427317,
+      427317,
+      427314,
+      427317,
+      427317
+    ],
+    "bands": [
+      "decals_dr9_south:g",
+      "decals_dr9_south:r",
+      "decals_dr9_south:z",
+      "decals_dr9_south:w1",
+      "decals_dr9_south:w2",
+      "decals_dr9_north:g",
+      "decals_dr9_north:r",
+      "decals_dr9_north:z",
+      "decals_dr9_north:w1",
+      "decals_dr9_north:w2"
+    ],
+    "negative_observed_fluxes": 12890,
+    "new_database_queries": 0,
+    "elapsed_seconds": 19.616843416995835,
+    "photometry_sha256": "be8ebe742db6369e45bad3a1e4d2505b288ea2e3cd0f7c8049b97ab05aba7e33",
+    "association_audit_complete": false,
+    "complete": true,
+    "report": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/legacy_local/4d418c295df8aa17/report.json",
+    "photometry": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/legacy_local/4d418c295df8aa17/photometry.npz",
+    "metadata_discrepancies_resolved": 8
   }
 }
