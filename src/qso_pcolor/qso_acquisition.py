@@ -49,7 +49,7 @@ def sdss_photometric_ids(members: dict, master_indices: np.ndarray,
 
 
 def fetch_sdss_by_id(ra: np.ndarray, dec: np.ndarray, objid: np.ndarray,
-                     cache: Path) -> dict:
+                     cache: Path, *, block_config: dict | None = None) -> dict:
     """Fetch DR14 native fluxes by indexed photoobj ID, preserving every row.
 
     Positions are ICRS degrees; returned separation is arcsec. This is an
@@ -73,13 +73,22 @@ def fetch_sdss_by_id(ra: np.ndarray, dec: np.ndarray, objid: np.ndarray,
     if path.exists():
         return _load_npz(path)
     started = time.monotonic()
+    if block_config is not None:
+        from .sky_acquisition import fetch_sky_blocks
+        result = fetch_sky_blocks(dict(ra=ra, dec=dec, objid=objid), cache/'id_blocks',
+            identity=dict(query=query), config=block_config,
+            fetch=lambda inputs, out: fetch_sdss_by_id(**inputs, cache=out))
+        _save_npz(path, **result)
+        path.with_suffix('.json').write_text(json.dumps(dict(query=query,
+            n=len(ra), elapsed_s=time.monotonic()-started, block_config=block_config), indent=2)+'\n')
+        return result
     conn = sqlutil.getConnection(db='wsdb', driver='psycopg')
     try:
         sqlutil.upload('mytmptable', (np.arange(len(ra)), ra, dec, objid),
                        ('idx', 'ra', 'dec', 'objid'), conn=conn,
                        noCommit=True, temp=True, analyze=True)
         plan = sqlutil.get('EXPLAIN '+query, conn=conn, notNamed=True, asDict=True,
-                          strLength=20000, preamb="SET jit=off; SET statement_timeout='7200s'")
+                          strLength=20000, preamb="SET jit=off; SET cursor_tuple_fraction=1; SET statement_timeout='7200s'")
         lines = next(iter(plan.values())).tolist()
         if any('Seq Scan on photoobjall' in line for line in lines):
             raise RuntimeError('SDSS ID lookup planned a full photometry-table scan')
@@ -104,8 +113,8 @@ def usable_id_matches(raw: dict, radius_arcsec: float) -> np.ndarray:
 
 
 def prepare_sdss_id_photometry(root: Path, targets: dict, master: Path,
-                               start: int) -> tuple[dict, dict]:
-    """Resolve all remaining linked targets in one ID query, with cached inputs."""
+                               start: int, *, block_config: dict | None = None) -> tuple[dict, dict]:
+    """Resolve remaining ID links, reusing a whole result before making blocks."""
     fingerprint = hashlib.sha256(Path(__file__).read_bytes()+master.read_bytes()).hexdigest()[:16]
     saved = root/'id_links'/f'sdss_{fingerprint}.npz'
     record = saved.with_suffix('.json')
@@ -117,8 +126,9 @@ def prepare_sdss_id_photometry(root: Path, targets: dict, master: Path,
     members = _load_npz(master.parent/'members.npz')
     ids, conflict = sdss_photometric_ids(members, targets['master_index'], catalogue)
     rows = np.flatnonzero((ids > 0) & (np.arange(len(ids)) >= start))
-    print(f'SDSS ID join: {len(rows):,} remaining linked targets in one query', flush=True)
-    raw = fetch_sdss_by_id(targets['ra'][rows], targets['dec'][rows], ids[rows], root/'queries') if len(rows) else {}
+    print(f'SDSS ID join: {len(rows):,} outstanding targets; checking saved results first', flush=True)
+    raw = fetch_sdss_by_id(targets['ra'][rows], targets['dec'][rows], ids[rows], root/'queries',
+                          block_config=block_config) if len(rows) else {}
     if raw:
         raw['target_index'] = rows
     report = dict(valid_link_targets=int((ids > 0).sum()), conflicting_link_targets=int(conflict.sum()),
@@ -131,7 +141,8 @@ def prepare_sdss_id_photometry(root: Path, targets: dict, master: Path,
 
 
 def acquire_sdss_batch(root: Path, targets: dict, lo: int, hi: int,
-                       id_rows: dict, radius_arcsec: float, *, position_rows: dict | None = None) -> dict:
+                       id_rows: dict, radius_arcsec: float, *, position_rows: dict | None = None,
+                       block_config: dict | None = None) -> dict:
     """Combine validated ID links and positional fallback, in target order."""
     path = root/'acquired'/f'sdss_{lo:07d}.npz'
     if path.exists():
@@ -150,7 +161,8 @@ def acquire_sdss_batch(root: Path, targets: dict, lo: int, hi: int,
     result = {}
     if (~use).any():
         pending = np.arange(lo, hi)[~use]
-        raw = positional_rows_for_targets(root, targets, pending, position_rows, radius_arcsec)
+        raw = positional_rows_for_targets(root, targets, pending, position_rows, radius_arcsec,
+                                         block_config=block_config)
         result = {k: np.empty(n, dtype=v.dtype) for k,v in raw.items()}
         for k,v in raw.items():
             result[k][~use] = v
@@ -171,7 +183,8 @@ def acquire_sdss_batch(root: Path, targets: dict, lo: int, hi: int,
 
 
 def positional_rows_for_targets(root: Path, targets: dict, indices: np.ndarray,
-                                saved: dict | None, radius_arcsec: float) -> dict:
+                                saved: dict | None, radius_arcsec: float, *,
+                                block_config: dict | None = None) -> dict:
     """Reuse independent positional results; fetch only genuinely missing rows."""
     found = np.zeros(len(indices), bool)
     positions = np.zeros(len(indices), int)
@@ -191,14 +204,63 @@ def positional_rows_for_targets(root: Path, targets: dict, indices: np.ndarray,
             raw[k][found] = v[positions[found]]
     if (~found).any():
         missing = indices[~found]
-        fetched = match_catalogue('sdss', targets['ra'][missing], targets['dec'][missing],
-                                  root/'queries', radius_arcsec=radius_arcsec)
+        if block_config is None:
+            fetched = match_catalogue('sdss', targets['ra'][missing], targets['dec'][missing],
+                                      root/'queries', radius_arcsec=radius_arcsec)
+        else:
+            fetched = fetch_sdss_positions(targets['ra'][missing], targets['dec'][missing],
+                root/'queries'/'fallback', radius_arcsec=radius_arcsec, block_config=block_config)
         for k,v in fetched.items():
             if k not in raw:
                 raw[k] = np.empty(len(indices), dtype=v.dtype)
             raw[k][~found] = v
     raw['idx'] = np.arange(len(indices))
     return raw
+
+
+def sdss_position_query(radius_arcsec: float) -> str:
+    """Indexed nearest-primary lookup; ICRS degrees in, separation arcsec out."""
+    if not np.isfinite(radius_arcsec) or radius_arcsec <= 0:
+        raise ValueError('positive finite radius required')
+    return f'''SELECT m.idx, x.* FROM mytmptable m LEFT JOIN LATERAL (
+        SELECT {SURVEYS['sdss'].columns},
+          q3c_dist(m.ra,m.dec,c.ra,c.dec)*3600 AS match_sep_arcsec
+        FROM sdssdr14.photoobjall c
+        WHERE q3c_join(m.ra,m.dec,c.ra,c.dec,{radius_arcsec}/3600.)
+          AND c.mode=1
+        ORDER BY q3c_dist(m.ra,m.dec,c.ra,c.dec) LIMIT 1
+        ) x ON TRUE'''
+
+
+def fetch_sdss_positions(ra: np.ndarray, dec: np.ndarray, cache: Path, *,
+                         radius_arcsec: float, block_config: dict,
+                         progress_path: Path | None = None) -> dict:
+    """Sequential, checkpointed positional queries without survey-area clipping."""
+    from .sky_acquisition import fetch_sky_blocks
+    import sqlutilpy as sqlutil
+    query = sdss_position_query(radius_arcsec)
+
+    def fetch(inputs, out):
+        out.mkdir(parents=True, exist_ok=True)
+        conn = sqlutil.getConnection(db='wsdb', driver='psycopg')
+        try:
+            sqlutil.upload('mytmptable', (np.arange(len(inputs['ra'])), inputs['ra'], inputs['dec']),
+                ('idx', 'ra', 'dec'), conn=conn, noCommit=True, temp=True, analyze=True)
+            plan = sqlutil.get('EXPLAIN '+query, conn=conn, notNamed=True, asDict=True,
+                strLength=30000, preamb="SET jit=off; SET cursor_tuple_fraction=1; SET statement_timeout='7200s'")
+            lines = next(iter(plan.values())).tolist()
+            (out/'plan.txt').write_text('\n'.join(lines)+'\n')
+            (out/'query.sql').write_text(query+'\n')
+            if (any('Seq Scan on photoobjall' in line for line in lines) or
+                    not any('photoobjall_q3c_ang2ipix_idx' in line for line in lines)):
+                raise RuntimeError('SDSS positional block does not use the Q3C index')
+            return sqlutil.get(query, conn=conn, asDict=True, intNullVal=-1)
+        finally:
+            conn.rollback()
+            conn.close()
+
+    return fetch_sky_blocks(dict(ra=ra, dec=dec), cache, identity=dict(query=query),
+                            config=block_config, fetch=fetch, progress_path=progress_path)
 
 
 def wait_for_sdss_positions(root: Path) -> dict | None:

@@ -31,8 +31,11 @@ def main() -> None:
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--resume-cache', type=Path,
                         help='Reuse a previous acquisition with identical config and master')
+    parser.add_argument('--block-config', type=Path, default=Path('configs/photometry_sky_blocks.json'),
+                        help='Operational SDSS sky-block settings; does not change sample selection')
     args = parser.parse_args()
     cfg = json.loads(args.config.read_text())
+    block_config = json.loads(args.block_config.read_text())
     if cfg['batch_size'] < 1:
         raise ValueError('batch_size must be positive; it is not a row cap')
     master = Path(cfg['master_manifest']).expanduser()
@@ -55,6 +58,8 @@ def main() -> None:
         write_json(root / 'provenance.json', identity)
     write_json(root / 'acquisition_implementation.json', dict(identity,
         adapter_sha256=sha256(Path(__file__).resolve().parents[1]/'src/qso_pcolor/qso_acquisition.py'),
+        sky_block_adapter_sha256=sha256(Path(__file__).resolve().parents[1]/'src/qso_pcolor/sky_acquisition.py'),
+        sdss_block_config=block_config,
         sdss_strategy=cfg.get('sdss_use_object_ids', True)))
     target_path = root / 'targets.npz'
     if not target_path.exists():
@@ -116,7 +121,8 @@ def main() -> None:
         id_rows = {}
         position_rows = None
         if by_id:
-            id_rows, report = prepare_sdss_id_photometry(root, targets, master, previous_done)
+            id_rows, report = prepare_sdss_id_photometry(root, targets, master, previous_done,
+                                                       block_config=block_config)
             write_json(root/'sdss_id_links.json', report)
             position_rows = wait_for_sdss_positions(root)
         processed = 0
@@ -127,7 +133,7 @@ def main() -> None:
                 raw = read_acquired_batch(root, survey, targets, lo, hi, cfg['match_radius_arcsec'][survey])
             elif by_id:
                 raw = acquire_sdss_batch(root, targets, lo, hi, id_rows, cfg['match_radius_arcsec'][survey],
-                                         position_rows=position_rows)
+                                         position_rows=position_rows, block_config=block_config)
             else:
                 raw = match_catalogue(survey, targets['ra'][lo:hi], targets['dec'][lo:hi],
                     root / 'queries', radius_arcsec=cfg['match_radius_arcsec'][survey])

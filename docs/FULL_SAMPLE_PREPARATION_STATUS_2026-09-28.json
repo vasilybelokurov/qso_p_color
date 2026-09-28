@@ -84,7 +84,7 @@
     "failed": []
   },
   "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/16f14c32960e2fb4",
-  "tests": "295 passed in 62.44 seconds; /tmp/qso_independent_full_tests.log",
+  "tests": "301 passed in 61.36 seconds; /tmp/qso_sky_blocks_full_tests.log",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -94,8 +94,12 @@
     "native_dr16q_fluxes_substituted": false,
     "association_policy_unchanged": true,
     "remaining_id_targets": 449866,
-    "state": "Independent no-ID worker launched for 857578 targets; ID query continues for 449866. One-time handoff after ID cache completion resumes the updated main worker to reuse both results.",
+    "state": "The 449866-object ID result is saved (7910.34 s). The original 857578-object whole-list positional download continues. New SDSS acquisitions and failed-ID fallback use sequential, resumable sky blocks; completed whole-list results are reused.",
     "independent_positional_targets": 857578,
-    "independent_positional_directory": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/sdss_without_ids"
+    "independent_positional_directory": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/sdss_without_ids",
+    "id_download_complete": true,
+    "id_download_elapsed_seconds": 7910.339914957993,
+    "new_sdss_query_max_targets": 10000,
+    "block_config": "configs/photometry_sky_blocks.json"
   }
 }

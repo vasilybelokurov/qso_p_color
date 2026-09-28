@@ -47,8 +47,8 @@ and the journal before building acquisition queries. DR16Q has a text `objid`
 that casts exactly to the indexed `sdssdr14.photoobjall.objid` bigint; it is
 not the Legacy brick `objid` in `dr16q_dr9.npz`. Use all SDSS master memberships,
 including DESI-preferred objects, to recover these links by `sdss_name`.
-`fetch_full_qso_photometry.py` now defaults to one ID query for remaining linked
-SDSS targets, then positional fallback for unresolved/nonprimary/out-of-radius
+`fetch_full_qso_photometry.py` reuses completed ID results, then uses sequential
+sky blocks for missing SDSS data and positional fallback for unresolved/nonprimary/out-of-radius
 links. `--resume-cache` preserves prior completed batches and original provenance.
 The association auditor reads the same acquired batches and still checks
 multiple/shared associations. DR16Q's embedded flux arrays are not a silent
@@ -58,13 +58,18 @@ across surveys, or add chunking as a speed fix without comparative measurements.
 The WSDB skill's direct `sqlutilpy` workflow does not require the separate MCP
 connector. Preserve known identities and cached measurements before requerying.
 For an existing full-sample cache, `scripts/fetch_sdss_without_ids.py --cache
-<cache>` runs one independent, uncapped SDSS positional query for outstanding
-objects without usable IDs. It saves its exact target list, SQL, full-list plan,
-status and output under `sdss_without_ids/`. Start it alongside the ID download;
-the two acquisitions have no dependency. The main fetcher waits for and reuses
+<cache>` acquires all outstanding objects without usable IDs, with resumable
+sky blocks configured by `configs/photometry_sky_blocks.json`. It saves its
+exact target list, SQL, per-block plans, timings, status and output under
+`sdss_without_ids/`. Use one query worker at a time for new acquisitions;
+do not discard an existing in-flight whole-list result to change scheduling.
+`--whole-list` reproduces the previous acquisition. The main fetcher reuses
 that output during assembly; only failed ID associations need further queries.
 An older running Python worker must be resumed with the updated code after its
 ID result is safely cached, otherwise it will retain its old sequential logic.
+Block sizes control checkpoint frequency, not the scientific sample. Matches
+across sky-block boundaries remain searchable. See
+`docs/SDSS_SKY_BLOCKS_2026-09-28.md` for sizing evidence and limitations.
 `scripts/prepare_stellar_sample.py` now runs cleaning, spatial roles, photometry
 and Legacy any-optical-band area measurements with `configs/stellar_preparation.json`.
 `scripts/audit_qso_associations.py` checks arriving QSO batches independently.

@@ -436,8 +436,11 @@ declared association radius; missing, conflicting, nonprimary or out-of-radius
 links fall back to positional matching. The existing quality, multiple-match
 and shared-source checks still apply. Previously completed positional matches
 remain cached. This acquisition change does not constitute a new model fit.
-The outstanding objects without usable identifiers are queried as one list,
-independently of the identifier-based download. Results are reunited by their
+For new acquisitions, outstanding targets are grouped in sky order into
+configurable query blocks, with a saved result after each completed block.
+These blocks control checkpoint frequency, not scientific selection; a
+counterpart outside its target's block remains searchable. Completed
+whole-list results are reused. Results are reunited by their
 saved target indices, including unmatched rows; failed identifier associations
 are processed afterwards. This scheduling does not change the selection or
 the photometric systems.

@@ -20,8 +20,9 @@ seven-survey photometry and the final role/area audit remain outstanding.
 The inherited cone roles have no northern final-test region and will not be
 adopted unchanged. The QSO seven-survey acquisition has now been launched via
 `scripts/fetch_full_qso_photometry.py` and `configs/full_sample_photometry.json`.
-Every eligible target is visited; its 50,000-row batch size only controls query
-size and restart checkpoints. Raw nearest matches still require association
+Every eligible target is visited; its 50,000-row batches are assembly
+checkpoints. SDSS now has a separate configurable sky-block query size;
+the other surveys retain the earlier query schedule. Raw nearest matches still require association
 and hemisphere checks before they become training measurements.
 
 The next preparation stage is now running through
@@ -253,8 +254,9 @@ separately versioned candidate passes the declared checks.
 
 SDSS acquisition now uses the DR16Q photometric `objid` wherever an eligible
 master object has an unambiguous SDSS membership link, including DESI-preferred
-objects. The identifier is joined to indexed DR14 `photoobjall.objid` in one
-query for the remaining linked targets. It retrieves the existing DR14
+objects. The identifier is joined to indexed DR14 `photoobjall.objid`.
+Completed whole-list results are reused; missing results use sequential sky
+blocks with independent checkpoints. This retrieves the existing DR14
 photometric system and quality fields; embedded DR16Q fluxes are not substituted.
 Nonprimary, unresolved, conflicting or out-of-radius links use positional
 fallback. Completed positional batches and exact association-count caches are
@@ -263,13 +265,16 @@ Resume with `fetch_full_qso_photometry.py --config configs/full_sample_photometr
 --resume-cache models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff`.
 The shared batch reader also serves the auditor so it never rematches a batch
 whose switched acquisition is already saved.
-Outstanding objects without usable SDSS IDs are now downloaded independently
-with `scripts/fetch_sdss_without_ids.py --cache <cache>`, using one whole-list
-indexed positional query. The ID download continues concurrently. Each route
+Outstanding objects without usable SDSS IDs are downloaded
+with `scripts/fetch_sdss_without_ids.py --cache <cache>`, using sequential
+indexed positional sky blocks for new runs. Existing whole-list downloads are
+allowed to finish. Each route
 keeps its own results and target identities; the main fetcher combines them
 without requerying the positional results, including recorded nonmatches.
-The local 50,000-row assembly files remain checkpoints, not database query chunks
-for these two initial SDSS downloads. Failed ID links are handled afterwards.
+The local 50,000-row assembly files are separate from the configurable SDSS
+database block size. Failed ID links are handled afterwards. Block limits
+never cap the sample and never restrict the survey side of a match to the
+target block. See `SDSS_SKY_BLOCKS_2026-09-28.md` for the timing assessment.
 
 1. Verified parent master and explicit source/redshift scope; reviewed ambiguous
    associations and large redshift disagreements.

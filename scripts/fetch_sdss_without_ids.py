@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Download outstanding SDSS photometry without catalogue IDs in one query."""
+"""Download outstanding SDSS photometry in resumable spatial blocks."""
 from __future__ import annotations
 
 import argparse
@@ -12,28 +12,16 @@ import numpy as np
 from build_qso_master import sha256
 from fetch_full_qso_photometry import write_json
 from qso_pcolor.data import _load_npz, _save_npz, cached_query
-from qso_pcolor.multisurvey_data import SURVEYS
-from qso_pcolor.qso_acquisition import sdss_photometric_ids
-
-
-def query_sql(radius_arcsec: float) -> str:
-    """One indexed nearest-primary match per uploaded target; radius in arcsec."""
-    if not np.isfinite(radius_arcsec) or radius_arcsec <= 0:
-        raise ValueError('positive finite radius required')
-    return f'''SELECT m.idx, x.* FROM mytmptable m LEFT JOIN LATERAL (
-        SELECT {SURVEYS['sdss'].columns},
-          q3c_dist(m.ra,m.dec,c.ra,c.dec)*3600 AS match_sep_arcsec
-        FROM sdssdr14.photoobjall c
-        WHERE q3c_join(m.ra,m.dec,c.ra,c.dec,{radius_arcsec}/3600.)
-          AND c.mode=1
-        ORDER BY q3c_dist(m.ra,m.dec,c.ra,c.dec) LIMIT 1
-        ) x ON TRUE'''
+from qso_pcolor.qso_acquisition import (sdss_photometric_ids, fetch_sdss_positions,
+                                      sdss_position_query as query_sql)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cache', type=Path, required=True)
     parser.add_argument('--prepare-only', action='store_true')
+    parser.add_argument('--block-config', type=Path, default=Path('configs/photometry_sky_blocks.json'))
+    parser.add_argument('--whole-list', action='store_true', help='Reproduce the earlier one-query acquisition')
     args = parser.parse_args()
     root = args.cache
     provenance = json.loads((root/'provenance.json').read_text())
@@ -79,7 +67,7 @@ def main() -> None:
     if (out/'photometry.npz').exists():
         print(f'Already downloaded all {n:,} targets without IDs', flush=True)
         return
-    print(f'{n:,} targets without IDs; one whole-list query; independent of ID download', flush=True)
+    print(f'{n:,} targets without IDs; {"whole-list" if args.whole_list else "sequential sky-block"} acquisition', flush=True)
     if args.prepare_only:
         return
     started = time.monotonic()
@@ -90,6 +78,15 @@ def main() -> None:
     import sqlutilpy as sqlutil
     conn = None
     try:
+        if not args.whole_list:
+            status('querying sequential sky blocks')
+            raw = fetch_sdss_positions(selection['ra'], selection['dec'], out/'blocks',
+                radius_arcsec=radius, block_config=json.loads(args.block_config.read_text()),
+                progress_path=out/'status.json')
+            raw['target_index'] = selection['target_index']
+            _save_npz(out/'photometry.npz', **raw)
+            status('complete', matched=int(np.isfinite(raw['ra']+raw['dec']).sum()))
+            return
         status('uploading targets')
         conn = sqlutil.getConnection(db='wsdb', driver='psycopg')
         sqlutil.upload('mytmptable', (np.arange(n),selection['ra'],selection['dec']),

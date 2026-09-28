@@ -1,0 +1,5 @@
+{
+  "max_targets": 10000,
+  "parent_nside": 1,
+  "order_nside": 1024
+}

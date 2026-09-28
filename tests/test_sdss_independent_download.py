@@ -6,9 +6,11 @@ import sys
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 
-def test_whole_list_download_identity_and_no_duplicate_work(tmp_path,monkeypatch):
+@pytest.mark.parametrize('options', [[], ['--whole-list']])
+def test_whole_list_download_identity_and_no_duplicate_work(tmp_path,monkeypatch,options):
     import sqlutilpy
     scripts=Path(__file__).parents[1]/'scripts'
     monkeypatch.syspath_prepend(str(scripts))
@@ -34,13 +36,15 @@ def test_whole_list_download_identity_and_no_duplicate_work(tmp_path,monkeypatch
         queries.append(query)
         if query.startswith('EXPLAIN'):
             return dict(plan=np.array(['Bitmap Index Scan on photoobjall_q3c_ang2ipix_idx']))
-        return dict(idx=np.array([1,0]),ra=np.array([np.nan,12.]),dec=np.array([np.nan,0.]),
-                    match_sep_arcsec=np.array([np.nan,.1]),value_u=np.array([np.nan,-2.]))
+        ra=uploads[-1][1][1][::-1]
+        return dict(idx=np.array([1,0]),ra=np.where(ra==12,12.,np.nan),
+                    dec=np.where(ra==12,0.,np.nan),match_sep_arcsec=np.where(ra==12,.1,np.nan),
+                    value_u=np.where(ra==12,-2.,np.nan))
     monkeypatch.setattr(sqlutilpy,'get',get)
-    monkeypatch.setattr(sys,'argv',['fetch','--cache',str(root)])
+    monkeypatch.setattr(sys,'argv',['fetch','--cache',str(root)]+options)
     module.main()
     assert len(uploads)==1
-    np.testing.assert_array_equal(uploads[0][1][1],[12.,14.])
+    np.testing.assert_array_equal(np.sort(uploads[0][1][1]),[12.,14.])
     with np.load(root/'sdss_without_ids'/'photometry.npz') as d:
         assert d['target_index'].tolist()==[2,4]
         assert d['value_u'][0]==-2. and np.isnan(d['ra'][1])
