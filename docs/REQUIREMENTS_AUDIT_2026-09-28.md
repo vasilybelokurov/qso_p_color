@@ -6,9 +6,12 @@ model. The five-band restoration described below is only a partial recovery.
 The multi-survey evaluator now supports every nonempty subset, including one
 band (no colour information), and spatial weights applied before marginalising.
 The old subset-specific field-fit routing is confined to explicit historical
-reproduction. PSF-selected training artifacts, matched spatial count priors,
-and local refits must be connected to this same 41-band path before the full
-restoration is described as complete.
+reproduction. The active `PSFMultiSurveyBaseline` now connects PSF-selected
+fits, 41 matched spatial count priors, and candidate-local refits to this same
+41-band path in `models/multisurvey_psf/current`. The validation report is
+`docs/VALIDATION_multisurvey_psf_2026-09-28.json`. The table below records the
+earlier Legacy-only recovery; its five-band restrictions no longer define the
+active model. Absolute probability calibration remains incomplete.
 
 This is a requirements audit, not a new method write-up. Its reference is the
 original specification, the explicit PSF-source restriction, and the user's

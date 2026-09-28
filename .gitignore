@@ -29,3 +29,8 @@ models/legacy_psf_xdqso/*
 !models/legacy_psf_xdqso/current
 !models/legacy_psf_xdqso/8e2a27c013ed/
 !models/legacy_psf_xdqso/spatial_7bbdd562534bcc68.json
+# Active joint 41-band PSF bundle; training caches stay local.
+!models/multisurvey_psf/
+models/multisurvey_psf/*
+!models/multisurvey_psf/current
+!models/multisurvey_psf/068549008f3c74f7/

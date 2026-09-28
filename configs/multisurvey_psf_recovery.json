@@ -1,0 +1,55 @@
+{
+  "seed": 20260928,
+  "source_model": "models/multisurvey.json",
+  "sample_dir": "data/multisurvey_lsw",
+  "sample_config": "configs/multisurvey_lsw.json",
+  "quasar_morphology": "data/legacy_baseline_v2/quasars.npz",
+  "cache_dir": "models/multisurvey_psf/work",
+  "output": "models/multisurvey_psf/candidate.json",
+  "match_radius_arcsec": 1.0,
+  "max_background_fit": 20000,
+  "background_selection_fraction": 0.2,
+  "min_band_training": 20,
+  "background_k_candidates": [4, 8, 12],
+  "selection_max_iter": 40,
+  "max_iter": 300,
+  "tol": 0.00001,
+  "regularization": 0.001,
+  "workers": 4,
+  "population": "PSF morphology, maskbits=0; native photometry and all original held-out sky blocks/cones retained",
+  "area": {
+    "bricks": "data/legacy_meta/survey-bricks.fits.gz",
+    "existing_image_cache": "data/legacy_meta/bricks",
+    "radius_deg": 0.15,
+    "n_points": 50000,
+    "boundary_factor": 256
+  },
+  "prior": {
+    "source_priors": "models/multisurvey_priors.json",
+    "minimum_count": 20,
+    "policy": "Retain the original completeness constant and footprint convention, select PSF counts after restoring the original draw, flag bands below the previous 2000-object calibration threshold. Fewer than 20 population measurements gives evidence only."
+  },
+  "outlier": {
+    "source": "models/multisurvey_outlier.json",
+    "min_per_bin": 500,
+    "n_mag_bins": 3,
+    "policy": "Retain the selected Student-t degrees of freedom and scale factor; refit field moments and eta on PSF sources unused for fitting component shapes."
+  },
+  "validation": {
+    "chunk_size": 256,
+    "window_kms": 2000.0,
+    "ood_flag_sigma": 4.0,
+    "blend_policy": {"min_separation_arcsec": 3.0, "max_fracflux": 0.2},
+    "test_separation_arcsec": 6.0,
+    "test_fracflux": 0.05
+  },
+  "spatial": {
+    "nside": 4,
+    "colour_n0": 1000,
+    "density_n0": 100,
+    "policy_origin": "same explicit settings as the validated Legacy PSF spatial restoration; new 41-band validation is separate",
+    "nside_parent": 2,
+    "max_iter": 500,
+    "tol": 0.00000001
+  }
+}

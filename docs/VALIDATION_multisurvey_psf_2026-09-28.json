@@ -1,0 +1,48 @@
+{
+  "bundle_id": "068549008f3c74f7",
+  "close_pairs_used": false,
+  "population": "PSF",
+  "bands": 41,
+  "reserved": {
+    "quasars": {
+      "n": 12072,
+      "all_finite": true,
+      "mean_log_density": 3.7787173263983864,
+      "source_mean_log_density": 3.7099708722087845,
+      "mean_gain_nats": 0.06874645418960189,
+      "median_gain_nats": 0.06422810983972405
+    },
+    "background": {
+      "n": 14511,
+      "all_finite": true,
+      "mean_log_density": -2.522017346660056,
+      "source_mean_log_density": -3.6826805898474393,
+      "mean_gain_nats": 1.1606632431873831,
+      "median_gain_nats": 0.20373097459646416
+    }
+  },
+  "checks": {
+    "band_masks": {
+      "singletons": 41,
+      "pairs": 820,
+      "larger_subsets": 39,
+      "all_finite_evidence": true,
+      "singleton_log_bf_zero": true
+    },
+    "survey_subsets_public_interface": 127,
+    "priors_available": 41,
+    "spatial_nside": 4
+  },
+  "numerical_fits": {
+    "qso_converged": 20,
+    "qso_slices": 43,
+    "field_converged": false,
+    "note": "Iteration caps are reported, not treated as an accuracy measurement."
+  },
+  "functional_pass": true,
+  "limitations": [
+    "This is functional and held-out density validation, not probability calibration.",
+    "Spatial pooling settings inherited from the Legacy PSF restoration; only 24 multi-survey field cones are available.",
+    "Sparse population priors are flagged; the original completeness and inferred survey-footprint assumptions remain."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "kind": "multisurvey_psf_bundle",
+  "files": {
+    "model.json": "de09e9a2d29b9655ec88ea20ba4cf5d8d82b758ad693299f192c267f8fa646ff",
+    "priors.json": "e7f34bbdd7c9980909543a729dc7460dc088c0688706e3e3fc72b35ea3f3bae9",
+    "outlier.json": "a651dbc4675a938c76b51596bbd5891eecbaeca44a1c69ab5f4b6f8c186a352d"
+  },
+  "bundle_id": "068549008f3c74f7",
+  "min_abs_b_deg": 25.0,
+  "population": "psf",
+  "status": "active: functionality and reserved predictive density checked; probability calibration not established",
+  "method": "one joint 41-band model",
+  "validation": "docs/VALIDATION_multisurvey_psf_2026-09-28.json",
+  "full_probability_calibration": false
+}

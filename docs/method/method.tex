@@ -47,14 +47,26 @@ reference $a$. A single band therefore has unit colour likelihood and zero
 colour Bayes factor in log space; population priors may still supply magnitude
 information. Empty inputs remain unscored. Spatial component proportions are
 chosen at $(l,b)$ before the same marginalisation and conditioning. Historical
-dedicated-subset routing requires explicit opt-in for reproduction. The
-previously shipped multi-survey field, priors and outlier calibration were
-fitted before this change: the corrected integration path is not by itself a
-validation of those population fits or a PSF-selected release.
+dedicated-subset routing requires explicit opt-in for reproduction.
+The active bundle, \texttt{models/multisurvey\_psf/current}, refits the quasar
+slices and joint field on PSF sources, preserving the original reserved blocks
+and cones. It uses native observed luptitudes and spatial weights at
+$\mathrm{nside}=4$, parent $2$, with pooling $n_0=1000$. Band-specific spatial
+counts use measured Legacy mask-image areas and pooling $n_0=100$; these
+settings are inherited from the Legacy restoration. Quasar counts restore the
+original sampling weights before PSF selection, retaining its completeness
+constant. All 41 anchors have priors; sparse counts are flagged. The
+Student-$t$ term refits moments and fractions while retaining its chosen
+degrees of freedom and scale factor. Local fitting updates the same weights
+and counts with measured areas, source exclusions and a cone-scope check.
+Held-out log-density gains are $0.069$ nat for 12,072 quasars and $1.161$ nats
+for 14,511 field sources. Arbitrary-band checks pass; probability calibration
+remains unestablished. Twenty of 43 quasar slices converged to the configured
+tolerance; the other slices and field reached the iteration cap.
 
-\section*{Legacy PSF baseline: recovery and scoring scope (28 September 2026)}
+\section*{Earlier Legacy-only PSF baseline (28 September 2026)}
 \paragraph{Spatial implementation restored.}
-The current PSF scorer now supports a survey-wide HEALPix background and a
+The earlier Legacy-only scorer supports a survey-wide HEALPix background and a
 candidate-local cone refit. The shared Gaussian component shapes remain fixed;
 their proportions vary with magnitude and Galactic position, and the
 non-quasar surface density is measured and pooled separately:

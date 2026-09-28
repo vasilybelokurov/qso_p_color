@@ -3,9 +3,10 @@
 See ``AGENTS.md`` for the working contract and ``docs/method/method.pdf`` for
 the method.  The short version:
 
-- The Legacy PSF ranking baseline is ``XDQSOBaseline`` in ``baseline.py``;
-  its guarded science interface requires blend and model-support policies.
-  Full release validation fails; see the recovery report.
+- The active PSF model is ``PSFMultiSurveyBaseline`` in
+  ``models/multisurvey_psf/current``: arbitrary subsets of 41 bands, spatial
+  background weights/counts and optional local refits. Its science interface
+  requires morphology, blend and model-support information.
 - The earlier multi-survey release is ``MultiSurveyModel`` (``models/multisurvey.json``) with its
   reference-band priors (``load_priors``) and its unmodelled term
   (``MultiSurveyOutlier``): any subset of 41 bands from seven surveys.
@@ -39,6 +40,7 @@ from .multisurvey import (BandLuptitudeTransform, MultiSurveyModel, MultiSurveyO
                           MultiSurveyScore, load_priors)
 from .outlier import OutlierModel
 from .multisurvey_data import Photometry
+from .multisurvey_baseline import PSFMultiSurveyBaseline
 from .xd import fit_xd, select_n_components
 
 __version__ = "0.1.0"
@@ -62,6 +64,7 @@ __all__ = [
     "PLOTS_DIR",
     "PairScore",
     "Photometry",
+    "PSFMultiSurveyBaseline",
     "RedshiftMatch",
     "RelativeFluxTransform",
     "SlicedColourRedshiftModel",

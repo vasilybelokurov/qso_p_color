@@ -131,8 +131,8 @@ def _conditional_min_mahalanobis(mixtures, x, cov, observed, anchor, chunk=2048)
     n, d = x.shape
     obs = np.ones_like(x, bool) if observed is None else np.asarray(observed, bool)
     s = np.zeros((n, d, d)) if cov is None else np.asarray(cov, float)
-    mus = np.concatenate([m.means for m in mixtures])
-    vs = np.concatenate([m.covs for m in mixtures])
+    mus = np.concatenate([m.means[m.weights > 0] for m in mixtures])
+    vs = np.concatenate([m.covs[m.weights > 0] for m in mixtures])
     out = np.full(n, np.nan)
     pattern = obs & (np.arange(d) != anchor)
     # The colour vector is empty for a single band: its distance is zero.
@@ -217,7 +217,14 @@ class _ConditionalBackground:
         Uses the joint fit only; a declared marginal, where it applies, is a
         refit of the same population in fewer bands.
         """
-        return _conditional_min_mahalanobis([self.model], x, cov, observed, self.anchor)
+        if self.spatial is None:
+            return _conditional_min_mahalanobis([self.model], x, cov, observed, self.anchor)
+        result = np.empty(len(x))
+        for rows, mixture, _ in self.spatial.groups(self.model, l_deg, b_deg):
+            result[rows] = _conditional_min_mahalanobis([mixture], x[rows],
+                None if cov is None else cov[rows],
+                None if observed is None else observed[rows], self.anchor)
+        return result
 
     def out_of_mag_range(self, ref_mag):
         lo, hi = self.bounds[self.anchor]
@@ -354,6 +361,8 @@ class MultiSurveyModel:
                 nearest=np.argmin(abs(primary[:,None]-self.qso.z_centres),axis=1)
                 fs.flags["sparse_qso_training_bands"]=np.any((counts[nearest]<minimum)&fs.observed,axis=1)
             qprior, density = (None, None) if priors is None else priors.get(label, (None, None))
+            if qprior is not None and qprior.meta.get("sparse_population_prior", False):
+                fs.flags["sparse_population_prior"] = np.ones(len(rows), bool)
             for prior in (qprior, density):
                 if prior is not None and (prior.meta.get("reference_band") != label or
                                           prior.meta.get("transform_id") != self.transform_id):

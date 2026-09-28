@@ -28,6 +28,49 @@ being called a certain quasar because of how two Gaussian tails fell.
 
 ## Current status and model choice
 
+The active PSF model is `PSFMultiSurveyBaseline`, loaded from
+`models/multisurvey_psf/current`. It accepts **any nonempty subset of all 41
+bands**, including optical-only and infrared-only input. Missing bands are
+marginalised from one joint model. No band is compulsory. A single band has
+no colour information and is flagged accordingly.
+
+The stellar/background component depends on colour, magnitude and Galactic
+position, using shared Gaussian shapes with HEALPix weights (`nside=4`, parent
+`nside=2`). Both Legacy hemispheres are active. Population priors cover all 41
+reference bands; sparse priors are flagged. `baseline.fit_local(...)` refits
+the same weights and counts in a declared cone with measured usable areas.
+
+The [recovery validation](docs/VALIDATION_multisurvey_psf_2026-09-28.json)
+checks all 41 single bands, 820 pairs, larger subsets and 127 survey selections.
+On reserved PSF sources, mean predictive log density improved by 0.069 nats
+for 12,072 quasars and 1.161 nats for 14,511 field objects against the earlier
+joint model. These checks establish functionality and predictive improvement;
+they do not establish probability calibration.
+
+```python
+from qso_pcolor import PSFMultiSurveyBaseline, Photometry, RedshiftMatch, BlendPolicy
+
+baseline = PSFMultiSurveyBaseline.load("models/multisurvey_psf/current")
+# Native observed fluxes, in each band's original photometric system.
+phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
+                  ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
+scores, decision = baseline.score(
+    phot, morphology=["PSF"], z_primary=1.8, l_deg=276.337, b_deg=60.189,
+    match=RedshiftMatch(half_width_kms=2000.),
+    blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2),
+    separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.,
+)
+# To choose a different subset, pass a shorter Photometry or use keep_bands().
+print(scores[0].bands_used, scores[0].status, decision["eligible"])
+```
+
+Morphology is supplied separately from the chosen photometry. Unknown or
+extended morphology is excluded, as are missing blend measurements and
+unsupported scores. Rank only `decision['eligible']` rows by
+`log_r_per_unit_z`; quote `p_sameq` together with `dz_match_eff`.
+
+### Earlier models retained for comparison
+
 The Legacy DR9 PSF baseline has returned to dereddened relative fluxes and
 improves broad candidate ranking. **Its full release validation fails:** the
 observable-field tail prediction and quasar score-stability checks do not pass.
@@ -36,7 +79,7 @@ outside both fitted populations. Use it for exploratory ranking with these
 limits; do not treat the earlier validation PASS as a complete certification.
 See the [recovery report](docs/RECOVERY_2026-09-28.md).
 
-The active PSF model now includes a spatial background: Gaussian component
+The earlier Legacy-only PSF model includes a spatial background: Gaussian component
 weights and source surface densities vary with magnitude and Galactic HEALPix
 cell. Both hemispheres use `nside=4`, parent `nside=2`, with cell-to-parent-to-global
 pooling. Component means and covariances remain shared. The

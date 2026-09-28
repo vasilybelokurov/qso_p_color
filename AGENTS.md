@@ -11,7 +11,16 @@ says *what to do*.
 commit.** A write-up that describes a previous version of the code is worse
 than none.
 
-**Current recovery status (2026-09-28).** The Legacy DR9 PSF baseline in
+**Active 41-band recovery (2026-09-28).** Use `PSFMultiSurveyBaseline` and
+`models/multisurvey_psf/current`: one PSF-selected joint model, arbitrary
+nonempty band subsets, HEALPix-dependent weights and surface densities,
+41 reference-band priors, and optional candidate-local refits. Both Legacy
+hemispheres are active. See `docs/VALIDATION_multisurvey_psf_2026-09-28.json`.
+Validation covers functionality and reserved-source predictive density, not
+full probability calibration. Sparse priors and capped fits remain explicit.
+The Legacy-only and original multi-survey bundles below are comparisons.
+
+**Earlier Legacy-only recovery status (2026-09-28).** The Legacy DR9 PSF baseline in
 `models/legacy_psf_xdqso/current` is available through `XDQSOBaseline` for
 guarded exploratory ranking. Its full release validation **fails** the
 observable-field tails and quasar score-stability checks. The north remains
@@ -51,8 +60,8 @@ input with `no_colour_information`, and supports shared-shape HEALPix weights
 through `JointSpatialWeights`. Dedicated subset fits require explicit
 `legacy_field_fits=True` for historical reproduction. This code restoration
 does not certify the earlier all-morphology multi-survey artifacts as a PSF
-release. PSF selection, spatial surface densities and candidate-local refitting
-remain part of the same recovery contract; keep their artifact status explicit.
+release. The new `models/multisurvey_psf/current` bundle connects PSF selection,
+spatial surface densities and candidate-local refitting to that same evaluator.
 
 ---
 
@@ -129,7 +138,8 @@ Working and tested (`pytest -q` → all green; run it before and after any chang
 
 ```
 models/
-  multisurvey.json          THE model: 41-band quasar slices, joint field fit,
+  multisurvey_psf/current   ACTIVE joint 41-band PSF model, spatial priors and outlier
+  multisurvey.json          earlier 41-band quasar slices, joint field fit,
                             Legacy-south grz and grzW1W2 field fits, transform
   multisurvey_priors.json   Sigma_Q(z, u_a), Sigma_B(u_a) for 37 reference bands
   multisurvey_outlier.json  the unmodelled term (envelope, eta per band and bin)
@@ -166,7 +176,7 @@ scripts/ (the retired model; run against models/archive/)
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
 tools/journal.py          JOURNAL.md updater
 docs/method/              method.tex + Makefile -> method.pdf
-tests/                    247 tests; see section 7
+tests/                    264 tests; see section 7
 ```
 
 A general CLI and the remaining calibration work are not yet complete.
