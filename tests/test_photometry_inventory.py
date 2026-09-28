@@ -64,3 +64,20 @@ def test_rounded_identifiers_are_not_used_for_catalogue_joins():
     assert m.exact_integer_id('454137801351027801')==454137801351027801
     for v in ['4.541378013510278e+17',None,'nan','-1','123.0']:
         assert m.exact_integer_id(v)==-1
+
+
+def test_ps1_recovery_uses_original_integer_fits_not_rounded_parquet_ids(tmp_path):
+    from astropy.io import fits
+    p=Path(__file__).parents[1]/'scripts/inventory_qso_identifier_links.py'
+    spec=importlib.util.spec_from_file_location('ps1_recovery',p)
+    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+    exact=np.array([2**57+1,2**57+17],np.int64)
+    cols=[fits.Column(name='sdss_name',format='18A',array=['a','b','a']),
+          fits.Column(name='ps1_ra',format='D',array=[1.,2.,1.]),
+          fits.Column(name='ps1_dec',format='D',array=[0.,0.,0.]),
+          fits.Column(name='ps1_objid',format='K',array=exact[[0,1,0]])]
+    fits.BinTableHDU.from_columns(cols).writeto(tmp_path/'qso_ps1_full_c0000_xmatch.fits')
+    index=dict(sdss_name=['b','a'],ps1_ra=[2.,1.],ps1_dec=[0.,0.],objID=exact[::-1].astype(float).astype(np.int64))
+    restored,report=m.recover_ps1_ids(index,tmp_path)
+    assert np.array_equal(restored,exact[::-1])
+    assert report['index_ids_changed']==2

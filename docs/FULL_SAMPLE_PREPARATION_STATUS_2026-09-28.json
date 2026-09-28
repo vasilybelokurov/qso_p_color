@@ -26,7 +26,7 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "Assemble verified local five-survey results; verify PS1 ID route and survey footprints before acquiring only remaining results",
+    "Complete running cache-first acquisition of five-survey QSO gaps; saved measurements, nonmatches and corrected PS1 IDs are reused.",
     "Complete independent QSO association audits",
     "Assess external-survey footprints and band-specific completeness separately from completed Legacy area measurements",
     "Verify uncapped trainer accounting and issue readiness report before retraining"
@@ -83,8 +83,8 @@
     "total": 274,
     "failed": []
   },
-  "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/16f14c32960e2fb4",
-  "tests": "312 passed in 61.21s (0:01:01)",
+  "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/64b33f5755fae833",
+  "tests": "318 passed in 60.93s (0:01:00)",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -184,5 +184,26 @@
     "metadata_discrepancies_resolved": 8
   },
   "local_photometry_inventory": "docs/LOCAL_PHOTOMETRY_INVENTORY_2026-09-28.json",
-  "data_location_map": "docs/LOCAL_DATA_LOCATIONS.md"
+  "data_location_map": "docs/LOCAL_DATA_LOCATIONS.md",
+  "qso_gap_acquisition": {
+    "status": "running",
+    "worker_log": "/tmp/qso_gap_acquisition.log",
+    "cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/gap_acquisition",
+    "surveys": [
+      "allwise",
+      "nsc",
+      "skymapper",
+      "vhs",
+      "ps1"
+    ],
+    "policy": "All inventoried results reused; corrected original FITS PS1 IDs first, indexed positional joins for remaining targets, per-query checkpoints, no row cap.",
+    "documentation": "docs/QSO_GAP_ACQUISITION_2026-09-28.md",
+    "initial_aligned_rows": {
+      "allwise": 50000,
+      "nsc": 50000,
+      "skymapper": 50000,
+      "vhs": 50000,
+      "ps1": 0
+    }
+  }
 }

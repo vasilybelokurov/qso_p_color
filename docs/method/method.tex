@@ -455,6 +455,14 @@ exposure counts. Eight differences from direct catalogue counts occur only at
 zero inverse variance, so both representations mark those bands unusable.
 Saved fluxes, variances and observed-band masks are checked after writing;
 independent multiple-match and shared-source auditing remains a separate step.
+For the other five surveys, verified local results (including non-detections)
+are reused before any query. Remaining positional searches use an indexed
+inner Q3C join, with nonmatches restored and nearest counterparts selected by
+target index locally. Candidate counts are retained for the association audit.
+Pan-STARRS identifiers are recovered from the original integer FITS exports;
+the derived Parquet index rounded most identifiers through floating point.
+Identifier matches must still pass the catalogue and separation requirements.
+
 
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}

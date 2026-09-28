@@ -72,3 +72,7 @@ def test_photometry_batches_keep_every_eligible_object_and_original_identity(tmp
     with pytest.raises(SystemExit) as error:
         module.main()
     assert error.value.code == 2
+    monkeypatch.setattr(sys, 'argv', ['fetch', '--config', str(config), '--surveys', 'ps1'])
+    with pytest.raises(SystemExit) as error:
+        module.main()
+    assert error.value.code == 2  # never bypass the verified local inventory

@@ -42,6 +42,8 @@ samples or validated model artifacts. See
 `docs/FULL_SAMPLE_PREPARATION_STATUS_2026-09-28.json` for outstanding checks. The wider
 stellar cone caches have an r-flux floor and require fresh source queries.
 The user requires a readiness report before any retraining is launched.
+Acquiring the remaining preparation data is already authorized: continue through
+the five-survey gap queue without asking for another download approval.
 **Inventory disk before every survey acquisition.** First read
 `docs/LOCAL_DATA_LOCATIONS.md` and the three linked inventory manifests. They
 record all known source paths, exact per-target reuse/gap lists and PS1 ID links.
@@ -57,7 +59,13 @@ the eight differences from queried counts leave the usable-band masks unchanged.
 See `docs/LEGACY_LOCAL_ASSEMBLY_2026-09-28.md`. Actual acquisition requires
 explicit `--surveys`, preventing automatic progression through all surveys.
 Inventory existing files for each remaining survey and query only demonstrated
-gaps. Successful assembly does not complete the independent association audit.
+gaps. Five-survey gaps now run through `scripts/fetch_qso_photometry_gaps.py`;
+its cache and checkpoint locations are in `docs/QSO_GAP_ACQUISITION_2026-09-28.md`.
+The general fetcher requires `--inventory` for these surveys and delegates to
+the same implementation. Never infer exact IDs from integer dtype alone: the
+PS1 Parquet index contains rounded values. Use corrected IDs recovered from
+the original FITS exports; the inventory script now performs that recovery.
+ Successful assembly does not complete the independent association audit.
 **Reuse catalogue links before spatial matching.** Inspect the live WSDB schema
 and the journal before building acquisition queries. DR16Q has a text `objid`
 that casts exactly to the indexed `sdssdr14.photoobjall.objid` bigint; it is

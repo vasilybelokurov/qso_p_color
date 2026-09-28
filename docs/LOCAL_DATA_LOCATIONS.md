@@ -24,7 +24,7 @@ map, inventory summaries and file manifests in `docs/` are committed.
 | Frozen 1,657,444 eligible QSO targets | QROOT `targets.npz`, `selection.json`, `provenance.json` |
 | Complete SDSS raw batches | QROOT `acquired/sdss_*.npz`; positional sub-results in `sdss_without_ids/`; identifier provenance in `id_links/` |
 | Complete Legacy measurements | QROOT `legacy_local/4d418c295df8aa17/photometry.npz` and `report.json`; raw batches in `acquired/decals_*.npz` |
-| Independent QSO association audit | QROOT `association_audit/16f14c32960e2fb4/` |
+| Independent QSO association audit | QROOT `association_audit/64b33f5755fae833/` (current); earlier count caches in `16f14c32960e2fb4/` remain reusable |
 | Fresh stellar preparation | `models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0/` (region products, `queries/`, `coverage_report.json`) |
 | This inventory, called **INV** below | QROOT `local_inventory/2026-09-28/` |
 
@@ -78,10 +78,17 @@ These remain flagged for association verification, not silently certified.
 ## Other useful catalogues and traps
 
 - `/Users/vasilybelokurov/data/qso/ps1/qso_ps1_object_index.parquet`:
-  174,842 rows; exact PS1 object IDs map through all SDSS master memberships to
+  174,842 rows. **Correction from live verification:** 166,447 derived IDs were
+  rounded through float64 despite the integer column type. Recover IDs from
+  `casjobs_exports/qso_ps1_full_c*_xmatch.fits` (original FITS `K` columns),
+  joining by SDSS name and counterpart coordinates. These recover links to
   155,286 eligible targets, all within 1 arcsec, with no conflicting PS1 IDs.
-  150,273 of these targets lack reusable stack photometry. Retain these IDs for
-  possible indexed lookups; verify primary detection and table compatibility first.
+  147,823 of the 155,286 eligible links needed numerical correction; all retain
+  the same counterpart positions. 150,273 targets initially lacked reusable
+  stack photometry. Retain the corrected IDs for
+  possible indexed lookups; indexed retrieval. WSDB has the matching bigint `objid` index; retrieval
+  verifies primary detection and association radius. See QROOT
+  `local_inventory/2026-09-28/ps1_id_recovery.json` for all original file hashes.
 - `/Users/vasilybelokurov/data/qso/ps1/qso_ps1_forced_full.parquet`:
   14,439,972 forced time-series measurements. These do not supply the required
   DR1 stack PSF magnitudes, errors and frame counts. Original exports remain
@@ -126,6 +133,7 @@ for photometry and `scripts/inventory_qso_identifier_links.py --cache <QROOT>
 inventory directory triggers NPZ-header discovery under `~/data` and `models/`;
 an existing directory reuses its saved `discovered_native.json`.
 
-Next: assemble the reusable results, verify the PS1 ID route against the required
-catalogue, and acquire only remaining results after checking survey footprints.
+Acquisition is now running from QROOT `gap_acquisition/`, using the cached
+results and corrected PS1 IDs. See `docs/QSO_GAP_ACQUISITION_2026-09-28.md`
+for the command, checkpoint locations and measured query behaviour.
 This inventory does not authorize retraining or certify the full 41-band sample.

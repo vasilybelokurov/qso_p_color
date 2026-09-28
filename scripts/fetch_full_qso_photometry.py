@@ -17,6 +17,8 @@ from qso_pcolor.multisurvey_data import SURVEYS, band_labels, catalogue_photomet
 from qso_pcolor.qso_acquisition import (prepare_sdss_id_photometry, acquire_sdss_batch,
                                       read_acquired_batch, wait_for_sdss_positions)
 from qso_pcolor.legacy_acquisition import assemble_legacy_from_cache
+from qso_pcolor.gap_acquisition import acquire_survey
+from qso_pcolor.sky_acquisition import acquisition_lock
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -30,6 +32,7 @@ def main() -> None:
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--surveys', nargs='+', choices=tuple(SURVEYS))
     parser.add_argument('--prepare-only', action='store_true')
+    parser.add_argument('--inventory', type=Path, help='Required verified local inventory for the five remaining surveys')
     parser.add_argument('--legacy-desi-cache', type=Path,
                         default=Path('~/data/qso_p_color/catalogues/desi_dr1_qso.npz').expanduser(),
                         help='Existing DESI Legacy photometry; Legacy never falls back to a query')
@@ -40,6 +43,9 @@ def main() -> None:
     args = parser.parse_args()
     if not args.prepare_only and not args.surveys:
         parser.error('acquisition requires explicit --surveys after reviewing local cache availability')
+    if (not args.prepare_only and set(args.surveys or ()) & {'ps1','allwise','nsc','skymapper','vhs'}
+            and args.inventory is None):
+        parser.error('remaining surveys require --inventory; blind full-list acquisition is disabled')
     cfg = json.loads(args.config.read_text())
     block_config = json.loads(args.block_config.read_text())
     if cfg['batch_size'] < 1:
@@ -115,6 +121,10 @@ def main() -> None:
     if args.prepare_only:
         return
     for survey in args.surveys:
+        if survey in {'ps1','allwise','nsc','skymapper','vhs'}:
+            with acquisition_lock(root/'gap_acquisition'/'worker.lock'):
+                acquire_survey(survey,root,args.inventory,targets,cfg,query_size=block_config['max_targets'])
+            continue
         if survey == 'decals':
             assemble_legacy_from_cache(root, desi_photometry=args.legacy_desi_cache.expanduser())
             continue

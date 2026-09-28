@@ -163,9 +163,65 @@
       "rows": 174842,
       "eligible_target_identities": 155286,
       "within_radius_targets": 155286,
-      "status": "Exact integer object IDs; stack primary-detection status and measurement columns still require verification.",
+      "status": "Integer IDs recovered from original FITS K columns; Parquet IDs were rounded through float64. Positions remain within radius; stack primary and flux validation occurs during acquisition.",
       "targets_with_multiple_ps1_ids": 0,
-      "candidate_id_targets_without_reusable_photometry": 150273
+      "candidate_id_targets_without_reusable_photometry": 150273,
+      "original_fits_recovery": {
+        "original_fits_sources": [
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0000_xmatch.fits",
+            "sha256": "c228a23c553cd85f80905828e22419aba93ea3ba6213f138bd28268e58884bc2"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0001_xmatch.fits",
+            "sha256": "e0f7f9c56aa83df1b2cfeeb63b7c526c75b8fcf9d93215a3e5fd2907126b1db1"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0002_xmatch.fits",
+            "sha256": "418c0637f11192e0463ce6af4e6a8962dd3d72a4b7c4f91c5956b04c4ac036cc"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0003_xmatch.fits",
+            "sha256": "200c12b0adc376f3aec9fbba34171222951f816e26bfdc3ecd94e2c888b5fcc5"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0004_xmatch.fits",
+            "sha256": "2a563a5c3234b3d734c0222e1c21a205146ad25e6a9bae44fddc517748d9dcca"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0005_xmatch.fits",
+            "sha256": "72d835902adb296afaf10cd3ed1749419961178c0515c4b83c3f63a28052b27b"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0006_xmatch.fits",
+            "sha256": "5b31726a158310fb2eb962805eef20384bc7aafc943110f43afccb8eb0d16de4"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0007_xmatch.fits",
+            "sha256": "881fd014634bf661b79f7db7cbc5fccb62b18d0b2a13e7af4449d85c0ec690ac"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0008_xmatch.fits",
+            "sha256": "ea031e65b1d6b141063fb58e6dc5fbe18f6de17f86ddb8dc7bc02a6d10c39cf3"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0009_xmatch.fits",
+            "sha256": "55e1eda6eef3500e5e33cbbca0693fcaa9c1c1720d48ab1421b8acc1b6b062c1"
+          },
+          {
+            "path": "/Users/vasilybelokurov/data/qso/ps1/casjobs_exports/qso_ps1_full_c0010_xmatch.fits",
+            "sha256": "b7421025f7bb0770de7baa7aca1e406e03656630c40f4b78e8b80b4235d0586d"
+          }
+        ],
+        "index_rows": 174842,
+        "index_ids_changed": 166447,
+        "eligible_link_rows": 155286,
+        "eligible_ids_changed": 147823,
+        "proven_float_roundtrip": true,
+        "corrected_candidates_sha256": "96c296a4fee690847a18c3304460e32b2bf3d90ab06c5b2a8e6f09ee69146754"
+      },
+      "recovery_implementation_sha256": "c380719b1adb9c5d970e9e9702d89bd8cfbeddcd15451dee83c242f7028246fb",
+      "recovery_reproduced_exactly": true
     },
     "allwise": {
       "path": "/Users/vasilybelokurov/data/qso/wise/snapshots/qso_wise_full_events.parquet",
@@ -182,7 +238,7 @@
     },
     "candidate_file_sha256": {
       "allwise_identifier_candidates.npz": "9c73237df7d1f02668e2d058859bee0455b38374868176ed50b83369312eb9bb",
-      "ps1_identifier_candidates.npz": "f2827e4c6a633842cfaabd0a9d0198c98c578c8fab899398d121b327472c623a"
+      "ps1_identifier_candidates.npz": "96c296a4fee690847a18c3304460e32b2bf3d90ab06c5b2a8e6f09ee69146754"
     },
     "target_sha256": "4f07015897bd69cbe53883758e5a4126a85bd0d206398518fffebe408e8dbb40",
     "members_sha256": "9e1985e58c3dac3f936b4c834b817890f31509dbda37813e1e923c369fd7ff40",

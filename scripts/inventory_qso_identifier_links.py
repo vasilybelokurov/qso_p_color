@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+from astropy.io import fits
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from qso_pcolor.data import _load_npz, _save_npz
@@ -20,6 +21,36 @@ def exact_integer_id(value) -> int:
     """Reject rounded/scientific-notation identifiers instead of guessing digits."""
     s='' if value is None else str(value).strip()
     return int(s) if s.isascii() and s.isdigit() and 0<int(s)<=np.iinfo(np.int64).max else -1
+
+
+def recover_ps1_ids(index: dict, export_directory: Path) -> tuple[np.ndarray, dict]:
+    """Recover FITS int64 IDs by name and counterpart coordinates, never float IDs."""
+    files=sorted(export_directory.glob('qso_ps1_full_c*_xmatch.fits'))
+    if not files:raise ValueError('original integer PS1 exports are missing')
+    names,ras,decs,ids,sources=[],[],[],[],[]
+    for path in files:
+        with fits.open(path) as hdus:
+            rows=hdus[1].data
+            if rows['ps1_objid'].dtype.kind not in 'iu':raise ValueError('noninteger original PS1 IDs')
+            names.append(np.array(rows['sdss_name']).astype(str))
+            ras.append(np.array(rows['ps1_ra']));decs.append(np.array(rows['ps1_dec']))
+            ids.append(np.array(rows['ps1_objid'],dtype=np.int64))
+        sources.append(dict(path=str(path),sha256=file_hash(path)))
+    ids=np.concatenate(ids)
+    keys=np.rec.fromarrays([np.concatenate(names),np.concatenate(ras),np.concatenate(decs)],names='name,ra,dec')
+    unique,first,inverse=np.unique(keys,return_index=True,return_inverse=True)
+    low=np.full(len(unique),np.iinfo(np.int64).max,np.int64);high=np.full(len(unique),np.iinfo(np.int64).min,np.int64)
+    np.minimum.at(low,inverse,ids);np.maximum.at(high,inverse,ids)
+    if not np.array_equal(low,high):raise ValueError('conflicting original PS1 identities at the same coordinates')
+    wanted=np.rec.fromarrays([np.array(index['sdss_name']),np.array(index['ps1_ra']),np.array(index['ps1_dec'])],names='name,ra,dec')
+    pos=np.searchsorted(unique,wanted)
+    if np.any(pos>=len(unique)) or not np.array_equal(unique[pos],wanted):raise ValueError('PS1 source identity absent from original exports')
+    exact=ids[first[pos]];derived=np.array(index['objID'])
+    changed=exact!=derived
+    if not np.array_equal(exact[changed].astype(float).astype(np.int64),derived[changed]):
+        raise ValueError('derived PS1 IDs differ for reasons other than float rounding')
+    return exact,dict(original_fits_sources=sources,index_rows=len(exact),index_ids_changed=int(changed.sum()),
+                      proven_float_roundtrip=True)
 
 
 def main() -> None:
@@ -47,7 +78,7 @@ def main() -> None:
     ps1=Path.home()/'data/qso/ps1/qso_ps1_object_index.parquet'
     rows=pq.read_table(ps1).to_pydict()
     ti=align(np.array(rows['sdss_name']))
-    ids=np.array(rows['objID'])
+    ids,recovery=recover_ps1_ids(rows,ps1.parent/'casjobs_exports')
     if not np.issubdtype(ids.dtype,np.integer):raise ValueError('PS1 IDs are not exact integers')
     good=(ti>=0)&(ids>0)
     row=np.flatnonzero(good);sel=ti[good]
@@ -58,7 +89,8 @@ def main() -> None:
               objid=ids[good],separation_arcsec=sep,within_radius=within)
     report=dict(ps1=dict(path=str(ps1),sha256=file_hash(ps1),rows=len(ids),
         eligible_target_identities=len(np.unique(sel)),within_radius_targets=len(np.unique(sel[within])),
-        status='Exact integer object IDs; stack primary-detection status and measurement columns still require verification.'))
+        original_fits_recovery=recovery,
+        status='Exact IDs recovered from original FITS integer columns. Derived Parquet IDs were rounded; stack primary-detection and measurement validation occurs during acquisition.'))
     wise=Path.home()/'data/qso/wise/snapshots/qso_wise_full_events.parquet'
     parts=[];f=pq.ParquetFile(wise)
     for batch in f.iter_batches(batch_size=1000000,columns=['sdss_name','allwise_cntr']):

@@ -302,3 +302,15 @@ Only then report **ready to launch** to the user. The saved master and this
 selection policy are preparation, not evidence that these remaining gates
 have passed. No retraining is authorised by an elapsed wait or by completing
 this document.
+
+
+## Five-survey acquisition update
+
+The local inventory is complete and recorded in `LOCAL_DATA_LOCATIONS.md`.
+`fetch_qso_photometry_gaps.py` now acquires the remaining data without another
+approval pause. It reuses every verified measurement and nonmatch, retrieves
+PS1 measurements through corrected original-FITS IDs where available, and uses
+plan-checked Q3C queries for the rest. Results are checkpointed and reassembled
+in the frozen target order. `QSO_GAP_ACQUISITION_2026-09-28.md` records the SQL
+choices, live checks, ID-rounding correction and restart command. Association
+validation and the readiness report remain prerequisites for retraining.

@@ -19,7 +19,7 @@ from qso_pcolor.multisurvey_data import SURVEYS, match_catalogue, catalogue_phot
 from qso_pcolor.qso_acquisition import read_acquired_batch
 
 
-def match_counts(survey,ra,dec,radius,cache):
+def match_counts(survey,ra,dec,radius,cache,known_counts=None):
     """Count all eligible associations inside the declared radius, including zero."""
     import sqlutilpy as sqlutil
     spec=SURVEYS[survey]
@@ -36,6 +36,16 @@ def match_counts(survey,ra,dec,radius,cache):
         with np.load(previous) as d:
             if str(d['query'])==sql and d['match_count'].shape==ra.shape:
                 return d['match_count']
+    if known_counts is not None:
+        known_counts=np.asarray(known_counts)
+        if known_counts.shape!=ra.shape or not np.issubdtype(known_counts.dtype,np.integer):
+            raise ValueError('aligned integer association counts required')
+        counts=known_counts.copy()
+        missing=counts<0
+        if missing.any():
+            counts[missing]=match_counts(survey,ra[missing],dec[missing],radius,cache)
+        _save_npz(path,match_count=counts,query=np.array(sql))
+        return counts
     result=sqlutil.local_join(sql,'mytmptable',(np.arange(len(ra)),ra,dec),('idx','ra','dec'),
         asDict=True,intNullVal=-1,preamb="SET jit=off; SET statement_timeout='7200s'")
     order=np.argsort(result['idx'])
@@ -91,7 +101,7 @@ def main():
                     if done==n: positions.append((raw['ra'],raw['dec']))
                 if not stamp.exists():
                     count=match_counts(survey,targets['ra'][lo:hi],targets['dec'][lo:hi],
-                                       cfg['match_radius_arcsec'][survey],counts_cache)
+                                       cfg['match_radius_arcsec'][survey],counts_cache,known_counts=raw.get('match_count'))
                     matched=np.isfinite(raw['ra']+raw['dec'])
                     if not np.array_equal(count>0,matched):
                         raise ValueError(f'{survey}: catalogue changed between acquisition and association audit')
