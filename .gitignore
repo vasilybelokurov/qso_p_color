@@ -34,3 +34,5 @@ models/legacy_psf_xdqso/*
 models/multisurvey_psf/*
 !models/multisurvey_psf/current
 !models/multisurvey_psf/068549008f3c74f7/
+!models/multisurvey_psf/5b6f779d34853645/
+!models/multisurvey_psf/630f47f63b6f0694/

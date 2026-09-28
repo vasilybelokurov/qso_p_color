@@ -57,3 +57,48 @@ def test_bundle_integrity_refuses_modified_population_priors(tmp_path):
     (tmp_path / "bundle/priors.json").write_text("{}")
     with pytest.raises(ValueError, match="content does not match"):
         PSFMultiSurveyBaseline.load(tmp_path / "bundle")
+
+
+def test_both_saved_catchalls_have_positive_weights_and_unchanged_population_models():
+    report = json.loads((ROOT / "docs/VALIDATION_psf_catchalls_2026-09-28.json").read_text())
+    previous = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf" / report["source_bundle"])
+    for family, identity in report["bundles"].items():
+        baseline = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf" / identity)
+        assert baseline.outlier.family == family
+        assert "*" in baseline.outlier.fractions
+        assert all(np.all((eta > 0) & (eta < 1)) for _, eta in baseline.outlier.fractions.values())
+        for name in ("model.json", "priors.json"):
+            assert baseline.manifest["files"][name] == previous.manifest["files"][name]
+        if family == "student_t":
+            assert baseline.outlier.noise == "exact"
+        else:
+            for mix in [baseline.model.background, *baseline.model.qso.mixtures]:
+                # The full joint envelope also protects every marginal and conditional.
+                np.linalg.cholesky(baseline.outlier.cov[None] - mix.covs)
+
+
+def test_saved_catchalls_repair_the_northern_zero_weight_counterexample():
+    from scipy.special import logsumexp
+    report = json.loads((ROOT / "docs/VALIDATION_psf_catchalls_2026-09-28.json").read_text())
+    # Fixed bright-northern colour-plane point: d_Q=3.49, d_B=6.19, so the
+    # hard 4-sigma guard alone does not reject it. Old eta was about 2e-310.
+    phot = Photometry([[208.92960214334377, 39.81056213944273, 59.70331586649468]],
+        [[33.326823003316115, 1.2100330972052373, 2.7214287297546718]],
+        tuple(f"decals_dr9_north:{band}" for band in ("g", "r", "z")))
+    scores = {}
+    for name, identity in dict(previous=report["source_bundle"], **report["bundles"]).items():
+        baseline = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf" / identity)
+        rows, decision = baseline.score(phot, morphology=["PSF"], z_primary=1.8,
+            l_deg=180., b_deg=45., match=RedshiftMatch(half_width_kms=2000.),
+            blend_policy=BlendPolicy(3., .2), separation_arcsec=6., fracflux=.05,
+            ood_flag_sigma=4.)
+        assert decision["eligible"][0]
+        r = rows[0]
+        logq = np.logaddexp(r.log_lambda_sameq, r.log_lambda_fieldq)
+        pq = np.exp(logq - logsumexp([logq, r.log_lambda_bkg, r.log_lambda_out]))
+        scores[name] = r
+        if name == "previous":
+            assert pq > .99
+        else:
+            assert pq < .05 and r.p_outlier > .95
+            assert r.log_r_per_unit_z < scores["previous"].log_r_per_unit_z - 3.

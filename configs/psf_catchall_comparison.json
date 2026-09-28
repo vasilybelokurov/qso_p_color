@@ -1,0 +1,32 @@
+{
+  "baseline": "models/multisurvey_psf/068549008f3c74f7",
+  "work": "models/multisurvey_psf/work/catchall_comparison",
+  "seed": 20260929,
+  "folds": 3,
+  "chunk_size": 256,
+  "gaussian_factors": [1.02, 1.25, 2.0],
+  "student_t_nu": [1.0, 2.0, 4.0],
+  "student_t_factors": [1.0, 1.5, 2.0],
+  "student_t_noise": "exact",
+  "magnitude_bins": [3, 6, 12],
+  "minimum_bin_count": 200,
+  "pooling_strengths": [100.0, 1000.0, 10000.0],
+  "global_prior_mean": 0.5,
+  "global_prior_strength": 2.0,
+  "validation": {
+    "real_rows_per_class": 512,
+    "window_kms": 2000.0,
+    "ood_flag_sigma": 4.0,
+    "grid_size": 51,
+    "grid_colour_range": [-6.0, 8.0],
+    "reference_magnitudes": [18.5, 21.0, 24.3],
+    "luptitude_error": 0.03,
+    "low_density_peak_fractions": [0.01, 0.0001],
+    "log_bf_threshold": 5.0,
+    "primary_z": 1.8,
+    "test_separation_arcsec": 6.0,
+    "test_fracflux": 0.05,
+    "min_separation_arcsec": 3.0,
+    "max_fracflux": 0.2
+  }
+}

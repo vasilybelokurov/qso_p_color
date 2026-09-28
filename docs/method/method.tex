@@ -56,13 +56,44 @@ counts use measured Legacy mask-image areas and pooling $n_0=100$; these
 settings are inherited from the Legacy restoration. Quasar counts restore the
 original sampling weights before PSF selection, retaining its completeness
 constant. All 41 anchors have priors; sparse counts are flagged. The
-Student-$t$ term refits moments and fractions while retaining its chosen
-degrees of freedom and scale factor. Local fitting updates the same weights
+catch-all comparison below replaces the initial inherited Student-$t$
+settings. Local fitting updates the same weights
 and counts with measured areas, source exclusions and a cone-scope check.
 Held-out log-density gains are $0.069$ nat for 12,072 quasars and $1.161$ nats
 for 14,511 field sources. Arbitrary-band checks pass; probability calibration
 remains unestablished. Twenty of 43 quasar slices converged to the configured
 tolerance; the other slices and field reached the iteration cap.
+
+\paragraph{Catch-all comparison and pooled weights (28 September 2026).}
+Both a joint Gaussian envelope and a joint Student-$t$ have been fitted to
+the active PSF model. The Gaussian covariance strictly exceeds every stellar
+and quasar component covariance; the Student-$t$ uses the stellar mixture's
+second moment as its scale matrix. Both marginalise the same 41-dimensional
+distribution. The Student-$t$ now convolves Gaussian measurement noise through
+its scale-mixture integral, rather than adding noise to its scale matrix.
+Magnitude-bin fractions maximise the mixture likelihood plus
+\[
+ n_0\{\bar\eta\log\eta+(1-\bar\eta)\log(1-\eta)\}.
+\]
+The global $\bar\eta$ uses a Beta$(2,2)$ MAP fit (one pseudo-count per
+population); sparse bins borrow this share instead of switching it off.
+This binning applies to the catch-all fraction: stellar colour density still
+conditions continuously on the measured reference magnitude.
+
+Three-fold cone validation on 23,899 objects unused for Gaussian-shape fits
+compared 3, 6 and 12 bins, three pooling strengths and both families' scales.
+It selected six bins for the Gaussian and three for Student-$t$, both with
+$n_0=1000$; the selected $t$ has $\nu=4$ and unit scale factor. Spatial weights
+had already used these training cones, so this is conditional validation of
+the catch-all. On 14,511 sources in six untouched cones, the log-density gains
+over the stellar model alone are $0.00741$ and $0.01865$ nat for Gaussian and
+Student-$t$, respectively. The previous catch-all gives $0.01870$ nat: the
+change preserves predictive quality while removing effectively zero weights.
+Student-$t$ is the active choice; the Gaussian remains a reproducible
+comparison. Colour-plane probes show that neither term alone certifies every
+low-density region. The hard outside-both-models exclusion remains in force;
+synthetic grid counts are not observed false-positive rates. Details and
+limits are in \path{docs/CATCHALL_COMPARISON_2026-09-28.md}.
 
 \section*{Earlier Legacy-only PSF baseline (28 September 2026)}
 \paragraph{Spatial implementation restored.}

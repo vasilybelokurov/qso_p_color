@@ -19,6 +19,12 @@ hemispheres are active. See `docs/VALIDATION_multisurvey_psf_2026-09-28.json`.
 Validation covers functionality and reserved-source predictive density, not
 full probability calibration. Sparse priors and capped fits remain explicit.
 The Legacy-only and original multi-survey bundles below are comparisons.
+The active catch-all uses pooled positive weights and an exactly noise-convolved
+Student-t. The fitted Gaussian alternative and comparison are recorded in
+`docs/CATCHALL_COMPARISON_2026-09-28.md` and
+`docs/VALIDATION_psf_catchalls_2026-09-28.json`. Preserve the hard support guard.
+Magnitude bins for the catch-all share do not discretise the stellar colour
+model, which conditions continuously on the reference magnitude.
 
 **Earlier Legacy-only recovery status (2026-09-28).** The Legacy DR9 PSF baseline in
 `models/legacy_psf_xdqso/current` is available through `XDQSOBaseline` for
@@ -176,7 +182,7 @@ scripts/ (the retired model; run against models/archive/)
 scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
 tools/journal.py          JOURNAL.md updater
 docs/method/              method.tex + Makefile -> method.pdf
-tests/                    264 tests; see section 7
+tests/                    276 tests; see section 7
 ```
 
 A general CLI and the remaining calibration work are not yet complete.

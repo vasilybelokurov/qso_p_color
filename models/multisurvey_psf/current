@@ -1,6 +1,6 @@
 {
-  "bundle": "068549008f3c74f7",
-  "validation": "docs/VALIDATION_multisurvey_psf_2026-09-28.json",
-  "scope": "PSF sources; any nonempty subset of 41 bands; spatial and local background",
+  "bundle": "630f47f63b6f0694",
+  "validation": "docs/VALIDATION_psf_catchalls_2026-09-28.json",
+  "scope": "PSF sources; any nonempty subset of 41 bands; spatial and local background; pooled Student-t catch-all",
   "full_probability_calibration": false
 }

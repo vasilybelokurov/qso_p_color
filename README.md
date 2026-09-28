@@ -40,6 +40,14 @@ position, using shared Gaussian shapes with HEALPix weights (`nside=4`, parent
 reference bands; sparse priors are flagged. `baseline.fit_local(...)` refits
 the same weights and counts in a declared cone with measured usable areas.
 
+The active catch-all is a Student-t with pooled, strictly positive magnitude-bin
+weights and Gaussian measurement-noise convolution. A fitted broad Gaussian is
+retained for comparison. Both use the same joint 41-band marginalisation;
+neither changes the stellar model's continuous magnitude dependence. See the
+[catch-all comparison](docs/CATCHALL_COMPARISON_2026-09-28.md) for the held-out
+results and colour-plane stress tests. The outside-both-models exclusion remains
+required: a catch-all alone is not a certificate of reliable colour-space support.
+
 The [recovery validation](docs/VALIDATION_multisurvey_psf_2026-09-28.json)
 checks all 41 single bands, 820 pairs, larger subsets and 127 survey selections.
 On reserved PSF sources, mean predictive log density improved by 0.069 nats

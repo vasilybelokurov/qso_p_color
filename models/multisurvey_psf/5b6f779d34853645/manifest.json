@@ -1,0 +1,18 @@
+{
+  "kind": "multisurvey_psf_bundle",
+  "files": {
+    "model.json": "de09e9a2d29b9655ec88ea20ba4cf5d8d82b758ad693299f192c267f8fa646ff",
+    "priors.json": "e7f34bbdd7c9980909543a729dc7460dc088c0688706e3e3fc72b35ea3f3bae9",
+    "outlier.json": "ea48c25576f842c90c870dd03f72293fa2385e5c4b74e73a67d23d52ae0be290"
+  },
+  "bundle_id": "5b6f779d34853645",
+  "min_abs_b_deg": 25.0,
+  "population": "psf",
+  "source_bundle": "068549008f3c74f7",
+  "catchall_family": "gaussian",
+  "catchall_weight_policy": "pooled_beta_map",
+  "status": "guarded ranking: catch-all CV, reserved predictive checks and colour-plane stress tests; probability calibration not established",
+  "method": "one joint 41-band model",
+  "validation": "docs/VALIDATION_psf_catchalls_2026-09-28.json",
+  "full_probability_calibration": false
+}

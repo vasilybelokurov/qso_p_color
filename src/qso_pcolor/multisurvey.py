@@ -519,7 +519,9 @@ class MultiSurveyOutlier:
         self.fractions = {k: (np.asarray(e, float), np.asarray(f, float))
                           for k, (e, f) in self.fractions.items()}
         for k, (e, f) in self.fractions.items():
-            if f.size != e.size - 1 or ((f < 0) | (f >= 1)).any():
+            if (e.ndim != 1 or f.ndim != 1 or len(f) == 0 or f.size != e.size - 1 or
+                    not np.isfinite(e).all() or not np.isfinite(f).all() or
+                    (np.diff(e) <= 0).any() or ((f < 0) | (f >= 1)).any()):
                 raise ValueError(f"{k}: one fraction in [0, 1) per magnitude bin")
         self._mix = GaussianMixture(np.ones(1), self.mean[None], self.cov[None],
                                     labels=self.labels)

@@ -189,6 +189,48 @@ def fit_outlier_fraction(log_p_bkg: np.ndarray, log_p_out: np.ndarray, *,
     return eta
 
 
+def fit_pooled_outlier_fraction(log_p_bkg: np.ndarray, log_p_out: np.ndarray, *,
+                               prior_mean: float, prior_strength: float,
+                               weights: np.ndarray | None = None) -> float:
+    """Fit a dimensionless catch-all share with explicit pooled pseudo-counts.
+
+    Maximises the mixture log likelihood plus
+    ``strength * [mean*log(eta) + (1-mean)*log(1-eta)]``. This is a
+    Beta(1 + strength*mean, 1 + strength*(1-mean)) MAP estimate, strictly
+    inside (0, 1). An empty bin returns the pooled mean. Densities must have
+    identical units; weights and prior strength are effective object counts.
+    """
+    from scipy.optimize import brentq
+    from scipy.special import expit, logit
+
+    if (not np.isfinite(prior_mean) or not 0 < prior_mean < 1 or
+            not np.isfinite(prior_strength) or prior_strength <= 0):
+        raise ValueError("pooling requires a finite mean in (0, 1) and positive strength")
+    a, b = np.asarray(log_p_bkg, float), np.asarray(log_p_out, float)
+    w = np.ones_like(a) if weights is None else np.asarray(weights, float)
+    if (a.ndim != 1 or a.shape != b.shape or w.shape != a.shape or
+            not np.isfinite(w).all() or (w < 0).any() or
+            np.isnan(a).any() or np.isnan(b).any() or
+            np.isposinf(a).any() or np.isposinf(b).any() or
+            ((~np.isfinite(a) & ~np.isfinite(b)) & (w > 0)).any()):
+        raise ValueError("invalid paired log densities or weights")
+    use = w > 0
+    a, b, w = a[use], b[use], w[use]
+    if not len(a):
+        return float(prior_mean)
+
+    def balance(eta):
+        if eta == 0:
+            return prior_strength * prior_mean + w[np.isneginf(a)].sum()
+        if eta == 1:
+            return -prior_strength * (1 - prior_mean) - w[np.isneginf(b)].sum()
+        return (w @ expit(logit(eta) + b - a) + prior_strength * prior_mean
+                - (w.sum() + prior_strength) * eta)
+
+    return float(brentq(balance, 0., 1., xtol=np.finfo(float).tiny,
+                        rtol=4 * np.finfo(float).eps))
+
+
 @dataclass
 class OutlierModel:
     """The unmodelled component: a broad normalised Gaussian and its fraction.
@@ -400,13 +442,13 @@ def student_t_noisy_logpdf(x: np.ndarray, mean: np.ndarray, scale: np.ndarray, n
             continue
         A = np.linalg.cholesky(scale[np.ix_(idx, idx)])
         logdet = 2.0 * np.log(np.diag(A)).sum()
-        Ainv = np.linalg.inv(A)
         for lo in range(0, rows_all.size, chunk):
             rows = rows_all[lo:lo + chunk]
-            M = Ainv[None] @ s[np.ix_(rows, idx, idx)] @ Ainv.T[None]
+            left = np.linalg.solve(A, s[np.ix_(rows, idx, idx)])
+            M = np.linalg.solve(A, np.swapaxes(left, -1, -2))
             lam, U = np.linalg.eigh(0.5 * (M + np.swapaxes(M, 1, 2)))
             lam = np.clip(lam, 0.0, None)
-            z = (x[np.ix_(rows, idx)] - mean[idx]) @ Ainv.T              # A^-1 (x - mu)
+            z = np.linalg.solve(A, (x[np.ix_(rows, idx)] - mean[idx]).T).T
             y2 = np.einsum("nji,nj->ni", U, z) ** 2                     # (U^T z)^2
             inv = 1.0 / g[None, :, None] + lam[:, None, :]              # (m, G, k)
             lnorm = (-0.5 * k * np.log(2 * np.pi) - 0.5 * logdet
