@@ -84,7 +84,7 @@
     "failed": []
   },
   "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/16f14c32960e2fb4",
-  "tests": "293 passed in 62.13 seconds; /tmp/qso_id_pipeline_final_tests.log",
+  "tests": "295 passed in 62.44 seconds; /tmp/qso_independent_full_tests.log",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -94,6 +94,8 @@
     "native_dr16q_fluxes_substituted": false,
     "association_policy_unchanged": true,
     "remaining_id_targets": 449866,
-    "state": "Replacement running: single indexed ID query launched after identity-map recovery; positional fallback follows."
+    "state": "Independent no-ID worker launched for 857578 targets; ID query continues for 449866. One-time handoff after ID cache completion resumes the updated main worker to reuse both results.",
+    "independent_positional_targets": 857578,
+    "independent_positional_directory": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/sdss_without_ids"
   }
 }

@@ -263,6 +263,13 @@ Resume with `fetch_full_qso_photometry.py --config configs/full_sample_photometr
 --resume-cache models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff`.
 The shared batch reader also serves the auditor so it never rematches a batch
 whose switched acquisition is already saved.
+Outstanding objects without usable SDSS IDs are now downloaded independently
+with `scripts/fetch_sdss_without_ids.py --cache <cache>`, using one whole-list
+indexed positional query. The ID download continues concurrently. Each route
+keeps its own results and target identities; the main fetcher combines them
+without requerying the positional results, including recorded nonmatches.
+The local 50,000-row assembly files remain checkpoints, not database query chunks
+for these two initial SDSS downloads. Failed ID links are handled afterwards.
 
 1. Verified parent master and explicit source/redshift scope; reviewed ambiguous
    associations and large redshift disagreements.

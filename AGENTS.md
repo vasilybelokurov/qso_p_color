@@ -57,6 +57,14 @@ Do not assume an indexed spatial plan is optimal, extrapolate cold-cache timings
 across surveys, or add chunking as a speed fix without comparative measurements.
 The WSDB skill's direct `sqlutilpy` workflow does not require the separate MCP
 connector. Preserve known identities and cached measurements before requerying.
+For an existing full-sample cache, `scripts/fetch_sdss_without_ids.py --cache
+<cache>` runs one independent, uncapped SDSS positional query for outstanding
+objects without usable IDs. It saves its exact target list, SQL, full-list plan,
+status and output under `sdss_without_ids/`. Start it alongside the ID download;
+the two acquisitions have no dependency. The main fetcher waits for and reuses
+that output during assembly; only failed ID associations need further queries.
+An older running Python worker must be resumed with the updated code after its
+ID result is safely cached, otherwise it will retain its old sequential logic.
 `scripts/prepare_stellar_sample.py` now runs cleaning, spatial roles, photometry
 and Legacy any-optical-band area measurements with `configs/stellar_preparation.json`.
 `scripts/audit_qso_associations.py` checks arriving QSO batches independently.

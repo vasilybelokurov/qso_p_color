@@ -436,6 +436,11 @@ declared association radius; missing, conflicting, nonprimary or out-of-radius
 links fall back to positional matching. The existing quality, multiple-match
 and shared-source checks still apply. Previously completed positional matches
 remain cached. This acquisition change does not constitute a new model fit.
+The outstanding objects without usable identifiers are queried as one list,
+independently of the identifier-based download. Results are reunited by their
+saved target indices, including unmatched rows; failed identifier associations
+are processed afterwards. This scheduling does not change the selection or
+the photometric systems.
 
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}

@@ -131,7 +131,7 @@ def prepare_sdss_id_photometry(root: Path, targets: dict, master: Path,
 
 
 def acquire_sdss_batch(root: Path, targets: dict, lo: int, hi: int,
-                       id_rows: dict, radius_arcsec: float) -> dict:
+                       id_rows: dict, radius_arcsec: float, *, position_rows: dict | None = None) -> dict:
     """Combine validated ID links and positional fallback, in target order."""
     path = root/'acquired'/f'sdss_{lo:07d}.npz'
     if path.exists():
@@ -149,8 +149,8 @@ def acquire_sdss_batch(root: Path, targets: dict, lo: int, hi: int,
         use[id_rows['target_index'][rows]-lo] = True
     result = {}
     if (~use).any():
-        raw = match_catalogue('sdss', targets['ra'][lo:hi][~use], targets['dec'][lo:hi][~use],
-                              root/'queries', radius_arcsec=radius_arcsec)
+        pending = np.arange(lo, hi)[~use]
+        raw = positional_rows_for_targets(root, targets, pending, position_rows, radius_arcsec)
         result = {k: np.empty(n, dtype=v.dtype) for k,v in raw.items()}
         for k,v in raw.items():
             result[k][~use] = v
@@ -167,6 +167,63 @@ def acquire_sdss_batch(root: Path, targets: dict, lo: int, hi: int,
     if use.any():
         result['sdss_photometric_objid'][use] = id_rows['sdss_photometric_objid'][rows]
     _save_npz(path, **result)
+    return result
+
+
+def positional_rows_for_targets(root: Path, targets: dict, indices: np.ndarray,
+                                saved: dict | None, radius_arcsec: float) -> dict:
+    """Reuse independent positional results; fetch only genuinely missing rows."""
+    found = np.zeros(len(indices), bool)
+    positions = np.zeros(len(indices), int)
+    if saved and len(saved['target_index']):
+        source = saved['target_index']
+        if np.any(np.diff(source) <= 0):
+            raise ValueError('prefetched target identities must be unique and sorted')
+        positions = np.searchsorted(source, indices)
+        bounded = positions < len(source)
+        found[bounded] = source[positions[bounded]] == indices[bounded]
+    raw = {}
+    if found.any():
+        for k,v in saved.items():
+            if k == 'target_index':
+                continue
+            raw[k] = np.empty(len(indices), dtype=v.dtype)
+            raw[k][found] = v[positions[found]]
+    if (~found).any():
+        missing = indices[~found]
+        fetched = match_catalogue('sdss', targets['ra'][missing], targets['dec'][missing],
+                                  root/'queries', radius_arcsec=radius_arcsec)
+        for k,v in fetched.items():
+            if k not in raw:
+                raw[k] = np.empty(len(indices), dtype=v.dtype)
+            raw[k][~found] = v
+    raw['idx'] = np.arange(len(indices))
+    return raw
+
+
+def wait_for_sdss_positions(root: Path) -> dict | None:
+    """Wait for an independently launched positional download, if one exists."""
+    directory = root/'sdss_without_ids'
+    if not (directory/'request.json').exists():
+        return None
+    request = json.loads((directory/'request.json').read_text())
+    if hashlib.sha256((root/'targets.npz').read_bytes()).hexdigest() != request['targets_sha256']:
+        raise ValueError('independent SDSS download belongs to another target list')
+    announced = False
+    while not (directory/'photometry.npz').exists():
+        status_path = directory/'status.json'
+        if status_path.exists():
+            status = json.loads(status_path.read_text())
+            if status['stage'] == 'failed':
+                raise RuntimeError(f"Independent SDSS download failed: {status['error']}")
+        if not announced:
+            print('ID results saved; waiting for the independent no-ID download (no duplicate queries)', flush=True)
+            announced = True
+        time.sleep(10)
+    result = _load_npz(directory/'photometry.npz')
+    selection = _load_npz(directory/'targets.npz')
+    if not np.array_equal(result['target_index'], selection['target_index']):
+        raise ValueError('independent SDSS result identities differ from its request')
     return result
 
 

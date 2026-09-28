@@ -14,7 +14,8 @@ import numpy as np
 from build_qso_master import sha256
 from qso_pcolor.data import _save_npz, galactic_from_equatorial
 from qso_pcolor.multisurvey_data import SURVEYS, band_labels, catalogue_photometry, match_catalogue
-from qso_pcolor.qso_acquisition import prepare_sdss_id_photometry, acquire_sdss_batch, read_acquired_batch
+from qso_pcolor.qso_acquisition import (prepare_sdss_id_photometry, acquire_sdss_batch,
+                                      read_acquired_batch, wait_for_sdss_positions)
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -113,9 +114,11 @@ def main() -> None:
             raise ValueError('invalid acquisition checkpoint')
         by_id = survey == 'sdss' and cfg.get('sdss_use_object_ids', True)
         id_rows = {}
+        position_rows = None
         if by_id:
             id_rows, report = prepare_sdss_id_photometry(root, targets, master, previous_done)
             write_json(root/'sdss_id_links.json', report)
+            position_rows = wait_for_sdss_positions(root)
         processed = 0
         band_counts = np.zeros(len(band_labels((survey,))), np.int64)
         for lo in range(0, n, cfg['batch_size']):
@@ -123,7 +126,8 @@ def main() -> None:
             if lo < previous_done:
                 raw = read_acquired_batch(root, survey, targets, lo, hi, cfg['match_radius_arcsec'][survey])
             elif by_id:
-                raw = acquire_sdss_batch(root, targets, lo, hi, id_rows, cfg['match_radius_arcsec'][survey])
+                raw = acquire_sdss_batch(root, targets, lo, hi, id_rows, cfg['match_radius_arcsec'][survey],
+                                         position_rows=position_rows)
             else:
                 raw = match_catalogue(survey, targets['ra'][lo:hi], targets['dec'][lo:hi],
                     root / 'queries', radius_arcsec=cfg['match_radius_arcsec'][survey])

@@ -105,3 +105,23 @@ def test_association_counts_reused_across_auditor_versions(tmp_path,monkeypatch)
     second = module.match_counts('sdss',ra,dec,1.,new)
     assert first.tolist() == second.tolist() == [0,2]
     assert len(calls) == 1
+
+
+def test_independent_download_reused_including_unmatched_targets(tmp_path,monkeypatch):
+    targets = dict(ra=np.arange(10.,16.),dec=np.zeros(6))
+    ids = raw_rows([11.,12.])
+    ids.update(target_index=np.array([1,2]),sdss_photometric_objid=np.array([101,102]))
+    ids['match_sep_arcsec'][1] = 2.  # failed ID requires a later positional lookup
+    saved = raw_rows([10.,13.,14.,15.])
+    saved['target_index'] = np.array([0,3,4,5])
+    saved['ra'][1] = np.nan  # already searched, with no counterpart; do not requery
+    calls = []
+    def match(name,ra,dec,cache,**kw):
+        calls.append(ra.tolist())
+        return raw_rows(ra)
+    monkeypatch.setattr(acq,'match_catalogue',match)
+    raw = acq.acquire_sdss_batch(tmp_path,targets,0,6,ids,1.,position_rows=saved)
+    assert calls == [[12.]]
+    assert np.isnan(raw['ra'][3])
+    assert raw['sdss_id_link_used'].tolist() == [False,True,False,False,False,False]
+    np.testing.assert_array_equal(raw['value_u'],-targets['ra'])
