@@ -119,3 +119,29 @@ assumptions for external-survey count priors remain to be assessed at that
 stage; they are not an additional download requirement or a prerequisite for
 fitting the colour densities. Full probability calibration remains a separate
 scientific validation task.
+
+## Parallel continuation authorized on 29 September
+
+The user subsequently requested four parallel QSO redshift slices.
+`scripts/train_full_sample_parallel.py --qso-workers 4` continues the same
+initialized run with four single-threaded QSO processes and the stellar fit
+in the coordinator. The longest slices are queued first, and a worker takes
+the next slice after completing component selection and final fitting.
+
+The original serial worker must exit before this continuation acquires its
+exclusive run lock. The stellar fit resumes its saved iteration; at most the
+unfinished pass is repeated. Initial mixtures, frozen roles, batch order,
+random seeds and the scientific training identity remain unchanged. The
+coordinator waits for QSO futures when the existing assembly code requests
+them; it does not perform duplicate serial QSO fits. Workers hold separate
+slice locks and write separate checkpoints. The existing trainer module is
+unchanged, so its checkpoint identity remains valid.
+
+The scheduling adapter is confined to the single-threaded coordinator; spawned
+workers import the original fitting function. A real two-process regression
+test reproduces both serial QSO mixtures exactly, reuses the saved stellar
+fit, preserves the active pointer, and verifies that a second coordinator
+is rejected by the run lock. Execution provenance is in
+`full_training_fits/5d1429d22b40d24d/parallel_execution.json`; individual worker
+assignments are in `parallel_worker_<pid>.json`. The progress monitor includes
+the four slice stages and their CPU/memory use.

@@ -52,12 +52,39 @@ def snapshot(run, previous=None):
     ps = subprocess.run(['ps', '-p', str(launch['pid']), '-o', 'etime=,time=,%cpu=,rss=,stat=,command='],
                         capture_output=True, text=True)
     fields = ps.stdout.strip().split(None, 5)
-    alive = len(fields) == 6 and 'scripts/train_full_sample.py' in fields[5] and 'Z' not in fields[4]
+    alive = len(fields) == 6 and any(script in fields[5] for script in
+            ('scripts/train_full_sample.py', 'scripts/train_full_sample_parallel.py')) and 'Z' not in fields[4]
     process = dict(pid=launch['pid'], alive=alive)
     if alive:
         process.update(elapsed=fields[0], cpu_time=fields[1], cpu_percent=float(fields[2]),
                        rss_gib=int(fields[3]) / 1024**2)
     complete = (out / 'completion.json').exists()
+    parallel_workers = []
+    if (out / 'parallel_execution.json').exists():
+        for path in sorted(out.glob('parallel_worker_*.json')):
+            worker = read(path)
+            if worker['state'] not in ('running', 'failed'):
+                continue
+            check = subprocess.run(['ps', '-p', str(worker['pid']), '-o', '%cpu=,rss=,stat='],
+                                   capture_output=True, text=True).stdout.split()
+            worker['alive'] = len(check) == 3 and 'Z' not in check[2]
+            if worker['alive']:
+                worker.update(cpu_percent=float(check[0]), rss_gib=int(check[1])/1024**2)
+            pop = worker['population']
+            planned = [(f'{pop}.select_k{k}', cfg['selection_max_iter'], f'{pop}.select_k{k}.json')
+                       for k in cfg['qso_k_candidates']] + [(pop+'.final', cfg['max_iter'], pop+'.json')]
+            for stamp, limit, completed_file in planned:
+                if (out / completed_file).exists():
+                    continue
+                worker.update(stage=stamp, iteration=0, iteration_limit=limit)
+                checkpoint = out / (stamp+'.checkpoint.json')
+                if checkpoint.exists():
+                    saved = read(checkpoint)
+                    worker.update(iteration=saved['iteration'], rows=saved['rows'],
+                                  mean_loglike=saved['pre_update_mean_loglike'],
+                                  checkpoint_age_seconds=time.time()-checkpoint.stat().st_mtime)
+                break
+            parallel_workers.append(worker)
     status = 'density fits complete' if complete else ('running' if alive else 'WARNING: worker exited before completion')
     if current and previous and previous.get('current', {}).get('stage') == current['stage']:
         old = previous['current']
@@ -68,7 +95,8 @@ def snapshot(run, previous=None):
             current['seconds_per_iteration'] = old['seconds_per_iteration']
     result = dict(checked_utc=dt.datetime.now(dt.timezone.utc).isoformat(), status=status,
                   process=process, current=current, completed_fits=completed, total_planned_fits=len(stages),
-                  output_directory=str(out), density_complete=complete, release_ready=False)
+                  output_directory=str(out), density_complete=complete, release_ready=False,
+                  parallel_workers=parallel_workers)
     lines = ['# Full-sample training progress', '', f"Updated: {result['checked_utc']}", '', f'**{status}**', '',
              f"Completed fits: {len(completed)} / {len(stages)} (fits have different costs; this is not a time percentage)."]
     if alive:
@@ -85,13 +113,21 @@ def snapshot(run, previous=None):
                       'Convergence can end a fit earlier; held-out scoring and other stages take additional time.']
     elif not complete:
         lines += ['', 'All shape fits saved; spatial weights and candidate assembly remain.']
+    if parallel_workers:
+        lines += ['', '## Parallel QSO slices', '',
+                  '| PID | Slice | Stage | Iteration / maximum | CPU | Memory GiB |',
+                  '|---:|---|---|---:|---:|---:|']
+        for w in parallel_workers:
+            lines += [f"| {w['pid']} | {w['population']} | {w.get('stage', w['state'])} | "
+                      f"{w.get('iteration', 0)} / {w.get('iteration_limit', '—')} | "
+                      f"{w.get('cpu_percent', 'EXITED')} | {w.get('rss_gib', 0):.2f} |"]
     if completed:
         lines += ['', '| Completed fit | Iterations | Converged | Selection score |', '|---|---:|---|---:|']
         for item in completed:
             score = item['selection_score']
             lines += [f"| {item['stage']} | {item['iterations']} | {item['converged']} | {score if score is not None else '—'} |"]
     lines += ['', 'The active model is unchanged. Priors, catch-all fitting and reserved validation follow density training.',
-              '', f"Training log: `{run / 'train.log'}`", f'Fit/checkpoint directory: `{out}`', '']
+              '', f"Training log: `{launch['log']}`", f'Fit/checkpoint directory: `{out}`', '']
     return result, '\n'.join(lines)
 
 

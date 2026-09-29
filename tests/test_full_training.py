@@ -140,3 +140,21 @@ def test_candidate_training_roundtrip_and_resume_preserves_active_pointer(tmp_pa
     assert file_hash(Path(cfg['source_pointer']))==pointer_hash
     previous=file_hash(out/'background.json')
     assert train(cfg)==out and file_hash(out/'background.json')==previous
+    # Refit both synthetic slices concurrently from identical initial mixtures.
+    # This exercises real spawned workers and the existing final assembly path.
+    from qso_pcolor.parallel_training import train_parallel
+    expected = [m.to_dict() for m in result.qso.mixtures]
+    for p in out.glob('qso_[0-9][0-9]*.json'):
+        p.unlink()
+    assert train_parallel(cfg, workers=2) == out
+    parallel = MultiSurveyModel.load(out/'model.json')
+    assert [m.to_dict() for m in parallel.qso.mixtures] == expected
+    assert file_hash(out/'background.json') == previous
+    assert file_hash(Path(cfg['source_pointer'])) == pointer_hash
+    execution = json.loads((out/'parallel_execution.json').read_text())
+    assert execution['state'] == 'completed'
+    assert sorted(execution['slice_order']) == [0, 1]
+    from qso_pcolor.sky_acquisition import acquisition_lock
+    with acquisition_lock(out/'worker.lock'):
+        with pytest.raises(RuntimeError, match='already holds'):
+            train_parallel(cfg, workers=2)

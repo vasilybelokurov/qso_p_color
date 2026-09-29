@@ -164,3 +164,8 @@ Live monitoring files in the same run directory: `PROGRESS.md`, `progress.json`,
 `progress_history.jsonl`, `monitor.log` and `monitor.lock`. Updated every minute
 by `scripts/monitor_full_training.py --watch`; checkpoint/fit files remain
 the source of truth. No training process is restarted by the monitor.
+
+Parallel continuation uses `parallel_train.log` and the updated `launch.json`
+in the same run directory. `serial_launch.json` preserves the earlier process
+record. In the unchanged fit directory, `parallel_execution.json` records the
+coordinator and queue; `parallel_worker_<pid>.json` records slice assignments.

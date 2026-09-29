@@ -80,23 +80,33 @@ checksummed memory-mapped arrays and an assembly report. The final shape fits
 will use all 1,049,260 QSO fit+selection rows and 1,975,894 stellar fit+selection
 rows. Calibration and test roles remain separate. No new downloads were launched.
 
-Training worker **48795** was launched at **2026-09-29 04:59:01 UTC** from
-commit `be2a5fb`, using the unchanged prepared configuration. Its durable run
+The initial serial worker **48795** started at **2026-09-29 04:59:01 UTC**
+from commit `be2a5fb`. After the user requested four parallel QSO slices, it
+was stopped and coordinator **51417** resumed the stellar checkpoint at
+iteration 30, using the unchanged fitting configuration and scientific identity.
+Four single-threaded QSO workers (**51426, 51429, 51430, 51433** at launch)
+now fit distinct slices, with the largest queued first. All four saved at least
+three iterations during verification. Worker assignments can change as slices
+finish; read the live progress files for current values. Its durable run
 record, log and launch preflight are in
 `models/multisurvey_psf/work/full_training_runs/20260929T045901Z/`.
 The parent `current.json` locates this run. Verify the process and saved
 checkpoints before reporting subsequent progress; do not launch a duplicate.
 The output directory is
 `models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/`.
-Launch preflight passed and both full-population initializations are saved;
-the worker is fitting stellar component-selection candidates first. The active model remains unchanged.
+The launch preflight passed and both full-population initializations are saved.
+The coordinator fits stars while four workers process the QSO slice queue.
+Use `scripts/train_full_sample_parallel.py --qso-workers 4` for continuation
+only after confirming the existing coordinator has exited; the run lock rejects
+duplicate coordinators. `parallel_train.log` is the current training log;
+`train.log` and `serial_launch.json` preserve the original serial run. The active model remains unchanged.
 
 Progress monitoring runs independently every 60 seconds through
 `scripts/monitor_full_training.py --watch`. In the run directory,
 `PROGRESS.md` is the readable live summary, `progress.json` is its structured
 form, and `progress_history.jsonl` records successive checks. The monitor
-reports checkpoint iterations, likelihoods, completed fits, CPU/memory and
-worker exit; it stops when the density candidate completes or the worker exits.
+reports checkpoint iterations, likelihoods, completed fits, CPU/memory,
+the four parallel slice assignments and worker exit; it stops when the density candidate completes or the worker exits.
 It does not deliver chat notifications. Check `monitor.lock` and `monitor.log`
 for the monitor PID and errors before starting another monitor.
 

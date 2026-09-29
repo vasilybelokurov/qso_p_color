@@ -246,25 +246,33 @@
   },
   "full_training_run": {
     "started_utc": "20260929T045901Z",
-    "pid": 48795,
+    "pid": 51417,
     "command": [
       "/Users/vasilybelokurov/Work/venvs/.venv/bin/python",
       "-u",
-      "scripts/train_full_sample.py",
-      "--config",
-      "configs/full_sample_training.json",
-      "--fit",
-      "--report",
-      "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/preflight.json"
+      "scripts/train_full_sample_parallel.py",
+      "--qso-workers",
+      "4"
     ],
-    "log": "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/train.log",
+    "log": "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/parallel_train.log",
     "preflight": "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/preflight.json",
     "config": "configs/full_sample_training.json",
     "code_commit": "be2a5fbda7f07f08e6ba8effcba4cd0a2ca2b38b",
     "authorization": "User: ok, lets retrain the mode;",
     "candidate_only": true,
     "output_directory": "models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d",
+    "previous_serial_pid": 48795,
+    "qso_workers": 4,
+    "parallel_started_utc": "2026-09-29T05:40:44.560600+00:00",
+    "stellar_resume_iteration": 30,
+    "scheduler_sha256": "1aa05da46097781df625acb6857e52e4c4b9f2e15c28182bc2306e1116a808a0",
+    "verified_qso_worker_pids": [
+      51426,
+      51429,
+      51430,
+      51433
+    ],
     "launch_preflight_passed": true,
-    "stage_at_launch_check": "Both population initializations saved; stellar component selection running"
+    "stage_at_launch_check": "Stellar resumed iteration 30; four distinct QSO slices each saved iteration 3"
   }
 }
