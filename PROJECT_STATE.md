@@ -73,18 +73,30 @@ why local evidence cannot supply it, and the smallest necessary target set.
 
 ## Remaining data work
 
-1. Assemble QSO training inputs from the available results in the 41-band
-   representation, retaining missing-band masks for incomplete surveys. Verify identities,
-   quality and association flags, band masks and counts by the frozen spatial
-   roles. Review the identified Legacy shared-counterpart rows locally first.
-   Unresolved association questions must be stated, not silently passed.
-2. Review external-survey coverage and effective-area assumptions needed for
-   count priors, using the saved stellar coverage report. Distinguish the needs
-   of colour-density fitting from those of surface-density priors. Do not
-   prescribe new downloads before establishing the missing information.
-3. Produce the training-readiness report: selection counts, disjoint roles,
-   band coverage, uncapped trainer accounting, runtime/memory and output paths.
-   Training, promotion and probability calibration are separate later steps.
+The requested local assembly and uncapped density-training integration are
+complete. Inputs are in
+`models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8/`, with
+checksummed memory-mapped arrays and an assembly report. The final shape fits
+will use all 1,049,260 QSO fit+selection rows and 1,975,894 stellar fit+selection
+rows. Calibration and test roles remain separate. No new downloads or
+production model fits were launched.
+
+Use `scripts/train_full_sample.py` and `configs/full_sample_training.json`.
+The default runs preflight only; `--fit` explicitly launches uncapped shape
+and spatial-weight fitting. Read
+[the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
+The old capped recovery scripts are historical and are not this run's entry point.
+
+1. Review the prepared density-fit launch and its runtime estimate. At iteration
+   limits the uncapped workload can take several days; every iteration is
+   checkpointed. Do not launch until the readiness report has been presented.
+2. After density fits, complete population priors and calibration-role catch-all
+   fitting consistently with the new shapes. The historical population-completion
+   script needs adaptation to the new role/input layout; do not run it unchanged.
+   Review external-survey count-prior area assumptions at that stage. This is
+   separate from the completed colour-density input preparation.
+3. Assess convergence, selected capacity and reserved validation before any
+   promotion. Full probability calibration is not established by these steps.
 
 ## Working rules
 

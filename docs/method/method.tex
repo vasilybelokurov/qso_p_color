@@ -463,6 +463,30 @@ Pan-STARRS identifiers are recovered from the original integer FITS exports;
 the derived Parquet index rounded most identifiers through floating point.
 Identifier matches must still pass the catalogue and separation requirements.
 
+The full-sample training path stores the available native fluxes and variances
+in memory-mapped arrays and reads the frozen fitting, model-selection,
+catch-all calibration and final-test roles from their saved manifests. A missing
+survey result stays missing; the partial NSC, SkyMapper and VHS acquisition is
+not extrapolated into a complete sample. Known multiple or shared counterparts
+mask the affected survey measurements, while unknown association counts remain
+explicit diagnostics. Legacy catalogue links retain their verified hemisphere;
+counts pooled across northern and southern releases are not used as ambiguity
+masks. No object-count cap is applied to either population.
+
+For extreme deconvolution, the mixture parameters are held fixed over a complete
+pass through the selected rows. Each batch transforms the native measurements,
+including their error covariance, and contributes its responsibilities and
+conditional moments to the same sufficient-statistic sums. The M step occurs
+only after the full pass. This is the ordinary full-data EM objective, not an
+online approximation or a subsampled fit. Row counts are checked on every pass,
+and the reported likelihood is recomputed for the returned mixture. Component
+counts are selected on the reserved selection role; final component shapes use
+the union of fitting and selection roles. Calibration and final-test rows never
+enter those fits. Spatial mixture weights use the same full shape-training
+population, with component likelihoods calculated in batches. New shapes and
+spatial weights form a candidate; population priors, calibration-role catch-all
+fits and reserved validation must precede any replacement of the active bundle.
+
 
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}

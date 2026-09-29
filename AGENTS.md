@@ -10,6 +10,14 @@ VHS remain paused; retain their existing measurements. Do not require their
 full acquisition for this data effort. The Legacy bulk association audit is stopped: its cross-release counts
 are not valid training ambiguity masks. Do not restart it from an older command.
 
+**Full-sample density trainer prepared (29 September).** The local inputs and
+uncapped training path are described in `docs/FULL_TRAINING_READINESS_2026-09-29.md`.
+Use `configs/full_sample_training.json` and `scripts/train_full_sample.py`;
+its default is preflight only and `--fit` explicitly launches the production
+density fits. Preserve the frozen fit/select/calib/test roles. The former
+recovery and population-completion scripts still use historical input layouts.
+No full-sample production fit has been launched and the active model is unchanged.
+
 Read this before touching the repository. It is the working contract for
 `qso_pcolor`. `docs/method/method.tex` is the scientific write-up — the
 formalism, the derivations and the figures — and is the place to look for *why

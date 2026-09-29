@@ -142,3 +142,11 @@ Acquisition is now running from QROOT `gap_acquisition/`, using the cached
 results and corrected PS1 IDs. See `docs/QSO_GAP_ACQUISITION_2026-09-28.md`
 for the command, checkpoint locations and measured query behaviour.
 This inventory does not authorize retraining or certify the full 41-band sample.
+
+## Prepared full-sample density inputs (29 September)
+
+`models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8/` contains
+`qso/` and `stars/` memory-mapped NPY arrays, `report.json` and the checksummed
+`manifest.json`. The parent `current.json` points to this version. All eligible
+objects remain present; masks and frozen roles determine which measurements
+and rows enter each stage. See `FULL_TRAINING_READINESS_2026-09-29.md`.

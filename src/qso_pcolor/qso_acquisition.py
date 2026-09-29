@@ -290,10 +290,11 @@ def wait_for_sdss_positions(root: Path) -> dict | None:
 
 
 def read_acquired_batch(root: Path, survey: str, targets: dict, lo: int, hi: int,
-                        radius_arcsec: float) -> dict:
+                        radius_arcsec: float, *, cache_only: bool = False) -> dict:
     """Read a switched batch, or the original query cache for historical rows."""
     path = root/'acquired'/f'{survey}_{lo:07d}.npz'
     if path.exists():
         return _load_npz(path)
     return match_catalogue(survey, targets['ra'][lo:hi], targets['dec'][lo:hi],
-                           root/'queries', radius_arcsec=radius_arcsec)
+                           root/'queries', radius_arcsec=radius_arcsec,
+                           **({'cache_only': True} if cache_only else {}))

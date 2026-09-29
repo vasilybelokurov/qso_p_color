@@ -216,7 +216,7 @@ def catalogue_photometry(name: str, rows: dict, *, clean: bool, vhs_bad_bits: in
 
 def match_catalogue(name: str, ra: np.ndarray, dec: np.ndarray, cache: Path,
                     *, radius_arcsec: float, refresh: bool = False,
-                    include_match_count: bool = False) -> dict:
+                    include_match_count: bool = False, cache_only: bool = False) -> dict:
     """Nearest indexed WSDB match; cache identity includes positions and SQL.
 
     With ``include_match_count``, retain the number of eligible catalogue rows
@@ -245,6 +245,8 @@ def match_catalogue(name: str, ra: np.ndarray, dec: np.ndarray, cache: Path,
     path = cache / f"{name}_{digest}.npz"
     if path.exists() and not refresh:
         return _load_npz(path)
+    if cache_only:
+        raise FileNotFoundError(f'required local photometry cache is missing: {path}')
     started=time.monotonic()
     result = sqlutil.local_join(query, "mytmptable", (np.arange(len(ra)), ra, dec),
                                ("idx", "ra", "dec"), asDict=True, intNullVal=-1,

@@ -1,0 +1,1148 @@
+{
+  "identity": {
+    "config": {
+      "qso_root": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff",
+      "stellar_root": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
+      "input_root": "models/multisurvey_psf/work/full_training_inputs",
+      "output_root": "models/multisurvey_psf/work/full_training_fits",
+      "source_pointer": "models/multisurvey_psf/current",
+      "assembly_batch_size": 50000,
+      "fit_batch_size": 256,
+      "seed": 20260929,
+      "z_step": 0.1,
+      "background_k_candidates": [
+        4,
+        8,
+        12,
+        20
+      ],
+      "qso_k_candidates": [
+        4,
+        8,
+        12,
+        20
+      ],
+      "selection_max_iter": 40,
+      "max_iter": 300,
+      "tol": 1e-05,
+      "regularization": 0.001,
+      "memory_budget_gib": 4.0,
+      "fit_roles": [
+        "fit"
+      ],
+      "selection_roles": [
+        "select"
+      ],
+      "final_shape_roles": [
+        "fit",
+        "select"
+      ],
+      "catchall_roles": [
+        "calib"
+      ],
+      "test_roles": [
+        "test"
+      ],
+      "acquisition_complete_surveys": [
+        "sdss",
+        "decals",
+        "allwise",
+        "ps1"
+      ],
+      "reuse_only_surveys": [
+        "nsc",
+        "skymapper",
+        "vhs"
+      ],
+      "spatial": {
+        "nside": 4,
+        "nside_parent": 2,
+        "colour_n0": 1000,
+        "max_iter": 500,
+        "tol": 1e-08
+      },
+      "policy": "Every eligible row in the declared roles is used, without row caps. Preserve the active transform and redshift slices. Missing survey outcomes are masked, not queried. Shape fitting writes a candidate, never the active pointer. Population priors and catch-all calibration remain separate candidate-completion stages."
+    },
+    "inputs_sha256": "d4500a0054f2875a802db0fff70c402afb34314e06a2bd6faa92c1d4fa41f20f",
+    "source_sha256": "de09e9a2d29b9655ec88ea20ba4cf5d8d82b758ad693299f192c267f8fa646ff",
+    "source_pointer_sha256": "e7af2680ab3f07600f3c7fb316f20584f8360fd1b9b5e33dcbd8e2eaa36de471",
+    "implementation": {
+      "full_training.py": "af98f1657b1572dc69c87c7efe30810d316ca001905f2ba4c2633016bcd62a65",
+      "full_sample.py": "cd31937c85bbe7eb64f2cbea95c22296d9b55ad0bcee092ea8b59ca1282e39a5",
+      "streaming_xd.py": "2bc3d22ac13a0f60ea2dfb873a9c0a75f5c75e5d0b74be07b1ba9d3556b785e4",
+      "xd.py": "dfd5146cd8cb8ec8e8777a09fd00b06c62cd11b036632a097ef8d20990750ab9",
+      "joint_spatial.py": "e4036d498b67939b0b7db99d50dd92d6f5fadd68fc662e6a220bb5077141d654"
+    }
+  },
+  "model_fitted": false,
+  "downloads_started": false,
+  "caps": null,
+  "roles": {
+    "qso": {
+      "fit": {
+        "rows": 854202,
+        "band_counts": [
+          646886,
+          646886,
+          646900,
+          646897,
+          646891,
+          614576,
+          614613,
+          614611,
+          614499,
+          614497,
+          239580,
+          239580,
+          239580,
+          239580,
+          239580,
+          539334,
+          539580,
+          542708,
+          544352,
+          835528,
+          836121,
+          836175,
+          835548,
+          826809,
+          557,
+          60081,
+          60252,
+          13471,
+          58106,
+          3376,
+          2959,
+          171,
+          248,
+          3477,
+          2999,
+          3065,
+          923,
+          1436,
+          3018,
+          1435,
+          2223
+        ],
+        "row_indices_sha256": "39db65a55803fd8275ddf373e8a453aee57a46ecf34d20ae187608387e49a1b7"
+      },
+      "select": {
+        "rows": 195058,
+        "band_counts": [
+          153207,
+          153207,
+          153208,
+          153208,
+          153208,
+          136734,
+          136818,
+          136822,
+          136788,
+          136788,
+          58236,
+          58236,
+          58236,
+          58236,
+          58236,
+          123900,
+          123990,
+          124911,
+          125259,
+          191334,
+          191440,
+          191492,
+          191343,
+          189408,
+          110,
+          8203,
+          8351,
+          2034,
+          8159,
+          485,
+          417,
+          19,
+          33,
+          488,
+          484,
+          495,
+          155,
+          230,
+          601,
+          263,
+          445
+        ],
+        "row_indices_sha256": "81da101b191d52ea8af3e23199d3dbf127eac5897777391090dc4c9f95ed9243"
+      },
+      "calib": {
+        "rows": 239371,
+        "band_counts": [
+          182071,
+          182072,
+          182074,
+          182073,
+          182073,
+          167997,
+          168096,
+          168063,
+          168067,
+          168067,
+          71274,
+          71274,
+          71271,
+          71274,
+          71274,
+          152360,
+          152423,
+          153524,
+          153886,
+          234382,
+          234522,
+          234580,
+          234367,
+          231921,
+          127,
+          12041,
+          12152,
+          2729,
+          11805,
+          646,
+          712,
+          33,
+          45,
+          795,
+          753,
+          609,
+          208,
+          515,
+          1017,
+          496,
+          727
+        ],
+        "row_indices_sha256": "7cd93d8d2ec4c9cb691e411f8379fc37377074c9ddd3e807e6b4aebe8d82d1ef"
+      },
+      "test": {
+        "rows": 368813,
+        "band_counts": [
+          269157,
+          269152,
+          269160,
+          269157,
+          269155,
+          310477,
+          310400,
+          309921,
+          310555,
+          310555,
+          58227,
+          58227,
+          58227,
+          58227,
+          58227,
+          223634,
+          223898,
+          226144,
+          226836,
+          360271,
+          360539,
+          360540,
+          360234,
+          355643,
+          318,
+          17937,
+          18033,
+          5794,
+          17256,
+          1424,
+          838,
+          84,
+          117,
+          1613,
+          1544,
+          1184,
+          407,
+          1016,
+          1864,
+          786,
+          1268
+        ],
+        "row_indices_sha256": "e4181e815b2e711c3bf4fc310f9298278b3fd31cf91ae8570efff17699310b3a"
+      }
+    },
+    "stars": {
+      "fit": {
+        "rows": 1616421,
+        "band_counts": [
+          134751,
+          134748,
+          134757,
+          134752,
+          134751,
+          1397663,
+          1407645,
+          1407645,
+          1407105,
+          1407106,
+          208776,
+          208776,
+          208776,
+          208776,
+          208776,
+          165302,
+          165059,
+          167655,
+          167904,
+          363612,
+          391941,
+          401233,
+          395027,
+          377319,
+          2707,
+          266603,
+          356301,
+          230666,
+          357992,
+          76185,
+          41273,
+          5119,
+          8799,
+          55265,
+          62229,
+          74637,
+          58197,
+          29773,
+          106852,
+          29467,
+          68627
+        ],
+        "row_indices_sha256": "e0521188913045d14efbe59242c35369235d12f04b7485d7dbcc6cfe5886d364"
+      },
+      "select": {
+        "rows": 359473,
+        "band_counts": [
+          28749,
+          28749,
+          28753,
+          28753,
+          28750,
+          310339,
+          310339,
+          310339,
+          310267,
+          310267,
+          49133,
+          49134,
+          49134,
+          49134,
+          49134,
+          36809,
+          36702,
+          37097,
+          37121,
+          83180,
+          89563,
+          91592,
+          89700,
+          85525,
+          975,
+          62660,
+          77487,
+          50905,
+          81264,
+          13131,
+          18366,
+          1326,
+          2105,
+          12404,
+          14020,
+          18014,
+          13922,
+          10824,
+          22256,
+          8216,
+          14321
+        ],
+        "row_indices_sha256": "d9a82dc820ca02017a5643f5f4a2018424e73a1db96c012921b5ba3b7365c23d"
+      },
+      "calib": {
+        "rows": 502251,
+        "band_counts": [
+          42596,
+          42596,
+          42600,
+          42600,
+          42600,
+          435131,
+          435131,
+          435131,
+          435066,
+          435066,
+          67120,
+          67120,
+          67120,
+          67120,
+          67120,
+          49341,
+          49082,
+          49870,
+          49881,
+          109264,
+          117164,
+          119658,
+          118631,
+          112983,
+          1191,
+          81310,
+          103785,
+          66083,
+          104116,
+          20839,
+          11111,
+          1342,
+          2218,
+          15452,
+          16852,
+          20896,
+          17440,
+          6274,
+          20453,
+          5884,
+          13036
+        ],
+        "row_indices_sha256": "e794205105d715733784599275afbfb1ab8d5bf9a9393449d5a0c897da38affc"
+      },
+      "test": {
+        "rows": 500712,
+        "band_counts": [
+          76016,
+          76016,
+          76016,
+          76016,
+          76016,
+          439886,
+          439886,
+          431801,
+          439863,
+          439863,
+          60825,
+          60825,
+          60825,
+          60825,
+          60825,
+          61826,
+          61658,
+          63026,
+          63191,
+          200616,
+          215662,
+          220062,
+          218076,
+          209017,
+          2011,
+          107723,
+          136686,
+          69935,
+          148238,
+          7616,
+          11025,
+          1109,
+          2011,
+          14513,
+          17589,
+          24899,
+          17453,
+          8617,
+          18021,
+          1870,
+          11982
+        ],
+        "row_indices_sha256": "6cb81fefad0fc357de2cd5f5b369c69f7a6b25b53e1e20e8394b6cf3ae91a04d"
+      }
+    }
+  },
+  "slices": [
+    {
+      "index": 0,
+      "z_range": [
+        0.05000000000000002,
+        0.25
+      ],
+      "rows": {
+        "fit": 931,
+        "select": 206,
+        "calib": 250,
+        "test": 321
+      }
+    },
+    {
+      "index": 1,
+      "z_range": [
+        0.15,
+        0.35
+      ],
+      "rows": {
+        "fit": 2055,
+        "select": 468,
+        "calib": 541,
+        "test": 773
+      }
+    },
+    {
+      "index": 2,
+      "z_range": [
+        0.25,
+        0.45000000000000007
+      ],
+      "rows": {
+        "fit": 4789,
+        "select": 1121,
+        "calib": 1389,
+        "test": 2005
+      }
+    },
+    {
+      "index": 3,
+      "z_range": [
+        0.35,
+        0.55
+      ],
+      "rows": {
+        "fit": 9506,
+        "select": 2296,
+        "calib": 2761,
+        "test": 3880
+      }
+    },
+    {
+      "index": 4,
+      "z_range": [
+        0.45000000000000007,
+        0.65
+      ],
+      "rows": {
+        "fit": 16168,
+        "select": 3912,
+        "calib": 4541,
+        "test": 6600
+      }
+    },
+    {
+      "index": 5,
+      "z_range": [
+        0.5500000000000002,
+        0.7500000000000001
+      ],
+      "rows": {
+        "fit": 26179,
+        "select": 6105,
+        "calib": 7215,
+        "test": 10917
+      }
+    },
+    {
+      "index": 6,
+      "z_range": [
+        0.65,
+        0.85
+      ],
+      "rows": {
+        "fit": 38443,
+        "select": 8664,
+        "calib": 10673,
+        "test": 15916
+      }
+    },
+    {
+      "index": 7,
+      "z_range": [
+        0.7500000000000001,
+        0.9500000000000001
+      ],
+      "rows": {
+        "fit": 49873,
+        "select": 11133,
+        "calib": 13889,
+        "test": 20598
+      }
+    },
+    {
+      "index": 8,
+      "z_range": [
+        0.85,
+        1.05
+      ],
+      "rows": {
+        "fit": 59076,
+        "select": 13571,
+        "calib": 16644,
+        "test": 24886
+      }
+    },
+    {
+      "index": 9,
+      "z_range": [
+        0.9500000000000001,
+        1.1500000000000001
+      ],
+      "rows": {
+        "fit": 68184,
+        "select": 15635,
+        "calib": 19210,
+        "test": 29006
+      }
+    },
+    {
+      "index": 10,
+      "z_range": [
+        1.05,
+        1.2500000000000002
+      ],
+      "rows": {
+        "fit": 78228,
+        "select": 17583,
+        "calib": 21674,
+        "test": 33492
+      }
+    },
+    {
+      "index": 11,
+      "z_range": [
+        1.15,
+        1.35
+      ],
+      "rows": {
+        "fit": 85747,
+        "select": 19355,
+        "calib": 23696,
+        "test": 36738
+      }
+    },
+    {
+      "index": 12,
+      "z_range": [
+        1.25,
+        1.4500000000000002
+      ],
+      "rows": {
+        "fit": 89197,
+        "select": 20380,
+        "calib": 24947,
+        "test": 37970
+      }
+    },
+    {
+      "index": 13,
+      "z_range": [
+        1.35,
+        1.5500000000000003
+      ],
+      "rows": {
+        "fit": 93445,
+        "select": 21212,
+        "calib": 26095,
+        "test": 39789
+      }
+    },
+    {
+      "index": 14,
+      "z_range": [
+        1.45,
+        1.6500000000000001
+      ],
+      "rows": {
+        "fit": 96910,
+        "select": 22012,
+        "calib": 27145,
+        "test": 41356
+      }
+    },
+    {
+      "index": 15,
+      "z_range": [
+        1.55,
+        1.7500000000000002
+      ],
+      "rows": {
+        "fit": 97400,
+        "select": 22428,
+        "calib": 27486,
+        "test": 42288
+      }
+    },
+    {
+      "index": 16,
+      "z_range": [
+        1.65,
+        1.85
+      ],
+      "rows": {
+        "fit": 97020,
+        "select": 22177,
+        "calib": 27022,
+        "test": 42155
+      }
+    },
+    {
+      "index": 17,
+      "z_range": [
+        1.75,
+        1.9500000000000002
+      ],
+      "rows": {
+        "fit": 93196,
+        "select": 21321,
+        "calib": 26105,
+        "test": 40476
+      }
+    },
+    {
+      "index": 18,
+      "z_range": [
+        1.85,
+        2.0500000000000003
+      ],
+      "rows": {
+        "fit": 86645,
+        "select": 19926,
+        "calib": 24407,
+        "test": 38093
+      }
+    },
+    {
+      "index": 19,
+      "z_range": [
+        1.9499999999999997,
+        2.15
+      ],
+      "rows": {
+        "fit": 81292,
+        "select": 18531,
+        "calib": 22648,
+        "test": 35867
+      }
+    },
+    {
+      "index": 20,
+      "z_range": [
+        2.0500000000000003,
+        2.2500000000000004
+      ],
+      "rows": {
+        "fit": 77586,
+        "select": 17698,
+        "calib": 21714,
+        "test": 34073
+      }
+    },
+    {
+      "index": 21,
+      "z_range": [
+        2.15,
+        2.35
+      ],
+      "rows": {
+        "fit": 72960,
+        "select": 16684,
+        "calib": 20697,
+        "test": 31471
+      }
+    },
+    {
+      "index": 22,
+      "z_range": [
+        2.2500000000000004,
+        2.4500000000000006
+      ],
+      "rows": {
+        "fit": 66103,
+        "select": 15213,
+        "calib": 18656,
+        "test": 28773
+      }
+    },
+    {
+      "index": 23,
+      "z_range": [
+        2.35,
+        2.5500000000000003
+      ],
+      "rows": {
+        "fit": 57749,
+        "select": 13368,
+        "calib": 16143,
+        "test": 25630
+      }
+    },
+    {
+      "index": 24,
+      "z_range": [
+        2.4499999999999997,
+        2.65
+      ],
+      "rows": {
+        "fit": 48169,
+        "select": 11123,
+        "calib": 13399,
+        "test": 21234
+      }
+    },
+    {
+      "index": 25,
+      "z_range": [
+        2.5500000000000003,
+        2.7500000000000004
+      ],
+      "rows": {
+        "fit": 39130,
+        "select": 8992,
+        "calib": 10955,
+        "test": 17083
+      }
+    },
+    {
+      "index": 26,
+      "z_range": [
+        2.65,
+        2.85
+      ],
+      "rows": {
+        "fit": 32722,
+        "select": 7335,
+        "calib": 9361,
+        "test": 14479
+      }
+    },
+    {
+      "index": 27,
+      "z_range": [
+        2.7500000000000004,
+        2.9500000000000006
+      ],
+      "rows": {
+        "fit": 28064,
+        "select": 6212,
+        "calib": 7963,
+        "test": 12527
+      }
+    },
+    {
+      "index": 28,
+      "z_range": [
+        2.85,
+        3.0500000000000003
+      ],
+      "rows": {
+        "fit": 23878,
+        "select": 5365,
+        "calib": 6702,
+        "test": 10605
+      }
+    },
+    {
+      "index": 29,
+      "z_range": [
+        2.9499999999999997,
+        3.15
+      ],
+      "rows": {
+        "fit": 19584,
+        "select": 4633,
+        "calib": 5554,
+        "test": 8715
+      }
+    },
+    {
+      "index": 30,
+      "z_range": [
+        3.0500000000000003,
+        3.2500000000000004
+      ],
+      "rows": {
+        "fit": 16056,
+        "select": 3785,
+        "calib": 4548,
+        "test": 7046
+      }
+    },
+    {
+      "index": 31,
+      "z_range": [
+        3.15,
+        3.35
+      ],
+      "rows": {
+        "fit": 13015,
+        "select": 2940,
+        "calib": 3644,
+        "test": 5742
+      }
+    },
+    {
+      "index": 32,
+      "z_range": [
+        3.2500000000000004,
+        3.4500000000000006
+      ],
+      "rows": {
+        "fit": 9700,
+        "select": 2152,
+        "calib": 2709,
+        "test": 4390
+      }
+    },
+    {
+      "index": 33,
+      "z_range": [
+        3.35,
+        3.5500000000000003
+      ],
+      "rows": {
+        "fit": 6818,
+        "select": 1432,
+        "calib": 1851,
+        "test": 3009
+      }
+    },
+    {
+      "index": 34,
+      "z_range": [
+        3.4499999999999997,
+        3.65
+      ],
+      "rows": {
+        "fit": 5033,
+        "select": 1070,
+        "calib": 1348,
+        "test": 2088
+      }
+    },
+    {
+      "index": 35,
+      "z_range": [
+        3.5500000000000003,
+        3.7500000000000004
+      ],
+      "rows": {
+        "fit": 4182,
+        "select": 944,
+        "calib": 1217,
+        "test": 1746
+      }
+    },
+    {
+      "index": 36,
+      "z_range": [
+        3.65,
+        3.85
+      ],
+      "rows": {
+        "fit": 3649,
+        "select": 819,
+        "calib": 1092,
+        "test": 1564
+      }
+    },
+    {
+      "index": 37,
+      "z_range": [
+        3.7500000000000004,
+        3.9500000000000006
+      ],
+      "rows": {
+        "fit": 3058,
+        "select": 687,
+        "calib": 864,
+        "test": 1316
+      }
+    },
+    {
+      "index": 38,
+      "z_range": [
+        3.85,
+        4.05
+      ],
+      "rows": {
+        "fit": 2373,
+        "select": 568,
+        "calib": 673,
+        "test": 1013
+      }
+    },
+    {
+      "index": 39,
+      "z_range": [
+        3.9500000000000006,
+        4.15
+      ],
+      "rows": {
+        "fit": 1726,
+        "select": 426,
+        "calib": 505,
+        "test": 760
+      }
+    },
+    {
+      "index": 40,
+      "z_range": [
+        4.050000000000001,
+        4.25
+      ],
+      "rows": {
+        "fit": 1176,
+        "select": 289,
+        "calib": 363,
+        "test": 574
+      }
+    },
+    {
+      "index": 41,
+      "z_range": [
+        4.15,
+        4.35
+      ],
+      "rows": {
+        "fit": 858,
+        "select": 196,
+        "calib": 260,
+        "test": 416
+      }
+    },
+    {
+      "index": 42,
+      "z_range": [
+        4.25,
+        4.449999999999999
+      ],
+      "rows": {
+        "fit": 514,
+        "select": 126,
+        "calib": 158,
+        "test": 223
+      }
+    }
+  ],
+  "memory": {
+    "batch_rows": 256,
+    "dimensions": 41,
+    "max_components": 20,
+    "estimated_batch_workspace_bytes": 550830080,
+    "memory_mapped_input_bytes": 3709858936,
+    "budget_gib": 4.0,
+    "full_covariance_allocated": false,
+    "omitted_full_covariance_bytes": 62348975848,
+    "note": "Workspace bound estimates eight simultaneous batch-sized K*D*D arrays; benchmark RSS is measured separately. Fits run sequentially.",
+    "measured_preflight_within_budget": true
+  },
+  "benchmark": [
+    {
+      "population": "qso",
+      "rows": 256,
+      "k": 4,
+      "elapsed_seconds": 0.03164916601963341,
+      "max_observed": 33
+    },
+    {
+      "population": "qso",
+      "rows": 256,
+      "k": 4,
+      "elapsed_seconds": 0.011362249962985516,
+      "max_observed": 23
+    },
+    {
+      "population": "qso",
+      "rows": 256,
+      "k": 4,
+      "elapsed_seconds": 0.01262570801191032,
+      "max_observed": 25
+    },
+    {
+      "population": "qso",
+      "rows": 256,
+      "k": 20,
+      "elapsed_seconds": 0.11604579200502485,
+      "max_observed": 33
+    },
+    {
+      "population": "qso",
+      "rows": 256,
+      "k": 20,
+      "elapsed_seconds": 0.048344665963668376,
+      "max_observed": 23
+    },
+    {
+      "population": "qso",
+      "rows": 256,
+      "k": 20,
+      "elapsed_seconds": 0.048238207993563265,
+      "max_observed": 25
+    },
+    {
+      "population": "stars",
+      "rows": 256,
+      "k": 12,
+      "elapsed_seconds": 0.023379874997772276,
+      "max_observed": 17
+    },
+    {
+      "population": "stars",
+      "rows": 256,
+      "k": 12,
+      "elapsed_seconds": 0.021474417007993907,
+      "max_observed": 24
+    },
+    {
+      "population": "stars",
+      "rows": 256,
+      "k": 12,
+      "elapsed_seconds": 0.019645166990812868,
+      "max_observed": 22
+    },
+    {
+      "population": "stars",
+      "rows": 256,
+      "k": 20,
+      "elapsed_seconds": 0.03572849999181926,
+      "max_observed": 17
+    },
+    {
+      "population": "stars",
+      "rows": 256,
+      "k": 20,
+      "elapsed_seconds": 0.03206466697156429,
+      "max_observed": 24
+    },
+    {
+      "population": "stars",
+      "rows": 256,
+      "k": 20,
+      "elapsed_seconds": 0.030494999955408275,
+      "max_observed": 22
+    }
+  ],
+  "density_fit_ready": true,
+  "release_ready": false,
+  "population_completion": "Rebuild count priors and fit catch-all on calib only after new shapes; no old population artifact is silently reused.",
+  "unique_qso_final_rows": 1049260,
+  "slice_row_sum": 2098480,
+  "slice_overlap_note": "Overlapping redshift slices intentionally reuse rows; unique population accounting is separate.",
+  "runtime_estimates": {
+    "qso": {
+      "em_seconds_range_at_iteration_limits": [
+        146953.56573349904,
+        353523.5580430748
+      ],
+      "assumed_final_k": 20,
+      "note": "Three timing batches; approximate K scaling, all fits at iteration limits. Excludes extra likelihood passes, spatial/population completion, restart costs and server-independent local load variability."
+    },
+    "stars": {
+      "em_seconds_range_at_iteration_limits": [
+        87555.58189447067,
+        102581.72197326191
+      ],
+      "assumed_final_k": 20,
+      "note": "Three timing batches; approximate K scaling, all fits at iteration limits. Excludes extra likelihood passes, spatial/population completion, restart costs and server-independent local load variability."
+    }
+  },
+  "peak_rss_native": 3346857984,
+  "rss_units": "bytes on macOS; KiB on Linux",
+  "peak_rss_bytes": 3346857984
+}

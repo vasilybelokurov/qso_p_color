@@ -114,14 +114,29 @@ def fit_joint_spatial_weights(mixture: GaussianMixture, x: np.ndarray, cov: np.n
     and known quasars. ``sample_weight`` encodes sampling and population
     membership, never an imputed measurement in an absent band.
     """
-    result = JointSpatialWeights(nside, nside_parent, n0, mixture.weights, meta=dict(meta))
-    l, b, sw = np.asarray(l_deg), np.asarray(b_deg), np.asarray(sample_weight, float)
-    if l.shape != (len(x),) or b.shape != l.shape or sw.shape != l.shape:
-        raise ValueError("training coordinates and weights must have one entry per row")
-    result.evaluate(l, b)  # validate coordinates before HEALPix indexing
     if not np.asarray(observed).any(axis=1).all():
         raise ValueError("a training row must have at least one measurement")
     lp = component_log_prob(mixture, x, cov, observed)
+    return fit_joint_spatial_log_prob(mixture, lp, l_deg, b_deg, sample_weight,
+        nside=nside, nside_parent=nside_parent, n0=n0, max_iter=max_iter, tol=tol, meta=meta)
+
+
+def fit_joint_spatial_log_prob(mixture: GaussianMixture, lp: np.ndarray,
+                              l_deg: np.ndarray, b_deg: np.ndarray,
+                              sample_weight: np.ndarray, *, nside: int,
+                              nside_parent: int, n0: float, max_iter: int,
+                              tol: float, meta: dict) -> JointSpatialWeights:
+    """Fit the same hierarchy from precomputed component log densities.
+
+    ``lp`` has shape (objects, components) and excludes mixture weights. It
+    can be a memory map filled with noise-convolved likelihoods in batches;
+    no full-population measurement covariance array is required.
+    """
+    result = JointSpatialWeights(nside, nside_parent, n0, mixture.weights, meta=dict(meta))
+    l, b, sw = np.asarray(l_deg), np.asarray(b_deg), np.asarray(sample_weight, float)
+    if l.shape != (len(lp),) or b.shape != l.shape or sw.shape != l.shape:
+        raise ValueError("training coordinates and weights must have one entry per row")
+    result.evaluate(l, b)  # validate coordinates before HEALPix indexing
     result.global_weights, info = fit_component_weights(lp, mixture.weights, sw,
                                                         max_iter=max_iter, tol=tol)
     records = [dict(level="global", **info)]

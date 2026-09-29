@@ -26,9 +26,9 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "Assemble final 41-band QSO inputs and review association evidence locally; do not resume the invalid Legacy cross-release count audit.",
-    "Review external-survey coverage and effective-area assumptions for count priors.",
-    "Verify uncapped training accounting and issue readiness report before retraining."
+    "Present readiness report before launching the prepared density fits.",
+    "After fitting shapes and spatial weights, adapt population completion to full inputs and frozen roles; assess count-prior areas and refit catch-all on calib only.",
+    "Inspect convergence/capacity and reserved validation before any promotion."
   ],
   "stellar_preparation_cache": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
   "stellar_cleaning": {
@@ -83,7 +83,7 @@
     "failed": []
   },
   "association_audit_cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/association_audit/64b33f5755fae833",
-  "tests": "318 passed in 60.08s; /tmp/qso_reconciliation_tests.log",
+  "tests": "329 passed in 60.24s; /tmp/qso_full_training_suite.log",
   "qso_sdss_acquisition": {
     "strategy": "DR16Q photometric objid to indexed DR14 photoobjall; positional fallback for unresolved links",
     "eligible_targets": 1657444,
@@ -229,5 +229,19 @@
     "verification_report": "docs/ALLWISE_PS1_COMPLETION_2026-09-29.json"
   },
   "authoritative_current_state": "PROJECT_STATE.md",
-  "association_audit_status": "Stopped. Legacy counts include both hemispheres and must not be applied as ambiguity masks. See PROJECT_STATE.md."
+  "association_audit_status": "Stopped. Legacy counts include both hemispheres and must not be applied as ambiguity masks. See PROJECT_STATE.md.",
+  "full_training_preparation": {
+    "input_directory": "models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8",
+    "config": "configs/full_sample_training.json",
+    "trainer": "scripts/train_full_sample.py",
+    "readiness_report": "docs/FULL_TRAINING_READINESS_2026-09-29.md",
+    "preflight_report": "docs/FULL_TRAINING_PREFLIGHT_2026-09-29.json",
+    "density_inputs_ready": true,
+    "uncapped_density_trainer_ready": true,
+    "qso_final_shape_rows": 1049260,
+    "stellar_final_shape_rows": 1975894,
+    "production_fit_started": false,
+    "population_completion_adapted": false,
+    "active_model_changed": false
+  }
 }
