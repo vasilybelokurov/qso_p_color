@@ -16,6 +16,25 @@ Batch = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 BatchSource = Callable[[], Iterable[Batch]]
 
 
+def accumulate_batches(source: BatchSource, mix: GaussianMixture) -> tuple:
+    """Sum one complete E step with fixed parameters; densities use observed coordinates.
+
+    Returns component counts, centred first/second moments, weighted log
+    likelihood, total weight and row count. No parameters are updated here.
+    """
+    k, d = mix.means.shape
+    aq, adm, av = np.zeros(k), np.zeros((k, d)), np.zeros((k, d, d))
+    total_ll = weight_sum = 0.
+    seen = 0
+    for x, cov, obs, weights in checked_batches(source, d):
+        seen += len(x)
+        weight_sum += weights.sum()
+        for rows, dims in _mask_groups(obs):
+            pq, _, pdm, pv, pll = _estep_chunk(rows, dims, mix, x, cov, weights)
+            aq += pq; adm += pdm; av += pv; total_ll += pll
+    return aq, adm, av, total_ll, weight_sum, seen
+
+
 def checked_batches(source: BatchSource, dimensions: int) -> Iterable[Batch]:
     """Validate features, full noise covariances and dimensionless row weights."""
     for x, cov, observed, weights in source():
@@ -70,7 +89,8 @@ def initialise_batches(source: BatchSource, n_components: int, *,
 def fit_xd_batches(source: BatchSource, *, init: GaussianMixture,
                    expected_rows: int, max_iter: int, tol: float,
                    regularization: float, progress: Callable | None = None,
-                   initial_history: tuple[float, ...] = ()) -> XDFitResult:
+                   initial_history: tuple[float, ...] = (),
+                   accumulator: Callable | None = None) -> XDFitResult:
     """Fit all streamed rows; features and covariance retain their native units.
 
     ``source`` must replay the same selected rows on every call. Memory is
@@ -78,6 +98,8 @@ def fit_xd_batches(source: BatchSource, *, init: GaussianMixture,
     is checked on EVERY pass, including the final returned-model likelihood.
     The callback receives iteration, updated mixture, pre-update likelihood,
     and row count; it may save a restart checkpoint without changing the fit.
+    An optional accumulator may distribute the E step, but must account for
+    every row before returning sufficient statistics for the single M step.
     """
     if (expected_rows < 1 or max_iter < 1 or not np.isfinite(tol) or tol < 0 or
             not np.isfinite(regularization) or regularization < 0):
@@ -89,17 +111,10 @@ def fit_xd_batches(source: BatchSource, *, init: GaussianMixture,
         raise ValueError('invalid restart history')
     converged = len(history) > 1 and abs(history[-1]-history[-2]) < tol*max(1., abs(history[-2]))
     reference_weight = None
+    accumulate = accumulate_batches if accumulator is None else accumulator
     it = len(history)
     for it in range(len(history)+1, (len(history) if converged else max_iter)+1):
-        aq, adm, av = np.zeros(k), np.zeros((k, d)), np.zeros((k, d, d))
-        total_ll = weight_sum = 0.
-        seen = 0
-        for x, cov, obs, weights in checked_batches(source, d):
-            seen += len(x)
-            weight_sum += weights.sum()
-            for rows, dims in _mask_groups(obs):
-                pq, _, pdm, pv, pll = _estep_chunk(rows, dims, mix, x, cov, weights)
-                aq += pq; adm += pdm; av += pv; total_ll += pll
+        aq, adm, av, total_ll, weight_sum, seen = accumulate(source, mix)
         if seen != expected_rows or weight_sum <= 0:
             raise ValueError(f'stream row accounting: expected {expected_rows}, saw {seen}')
         if reference_weight is not None and not np.isclose(weight_sum, reference_weight):

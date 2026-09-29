@@ -487,6 +487,17 @@ population, with component likelihoods calculated in batches. New shapes and
 spatial weights form a candidate; population priors, calibration-role catch-all
 fits and reserved validation must precede any replacement of the active bundle.
 
+The stellar E step can also be evaluated by several workers over disjoint row
+chunks. Every worker uses the same fixed mixture and the same measurement-error
+convolution. Their sufficient statistics are summed in a fixed chunk order
+before a single global M step; all selected stars still enter every iteration.
+The partition controls scheduling and memory, not the statistical sample.
+Regrouping sums can change floating-point rounding, so serial and parallel
+calculations are checked on identical data. A change of execution engine
+continues the saved mixture and likelihood history in a versioned output
+directory with explicit checkpoint provenance; it does not reset convergence
+or silently overwrite the previous run.
+
 
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}

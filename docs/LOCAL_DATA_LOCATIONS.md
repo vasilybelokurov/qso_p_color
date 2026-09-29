@@ -151,26 +151,26 @@ This inventory does not authorize retraining or certify the full 41-band sample.
 objects remain present; masks and frozen roles determine which measurements
 and rows enter each stage. See `FULL_TRAINING_READINESS_2026-09-29.md`.
 
-## Authorized density-training run (29 September)
+## Current density-training continuation (29 September)
 
-`models/multisurvey_psf/work/full_training_runs/20260929T045901Z/` contains
-`launch.json`, `train.log` and `preflight.json`. The parent `current.json`
-records the run path and initial worker PID. Model-selection records and
-per-iteration checkpoints are under
-`models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/`. This run leaves the active
-model pointer unchanged.
+Run records and live monitoring:
+`models/multisurvey_psf/work/full_training_runs/20260929T045901Z/`.
+`launch.json` points to the current coordinator and output directory;
+`stellar_parallel_train.log` is the current log. `stellar_handover.json`
+records the saved-iteration transition. Older launch records and logs remain
+as history. The parent `current.json` locates the run.
 
-Live monitoring files in the same run directory: `PROGRESS.md`, `progress.json`,
-`progress_history.jsonl`, `monitor.log` and `monitor.lock`. Updated every minute
-by `scripts/monitor_full_training.py --watch`; checkpoint/fit files remain
-the source of truth. No training process is restarted by the monitor.
+Current fitting output:
+`models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/`.
+`checkpoint_lineage.json` records the unchanged QSO fits and saved stellar
+checkpoint copied from `full_training_fits/5d1429d22b40d24d/`.
+That parent directory is retained unchanged after the handover.
+`stellar_parallel_execution.json` records engine hashes and worker settings;
+`stellar_worker_<pid>.json` and `stellar_parallel_progress.json` record worker
+identities and rows accumulated within an iteration.
 
-Parallel continuation uses `parallel_train.log` and the updated `launch.json`
-in the same run directory. `serial_launch.json` preserves the earlier process
-record. In the unchanged fit directory, `parallel_execution.json` records the
-coordinator and queue; `parallel_worker_<pid>.json` records slice assignments.
-
-`progress.json` also includes `compute_progress`: total, QSO and stellar
-row-component EM work completed and estimated remaining. The readable report
-shows percentages with the assumptions and scope. These estimates use saved
-iterations, actual completed fits and configured limits for unfinished fits.
+`PROGRESS.md`, `progress.json`, `progress_history.jsonl`, `monitor.log` and
+`monitor.lock` in the run directory are updated every minute. The report
+includes total, QSO and stellar estimated row-component EM work completed,
+worker CPU/memory and stage checkpoints. It never restarts a training process.
+These percentages exclude later spatial/population fitting and validation.

@@ -101,7 +101,8 @@ def snapshot(run, previous=None):
                         capture_output=True, text=True)
     fields = ps.stdout.strip().split(None, 5)
     alive = len(fields) == 6 and any(script in fields[5] for script in
-            ('scripts/train_full_sample.py', 'scripts/train_full_sample_parallel.py')) and 'Z' not in fields[4]
+            ('scripts/train_full_sample.py', 'scripts/train_full_sample_parallel.py',
+             'scripts/train_stellar_parallel.py')) and 'Z' not in fields[4]
     process = dict(pid=launch['pid'], alive=alive)
     if alive:
         process.update(elapsed=fields[0], cpu_time=fields[1], cpu_percent=float(fields[2]),
@@ -133,6 +134,15 @@ def snapshot(run, previous=None):
                                   checkpoint_age_seconds=time.time()-checkpoint.stat().st_mtime)
                 break
             parallel_workers.append(worker)
+    stellar_workers = []
+    for path in sorted(out.glob('stellar_worker_*.json')):
+        worker = read(path)
+        fields = subprocess.run(['ps', '-p', str(worker['pid']), '-o', '%cpu=,rss=,stat='],
+                                capture_output=True, text=True).stdout.split()
+        if len(fields) == 3 and 'Z' not in fields[2]:
+            stellar_workers.append(dict(pid=worker['pid'], cpu_percent=float(fields[0]),
+                                        rss_gib=int(fields[1])/1024**2))
+    stellar_pass = read(out/'stellar_parallel_progress.json') if (out/'stellar_parallel_progress.json').exists() else None
     status = 'density fits complete' if complete else ('running' if alive else 'WARNING: worker exited before completion')
     if current and previous and previous.get('current', {}).get('stage') == current['stage']:
         old = previous['current']
@@ -145,7 +155,8 @@ def snapshot(run, previous=None):
     result = dict(checked_utc=dt.datetime.now(dt.timezone.utc).isoformat(), status=status,
                   process=process, current=current, completed_fits=completed, total_planned_fits=len(stages),
                   output_directory=str(out), density_complete=complete, release_ready=False,
-                  parallel_workers=parallel_workers, compute_progress=compute)
+                  parallel_workers=parallel_workers, compute_progress=compute,
+                  stellar_workers=stellar_workers, stellar_pass=stellar_pass)
     lines = ['# Full-sample training progress', '', f"Updated: {result['checked_utc']}", '', f'**{status}**', '',
              f"**Estimated density-fitting compute completed: {compute['populations']['overall']['percent']:.2f}%.**",
              f"QSO: {compute['populations']['qso']['percent']:.2f}%; stellar: {compute['populations']['stars']['percent']:.2f}%.",
@@ -166,6 +177,14 @@ def snapshot(run, previous=None):
                       'Convergence can end a fit earlier; held-out scoring and other stages take additional time.']
     elif not complete:
         lines += ['', 'All shape fits saved; spatial weights and candidate assembly remain.']
+    if stellar_workers:
+        lines += ['', '## Parallel stellar E step', '',
+                  '| PID | CPU | Memory GiB |', '|---:|---:|---:|']
+        for worker in stellar_workers:
+            lines += [f"| {worker['pid']} | {worker['cpu_percent']:.1f}% | {worker['rss_gib']:.2f} |"]
+        if stellar_pass:
+            lines += ['', f"Current E-step pass: {stellar_pass['rows_accumulated']:,} / {stellar_pass['expected_rows']:,} stars accumulated.",
+                      'One global model update follows the complete pass.']
     if parallel_workers:
         lines += ['', '## Parallel QSO slices', '',
                   '| PID | Slice | Stage | Iteration / maximum | CPU | Memory GiB |',

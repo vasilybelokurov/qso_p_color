@@ -1,5 +1,13 @@
 # Current project state
 
+**FOUR-WORKER STELLAR FIT ACTIVE (29 September).** The earlier QSO pool
+has exited. Coordinator 84397 and stellar workers 84415, 84416, 84419, 84420
+continue the final stellar fit from saved iteration 18; monitor 84411 tracks it.
+Current output: `models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/`.
+The parent `5d1429d22b40d24d/` remains an unchanged handover snapshot. All 43
+completed QSO slice files were copied and verified byte-for-byte. Read the
+run `current.json`, `launch.json` and live progress before acting on PIDs.
+
 Updated 29 September 2026 after the user authorized full-sample retraining
 and the training worker was launched. Read this file before scheduling work. It supersedes
 older progress statements in the dated preparation documents; those documents
@@ -71,6 +79,18 @@ association results where applicable. Keep unknown counts explicit. Before any
 additional query, establish which missing fact affects the training selection,
 why local evidence cannot supply it, and the smallest necessary target set.
 
+## QSO fitting completed (29 September, 15:28 UTC)
+
+All 43 QSO final slice files are saved: 25 meet the configured convergence
+criterion; 18 reached the 300-iteration limit and require convergence review.
+The QSO worker pool has exited. Stellar fitting now uses four parallel E-step workers.
+Verified per-slice row counts and frozen roles, 41-dimensional finite mixtures,
+positive-definite covariances and unchanged active pointer. Evidence is in
+`models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/qso_completion.json`.
+QSO density-EM compute is 100%; overall is about 53.0%, stellar 22.3%.
+This completes the scheduled QSO fits, not scientific validation or release.
+Parallel stellar EM is now active; see the current run details below.
+
 ## Training run and remaining work
 
 The requested local assembly and uncapped density-training integration are
@@ -80,33 +100,38 @@ checksummed memory-mapped arrays and an assembly report. The final shape fits
 will use all 1,049,260 QSO fit+selection rows and 1,975,894 stellar fit+selection
 rows. Calibration and test roles remain separate. No new downloads were launched.
 
-The initial serial worker **48795** started at **2026-09-29 04:59:01 UTC**
-from commit `be2a5fb`. After the user requested four parallel QSO slices, it
-was stopped and coordinator **51417** resumed the stellar checkpoint at
-iteration 30, using the unchanged fitting configuration and scientific identity.
-Four single-threaded QSO workers (**51426, 51429, 51430, 51433** at launch)
-now fit distinct slices, with the largest queued first. All four saved at least
-three iterations during verification. Worker assignments can change as slices
-finish; read the live progress files for current values. Its durable run
-record, log and launch preflight are in
+The current launch record, log and preflight remain in
 `models/multisurvey_psf/work/full_training_runs/20260929T045901Z/`.
-The parent `current.json` locates this run. Verify the process and saved
-checkpoints before reporting subsequent progress; do not launch a duplicate.
-The output directory is
-`models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/`.
-The launch preflight passed and both full-population initializations are saved.
-The coordinator fits stars while four workers process the QSO slice queue.
-Use `scripts/train_full_sample_parallel.py --qso-workers 4` for continuation
-only after confirming the existing coordinator has exited; the run lock rejects
-duplicate coordinators. `parallel_train.log` is the current training log;
-`train.log` and `serial_launch.json` preserve the original serial run. The active model remains unchanged.
+The parent `current.json` locates this run. `stellar_parallel_train.log` is
+now the training log; the earlier serial and QSO-parallel logs and launch
+records are retained as history. The original coordinator and its four idle
+QSO workers exited at a checkpoint-safe handover.
+
+Use `scripts/train_stellar_parallel.py --workers 4 --task-rows 8192
+--resume-from models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d`
+for a checkpoint restart only after verifying that the existing coordinator
+has exited. Both parent and destination run locks reject duplicate fitting.
+The active continuation directory is
+`models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/`.
+Its `checkpoint_lineage.json` records all transferred hashes. The changed
+streaming-engine implementation has its own identity; the old directory is
+preserved. The statistical model, frozen roles, selected K=20, regularization,
+convergence tolerance and total iteration limit are unchanged.
+
+Four workers evaluate disjoint batches, then their sufficient statistics are
+combined before one global M step. All 1,975,894 stars enter every iteration.
+A real-data benchmark measured 26.84 seconds serial versus 7.81 seconds with
+four workers (3.43x), with only floating-point rounding differences. Tests
+cover serial-checkpoint continuation, worker failure without partial updates,
+and unchanged completed QSO fits. Details: `docs/STELLAR_PARALLEL_2026-09-29.md`.
+The active model pointer remains unchanged.
 
 Progress monitoring runs independently every 60 seconds through
 `scripts/monitor_full_training.py --watch`. In the run directory,
 `PROGRESS.md` is the readable live summary, `progress.json` is its structured
 form, and `progress_history.jsonl` records successive checks. The monitor
 reports checkpoint iterations, likelihoods, completed fits, CPU/memory,
-the four parallel slice assignments and worker exit; it stops when the density candidate completes or the worker exits.
+the four stellar workers, within-pass row counts and worker exit; it stops when the density candidate completes or the worker exits.
 Every progress report must include estimated overall compute completion,
 plus QSO and stellar percentages. Weight saved EM iterations by fitted rows
 and component count; budget unfinished fits at their iteration limits and
@@ -115,9 +140,9 @@ not wall-clock progress or completion of priors/catch-all/validation.
 It does not deliver chat notifications. Check `monitor.lock` and `monitor.log`
 for the monitor PID and errors before starting another monitor.
 
-Use `scripts/train_full_sample.py` and `configs/full_sample_training.json`.
-The default runs preflight only; `--fit` explicitly launches uncapped shape
-and spatial-weight fitting. Read
+The unchanged scientific configuration is `configs/full_sample_training.json`.
+`scripts/train_full_sample.py` remains the serial/preflight entry point, but
+the current continuation uses `scripts/train_stellar_parallel.py` as above. Read
 [the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
 The old capped recovery scripts are historical and are not this run's entry point.
 

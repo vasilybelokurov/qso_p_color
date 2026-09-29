@@ -158,3 +158,33 @@ def test_candidate_training_roundtrip_and_resume_preserves_active_pointer(tmp_pa
     with acquisition_lock(out/'worker.lock'):
         with pytest.raises(RuntimeError, match='already holds'):
             train_parallel(cfg, workers=2)
+    # Continue a genuine first-iteration stellar checkpoint under the new E-step
+    # scheduler while retaining every already completed QSO slice byte-for-byte.
+    from qso_pcolor.full_training import make_source
+    from qso_pcolor.streaming_xd import fit_xd_batches
+    from qso_pcolor.stellar_parallel_training import train_stellar_parallel, SERIAL_STREAM_SHA256
+    background = json.loads((out/'background.json').read_text())
+    selection = json.loads((out/f"background.select_k{background['selected_k']}.json").read_text())
+    stars = TrainingRows(root/'stars', bands)
+    rows = stars.select(('fit', 'select'))
+    def save_first(it, fitted, ll, seen):
+        write_json(out/'background.final.checkpoint.json', dict(iteration=it, rows=seen,
+                   history=[ll], mixture=fitted.to_dict(), pre_update_mean_loglike=ll))
+    fit_xd_batches(make_source(stars, rows, model, cfg),
+        init=GaussianMixture.from_dict(selection['mixture']), expected_rows=len(rows),
+        max_iter=1, tol=cfg['tol'], regularization=cfg['regularization'], progress=save_first)
+    for filename in ('background.json', 'model.json', 'completion.json'):
+        (out/filename).unlink()
+    parent = tmp_path/'prior_serial_engine'
+    out.rename(parent)
+    old_identity = json.loads((parent/'identity.json').read_text())
+    old_identity['implementation']['streaming_xd.py'] = SERIAL_STREAM_SHA256
+    write_json(parent/'identity.json', old_identity)
+    assert train_stellar_parallel(cfg, resume_from=parent, workers=2, task_rows=14) == out
+    resumed = json.loads((out/'background.json').read_text())
+    for key in ('means', 'covs', 'weights'):
+        np.testing.assert_allclose(resumed['mixture'][key], background['mixture'][key], rtol=1e-10, atol=1e-10)
+    for i in range(2):
+        assert file_hash(parent/f'qso_{i:02d}.json') == file_hash(out/f'qso_{i:02d}.json')
+    assert (out/'checkpoint_lineage.json').exists()
+    assert file_hash(Path(cfg['source_pointer'])) == pointer_hash
