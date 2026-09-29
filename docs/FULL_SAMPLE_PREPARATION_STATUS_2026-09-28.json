@@ -26,7 +26,6 @@
     "raw_entries": 3053059
   },
   "pending": [
-    "Complete only AllWISE and Pan-STARRS QSO gaps, then stop acquisition; NSC, SkyMapper and VHS remain paused and their existing data remain usable.",
     "Assemble final 41-band QSO inputs and review association evidence locally; do not resume the invalid Legacy cross-release count audit.",
     "Review external-survey coverage and effective-area assumptions for count priors.",
     "Verify uncapped training accounting and issue readiness report before retraining."
@@ -186,7 +185,7 @@
   "local_photometry_inventory": "docs/LOCAL_PHOTOMETRY_INVENTORY_2026-09-28.json",
   "data_location_map": "docs/LOCAL_DATA_LOCATIONS.md",
   "qso_gap_acquisition": {
-    "status": "running_allwise_then_ps1_only",
+    "status": "complete_worker_stopped",
     "worker_log": "/tmp/qso_gap_acquisition.log",
     "cache": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff/gap_acquisition",
     "surveys": [
@@ -216,7 +215,18 @@
       "vhs"
     ],
     "stop_condition": "Exit after AllWISE and Pan-STARRS cover every frozen target with a measurement or recorded nonmatch. No other survey acquisition or model fit follows.",
-    "restart_arguments": "--surveys allwise ps1"
+    "restart_arguments": "--surveys allwise ps1",
+    "checked_utc": "2026-09-29T00:14:54Z",
+    "current_aligned_rows": {
+      "allwise": 1657444,
+      "ps1": 1657444
+    },
+    "completed_surveys": [
+      "allwise",
+      "ps1"
+    ],
+    "active_survey": null,
+    "verification_report": "docs/ALLWISE_PS1_COMPLETION_2026-09-29.json"
   },
   "authoritative_current_state": "PROJECT_STATE.md",
   "association_audit_status": "Stopped. Legacy counts include both hemispheres and must not be applied as ambiguity masks. See PROJECT_STATE.md."

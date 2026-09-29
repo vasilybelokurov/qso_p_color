@@ -4,7 +4,8 @@
 running or paused work, and remaining requirements.** It supersedes older
 operational progress statements below. Update it after substantive progress;
 keep findings and history in `JOURNAL.md`. The user now authorizes further
-acquisition for **AllWISE and Pan-STARRS only, then stop**. NSC, SkyMapper and
+acquisition for **AllWISE and Pan-STARRS only, then stop**. Both are complete as of
+29 September and the worker has stopped. Do not restart downloads. NSC, SkyMapper and
 VHS remain paused; retain their existing measurements. Do not require their
 full acquisition for this data effort. The Legacy bulk association audit is stopped: its cross-release counts
 are not valid training ambiguity masks. Do not restart it from an older command.
