@@ -159,3 +159,8 @@ records the run path and initial worker PID. Model-selection records and
 per-iteration checkpoints are under
 `models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/`. This run leaves the active
 model pointer unchanged.
+
+Live monitoring files in the same run directory: `PROGRESS.md`, `progress.json`,
+`progress_history.jsonl`, `monitor.log` and `monitor.lock`. Updated every minute
+by `scripts/monitor_full_training.py --watch`; checkpoint/fit files remain
+the source of truth. No training process is restarted by the monitor.

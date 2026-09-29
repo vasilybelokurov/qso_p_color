@@ -91,6 +91,15 @@ The output directory is
 Launch preflight passed and both full-population initializations are saved;
 the worker is fitting stellar component-selection candidates first. The active model remains unchanged.
 
+Progress monitoring runs independently every 60 seconds through
+`scripts/monitor_full_training.py --watch`. In the run directory,
+`PROGRESS.md` is the readable live summary, `progress.json` is its structured
+form, and `progress_history.jsonl` records successive checks. The monitor
+reports checkpoint iterations, likelihoods, completed fits, CPU/memory and
+worker exit; it stops when the density candidate completes or the worker exits.
+It does not deliver chat notifications. Check `monitor.lock` and `monitor.log`
+for the monitor PID and errors before starting another monitor.
+
 Use `scripts/train_full_sample.py` and `configs/full_sample_training.json`.
 The default runs preflight only; `--fit` explicitly launches uncapped shape
 and spatial-weight fitting. Read

@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+"""Read saved training checkpoints; write a live summary without altering fits."""
+import argparse
+import datetime as dt
+import fcntl
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def atomic(path, text):
+    tmp = path.with_suffix(path.suffix + '.tmp')
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def snapshot(run, previous=None):
+    launch = read(run / 'launch.json')
+    out = Path(launch['output_directory'])
+    identity = read(out / 'identity.json')
+    cfg = identity['config']
+    preflight = read(run / 'preflight.json')
+    populations = ['background'] + [f'qso_{s["index"]:02d}' for s in preflight['slices']]
+    stages = []
+    for name in populations:
+        grid = cfg['background_k_candidates' if name == 'background' else 'qso_k_candidates']
+        stages.extend((f'{name}.select_k{k}', f'{name}.select_k{k}.json', cfg['selection_max_iter']) for k in grid)
+        stages.append((name + '.final', name + '.json', cfg['max_iter']))
+    completed = []
+    current = None
+    for stamp, filename, limit in stages:
+        if (out / filename).exists():
+            record = read(out / filename)
+            completed.append(dict(stage=stamp, converged=record['converged'], iterations=record['n_iter'],
+                                  selection_score=record.get('score'), selected_k=record.get('selected_k')))
+        elif current is None:
+            current = dict(stage=stamp, iteration_limit=limit, iteration=0)
+            checkpoint = out / (stamp + '.checkpoint.json')
+            if checkpoint.exists():
+                record = read(checkpoint)
+                current.update(iteration=record['iteration'], rows=record['rows'],
+                               first_mean_loglike=record['history'][0],
+                               mean_loglike=record['pre_update_mean_loglike'],
+                               checkpoint_time=checkpoint.stat().st_mtime,
+                               checkpoint_age_seconds=time.time() - checkpoint.stat().st_mtime)
+    ps = subprocess.run(['ps', '-p', str(launch['pid']), '-o', 'etime=,time=,%cpu=,rss=,stat=,command='],
+                        capture_output=True, text=True)
+    fields = ps.stdout.strip().split(None, 5)
+    alive = len(fields) == 6 and 'scripts/train_full_sample.py' in fields[5] and 'Z' not in fields[4]
+    process = dict(pid=launch['pid'], alive=alive)
+    if alive:
+        process.update(elapsed=fields[0], cpu_time=fields[1], cpu_percent=float(fields[2]),
+                       rss_gib=int(fields[3]) / 1024**2)
+    complete = (out / 'completion.json').exists()
+    status = 'density fits complete' if complete else ('running' if alive else 'WARNING: worker exited before completion')
+    if current and previous and previous.get('current', {}).get('stage') == current['stage']:
+        old = previous['current']
+        delta = current['iteration'] - old['iteration']
+        if delta > 0 and 'checkpoint_time' in old:
+            current['seconds_per_iteration'] = (current['checkpoint_time'] - old['checkpoint_time']) / delta
+        elif 'seconds_per_iteration' in old:
+            current['seconds_per_iteration'] = old['seconds_per_iteration']
+    result = dict(checked_utc=dt.datetime.now(dt.timezone.utc).isoformat(), status=status,
+                  process=process, current=current, completed_fits=completed, total_planned_fits=len(stages),
+                  output_directory=str(out), density_complete=complete, release_ready=False)
+    lines = ['# Full-sample training progress', '', f"Updated: {result['checked_utc']}", '', f'**{status}**', '',
+             f"Completed fits: {len(completed)} / {len(stages)} (fits have different costs; this is not a time percentage)."]
+    if alive:
+        lines += [f"Worker {launch['pid']}: elapsed {process['elapsed']}, CPU {process['cpu_percent']:.1f}%, memory {process['rss_gib']:.2f} GiB."]
+    if current and not complete:
+        lines += ['', f"Current: **{current['stage']}**, iteration **{current['iteration']} / {current['iteration_limit']}** maximum."]
+        if 'rows' in current:
+            lines += [f"Rows per full pass: {current['rows']:,}.",
+                      f"Mean training log-likelihood: {current['first_mean_loglike']:.6f} initially → {current['mean_loglike']:.6f} at latest checkpoint.",
+                      f"Checkpoint age: {current['checkpoint_age_seconds']:.0f} seconds."]
+        if 'seconds_per_iteration' in current:
+            seconds = current['seconds_per_iteration']
+            lines += [f"Recent full-pass time: {seconds:.1f} seconds; up to {(current['iteration_limit']-current['iteration'])*seconds/60:.1f} minutes of EM left in this fit at that rate.",
+                      'Convergence can end a fit earlier; held-out scoring and other stages take additional time.']
+    elif not complete:
+        lines += ['', 'All shape fits saved; spatial weights and candidate assembly remain.']
+    if completed:
+        lines += ['', '| Completed fit | Iterations | Converged | Selection score |', '|---|---:|---|---:|']
+        for item in completed:
+            score = item['selection_score']
+            lines += [f"| {item['stage']} | {item['iterations']} | {item['converged']} | {score if score is not None else '—'} |"]
+    lines += ['', 'The active model is unchanged. Priors, catch-all fitting and reserved validation follow density training.',
+              '', f"Training log: `{run / 'train.log'}`", f'Fit/checkpoint directory: `{out}`', '']
+    return result, '\n'.join(lines)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run', type=Path)
+    parser.add_argument('--watch', action='store_true')
+    parser.add_argument('--interval', type=float, default=60)
+    args = parser.parse_args()
+    if args.interval <= 0:
+        parser.error('--interval must be positive')
+    run = args.run or Path(read(Path('models/multisurvey_psf/work/full_training_runs/current.json'))['run'])
+    with (run / 'monitor.lock').open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        lock.write(str(os.getpid())); lock.flush()
+        previous = read(run / 'progress.json') if (run / 'progress.json').exists() else None
+        while True:
+            result, summary = snapshot(run, previous)
+            atomic(run / 'progress.json', json.dumps(result, indent=2) + '\n')
+            atomic(run / 'PROGRESS.md', summary)
+            with (run / 'progress_history.jsonl').open('a') as history:
+                history.write(json.dumps(result) + '\n')
+            print(summary, flush=True)
+            if not args.watch or result['density_complete'] or not result['process']['alive']:
+                break
+            previous = result
+            time.sleep(args.interval)
+
+
+if __name__ == '__main__':
+    main()
