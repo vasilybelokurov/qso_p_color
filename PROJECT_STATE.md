@@ -1,7 +1,7 @@
 # Current project state
 
-Updated 29 September 2026 after AllWISE and Pan-STARRS acquisition completed
-and the worker stopped. Read this file before scheduling work. It supersedes
+Updated 29 September 2026 after the user authorized full-sample retraining
+and the training worker was launched. Read this file before scheduling work. It supersedes
 older progress statements in the dated preparation documents; those documents
 retain the selection rationale and provenance. `JOURNAL.md` records the history.
 
@@ -9,7 +9,8 @@ retain the selection rationale and provenance. `JOURNAL.md` records the history.
 
 Prepare uncapped QSO and stellar training data for the active PSF model, which
 supports any nonempty subset of 41 bands, spatial stellar variation and local
-refitting. Preserve held-out data. Report readiness before launching retraining.
+refitting. Preserve held-out data. The readiness report was delivered and the
+user explicitly authorized retraining on 29 September.
 The current model is unchanged; full probability calibration remains unfinished.
 
 **AllWISE and Pan-STARRS are complete; acquisition has stopped as requested.**
@@ -19,8 +20,7 @@ worker is running. NSC, SkyMapper and VHS acquisition remains paused.
 Retain and use existing measurements from those surveys, with unavailable
 measurements masked; the model's 41-band interface is unchanged. Do not turn
 their incomplete acquisition into a requirement to resume downloads. The
-independent association auditor remains stopped. Retraining still waits for
-the readiness report.
+independent association auditor remains stopped. Uncapped density retraining is now launched; see the run record below.
 
 ## Completed data
 
@@ -71,15 +71,25 @@ association results where applicable. Keep unknown counts explicit. Before any
 additional query, establish which missing fact affects the training selection,
 why local evidence cannot supply it, and the smallest necessary target set.
 
-## Remaining data work
+## Training run and remaining work
 
 The requested local assembly and uncapped density-training integration are
 complete. Inputs are in
 `models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8/`, with
 checksummed memory-mapped arrays and an assembly report. The final shape fits
 will use all 1,049,260 QSO fit+selection rows and 1,975,894 stellar fit+selection
-rows. Calibration and test roles remain separate. No new downloads or
-production model fits were launched.
+rows. Calibration and test roles remain separate. No new downloads were launched.
+
+Training worker **48795** was launched at **2026-09-29 04:59:01 UTC** from
+commit `be2a5fb`, using the unchanged prepared configuration. Its durable run
+record, log and launch preflight are in
+`models/multisurvey_psf/work/full_training_runs/20260929T045901Z/`.
+The parent `current.json` locates this run. Verify the process and saved
+checkpoints before reporting subsequent progress; do not launch a duplicate.
+The output directory is
+`models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/`.
+Launch preflight passed and both full-population initializations are saved;
+the worker is fitting stellar component-selection candidates first. The active model remains unchanged.
 
 Use `scripts/train_full_sample.py` and `configs/full_sample_training.json`.
 The default runs preflight only; `--fit` explicitly launches uncapped shape
@@ -87,9 +97,9 @@ and spatial-weight fitting. Read
 [the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
 The old capped recovery scripts are historical and are not this run's entry point.
 
-1. Review the prepared density-fit launch and its runtime estimate. At iteration
-   limits the uncapped workload can take several days; every iteration is
-   checkpointed. Do not launch until the readiness report has been presented.
+1. Monitor the authorized density fit through saved iteration checkpoints and
+   completed component-selection records. At iteration limits the uncapped
+   workload can take several days; every iteration is checkpointed.
 2. After density fits, complete population priors and calibration-role catch-all
    fitting consistently with the new shapes. The historical population-completion
    script needs adaptation to the new role/input layout; do not run it unchanged.
@@ -110,7 +120,7 @@ The old capped recovery scripts are historical and are not this run's entry poin
 - Report acquisition, local assembly and validation separately. Use saved
   output counts and measured timings; a running process alone is not progress.
 - Acquisition is finished for the agreed scope. Do not restart downloads from
-  an older checklist. Preserve the explicit readiness gate before retraining.
+  an older checklist. The readiness gate was satisfied and the user authorized this training run.
 
 Evidence: [local reconciliation](docs/PREPARATION_RECONCILIATION_2026-09-28.json).
 Download completion: [AllWISE and Pan-STARRS verification](docs/ALLWISE_PS1_COMPLETION_2026-09-29.json).

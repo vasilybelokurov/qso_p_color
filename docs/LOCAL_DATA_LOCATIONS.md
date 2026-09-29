@@ -138,8 +138,8 @@ for photometry and `scripts/inventory_qso_identifier_links.py --cache <QROOT>
 inventory directory triggers NPZ-header discovery under `~/data` and `models/`;
 an existing directory reuses its saved `discovered_native.json`.
 
-Acquisition is now running from QROOT `gap_acquisition/`, using the cached
-results and corrected PS1 IDs. See `docs/QSO_GAP_ACQUISITION_2026-09-28.md`
+The completed AllWISE/PS1 acquisition used QROOT `gap_acquisition/`, with cached
+results and corrected PS1 IDs. Acquisition has stopped. See `docs/QSO_GAP_ACQUISITION_2026-09-28.md`
 for the command, checkpoint locations and measured query behaviour.
 This inventory does not authorize retraining or certify the full 41-band sample.
 
@@ -150,3 +150,12 @@ This inventory does not authorize retraining or certify the full 41-band sample.
 `manifest.json`. The parent `current.json` points to this version. All eligible
 objects remain present; masks and frozen roles determine which measurements
 and rows enter each stage. See `FULL_TRAINING_READINESS_2026-09-29.md`.
+
+## Authorized density-training run (29 September)
+
+`models/multisurvey_psf/work/full_training_runs/20260929T045901Z/` contains
+`launch.json`, `train.log` and `preflight.json`. The parent `current.json`
+records the run path and initial worker PID. Model-selection records and
+per-iteration checkpoints are under
+`models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/`. This run leaves the active
+model pointer unchanged.

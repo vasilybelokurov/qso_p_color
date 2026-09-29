@@ -16,7 +16,9 @@ Use `configs/full_sample_training.json` and `scripts/train_full_sample.py`;
 its default is preflight only and `--fit` explicitly launches the production
 density fits. Preserve the frozen fit/select/calib/test roles. The former
 recovery and population-completion scripts still use historical input layouts.
-No full-sample production fit has been launched and the active model is unchanged.
+The user authorized full-sample production fitting on 29 September; the run is
+recorded in `PROJECT_STATE.md`. Check that record before starting any worker.
+The active model remains unchanged pending candidate completion and validation.
 
 Read this before touching the repository. It is the working contract for
 `qso_pcolor`. `docs/method/method.tex` is the scientific write-up — the

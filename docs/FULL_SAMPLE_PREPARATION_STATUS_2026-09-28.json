@@ -19,14 +19,14 @@
   },
   "all_input_identities_positions_redshifts_verified": true,
   "active_model_unchanged": true,
-  "retraining_started": false,
+  "retraining_started": true,
   "stellar_raw_download": {
     "regions_completed": 274,
     "regions_total": 274,
     "raw_entries": 3053059
   },
   "pending": [
-    "Present readiness report before launching the prepared density fits.",
+    "Monitor authorized full-sample density training using saved checkpoints and selection records.",
     "After fitting shapes and spatial weights, adapt population completion to full inputs and frozen roles; assess count-prior areas and refit catch-all on calib only.",
     "Inspect convergence/capacity and reserved validation before any promotion."
   ],
@@ -240,8 +240,31 @@
     "uncapped_density_trainer_ready": true,
     "qso_final_shape_rows": 1049260,
     "stellar_final_shape_rows": 1975894,
-    "production_fit_started": false,
+    "production_fit_started": true,
     "population_completion_adapted": false,
     "active_model_changed": false
+  },
+  "full_training_run": {
+    "started_utc": "20260929T045901Z",
+    "pid": 48795,
+    "command": [
+      "/Users/vasilybelokurov/Work/venvs/.venv/bin/python",
+      "-u",
+      "scripts/train_full_sample.py",
+      "--config",
+      "configs/full_sample_training.json",
+      "--fit",
+      "--report",
+      "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/preflight.json"
+    ],
+    "log": "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/train.log",
+    "preflight": "/Users/vasilybelokurov/IoA Dropbox/Dr V.A. Belokurov/Code/qso_p_color/models/multisurvey_psf/work/full_training_runs/20260929T045901Z/preflight.json",
+    "config": "configs/full_sample_training.json",
+    "code_commit": "be2a5fbda7f07f08e6ba8effcba4cd0a2ca2b38b",
+    "authorization": "User: ok, lets retrain the mode;",
+    "candidate_only": true,
+    "output_directory": "models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d",
+    "launch_preflight_passed": true,
+    "stage_at_launch_check": "Both population initializations saved; stellar component selection running"
   }
 }
