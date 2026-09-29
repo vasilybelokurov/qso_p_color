@@ -107,6 +107,11 @@ Progress monitoring runs independently every 60 seconds through
 form, and `progress_history.jsonl` records successive checks. The monitor
 reports checkpoint iterations, likelihoods, completed fits, CPU/memory,
 the four parallel slice assignments and worker exit; it stops when the density candidate completes or the worker exits.
+Every progress report must include estimated overall compute completion,
+plus QSO and stellar percentages. Weight saved EM iterations by fitted rows
+and component count; budget unfinished fits at their iteration limits and
+maximum K until selection is known. Clearly label this as density-EM work,
+not wall-clock progress or completion of priors/catch-all/validation.
 It does not deliver chat notifications. Check `monitor.lock` and `monitor.log`
 for the monitor PID and errors before starting another monitor.
 

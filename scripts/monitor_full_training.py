@@ -20,6 +20,54 @@ def atomic(path, text):
     os.replace(tmp, path)
 
 
+def compute_progress(out, cfg, preflight):
+    """Estimate EM work in row-component passes, including overlapping slices.
+
+    Finished fits use their actual iteration counts. Remaining fits are budgeted
+    to their configured limits; unknown final component counts use the largest
+    candidate. This measures useful saved work, not elapsed wall time.
+    """
+    populations = [('background', preflight['roles']['stars'])] + [
+        (f'qso_{s["index"]:02d}', {r: {'rows': n} for r, n in s['rows'].items()})
+        for s in preflight['slices']]
+    totals = {name: dict(done=0, remaining=0) for name in ('stars', 'qso')}
+    for name, counts in populations:
+        family = 'stars' if name == 'background' else 'qso'
+        grid = cfg['background_k_candidates' if family == 'stars' else 'qso_k_candidates']
+        fit_rows = sum(counts[r]['rows'] for r in cfg['fit_roles'])
+        final_rows = sum(counts[r]['rows'] for r in cfg['final_shape_roles'])
+        selection = {}
+        for k in grid:
+            saved = out / f'{name}.select_k{k}.json'
+            checkpoint = out / f'{name}.select_k{k}.checkpoint.json'
+            finished = saved.exists()
+            record = read(saved) if finished else (read(checkpoint) if checkpoint.exists() else {})
+            iterations = record.get('n_iter', record.get('iteration', 0))
+            totals[family]['done'] += fit_rows * k * iterations
+            totals[family]['remaining'] += fit_rows * k * (0 if finished else cfg['selection_max_iter']-iterations)
+            if finished:
+                selection[k] = record['score']
+        saved = out / f'{name}.json'
+        checkpoint = out / f'{name}.final.checkpoint.json'
+        finished = saved.exists()
+        record = read(saved) if finished else (read(checkpoint) if checkpoint.exists() else {})
+        if record:
+            k = record.get('selected_k', len(record['mixture']['weights']))
+        else:
+            k = max(selection, key=selection.get) if len(selection) == len(grid) else max(grid)
+        iterations = record.get('n_iter', record.get('iteration', 0))
+        totals[family]['done'] += final_rows * k * iterations
+        totals[family]['remaining'] += final_rows * k * (0 if finished else cfg['max_iter']-iterations)
+    totals['overall'] = {key: sum(totals[p][key] for p in ('stars', 'qso')) for key in ('done', 'remaining')}
+    for value in totals.values():
+        denominator = value['done'] + value['remaining']
+        value['percent'] = 100 * value['done'] / denominator if denominator else 100.
+    return dict(populations=totals, unit='row-component EM passes',
+                assumptions='Remaining fits use iteration limits and largest K until K is selected; finished fits use actual iterations.',
+                scope='Density EM only; excludes likelihood/scoring overhead, initialization, spatial weights, priors, catch-all and validation.',
+                caveat='Work estimate, not a measured CPU-time fraction or wall-clock ETA; missing-band patterns affect pass costs.')
+
+
 def snapshot(run, previous=None):
     launch = read(run / 'launch.json')
     out = Path(launch['output_directory'])
@@ -93,11 +141,16 @@ def snapshot(run, previous=None):
             current['seconds_per_iteration'] = (current['checkpoint_time'] - old['checkpoint_time']) / delta
         elif 'seconds_per_iteration' in old:
             current['seconds_per_iteration'] = old['seconds_per_iteration']
+    compute = compute_progress(out, cfg, preflight)
     result = dict(checked_utc=dt.datetime.now(dt.timezone.utc).isoformat(), status=status,
                   process=process, current=current, completed_fits=completed, total_planned_fits=len(stages),
                   output_directory=str(out), density_complete=complete, release_ready=False,
-                  parallel_workers=parallel_workers)
+                  parallel_workers=parallel_workers, compute_progress=compute)
     lines = ['# Full-sample training progress', '', f"Updated: {result['checked_utc']}", '', f'**{status}**', '',
+             f"**Estimated density-fitting compute completed: {compute['populations']['overall']['percent']:.2f}%.**",
+             f"QSO: {compute['populations']['qso']['percent']:.2f}%; stellar: {compute['populations']['stars']['percent']:.2f}%.",
+             'Weighted by rows × components × saved EM iterations. Remaining fits are budgeted at iteration limits; the estimate updates as complexity and convergence are measured.',
+             'This covers density EM, not subsequent spatial/population fitting or validation, and is not a wall-clock percentage.', '',
              f"Completed fits: {len(completed)} / {len(stages)} (fits have different costs; this is not a time percentage)."]
     if alive:
         lines += [f"Worker {launch['pid']}: elapsed {process['elapsed']}, CPU {process['cpu_percent']:.1f}%, memory {process['rss_gib']:.2f} GiB."]

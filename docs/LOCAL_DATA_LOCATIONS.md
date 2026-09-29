@@ -169,3 +169,8 @@ Parallel continuation uses `parallel_train.log` and the updated `launch.json`
 in the same run directory. `serial_launch.json` preserves the earlier process
 record. In the unchanged fit directory, `parallel_execution.json` records the
 coordinator and queue; `parallel_worker_<pid>.json` records slice assignments.
+
+`progress.json` also includes `compute_progress`: total, QSO and stellar
+row-component EM work completed and estimated remaining. The readable report
+shows percentages with the assumptions and scope. These estimates use saved
+iterations, actual completed fits and configured limits for unfinished fits.
