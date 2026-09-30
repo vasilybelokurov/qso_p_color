@@ -8,7 +8,24 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**MAP COVARIANCE UPDATE: BOUNDED FULL-ROW TEST RUNNING (30 September, user-authorized).**
+**MAP TEST FINISHED; FULL REFIT PREPARED, AWAITING USER GO (30 September).**
+Report: `models/multisurvey_psf/work/map_update_test/20260930/c108415a6a7a695f/report.json`.
+Formal result 1/4 checks. (1) Zero MAP objective declines in all six (additive: 41 on the
+z1.75 control): pass. (2) Tolerance 1e-4 not reached by 120 in any MAP fit: replaced by
+predictive early stopping (implemented, `09bbd00`). (3) Held-out density MAP-additive
++0.473/+0.481/+0.538/+0.440/+0.449 nats (z1.45/1.65/1.75/2.35/3.25; block-bootstrap SE
+0.05-0.08) but -0.566 at z4.05 (2,152 rows, overfits; user accepts z>4 weakness; the
+stopping rule keeps the warm start there). (4) AUC loss >0.002 at z1.65 (-0.0025) and
+z1.75 (-0.0033); bootstrap 95% intervals include zero, and the loss is almost entirely
+one background-panel object (row 81) scored p_quasar=1.000 by BOTH models, i.e. an
+ordering change among certain-QSO scores, not a classification change.
+Prepared refit: `models/multisurvey_psf/work/unified_full/20260930/de2901455863c3bc`
+(MAP, tol 1e-4, max 300, stopping every 20 updates at 0.02 nats; 34,259 QSO + 1,024
+background stopping rows excluded from final assessment; 0 fits). Launch:
+`python scripts/train_unified_full.py --fit`. Not launched pending the user's decision
+on the formally failed AUC check.
+
+**MAP COVARIANCE UPDATE: BOUNDED FULL-ROW TEST (30 September, user-authorized).**
 Diagnosis from saved histories: the additive update (`c + w I` after each M
 step) maximises no fixed objective. 24/43 historical QSO slices show likelihood
 declines, up to 0.078 nats/object below their own best (z=1.45); the old stop
