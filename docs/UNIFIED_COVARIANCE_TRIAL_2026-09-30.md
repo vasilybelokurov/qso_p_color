@@ -1,9 +1,17 @@
 # Full-row covariance comparison
 
-The user resumed this diagnostic after the CPU-resource pause. It was launched
-on 30 September at **16:51:36 UTC**, coordinator PID **52878**. The production
-method and active model remain unchanged. Read the run's live status before
-any restart; do not launch a duplicate coordinator.
+**Stopped by the user at 17:04 UTC on 30 September.** All trial processes have
+exited. The full-background cost contradicted the requested light diagnostic;
+the user requested a rethink. Do not restart or launch replacement fits.
+The production method and active model remain unchanged.
+
+The run began at16:51:36 UTC. Complete saved updates: both z1.45 methods15,
+both z4.05 methods20, background additive5; background flooring never started.
+There is no complete matched three-case result. Existing QSO checkpoints can
+be compared on development predictions without further fitting; these short
+trajectories cannot establish convergence or settle background regularization.
+The configuration below describes the stopped experiment, not an approved
+replacement plan.
 
 The decision is whether constrained covariance updates preserve predictive
 quality while removing the likelihood declines caused by additive broadening.
@@ -86,8 +94,8 @@ Prepared root:
 
 `python scripts/trial_unified_covariance.py` only prepares.
 `python scripts/trial_unified_covariance.py --fit` runs the diagnostic.
-The user authorized resumption and the diagnostic is launched. Check
-`execution.json`, `progress.json`, `run.log` and `finished.json` before restarting.
+The user subsequently stopped this run. `execution.json` and `stopped.json`
+record the stop; do not restart without a new scoped instruction.
 
 At the pause, the machine had 48 GiB memory, 14 CPU cores (10 performance),
 1.2 TiB free disk, approximately 1 GiB allocated swap with no swapping observed

@@ -8,11 +8,18 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**FULL-ROW COVARIANCE TRIAL LAUNCHED (30 September, 16:51 UTC).**
-The user resumed the focused additive-versus-eigenvalue-floor comparison after
-the resource pause. The corrected trial was launched at 16:51:36 UTC;
-coordinator PID 52878. Check its `execution.json`, `progress.json`, `run.log`
-and `finished.json` before any restart; **do not launch a duplicate worker**.
+**FULL-ROW COVARIANCE TRIAL STOPPED BY USER (30 September, 17:04 UTC).**
+The user stopped the trial because its full-background cost contradicted the
+requested light diagnostic, and requested a rethink of scope and purpose.
+Coordinator 52878 and all nine child processes were terminated and verified
+absent. **No automatic restart or replacement fitting is authorized.**
+Last complete checkpoints: both z1.45 methods at15 updates, both z4.05 methods
+at20, background additive at5; background flooring never started. No matched
+three-case comparison completed. Partial E steps are discarded. Existing
+results may be inspected without fitting, but do not present these unequal
+background runs as a comparison or as evidence of convergence.
+`execution.json`, `stopped.json` and `PROGRESS.md` record the stop.
+The original launch was at16:51:36 UTC. The active pointer is verified unchanged.
 Read `docs/UNIFIED_COVARIANCE_TRIAL_2026-09-30.md` for the trial policy.
 The computer has 48 GiB RAM, 14 cores (10 performance / 4 efficiency), and
 1.2 TiB available disk; the immediate constraint was CPU contention, not disk.
@@ -36,7 +43,7 @@ An initial attempt failed during baseline scoring, before any fit: legitimate
 negative-infinite ranks from zero target-redshift priors were rejected by the
 diagnostic. Reporting now retains these objects at the bottom of the ranking,
 counts zero-weight transitions, and has a regression test. The corrected run
-is now launched. Full suite: **372 passed in 94.86 s**,
+was launched and subsequently stopped as recorded above. Full suite: **372 passed in 94.86 s**,
 `/tmp/unified_covariance_trial_fullsuite_final.log`.
 
 The earlier recommendation to retain the additive covariance update for
