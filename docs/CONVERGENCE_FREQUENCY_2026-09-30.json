@@ -1,0 +1,424 @@
+{
+  "qso_fits": 43,
+  "capped": 18,
+  "capped_fraction": 0.4186046511627907,
+  "groups": {
+    "converged": {
+      "fits": 25,
+      "fraction": 0.5813953488372093,
+      "z": [
+        0.65,
+        0.75,
+        0.85,
+        0.95,
+        1.05,
+        1.15,
+        1.25,
+        1.35,
+        1.55,
+        1.75,
+        1.85,
+        1.95,
+        2.05,
+        2.15,
+        2.25,
+        2.45,
+        2.55,
+        2.65,
+        2.75,
+        2.95,
+        3.05,
+        3.15,
+        3.35,
+        3.55,
+        3.75
+      ],
+      "training_slice_memberships": 1665623,
+      "min_rows": 4468,
+      "max_rows": 119197
+    },
+    "continue": {
+      "fits": 11,
+      "fraction": 0.2558139534883721,
+      "z": [
+        0.15,
+        0.25,
+        0.35,
+        0.45,
+        0.55,
+        3.85,
+        3.95,
+        4.05,
+        4.15,
+        4.25,
+        4.35
+      ],
+      "training_slice_memberships": 53449,
+      "min_rows": 640,
+      "max_rows": 20080
+    },
+    "hold_for_diagnosis": {
+      "fits": 7,
+      "fraction": 0.16279069767441862,
+      "z": [
+        1.45,
+        1.65,
+        2.35,
+        2.85,
+        3.25,
+        3.45,
+        3.65
+      ],
+      "training_slice_memberships": 379408,
+      "min_rows": 5126,
+      "max_rows": 119828
+    }
+  },
+  "membership_note": "Overlapping slices reuse objects; membership counts are not unique-object counts",
+  "fits": [
+    {
+      "name": "qso_00",
+      "z": 0.15,
+      "rows": 1137,
+      "k": 4,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_01",
+      "z": 0.25,
+      "rows": 2523,
+      "k": 20,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_02",
+      "z": 0.35,
+      "rows": 5910,
+      "k": 20,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_03",
+      "z": 0.45,
+      "rows": 11802,
+      "k": 20,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_04",
+      "z": 0.55,
+      "rows": 20080,
+      "k": 20,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_05",
+      "z": 0.65,
+      "rows": 32284,
+      "k": 20,
+      "iterations": 151,
+      "status": "converged"
+    },
+    {
+      "name": "qso_06",
+      "z": 0.75,
+      "rows": 47107,
+      "k": 20,
+      "iterations": 224,
+      "status": "converged"
+    },
+    {
+      "name": "qso_07",
+      "z": 0.85,
+      "rows": 61006,
+      "k": 12,
+      "iterations": 191,
+      "status": "converged"
+    },
+    {
+      "name": "qso_08",
+      "z": 0.95,
+      "rows": 72647,
+      "k": 20,
+      "iterations": 209,
+      "status": "converged"
+    },
+    {
+      "name": "qso_09",
+      "z": 1.05,
+      "rows": 83819,
+      "k": 12,
+      "iterations": 142,
+      "status": "converged"
+    },
+    {
+      "name": "qso_10",
+      "z": 1.15,
+      "rows": 95811,
+      "k": 20,
+      "iterations": 212,
+      "status": "converged"
+    },
+    {
+      "name": "qso_11",
+      "z": 1.25,
+      "rows": 105102,
+      "k": 20,
+      "iterations": 181,
+      "status": "converged"
+    },
+    {
+      "name": "qso_12",
+      "z": 1.35,
+      "rows": 109577,
+      "k": 12,
+      "iterations": 110,
+      "status": "converged"
+    },
+    {
+      "name": "qso_13",
+      "z": 1.45,
+      "rows": 114657,
+      "k": 20,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_14",
+      "z": 1.55,
+      "rows": 118922,
+      "k": 20,
+      "iterations": 105,
+      "status": "converged"
+    },
+    {
+      "name": "qso_15",
+      "z": 1.65,
+      "rows": 119828,
+      "k": 20,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_16",
+      "z": 1.75,
+      "rows": 119197,
+      "k": 20,
+      "iterations": 113,
+      "status": "converged"
+    },
+    {
+      "name": "qso_17",
+      "z": 1.85,
+      "rows": 114517,
+      "k": 20,
+      "iterations": 172,
+      "status": "converged"
+    },
+    {
+      "name": "qso_18",
+      "z": 1.95,
+      "rows": 106571,
+      "k": 20,
+      "iterations": 93,
+      "status": "converged"
+    },
+    {
+      "name": "qso_19",
+      "z": 2.05,
+      "rows": 99823,
+      "k": 20,
+      "iterations": 185,
+      "status": "converged"
+    },
+    {
+      "name": "qso_20",
+      "z": 2.15,
+      "rows": 95284,
+      "k": 20,
+      "iterations": 115,
+      "status": "converged"
+    },
+    {
+      "name": "qso_21",
+      "z": 2.25,
+      "rows": 89644,
+      "k": 20,
+      "iterations": 146,
+      "status": "converged"
+    },
+    {
+      "name": "qso_22",
+      "z": 2.35,
+      "rows": 81316,
+      "k": 8,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_23",
+      "z": 2.45,
+      "rows": 71117,
+      "k": 20,
+      "iterations": 129,
+      "status": "converged"
+    },
+    {
+      "name": "qso_24",
+      "z": 2.55,
+      "rows": 59292,
+      "k": 12,
+      "iterations": 163,
+      "status": "converged"
+    },
+    {
+      "name": "qso_25",
+      "z": 2.65,
+      "rows": 48122,
+      "k": 20,
+      "iterations": 156,
+      "status": "converged"
+    },
+    {
+      "name": "qso_26",
+      "z": 2.75,
+      "rows": 40057,
+      "k": 12,
+      "iterations": 98,
+      "status": "converged"
+    },
+    {
+      "name": "qso_27",
+      "z": 2.85,
+      "rows": 34276,
+      "k": 8,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_28",
+      "z": 2.95,
+      "rows": 29243,
+      "k": 20,
+      "iterations": 145,
+      "status": "converged"
+    },
+    {
+      "name": "qso_29",
+      "z": 3.05,
+      "rows": 24217,
+      "k": 20,
+      "iterations": 150,
+      "status": "converged"
+    },
+    {
+      "name": "qso_30",
+      "z": 3.15,
+      "rows": 19841,
+      "k": 20,
+      "iterations": 242,
+      "status": "converged"
+    },
+    {
+      "name": "qso_31",
+      "z": 3.25,
+      "rows": 15955,
+      "k": 8,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_32",
+      "z": 3.35,
+      "rows": 11852,
+      "k": 8,
+      "iterations": 243,
+      "status": "converged"
+    },
+    {
+      "name": "qso_33",
+      "z": 3.45,
+      "rows": 8250,
+      "k": 8,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_34",
+      "z": 3.55,
+      "rows": 6103,
+      "k": 8,
+      "iterations": 151,
+      "status": "converged"
+    },
+    {
+      "name": "qso_35",
+      "z": 3.65,
+      "rows": 5126,
+      "k": 8,
+      "iterations": 300,
+      "status": "hold_for_diagnosis"
+    },
+    {
+      "name": "qso_36",
+      "z": 3.75,
+      "rows": 4468,
+      "k": 8,
+      "iterations": 141,
+      "status": "converged"
+    },
+    {
+      "name": "qso_37",
+      "z": 3.85,
+      "rows": 3745,
+      "k": 8,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_38",
+      "z": 3.95,
+      "rows": 2941,
+      "k": 8,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_39",
+      "z": 4.05,
+      "rows": 2152,
+      "k": 8,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_40",
+      "z": 4.15,
+      "rows": 1465,
+      "k": 8,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_41",
+      "z": 4.25,
+      "rows": 1054,
+      "k": 12,
+      "iterations": 300,
+      "status": "continue"
+    },
+    {
+      "name": "qso_42",
+      "z": 4.35,
+      "rows": 640,
+      "k": 8,
+      "iterations": 300,
+      "status": "continue"
+    }
+  ]
+}

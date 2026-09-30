@@ -8,6 +8,39 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
+**CONVERGENCE ASSESSMENT AND QUICK TEST COMPLETE (30 September).**
+The user asks to address iteration limits, not hypothetical premature stopping.
+Read `docs/CONVERGENCE_PRACTICAL_ASSESSMENT_2026-09-30.md` and its three JSON
+reports. Historical full-data QSO fits: 18/43 hit 300 (11 improving at redshift
+edges, seven declining at intermediate centres); background also capped.
+Extra 100 iterations gave only +0.000255 mean held-out QSO log density and
++.0142 global-background density, despite some moving individual predictions.
+The larger model remained substantially better than the old small model.
+
+New unified diagnostic: five cases x two covariance updates, 2,048 training
+rows each, up to 512 non-training >=5-sigma development objects, 120 iterations,
+four workers; completed in 206.2 seconds. This is deliberately a small diagnostic,
+not capped production training. With additive updates, tol 1e-4 would stop at
+38/46/100/59/105 iterations; tol 1e-5 reaches the rule only for two cases by120.
+Continuing from the 1e-4 stop to120 slightly worsens mean held-out density in
+all five. Individual changes are not negligible everywhere; this does not
+certify complete classification scores. Eigenvalue floors give monotone
+training improvement but no strict convergence by120; predictive differences
+against additive are -.0391 (z.55), -.4675 (z4.05), +.0913 (z1.45), +.1339
+(z1.75), -.0169 (background). Do not globally promote the floor as a cure.
+
+Recommendation for discussion before launch: a less stringent, validated
+numerical tolerance and actual validation-based early stopping/checkpoint
+selection, with a separate non-training stopping sample. That avoids waste;
+it is not proof of the original strict mathematical convergence criterion.
+Do not add patience for hypothetical premature stopping, extend all fits, or
+start a broad component search. EM acceleration is documented as an option,
+not tested or recommended as the first intervention here.
+Production update/tolerance and prepared run identity are UNCHANGED. No full
+fit, download or active-pointer change. All diagnostic workers have finished.
+Saved run: models/multisurvey_psf/work/unified_convergence_probe/20260930/d820e0835ac64b92.
+Full suite: **368 passed in 82.59 seconds**; `/tmp/unified_convergence_fullsuite.log`.
+
 **FULL UNIFIED LAUNCHER PREPARED: 4 QSO + 4 STELLAR WORKERS (30 September).**
 The user requested a pragmatic loose-end audit before launch, then specified
 four QSO and four stellar workers. Read `docs/UNIFIED_FULL_PREFLIGHT_2026-09-30.md`.

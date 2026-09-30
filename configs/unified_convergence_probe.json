@@ -1,0 +1,15 @@
+{
+  "prepared_run": "models/multisurvey_psf/work/unified_full/20260930/5fd837e5cafee6c1",
+  "output": "models/multisurvey_psf/work/unified_convergence_probe/20260930",
+  "cases": ["qso_04", "qso_39", "qso_13", "qso_16", "stars_00"],
+  "updates": ["additive", "eigenvalue_floor"],
+  "training_rows": 2048,
+  "evaluation_rows_per_hemisphere": 256,
+  "max_iter": 120,
+  "evaluate_every": 20,
+  "tolerances": [0.00001, 0.0001],
+  "seed": 20261003,
+  "workers": 4,
+  "roundoff_tolerance": 1e-9,
+  "policy": "Bounded diagnostic only: fixed training subsamples, same initial southern-canonical models and all 41 native channels. No S/N training cut. Non-training test-role development evaluations require any band at >=5 sigma. Evaluate covariance update and candidate tolerance, not final independent validation. Production config/model remain unchanged."
+}
