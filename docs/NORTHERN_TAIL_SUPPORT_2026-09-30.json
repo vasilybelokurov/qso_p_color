@@ -1,0 +1,50 @@
+{
+  "probe_luptitudes": [
+    21.5,
+    18.5,
+    22.5
+  ],
+  "bands": [
+    "decals_dr9_north:g",
+    "decals_dr9_north:r",
+    "decals_dr9_north:z"
+  ],
+  "reference_window": [
+    18.0,
+    19.0
+  ],
+  "populations": {
+    "qso": {
+      "bright_training_rows": 12124,
+      "nearest_colour_distance_mag": 3.9143931232909086,
+      "nearest": {
+        "row": 201469,
+        "luptitudes": [
+          20.533870307291952,
+          18.723293624823967,
+          18.993984614380036
+        ],
+        "colours": [
+          1.8105766824679854,
+          -0.2706909895560692
+        ]
+      }
+    },
+    "stars": {
+      "bright_training_rows": 5829,
+      "nearest_colour_distance_mag": 4.667807770437787,
+      "nearest": {
+        "row": 415140,
+        "luptitudes": [
+          18.989147107608783,
+          18.615283992625784,
+          18.756290024904068
+        ],
+        "colours": [
+          0.3738631149829992,
+          -0.141006032278284
+        ]
+      }
+    }
+  }
+}

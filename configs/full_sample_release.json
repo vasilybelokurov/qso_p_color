@@ -1,0 +1,23 @@
+{
+  "candidate": "models/multisurvey_psf/work/full_sample_completion/e894d3c77baab446",
+  "baseline": "models/multisurvey_psf/630f47f63b6f0694",
+  "inputs": "models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8",
+  "output": "models/multisurvey_psf/work/full_sample_release/20260930",
+  "seed": 20260930,
+  "rows_per_class_per_hemisphere": 128,
+  "hemisphere_split_dec": 32.0,
+  "batch_size": 16,
+  "window_kms": 2000.0,
+  "ood_flag_sigma": 4.0,
+  "blend_policy": {"min_separation_arcsec": 3.0, "max_fracflux": 0.2},
+  "fixture_separation_arcsec": 6.0,
+  "fixture_fracflux": 0.05,
+  "wrong_redshift_shift": 1.0,
+  "minimum_rows_for_auc": 30,
+  "maximum_auc_decrease": 0.03,
+  "maximum_grid_high_rate_increase": 0.02,
+  "high_qso_probability": 0.5,
+  "low_density_peak_fractions": [0.01, 0.0001],
+  "grid": {"grid_size": 15, "grid_colour_range": [-6.0, 8.0], "reference_magnitudes": [18.5, 21.0, 24.3], "luptitude_error": 0.03, "primary_z": 1.8},
+  "policy": "Paired complete public scores on frozen test-role samples, targeted saved calibration cases, and identical colour grids. Fixed clean-blend fixtures isolate photometric scoring; this is not labelled pair validation or probability calibration. No fitting. Scientific regressions require explicit review before promotion; promotion is separate."
+}

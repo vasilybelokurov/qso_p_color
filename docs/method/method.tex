@@ -506,6 +506,19 @@ the density shapes, spatial weights or stellar count priors. The resulting
 bundle is a candidate for subsequent complete-score checks; the active pointer
 and the unresolved status of full probability calibration are unchanged.
 
+The subsequent complete-score release audit did not authorize activation of
+this candidate. Real-object ranking improved overall, but northern optical
+colour grids exposed high quasar scores in regions without nearby measured
+training colours. Some low-redshift components carry appreciable global weight
+while their posterior responsibilities sum to only about one to three northern
+training objects, and essentially none at the bright reference magnitude of
+the failure. Their extrapolated northern Gaussian coordinates nevertheless
+pass the nearest-component distance check. Thus a small distance to a fitted
+Gaussian does not by itself certify observed training support. A repair based
+on component-level observed-band information remains to be implemented; the
+active bundle and existing thresholds are unchanged. This limitation is not
+resolved by numerical convergence or a larger total training-set size.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order

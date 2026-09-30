@@ -1,51 +1,54 @@
 # Current project state
 
-**ITEMS 1–3 IMPLEMENTED (30 September).** The full-data density/spatial model is
-frozen, its priors and catch-all are complete, and the focused bright-star
-optical diagnosis is saved. The active pointer is unchanged. No new downloads
-or density fitting were needed. The next task is item 4: complete-score release
-checks, followed by promotion if satisfactory. Do not restart density workers,
-capacity searches, convergence continuations or covariance-floor trials.
+**COMPLETE-SCORE AUDIT FINISHED; ACTIVATION HELD (30 September).**
+The full-data candidate improves real-object ranking but fails the northern
+low-density colour-grid check. The active pointer remains
+`models/multisurvey_psf/630f47f63b6f0694`. Do not promote the candidate before
+repairing and retesting this specific support failure. Do not restart broad
+convergence/capacity work, downloads or completed density workers.
 
-Candidate: `models/multisurvey_psf/work/full_sample_completion/e894d3c77baab446/`.
-Its `model.json` is byte-identical to the assembled 300-iteration full-data
-candidate. All 41 prior pairs load; stellar counts use all 1,975,894 fit/select
-sources from 180 regions. QSO abundance grids are inherited numerically,
-explicitly distinguished from the enlarged spectroscopic colour-training sample.
-Six Legacy optical reference bands have measured band areas; the other 35
-retain marked approximate area denominators. This is not full area or posterior
-calibration. The Student-t catch-all uses all 502,251 calibration-role stellar
-sources, inherited hyperparameters and strictly positive pooled shares.
-The candidate pointer is `models/multisurvey_psf/work/full_sample_completion/candidate.json`.
-Never confuse it with the active `models/multisurvey_psf/current` pointer.
+Completed candidate: `models/multisurvey_psf/work/full_sample_completion/e894d3c77baab446/`.
+Its shapes/spatial weights are the frozen assembled 300-iteration fit. All 41
+prior pairs and the calib-only catch-all are complete: 1,975,894 fit/select
+stellar count rows; 502,251 catch-all calibration rows. QSO abundance priors
+remain numerically inherited. Six band areas are measured and 35 explicitly
+approximate. Items 1–3 remain complete; do not redo them.
 
-Bright-star diagnosis: 1,648 bright objects in a fixed 30,000-source calibration
-sample. Combined-optical density loss reproduces (-0.233 nats/object), but high
-QSO-evidence counts after catch-all/support guard decrease from 10 to 4. The
-all-band tail stays at 7. SDSS-only increases from 5 to 8; exact newly high row
-identities are saved for item 4. These are uncalibrated evidence diagnostics on
-a star-dominated sample, not confirmed false-positive labels. The calibration
-rows also enter catch-all fitting. Do not claim an independent release audit.
-No density repair is justified by this diagnostic alone; preserve the practical
-replacement objective and focus the next checks on the documented tails.
+Item 4 real-data results: all-band AUC 0.9429 -> 0.9743; optical
+0.9829 -> 0.9962; Legacy optical 0.9864 -> 0.9859. Other tested subsets remain
+within the declared tolerance. Complete-score mathematical/guard-behaviour
+checks pass. These are small balanced test-role samples and synthetic clean
+blend fixtures, not full probability calibration or labelled close-pair tests.
 
-All 41 singleton bands pass functional scoring smoke checks. The direct
-full-versus-small test audit remains as recorded: mean all-band gains +0.357
-nats/QSO and +0.231 nats/stellar source, using 30,000 objects per population.
-The test sample has been inspected; do not describe it as untouched. Neither
-that audit nor candidate completion establishes full probability calibration.
+Release blocker: northern Legacy colour grids have 72 high total-QSO
+scores in common low-density bright points after the existing guard, versus 0
+for the old model; the intermediate-magnitude comparison is 12 vs 79.
+An explicit unsupported colour point receives 0.995 total-QSO score. Its nearest
+bright measured northern training QSO is 3.914 mag away in the colour plane.
+The affected low-z mixture components have large global weight but only
+1.1--2.7 effective northern members and essentially no bright northern members.
+Their extrapolated Gaussian shapes nevertheless certify support through the
+current nearest-component distance guard. Prior/catch-all substitution alone
+and retaining magnitude in a joint-distance check do not remove this failure.
 
-Detailed completion evidence and assumptions:
-`docs/FULL_SAMPLE_COMPLETION_2026-09-30.md` and its JSON report.
-Configuration: `configs/full_sample_completion.json`.
-Implementation: `scripts/complete_full_sample.py`; focused diagnosis:
-`scripts/diagnose_bright_stars.py`. Raw calibration predictions, checkpoints and
-provenance are beside the candidate. Parent models, completed continuations,
-covariance-floor experiments and the previous active bundle are preserved.
+Next bounded repair: record component-level actual observed-band training
+support, then prevent unsupported component coordinates from certifying support.
+Assess on calibration data and rerun the saved complete-score checks. Preserve
+one joint 41-band model and both hemispheres; do not hide the failure by dropping
+northern functionality or raising the release thresholds. No new guard or shape
+repair has been implemented yet. The current evidence does not justify a
+whole-model retraining.
 
-Updated 30 September 2026. Read this file before scheduling work. This status
-supersedes older operational instructions and progress statements. JOURNAL.md
-retains the historical findings.
+Main evidence: `docs/FULL_SAMPLE_RELEASE_2026-09-30.md` and JSON.
+Reproduce with `scripts/validate_full_sample_release.py` and
+`configs/full_sample_release.json`. Focused support evidence and scripts are
+linked in that report. The candidate, the prior active bundle, individual
+continuations and covariance-floor experiments are all preserved. No downloads,
+production fits, prior changes or promotion occurred during the audit.
+
+Updated 30 September 2026. This status supersedes older operational statements.
+The test data have been inspected; do not call them untouched. JOURNAL.md
+retains the history. Full probability calibration remains unfinished.
 
 ## Objective and authorization
 
@@ -181,13 +184,12 @@ the current continuation uses `scripts/train_stellar_parallel.py` as above. Read
 [the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
 The old capped recovery scripts are historical and are not this run's entry point.
 
-1. Items 1–3 are complete; use the candidate and diagnostic evidence above.
-2. Next perform complete-score release checks, including the saved newly high
-   bright SDSS-only objects and practical band subsets. Preserve the support
-   guard, spatial dependence and both Legacy hemispheres.
-3. Promote only after those checks; retain the old bundle for rollback. Full
-   probability calibration and external-survey area precision remain explicit
-   limitations, not hidden claims of completion.
+1. Items 1–3 are complete. Item 4 exposed the northern component-support
+   failure documented above; activation is held for that measured reason.
+2. Repair component support using actual observed training information, with
+   calibration-role checks, then rerun the saved complete-score audit.
+3. Promote only after the focused repair passes; retain the old bundle for
+   rollback. Do not reopen blanket fitting or acquisition.
 
 ## Working rules
 
