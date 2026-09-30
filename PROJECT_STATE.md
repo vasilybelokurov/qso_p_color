@@ -5,8 +5,29 @@ defensible solution that meets the requested functionality and focused
 validation. Each additional investigation must resolve a concrete decision or
 measured failure and have a stopping criterion. Keep optional improvements
 separate from release blockers; document non-blocking limitations and proceed.
-Report the conclusion, practical impact and next action. This priority does not
-authorize new training ahead of the design discussion recorded below.
+Report the conclusion, practical impact and next action. The user authorized
+the bounded pooled-grz prototype on 30 September; production remains unchanged.
+
+**POOLED OPTICAL PROTOTYPE AUTHORIZED; IMPLEMENTATION IN PROGRESS.**
+Use `configs/pooled_optical_prototype.json` and
+`scripts/run_pooled_optical_prototype.py` (default preparation; `--fit` fits the
+isolated experiment). Compare genuinely pooled projected-XD grz fits against
+separate native North/South fits, using every eligible optical fit/select row,
+all 43 QSO slices, parent-selected component counts and a common 40-iteration
+budget. Four numerical workers are configured. No new catalogue acquisition.
+The active pointer is not changed. Output and progress are under
+`models/multisurvey_psf/work/pooled_optical_prototype/20260930/`, located by
+`current.json`. Stop after this bounded fit and its declared validation;
+do not expand to production retraining or automatic additional fit campaigns.
+
+The experiment fixes DESI affine slopes in asinh coordinates and estimates
+constant offsets and diagonal excess scatter from paired fit/select sources,
+including both measurement covariances. Its purpose is to decide whether
+pooling removes the observed northern failure while preserving reserved-source
+predictive performance and QSO discrimination. Test all seven optical subsets,
+paired North/South consistency and original grids. Public diagnostic scores
+inherit identical native priors/catch-all across alternatives to isolate the
+shape change; they are not recalibrated population probabilities.
 
 **COMPLETE-SCORE AUDIT FINISHED; ACTIVATION HELD (30 September).**
 The full-data candidate improves real-object ranking but fails the northern
@@ -83,13 +104,13 @@ and Legacy W1/W2 are not tied. No production model was changed or promoted.
 Reports, figures, limitations and reproducible locations are in
 `docs/LEGACY_UNIFICATION_2026-09-30.md`.
 
-Next: discuss and settle the measurement relation, including faint/negative
+Before prototype authorization, the next step was to discuss the relation, including faint/negative
 flux, missing bands, residual uncertainty and WISE measurement conventions.
 DESI is the recommended starting relation, not a finalized production design.
 If adopted, pooled fitting requires the joint QSO slices and stellar model to
 be refitted, spatial component weights re-estimated, the catch-all rebuilt and
 affected priors reviewed. Reuse the existing data and frozen roles. Do not
-launch that fitting or implement the production design ahead of this discussion.
+launch full production fitting; the separately authorized prototype is described above.
 Component-level training support remains an additional proposed guard, not an
 implemented repair. Real-catalogue incidence and full calibration remain open.
 
@@ -250,9 +271,8 @@ The old capped recovery scripts are historical and are not this run's entry poin
 
 1. Items 1–3 are complete. Item 4 exposed the northern component-support
    failure documented above; activation is held for that measured reason.
-2. Settle the proposed shared-model measurement relation with the user, using
-   the completed overlap and diagnostic tests above. No pooled retraining has
-   been launched; do not infer authorization from historical fitting commands.
+2. Complete the newly authorized pooled-grz prototype and its bounded checks.
+   Full joint retraining is a later decision; historical commands remain inactive.
 3. Validate any agreed candidate on reserved objects and the saved tail tests
    before promotion; retain the old bundle for rollback. Acquisition is complete.
 

@@ -575,6 +575,33 @@ unification, not a calibrated production release or an empirical contamination
 rate. Sources and quantitative tests are recorded in
 \texttt{docs/LEGACY\_UNIFICATION\_2026-09-30.md}.
 
+\paragraph{Pooled optical prototype (30 September; experimental).}
+The subsequent prototype actually refits a shared three-dimensional $g,r,z$
+distribution. Native observations obey $y_i=R_i x_i+b_i+e_i$, with
+$e_i\sim\mathcal N(0,S_i+T_i)$, where $R_i$ selects rows of the appropriate
+system operator, $S_i$ is propagated measurement covariance, and $T_i$ is
+extra residual covariance. All entries have magnitude units, with covariance
+in magnitude squared. For component $(\mu_k,V_k)$ the native likelihood has
+mean $R_i\mu_k+b_i$ and covariance $R_iV_kR_i^T+S_i+T_i$.
+The XD E step computes the corresponding latent conditional moments before
+one global M step over every selected row. Missing dimensions require no
+imputation. This is implemented in a separate opt-in projected-XD module;
+the active trainer and model are unchanged.
+
+The northern slopes are fixed to the inverse DESI affine relation. Constant
+offsets and diagonal excess covariance are fitted separately for the QSO and
+stellar populations using paired fit/selection objects, with measurement
+covariance from both systems. The offsets have a configured zero-centred
+regularization prior. This extra scatter can include variability and other
+residual effects; it is not interpreted solely as filter mismatch. The asinh
+affine relation and Gaussian propagated noise remain approximations at low
+signal-to-noise. Separate North/South fits provide the control, using the same
+selected component counts, fitting rows and iteration budget. All 43 QSO
+slices are retained. Calibration/test objects do not enter these fits.
+The bounded experiment is configured in
+\texttt{configs/pooled\_optical\_prototype.json}. Its purpose is feasibility,
+not production activation or probability calibration.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order
