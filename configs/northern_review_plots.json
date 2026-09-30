@@ -1,0 +1,12 @@
+{
+  "audit": "docs/FULL_SAMPLE_RELEASE_2026-09-30.json",
+  "batch_size": 50000,
+  "bright_reference_window": [18.0, 19.0],
+  "grid_reference_magnitude": 18.5,
+  "probe_colours": [3.0, -4.0],
+  "low_density_fraction": 0.01,
+  "locus_reference_window": [20.0, 21.0],
+  "redshift_edges": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0],
+  "minimum_locus_bin_rows": 30,
+  "purpose": "Read-only display choices, not training or scoring thresholds. All eligible fit/select rows with all three usable native grz bands; no S/N or positive-flux cuts. Different-object colour comparison is descriptive, not a filter correction."
+}

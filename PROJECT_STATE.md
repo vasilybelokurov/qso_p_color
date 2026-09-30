@@ -44,13 +44,23 @@ densities produce different competition. Neither fact proves all other band
 subsets free of extrapolation. Numerical profiles and per-survey component
 responsibilities: `docs/NORTHERN_TAIL_EXPLANATION_2026-09-30.json`.
 
-Next bounded repair: record component-level actual observed-band training
-support, then prevent unsupported component coordinates from certifying support.
-Assess on calibration data and rerun the saved complete-score checks. Preserve
-one joint 41-band model and both hemispheres; do not hide the failure by dropping
-northern functionality or raising the release thresholds. No new guard or shape
-repair has been implemented yet. The current evidence does not justify a
-whole-model retraining.
+Practical impact remains unmeasured: these colour-grid counts are artificial
+stress tests, not catalogue contamination rates. The user requested visual
+evidence before deciding on a repair. Four figures now show the saved old/new,
+north/south score maps, actual bright training colours, published reference
+passbands and measured QSO colour tracks. See
+`docs/NORTHERN_REVIEW_PLOTS_2026-09-30.md` and `plots/northern_review/`.
+At 20 <= r < 21, the median absolute north/south difference between binned
+median QSO colours is 0.019 mag in g-r and 0.038 mag in r-z. These compare
+different populations, not same-object filter corrections. They contrast with
+the several-magnitude displacement of the explicit synthetic failing example.
+
+Next: measure how often this extrapolation affects a larger reserved northern
+sample and its highest-ranked background objects, before choosing the repair.
+Component-level observed-band training support remains a proposed guard repair,
+not an implemented or validated solution. Preserve one joint 41-band model
+and both hemispheres. No new guard, shape repair, retraining or promotion has
+occurred. The current evidence does not justify whole-model retraining.
 
 Main evidence: `docs/FULL_SAMPLE_RELEASE_2026-09-30.md` and JSON.
 Reproduce with `scripts/validate_full_sample_release.py` and
