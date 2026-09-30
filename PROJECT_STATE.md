@@ -8,13 +8,20 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**LATEST USER DIRECTION: UNIFY; USE THE 5-SIGMA SCIENCE DOMAIN.**
+**LATEST USER DIRECTION: TRAIN ALL ELIGIBLE ROWS; VALIDATE MAINLY ABOVE 5 SIGMA.**
 The user separates unification from extreme-outlier classification and rejects
 an investigation of sources below the detection limits as a release blocker.
 The previous proposed faint-end stellar refit is superseded. The requested
 plan is `docs/UNIFIED_MODEL_RETRAINING_PLAN_2026-09-30.md`, incorporating the
-user's `docs/xd_qso_contaminant_ood.tex`. This is planning, not authorization
-from this turn to launch production retraining. No new fit has started.
+user's `docs/xd_qso_contaminant_ood.tex`. The user endorsed steps 2--5 and
+clarified step 1: keep all quality-eligible training rows, including below
+5 sigma, without caps. Five sigma sets the main validation/reporting domain,
+not a training cut or automatic scoring rejection. No new fit has started.
+The intended user interface accepts candidate RA/Dec, named photometry with
+errors, and primary-QSO redshift; derive l,b and the default Legacy hemisphere
+internally, respecting actual photometric provenance in overlap regions. The
+current low-level scorer takes l,b and survey-labelled bands; the convenience
+RA/Dec wrapper remains implementation work.
 
 The existing stellar-named sample is already empirical PSF catalogue background
 with known QSOs removed, not a pure-star selection. Reuse it as the contaminant
@@ -26,7 +33,7 @@ A saved-prediction re-summary gives northern stellar loss 0.0279 nats on
 35,992 objects with >=5-sigma reference-band detection, within the existing
 0.1-nat tolerance. Requiring >=5 sigma in any grz band leaves a 0.1701-nat loss
 under the old reference choice: most faint-reference objects are detected in
-another band. Use actual flux/error detection selection, preserve weak/negative
+another band. Use actual flux/error for the validation domain, preserve weak/negative
 other bands, and prefer a >=5-sigma reference when present. That reference
 change still needs a focused evaluation; do not claim it has already passed.
 Numbers: `docs/POOLED_OPTICAL_DETECTION_DOMAIN_2026-09-30.json`.

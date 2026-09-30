@@ -7,14 +7,18 @@ campaign. This document is a plan; no production retraining has started.
 
 ## Detection scope
 
-Use native flux/error and the actual catalogue selection to define 5-sigma
-detection, not a universal magnitude-24 cut. Require a qualifying detection in
-the declared parent selection band(s), with the same selection for background
-counts, calibration and science evaluation. This is an object-selection rule,
-not a requirement that every likelihood band have S/N above five. Preserve
-weak/negative measurements and arbitrary nonempty subsets of the 41 inputs.
-Detection metadata can come from the parent catalogue even when its detection
-band is omitted from the requested likelihood subset.
+**Clarification accepted after the plan:** train on all quality-eligible rows,
+including sources below five sigma, with the existing held-out roles and no
+arbitrary caps. Five sigma defines the main validation/reporting domain; it
+is not a new training cut or an automatic exclusion from likelihood evaluation.
+Keep below-limit results as diagnostics and do not let their density changes
+alone block release. Use native flux/error and actual survey detection limits,
+not a universal magnitude-24 cut. Preserve weak/negative measurements and
+arbitrary nonempty subsets of the 41 inputs. Detection metadata can come from
+the parent catalogue even when its detection band is omitted from the chosen
+likelihood subset. Keep background counts and population priors consistent
+with the actual parent selection; a reporting threshold alone does not change
+that selection or justify silently truncating the fitted density.
 
 When a requested likelihood subset contains a band detected at >=5 sigma,
 choose a qualifying reference band using a fixed recorded priority. Keep the
@@ -97,11 +101,12 @@ global evidence statistic, or covariance tuning to suppress selected outliers.
 
 ## Implementation and retraining order
 
-1. **Freeze the selection and mapping.** Save the 5-sigma parent selection and
-   reference rule, retain frozen fit/select/calib/test roles and all qualifying
-   rows without caps. Re-summarize the optical prototype in that science
-   domain. Establish row counts before launching training; do not start new
-   acquisitions or use a blanket per-band S/N cut.
+1. **Freeze the selection and mapping.** Preserve the existing quality-based
+   training selection, every eligible row, and frozen fit/select/calib/test
+   roles. Record the 5-sigma validation domain and reference rule separately.
+   Re-summarize the optical prototype in that science domain. Establish row
+   counts before launching training; do not start new acquisitions or impose
+   an object-level or per-band 5-sigma training cut.
 
 2. **Extend the tested observation operator to the full model.** Keep all 41
    external band labels. Tie Legacy North/South grz through the tested forward
@@ -148,3 +153,19 @@ The old test data have been inspected and helped choose the prototype scatter
 model. Describe them as reserved development/regression data, not untouched
 confirmation. Fit the new support threshold on the calibration role and keep
 the test role out of that fit.
+
+## User-facing classification inputs
+
+The intended convenience interface accepts candidate RA and Dec (ICRS degrees),
+named survey bands with fluxes/errors or magnitudes/errors, and the primary
+QSO redshift whose same-redshift hypothesis is being tested. It also needs
+PSF/quality/blend information for science eligibility. Fluxes are preferred
+for weak or negative measurements. Convert RA/Dec internally to Galactic l,b
+for spatial weights/counts and to the default Legacy North/South footprint.
+Use actual survey/release provenance when supplied, especially in the overlap;
+position alone does not identify which instrument produced a measurement.
+
+The current low-level PSF scorer instead takes l,b explicitly and identifies
+the native system through survey-labelled bands. The RA/Dec convenience layer
+is planned work, not an already implemented interface. The input redshift is
+the primary QSO redshift, not an assumed known redshift of its candidate.
