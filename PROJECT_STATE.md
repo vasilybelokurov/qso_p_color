@@ -8,6 +8,28 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
+**MAP COVARIANCE UPDATE: BOUNDED FULL-ROW TEST RUNNING (30 September, user-authorized).**
+Diagnosis from saved histories: the additive update (`c + w I` after each M
+step) maximises no fixed objective. 24/43 historical QSO slices show likelihood
+declines, up to 0.078 nats/object below their own best (z=1.45); the old stop
+rule (`0 <= change < tol`) can never fire on a declining fit, so these run to
+the cap. Edge slices and the background are monotone but slow: a separate,
+harmless issue handled by tolerance 1e-4 with 300 as a ceiling.
+Fix: `fit_projected(covariance_update='map')`, the conjugate-prior update of
+Bovy, Hogg & Roweis 2011 (eqs. 19-20), V=(qS+nu w I)/(q+nu), nu=1, w=0.001 mag^2;
+history is the mean log posterior; stop on |relative change| < tol. Additive
+remains the default. Unit tests pass (379 total, commit `1d1bb99`).
+Test: `scripts/test_map_update.py`, `configs/map_update_test.json`, run
+`models/multisurvey_psf/work/map_update_test/20260930/c108415a6a7a695f`:
+both updates on all rows of qso_13/15/16/22/31/39 (16 is a converged control),
+identical warm starts, tol 1e-4, <=120 updates, 8 processes, 2.5 h wall budget.
+Acceptance: zero MAP objective declines; MAP reaches tolerance; mean development
+density MAP-additive >= -0.02 nats per slice; ranking AUC loss <= 0.002.
+4,070 new role-3 QSO rows are added to final-assessment exclusions. This
+supersedes the stopped full-row comparison as the covariance decision. If it
+passes: set `covariance_update: map`, tol 1e-4 in the full config, re-prepare,
+then launch the 44-fit refit. If it fails, report; no further tuning.
+
 **FULL-ROW COVARIANCE TRIAL STOPPED BY USER (30 September, 17:04 UTC).**
 The user stopped the trial because its full-background cost contradicted the
 requested light diagnostic, and requested a rethink of scope and purpose.
@@ -47,8 +69,8 @@ was launched and subsequently stopped as recorded above. Full suite: **372 passe
 `/tmp/unified_covariance_trial_fullsuite_final.log`.
 
 The earlier recommendation to retain the additive covariance update for
-production is superseded: choose the production update only after this
-full-row predictive comparison. Tol 1e-4 stopped the miniature additive runs;
+production is superseded; the covariance decision now rests on the MAP-update
+test above, not on this stopped comparison. Tol 1e-4 stopped the miniature additive runs;
 none of the miniature floor runs reached it by 120 updates. Do not forecast
 the additive stopping-time savings for flooring.
 
