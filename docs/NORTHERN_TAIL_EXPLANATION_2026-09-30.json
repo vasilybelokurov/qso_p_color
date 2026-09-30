@@ -1,0 +1,550 @@
+{
+  "probe": {
+    "luptitudes_grz": [
+      21.5,
+      18.5,
+      22.5
+    ],
+    "reference_luptitude": 18.5,
+    "sigma_luptitude": 0.03,
+    "complete_scores": {
+      "north_full_total_qso": 0.9950641931632646,
+      "south_full_total_qso": 0.019982486851313066,
+      "north_full_same_z": 0.017075464279280785,
+      "primary_z": 1.8,
+      "window_half_width_kms": 2000.0,
+      "dz_match_eff": 0.03735917866219296
+    }
+  },
+  "profiles": {
+    "north_full": {
+      "redshift_mode": 0.8499999999999999,
+      "fractions": {
+        "0-1": 0.5299618856312869,
+        "1-2": 0.25316381224175694,
+        "2-3": 0.18885008574999812,
+        "3-5": 0.026868372470098646
+      },
+      "top_slices": [
+        {
+          "slice": 7,
+          "z": 0.8500000000000001,
+          "log_conditional_density": -4.436258167494966,
+          "prior": 3.0157244674823973,
+          "log_intensity": -3.3324180784581,
+          "dominant_component": 8,
+          "dominant_fraction": 0.9570612851395531
+        },
+        {
+          "slice": 3,
+          "z": 0.45,
+          "log_conditional_density": -4.205835791358255,
+          "prior": 1.7459369258554687,
+          "log_intensity": -3.64854445953296,
+          "dominant_component": 8,
+          "dominant_fraction": 0.967247311722359
+        },
+        {
+          "slice": 9,
+          "z": 1.05,
+          "log_conditional_density": -4.7898165425545915,
+          "prior": 2.640412857149853,
+          "log_intensity": -3.8188812523392355,
+          "dominant_component": 0,
+          "dominant_fraction": 0.7348394504761194
+        },
+        {
+          "slice": 5,
+          "z": 0.6500000000000001,
+          "log_conditional_density": -4.853515826119204,
+          "prior": 1.8773566758308582,
+          "log_intensity": -4.223651062150106,
+          "dominant_component": 8,
+          "dominant_fraction": 0.9927427450346524
+        },
+        {
+          "slice": 21,
+          "z": 2.25,
+          "log_conditional_density": -5.176218119115973,
+          "prior": 2.4056349340116805,
+          "log_intensity": -4.2984042445755914,
+          "dominant_component": 17,
+          "dominant_fraction": 0.9187332861720475
+        },
+        {
+          "slice": 16,
+          "z": 1.75,
+          "log_conditional_density": -5.526034895264341,
+          "prior": 2.781638197123611,
+          "log_intensity": -4.502994861577937,
+          "dominant_component": 17,
+          "dominant_fraction": 0.8952046094539291
+        },
+        {
+          "slice": 6,
+          "z": 0.75,
+          "log_conditional_density": -5.505396739135992,
+          "prior": 2.7041568845953523,
+          "log_intensity": -4.510606563187394,
+          "dominant_component": 8,
+          "dominant_fraction": 0.9920271358655809
+        },
+        {
+          "slice": 20,
+          "z": 2.1500000000000004,
+          "log_conditional_density": -5.168981082296637,
+          "prior": 1.805707549873289,
+          "log_intensity": -4.5780285729318875,
+          "dominant_component": 17,
+          "dominant_fraction": 0.7985803023334146
+        }
+      ],
+      "log_integrated_qso_intensity": -3.843603594557286
+    },
+    "north_small": {
+      "redshift_mode": 2.4499999999999993,
+      "fractions": {
+        "0-1": 1.442376800845272e-07,
+        "1-2": 2.7172853605125485e-32,
+        "2-3": 0.9999998557622258,
+        "3-5": 9.413380065478892e-14
+      },
+      "top_slices": [
+        {
+          "slice": 23,
+          "z": 2.45,
+          "log_conditional_density": -8.733235378583775,
+          "prior": 1.6833780253628845,
+          "log_intensity": -8.212432874596528,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 26,
+          "z": 2.75,
+          "log_conditional_density": -21.502176807385197,
+          "prior": 0.6715572393125371,
+          "log_intensity": -21.900332833065086,
+          "dominant_component": 1,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 1,
+          "z": 0.25,
+          "log_conditional_density": -23.45323516011512,
+          "prior": 0.4271263433647362,
+          "log_intensity": -24.303910583534208,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 39,
+          "z": 4.050000000000001,
+          "log_conditional_density": -35.249462492407844,
+          "prior": 0.04507076730963579,
+          "log_intensity": -38.348983909990196,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 42,
+          "z": 4.35,
+          "log_conditional_density": -65.96200576049056,
+          "prior": 0.033803075482226844,
+          "log_intensity": -69.34920925052468,
+          "dominant_component": 1,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 36,
+          "z": 3.75,
+          "log_conditional_density": -68.29615085917087,
+          "prior": 0.1360551607663913,
+          "log_intensity": -70.29084574077739,
+          "dominant_component": 0,
+          "dominant_fraction": 0.9999999999999982
+        },
+        {
+          "slice": 34,
+          "z": 3.55,
+          "log_conditional_density": -71.84292590624887,
+          "prior": 0.1984489350572393,
+          "log_intensity": -73.46014937231898,
+          "dominant_component": 3,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 41,
+          "z": 4.25,
+          "log_conditional_density": -71.277239452444,
+          "prior": 0.011267691827409047,
+          "log_intensity": -75.76305523114623,
+          "dominant_component": 1,
+          "dominant_fraction": 0.9999729891591951
+        }
+      ],
+      "log_integrated_qso_intensity": -10.630972396585104
+    },
+    "south_full": {
+      "redshift_mode": 4.249999999999999,
+      "fractions": {
+        "0-1": 0.00041840332722311094,
+        "1-2": 0.0009976829182884372,
+        "2-3": 0.006415303298045069,
+        "3-5": 0.9920088750590966
+      },
+      "top_slices": [
+        {
+          "slice": 41,
+          "z": 4.25,
+          "log_conditional_density": -2.0684084035497454,
+          "prior": 0.035761224040817045,
+          "log_intensity": -5.399299503483043,
+          "dominant_component": 0,
+          "dominant_fraction": 0.9955952751920023
+        },
+        {
+          "slice": 38,
+          "z": 3.95,
+          "log_conditional_density": -5.751759801519213,
+          "prior": 0.07098094397297428,
+          "log_intensity": -8.397103634231192,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 29,
+          "z": 3.05,
+          "log_conditional_density": -8.520972981563215,
+          "prior": 0.550545031987493,
+          "log_intensity": -9.117819505752752,
+          "dominant_component": 13,
+          "dominant_fraction": 0.7658181953106167
+        },
+        {
+          "slice": 42,
+          "z": 4.35,
+          "log_conditional_density": -6.394668094097516,
+          "prior": 0.017880612020408363,
+          "log_intensity": -10.41870637459077,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 28,
+          "z": 2.95,
+          "log_conditional_density": -10.951982435745535,
+          "prior": 0.8418015540571093,
+          "log_intensity": -11.124193412280873,
+          "dominant_component": 13,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 39,
+          "z": 4.050000000000001,
+          "log_conditional_density": -8.721301106887983,
+          "prior": 0.0476816320544223,
+          "log_intensity": -11.764510134369509,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 18,
+          "z": 1.9500000000000002,
+          "log_conditional_density": -13.471783267764707,
+          "prior": 3.5902295455241164,
+          "log_intensity": -12.193567127051196,
+          "dominant_component": 13,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 5,
+          "z": 0.6500000000000001,
+          "log_conditional_density": -14.074352330126654,
+          "prior": 2.372296163095357,
+          "log_intensity": -13.21049399881928,
+          "dominant_component": 11,
+          "dominant_fraction": 0.9948052092628338
+        }
+      ],
+      "log_integrated_qso_intensity": -7.625148085025048
+    },
+    "south_small": {
+      "redshift_mode": 1.15,
+      "fractions": {
+        "0-1": 0.0006985950965729961,
+        "1-2": 0.9992970861942321,
+        "2-3": 6.25833427797293e-10,
+        "3-5": 6.143395829584401e-12
+      },
+      "top_slices": [
+        {
+          "slice": 10,
+          "z": 1.1500000000000001,
+          "log_conditional_density": -60.588277622917104,
+          "prior": 3.8872666612271534,
+          "log_intensity": -59.23057137004865,
+          "dominant_component": 2,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 8,
+          "z": 0.95,
+          "log_conditional_density": -67.50763316708903,
+          "prior": 3.106518431243178,
+          "log_intensity": -66.37413054346311,
+          "dominant_component": 2,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 25,
+          "z": 2.6500000000000004,
+          "log_conditional_density": -80.73681181706438,
+          "prior": 1.3491848666055983,
+          "log_intensity": -80.43731120949056,
+          "dominant_component": 1,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 41,
+          "z": 4.25,
+          "log_conditional_density": -82.20470882356281,
+          "prior": 0.035761224040817045,
+          "log_intensity": -85.53559992349611,
+          "dominant_component": 1,
+          "dominant_fraction": 0.9999999999999998
+        },
+        {
+          "slice": 14,
+          "z": 1.55,
+          "log_conditional_density": -87.11470507011829,
+          "prior": 4.382585515074628,
+          "log_intensity": -85.63706621964324,
+          "dominant_component": 0,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 31,
+          "z": 3.25,
+          "log_conditional_density": -84.99032246075029,
+          "prior": 0.2792086668106465,
+          "log_intensity": -86.26611832774059,
+          "dominant_component": 2,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 32,
+          "z": 3.3500000000000005,
+          "log_conditional_density": -89.07861258099814,
+          "prior": 0.43605035904661893,
+          "log_intensity": -89.90861012090063,
+          "dominant_component": 2,
+          "dominant_fraction": 1.0
+        },
+        {
+          "slice": 28,
+          "z": 2.95,
+          "log_conditional_density": -92.74687646730868,
+          "prior": 0.8418015540571093,
+          "log_intensity": -92.91908744384402,
+          "dominant_component": 2,
+          "dominant_fraction": 1.0
+        }
+      ],
+      "log_integrated_qso_intensity": -61.515727085563746
+    }
+  },
+  "components": {
+    "1": {
+      "z": 0.25,
+      "surveys": {
+        "decals_dr9_north": {
+          "rows": 809,
+          "component_membership": 1.1085196875341363,
+          "bright_rows": 194,
+          "bright_membership": 6.397186614160313e-05
+        },
+        "decals_dr9_south": {
+          "rows": 1714,
+          "component_membership": 402.135307935582,
+          "bright_rows": 317,
+          "bright_membership": 87.72303995191193
+        },
+        "sdss": {
+          "rows": 2048,
+          "component_membership": 354.55600536770135,
+          "bright_rows": 452,
+          "bright_membership": 72.13168177481995
+        },
+        "ps1": {
+          "rows": 2453,
+          "component_membership": 402.4666935392361,
+          "bright_rows": 489,
+          "bright_membership": 77.70642567769127
+        }
+      },
+      "component": 8
+    },
+    "3": {
+      "z": 0.45,
+      "surveys": {
+        "decals_dr9_north": {
+          "rows": 3663,
+          "component_membership": 1.8187932594028233,
+          "bright_rows": 677,
+          "bright_membership": 1.0704121245719571e-05
+        },
+        "decals_dr9_south": {
+          "rows": 8138,
+          "component_membership": 1177.7506855713314,
+          "bright_rows": 1393,
+          "bright_membership": 11.02223580534721
+        },
+        "sdss": {
+          "rows": 10133,
+          "component_membership": 989.5847081866348,
+          "bright_rows": 1608,
+          "bright_membership": 3.3587152661596367
+        },
+        "ps1": {
+          "rows": 11701,
+          "component_membership": 1171.6262217272806,
+          "bright_rows": 1860,
+          "bright_membership": 5.644100402772088
+        }
+      },
+      "component": 8
+    },
+    "5": {
+      "z": 0.6500000000000001,
+      "surveys": {
+        "decals_dr9_north": {
+          "rows": 9158,
+          "component_membership": 2.6723945973469436,
+          "bright_rows": 842,
+          "bright_membership": 1.0271485413747058e-16
+        },
+        "decals_dr9_south": {
+          "rows": 23119,
+          "component_membership": 722.4295906771899,
+          "bright_rows": 1826,
+          "bright_membership": 4.682776977431122e-10
+        },
+        "sdss": {
+          "rows": 27292,
+          "component_membership": 501.63373146473674,
+          "bright_rows": 2284,
+          "bright_membership": 5.242641052674926e-19
+        },
+        "ps1": {
+          "rows": 32019,
+          "component_membership": 714.9612208924538,
+          "bright_rows": 2573,
+          "bright_membership": 4.510538813856999e-11
+        }
+      },
+      "component": 8
+    },
+    "7": {
+      "z": 0.8500000000000001,
+      "component": 8,
+      "surveys": {
+        "decals_dr9_north": {
+          "rows": 17192,
+          "component_membership": 21.2808455744968,
+          "bright_rows": 1104,
+          "bright_membership": 7.670050897631557e-12
+        },
+        "decals_dr9_south": {
+          "rows": 43807,
+          "component_membership": 2771.367027645581,
+          "bright_rows": 2324,
+          "bright_membership": 2.5405429144762546e-08
+        },
+        "sdss": {
+          "rows": 49721,
+          "component_membership": 1696.6034959500125,
+          "bright_rows": 2948,
+          "bright_membership": 3.436806088222248e-18
+        },
+        "ps1": {
+          "rows": 60406,
+          "component_membership": 2742.6904534848136,
+          "bright_rows": 3296,
+          "bright_membership": 1.2571842264513387e-08
+        }
+      }
+    },
+    "9": {
+      "z": 1.05,
+      "component": 0,
+      "surveys": {
+        "decals_dr9_north": {
+          "rows": 23854,
+          "component_membership": 59.03207304097723,
+          "bright_rows": 1390,
+          "bright_membership": 0.01430207422240054
+        },
+        "decals_dr9_south": {
+          "rows": 59950,
+          "component_membership": 15986.345625879272,
+          "bright_rows": 2798,
+          "bright_membership": 2231.1373061971767
+        },
+        "sdss": {
+          "rows": 66888,
+          "component_membership": 13451.887874786886,
+          "bright_rows": 3549,
+          "bright_membership": 1912.5147211819344
+        },
+        "ps1": {
+          "rows": 82857,
+          "component_membership": 15972.74503863084,
+          "bright_rows": 4031,
+          "bright_membership": 2134.191126281793
+        }
+      }
+    },
+    "21": {
+      "z": 2.25,
+      "component": 17,
+      "surveys": {
+        "decals_dr9_north": {
+          "rows": 24453,
+          "component_membership": 12.011173492759989,
+          "bright_rows": 644,
+          "bright_membership": 0.7315473976811063
+        },
+        "decals_dr9_south": {
+          "rows": 65182,
+          "component_membership": 14777.150462136271,
+          "bright_rows": 1257,
+          "bright_membership": 1111.226632646299
+        },
+        "sdss": {
+          "rows": 65461,
+          "component_membership": 12677.13461109425,
+          "bright_rows": 1579,
+          "bright_membership": 914.0846438901369
+        },
+        "ps1": {
+          "rows": 86353,
+          "component_membership": 14718.17759059331,
+          "bright_rows": 1743,
+          "bright_membership": 1033.7183419972962
+        }
+      }
+    }
+  },
+  "interpretation": {
+    "north_definition": "Legacy DR9 north photometric system, not positive Galactic latitude",
+    "redshift_integration": "Conditional QSO density times inherited reference-band abundance prior; 4201 equally spaced nodes across saved model support. Redshift fractions approximate.",
+    "support_definition": "Summed full-observed-band posterior component responsibilities of fit/select rows; not an effective sample-size estimator. Survey rows overlap.",
+    "bright_reference_interval": [
+      18.0,
+      19.0
+    ],
+    "unchanged_model": true,
+    "scope_limit": "Survey-support measurements and one synthetic probe; no exhaustive claim about other band subsets."
+  }
+}

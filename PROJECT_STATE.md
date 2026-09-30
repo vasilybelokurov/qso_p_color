@@ -31,6 +31,19 @@ Their extrapolated Gaussian shapes nevertheless certify support through the
 current nearest-component distance guard. Prior/catch-all substitution alone
 and retaining magnitude in a joint-distance check do not remove this failure.
 
+Further survey/redshift tracing (30 September): the failing example's QSO
+redshift profile peaks near z=0.85, with about 53% below z=1, 25% at z=1--2
+and 19% at z=2--3. The earlier three low-z components are examples, not an
+exhaustive localization. At z=2.25 a contributing component has about 14,777
+southern but only 12 northern effective members; SDSS and PS1 also strongly
+support that component. At z=0.85 the dominant component has essentially no
+bright members in any optical survey, adding magnitude extrapolation to sparse
+northern support. The same artificial luptitudes scored in the southern system
+have total-QSO score 0.020 versus 0.995 in the north: different QSO and stellar
+densities produce different competition. Neither fact proves all other band
+subsets free of extrapolation. Numerical profiles and per-survey component
+responsibilities: `docs/NORTHERN_TAIL_EXPLANATION_2026-09-30.json`.
+
 Next bounded repair: record component-level actual observed-band training
 support, then prevent unsupported component coordinates from certifying support.
 Assess on calibration data and rerun the saved complete-score checks. Preserve
