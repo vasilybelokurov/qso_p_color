@@ -87,7 +87,8 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
                   initial_history: tuple[float, ...] = (),
                   accumulator: Callable | None = None,
                   covariance_update: str = 'additive',
-                  prior_strength: float = 1.0) -> XDFitResult:
+                  prior_strength: float = 1.0,
+                  final_evaluation: bool = True) -> XDFitResult:
     """Fit all rows using fixed operators; check row accounting on every pass.
 
     ``progress(iteration, model, mean_objective, rows)`` receives each updated
@@ -105,7 +106,9 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     ``-(nu/2) [log|V| + w tr(V^-1)]``. Then the history is the mean log
     posterior (likelihood plus log prior, per row), which EM cannot decrease;
     the fit stops when its absolute relative change is below ``tol``.
-    ``mean_loglike`` is always the plain log likelihood of the returned model.
+    ``mean_loglike`` is always the plain log likelihood of the returned model;
+    ``final_evaluation=False`` skips that extra pass and returns NaN, for
+    callers that fit in blocks and evaluate only the model they keep.
     """
     if expected_rows < 1 or max_iter < 1 or tol < 0 or regularization < 0:
         raise ValueError('invalid projected fit settings')
@@ -154,6 +157,13 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
         if len(history) > 1 and stationary(history[-1], history[-2]):
             converged = True
             break
+    value = mean_log_likelihood(source, mix, operators, expected_rows) if final_evaluation else float('nan')
+    return XDFitResult(mix, it, value, converged, history)
+
+
+def mean_log_likelihood(source: Callable, mix: GaussianMixture, operators: dict,
+                        expected_rows: int) -> float:
+    """Plain mean log likelihood per row (native mag units) over one full pass."""
     ll, n = 0., 0
     natives = {s: native_mixture(mix, *op) for s, op in operators.items()}
     for y, cov, obs, system in source():
@@ -163,7 +173,7 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
             ll += natives[int(s)].log_prob(y[rows], cov[rows], observed=obs[rows]).sum()
     if n != expected_rows:
         raise ValueError('row accounting changed during final evaluation')
-    return XDFitResult(mix, it, float(ll/n), converged, history)
+    return float(ll/n)
 
 
 def log_covariance_prior(covs: np.ndarray, regularization: float, prior_strength: float) -> float:

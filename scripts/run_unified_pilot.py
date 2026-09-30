@@ -15,8 +15,10 @@ from qso_pcolor.full_sample import file_hash, write_json
 from qso_pcolor.gaussmix import GaussianMixture
 from qso_pcolor.multisurvey import MultiSurveyModel, BandLuptitudeTransform
 from qso_pcolor.multisurvey_data import Photometry
-from qso_pcolor.projected_xd import fit_projected
+from qso_pcolor.multisurvey import conditional_log_prob
+from qso_pcolor.projected_xd import accumulate_projected, fit_projected, native_mixture
 from qso_pcolor.sky_acquisition import acquisition_lock
+from qso_pcolor.xd import XDFitResult
 from qso_pcolor.unified import observation_layout, operator
 
 
@@ -127,21 +129,99 @@ def fit_task(task,cfg,root):
         from qso_pcolor.projected_parallel import ProjectedBatchFactory, ProjectedParallelAccumulator
         context=ProjectedParallelAccumulator(ProjectedBatchFactory(root/'stars',rr,cfg['batch_size']),
             len(rr),workers=cfg['stellar_workers'],task_rows=cfg['stellar_task_rows'],status_directory=root/'progress')
+    options=dict(operators={0:op},expected_rows=len(rr),tol=cfg['tol'],regularization=cfg['regularization'],
+        progress=progress,covariance_update=cfg.get('covariance_update','additive'),
+        prior_strength=cfg.get('prior_strength',1.0))
     with context as accumulator:
-        fit=fit_projected(source,init=init,operators={0:op},expected_rows=len(rr),
-            max_iter=cfg['max_iter'],tol=cfg['tol'],regularization=cfg['regularization'],
-            progress=progress,initial_history=initial_history,accumulator=accumulator,
-            covariance_update=cfg.get('covariance_update','additive'),prior_strength=cfg.get('prior_strength',1.0))
-    write_json(out,dict(task=task['name'],mixture=fit.mixture.to_dict(),n=len(rr),k=task['k'],
-        n_iter=fit.n_iter,history=fit.history,converged=fit.converged,mean_loglike=fit.mean_loglike,
+        if not cfg.get('predictive_stopping'):
+            fit=fit_projected(source,init=init,max_iter=cfg['max_iter'],initial_history=initial_history,
+                accumulator=accumulator,**options)
+            chosen,mean_loglike,extra=fit.mixture,fit.mean_loglike,{}
+        else:
+            chosen,mean_loglike,extra,fit=predictive_fit(task,cfg,root,data,layout,source,init,history,
+                accumulator,options,identity_hash,row_hash)
+    history=list(fit.history)
+    write_json(out,dict(task=task['name'],mixture=chosen.to_dict(),n=len(rr),k=task['k'],
+        n_iter=fit.n_iter,history=history,converged=fit.converged,mean_loglike=mean_loglike,
         elapsed_seconds=time.monotonic()-start,fit_rows_sha256=row_hash,
         resumed_iteration=len(initial_history),covariance_update=cfg.get('covariance_update','additive'),
         history_quantity='mean log posterior' if cfg.get('covariance_update')=='map' else 'mean log likelihood',
         # A MAP history is likelihood plus log prior; never append the plain likelihood to it.
-        likelihood_decreased=bool(np.any(np.diff(fit.history if cfg.get('covariance_update')=='map'
-                                                 else fit.history+[fit.mean_loglike])<0))))
+        likelihood_decreased=bool(np.any(np.diff(history if cfg.get('covariance_update')=='map'
+                                                 else history+[fit.mean_loglike])<0)),**extra))
     write_json(root/'progress'/(task['name']+'.json'),dict(iteration=fit.n_iter,complete=True,rows=len(rr),elapsed_seconds=time.monotonic()-start))
     return task['name']
+
+
+def stopping_density(mix,layout,kind,data,panel,batch):
+    """Mean held-out conditional log density per object (per native mag^(N-1)).
+
+    ``panel`` holds prepared-row indices and the reference band fixed at
+    preparation, so every checkpoint is scored on identical conditioning.
+    """
+    native=native_mixture(mix,*operator(layout,kind));rows,anchors=panel['rows'],panel['anchors']
+    out=np.empty(len(rows))
+    for lo in range(0,len(rows),batch):
+        ix=np.arange(lo,min(lo+batch,len(rows)));rr=rows[ix];v=data['noise'][rr]
+        cov=np.zeros((len(rr),v.shape[1],v.shape[1]));cov[:,np.arange(v.shape[1]),np.arange(v.shape[1])]=v
+        for a in np.unique(anchors[ix]):
+            t=anchors[ix]==a
+            out[ix[t]]=conditional_log_prob(native,data['y'][rr[t]],cov[t],data['observed'][rr[t]],int(a))
+    if not np.isfinite(out).all():raise ValueError('nonfinite stopping density')
+    return float(out.mean())
+
+
+def predictive_fit(task,cfg,root,data,layout,source,init,history,accumulator,options,identity_hash,row_hash):
+    """Fit in blocks; stop on a held-out plateau and keep the best checkpoint.
+
+    Every ``block_iterations`` updates (and at the start, the end and on
+    objective convergence) the model is scored on a fixed non-training stopping
+    panel. Fitting stops when a block gains less than ``min_gain`` nats/object,
+    the objective tolerance is met, or ``max_iter`` is reached. The best scored
+    checkpoint, including the warm start, is returned. This is predictive early
+    stopping, not convergence; the panel must be excluded from final assessment.
+    """
+    rule=cfg['predictive_stopping'];block=rule['block_iterations'];name=task['name']
+    panel=dict(np.load(root/'stopping'/(name+'.npz')))
+    trace_path=root/'progress'/(name+'_stopping.json');best_path=root/'progress'/(name+'_best.json')
+    trace=(json.loads(trace_path.read_text()) if trace_path.exists() else
+           dict(evaluations=[],stop_reason=None,identity_sha256=identity_hash,fit_rows_sha256=row_hash))
+    if trace['identity_sha256']!=identity_hash or trace['fit_rows_sha256']!=row_hash:
+        raise ValueError('stopping trace identity or rows mismatch')
+    mix,it,converged=init,len(history),False
+    if not trace['evaluations'] and it:raise ValueError('stopping trace missing for resumed fit')
+    fit=None
+    while trace['stop_reason'] is None:
+        last=trace['evaluations'][-1] if trace['evaluations'] else None
+        # Score only at block boundaries, the end, or convergence, so a resume
+        # from a mid-block checkpoint follows the uninterrupted schedule.
+        due=it%block==0 or it>=cfg['max_iter'] or converged
+        if last is None or (last['iteration']!=it and due):
+            value=stopping_density(mix,layout,task['kind'],data,panel,cfg['batch_size'])
+            trace['evaluations'].append(dict(iteration=it,mean=value))
+            if last is None or value>max(e['mean'] for e in trace['evaluations'][:-1]):
+                write_json(best_path,dict(iteration=it,mean=value,mixture=mix.to_dict()))
+            if converged:trace['stop_reason']='objective_tolerance'
+            elif last is not None and value-last['mean']<rule['min_gain']:trace['stop_reason']='predictive_plateau'
+            elif it>=cfg['max_iter']:trace['stop_reason']='iteration_limit'
+            write_json(trace_path,trace)
+            if trace['stop_reason']:break
+        elif converged and last['iteration']==it:
+            trace['stop_reason']='objective_tolerance';write_json(trace_path,trace);break
+        fit=fit_projected(source,init=mix,max_iter=min((it//block+1)*block,cfg['max_iter']),
+            initial_history=tuple(history),accumulator=accumulator,final_evaluation=False,**options)
+        mix,it,converged=fit.mixture,fit.n_iter,fit.converged
+    if fit is None:
+        # Resumed after the decision was recorded: rebuild the returned record.
+        fit=XDFitResult(mix,it,float('nan'),trace['stop_reason']=='objective_tolerance',list(history))
+    best=json.loads(best_path.read_text());chosen=GaussianMixture.from_dict(best['mixture'])
+    stats=(accumulator or accumulate_projected)(source,chosen,options['operators'])
+    if stats[-1]!=options['expected_rows']:raise ValueError('row accounting in final evaluation')
+    extra=dict(selected_iteration=best['iteration'],selected_stopping_density=best['mean'],
+        stop_reason=trace['stop_reason'],stopping_evaluations=trace['evaluations'],
+        stopping_rule=rule,stopping_rows=int(len(panel['rows'])),
+        interpretation='Predictive early stopping on a fixed non-training panel; not optimizer convergence.')
+    return chosen,float(stats[3]/stats[4]),extra,fit
 
 
 def main():

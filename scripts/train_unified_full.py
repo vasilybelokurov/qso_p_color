@@ -15,7 +15,7 @@ for name in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'
 import numpy as np
 from qso_pcolor.full_sample import file_hash, write_json
 from qso_pcolor.sky_acquisition import acquisition_lock
-from run_unified_pilot import prepare, fit_task, arrays
+from run_unified_pilot import prepare, fit_task, arrays, task_rows
 
 
 def validate_config(cfg):
@@ -60,12 +60,57 @@ def prepare_full(cfg):
                 covered |= (qso['zspec'] >= task['z']-cfg['z_half_width']) & (qso['zspec'] < task['z']+cfg['z_half_width'])
         if (fitting & ~covered).any():
             raise ValueError('eligible QSO training rows fall outside configured slices')
+        stopping = build_stopping_panels(root, cfg) if cfg.get('predictive_stopping') else None
         write_json(root/'preflight.json', dict(ready=True, verified_input_files=len(manifest['files']),
+            covariance_update=cfg.get('covariance_update', 'additive'), predictive_stopping=cfg.get('predictive_stopping'),
+            stopping_panels=None if stopping is None else stopping['counts'],
             counts=counts, qso_workers=cfg['qso_workers'], stellar_workers=cfg['stellar_workers'],
             numerical_workers=cfg['qso_workers']+cfg['stellar_workers'], threads_per_worker=1,
             full_sky=True, no_snr_training_cut=True, no_row_caps=True, max_iter=cfg['max_iter'],
             tolerance=cfg['tol'], active_model_changed=False, fits_launched=False))
     return root, cfg
+
+
+def build_stopping_panels(root, cfg):
+    """Fix one non-training stopping panel per fit, with its reference bands.
+
+    Rows are role 3 (never fit/select or calibration), drawn by the same seeded
+    rule as the earlier development panels; panels that already exist in the
+    listed runs must be reproduced exactly. Returns the manifest.
+    """
+    rule = cfg['predictive_stopping']; out = root/'stopping'; out.mkdir(exist_ok=True)
+    if (out/'manifest.json').exists():
+        return json.loads((out/'manifest.json').read_text())
+    from qso_pcolor import PSFMultiSurveyBaseline, Photometry
+    from trial_unified_covariance import select_development
+    model = PSFMultiSurveyBaseline.load(rule['reference_bundle']).model
+    options = dict(seed=rule['seed'], development_rows_per_hemisphere=rule['rows_per_hemisphere'],
+                   score_rows_per_hemisphere=rule['rows_per_hemisphere'], random_background_score_rows=0)
+    tasks = json.loads((root/'tasks.json').read_text()); exclusions = {}; reports = {}; reproduced = []
+    for task in tasks:
+        data = arrays(root, task['kind']); train = task_rows(data, task, cfg)
+        rows = select_development(data, task, cfg, options)['density']
+        if np.intersect1d(rows, train).size or not (data['role'][rows] == 3).all():
+            raise ValueError('stopping panel leaks into training or reserved roles: '+task['name'])
+        anchors = model.reference_indices(Photometry(data['flux'][rows], data['variance'][rows], model.transform.bands))
+        np.savez(out/(task['name']+'.npz'), rows=rows, anchors=np.asarray(anchors, int))
+        for earlier in rule.get('earlier_panels', []):
+            path = Path(earlier)/(task['name']+'_rows.npz')
+            if path.exists():
+                with np.load(path) as saved:
+                    if not np.array_equal(saved['density'], rows):
+                        raise ValueError('stopping panel does not reproduce '+str(path))
+                reproduced.append(str(path))
+        exclusions.setdefault(task['kind'], []).append(data['source_row'][rows])
+        reports[task['name']] = dict(rows=len(rows), north_south_cap=rule['rows_per_hemisphere'])
+    exclusions = {k: np.unique(np.concatenate(v)) for k, v in exclusions.items()}
+    np.savez_compressed(out/'final_assessment_exclusions.npz', **exclusions)
+    manifest = dict(tasks=reports, counts={k: len(v) for k, v in exclusions.items()},
+        exclusions_sha256=file_hash(out/'final_assessment_exclusions.npz'), reproduced_earlier_panels=reproduced,
+        rule='Role-3 stopping panels choose checkpoints. Exclude these source rows (full_training_inputs indices) '
+             'from every future independent final assessment. Calibration role 2 is untouched.')
+    write_json(out/'manifest.json', manifest)
+    return manifest
 
 
 def progress_state(root, tasks, cfg, start):

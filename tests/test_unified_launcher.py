@@ -93,3 +93,72 @@ def test_full_launcher_refuses_pilot_footprint(tmp_path,runner):
     full=importlib.import_module('train_unified_full')
     cfg,_=fixture_run(tmp_path);cfg['training_cells']=[22,63,169]
     with pytest.raises(ValueError,match='all sky'):full.validate_config(cfg)
+
+
+def stopping_run(root, min_gain=.02):
+    cfg, tasks = fixture_run(root)
+    cfg.update(max_iter=8, covariance_update='map', predictive_stopping=dict(block_iterations=2, min_gain=min_gain))
+    (root/'stopping').mkdir(exist_ok=True)
+    rows = np.flatnonzero(np.arange(91) % 4 == 3)          # role 3 only; never training rows
+    for task in tasks:
+        np.savez(root/'stopping'/(task['name']+'.npz'), rows=rows, anchors=np.zeros(len(rows), int))
+    return cfg, tasks
+
+
+@pytest.mark.parametrize('values,expected_iteration,reason,fitted', [
+    ([1., .5, .4], 0, 'predictive_plateau', 2),                 # worse at once: keep the warm start
+    ([1., 2., 3., 3.01, 9.], 6, 'predictive_plateau', 6),       # small gain stops; best so far wins
+    ([1., 2., 3., 4., 5.], 8, 'iteration_limit', 8)])
+def test_predictive_stopping_decisions_and_best_checkpoint(tmp_path, runner, monkeypatch, values, expected_iteration, reason, fitted):
+    cfg, tasks = stopping_run(tmp_path)
+    scripted = iter(values)
+    monkeypatch.setattr(runner, 'stopping_density', lambda *a: next(scripted))
+    runner.fit_task(tasks[1], cfg, tmp_path)
+    got = json.loads((tmp_path/'fits/qso_00.json').read_text())
+    assert (got['selected_iteration'], got['stop_reason'], got['n_iter']) == (expected_iteration, reason, fitted)
+    assert [e['iteration'] for e in got['stopping_evaluations']] == list(range(0, fitted+1, 2))
+    if expected_iteration == 0:
+        assert got['mixture'] == tasks[1]['init']
+    assert np.isfinite(got['mean_loglike'])
+
+
+def test_predictive_stopping_resume_mid_block_and_after_decision_match_uninterrupted(tmp_path, runner, monkeypatch):
+    whole_cfg, whole_tasks = stopping_run(tmp_path/'whole', min_gain=-1e9)
+    runner.fit_task(whole_tasks[1], whole_cfg, tmp_path/'whole')
+    expected = json.loads((tmp_path/'whole/fits/qso_00.json').read_text())
+    cfg, tasks = stopping_run(tmp_path/'cut', min_gain=-1e9); root = tmp_path/'cut'
+    original = runner.fit_projected
+
+    def interrupted(*args, **kwargs):
+        progress = kwargs['progress']
+        def stop(it, *values):
+            progress(it, *values)
+            if it == 3: raise InterruptedError
+        return original(*args, **{**kwargs, 'progress': stop})
+    monkeypatch.setattr(runner, 'fit_projected', interrupted)
+    with pytest.raises(InterruptedError): runner.fit_task(tasks[1], cfg, root)
+    monkeypatch.setattr(runner, 'fit_projected', original)
+    runner.fit_task(tasks[1], cfg, root)
+    got = json.loads((root/'fits/qso_00.json').read_text())
+    for key in ('mixture', 'history', 'stopping_evaluations', 'selected_iteration', 'stop_reason', 'n_iter'):
+        assert got[key] == expected[key], key
+    # A crash after the decision is recorded but before the result is written.
+    (root/'fits/qso_00.json').unlink()
+    runner.fit_task(tasks[1], cfg, root)
+    again = json.loads((root/'fits/qso_00.json').read_text())
+    for key in ('mixture', 'history', 'stopping_evaluations', 'selected_iteration', 'stop_reason', 'n_iter', 'mean_loglike'):
+        assert again[key] == got[key], key
+
+
+def test_stopping_density_matches_direct_conditional_density(tmp_path, runner):
+    from qso_pcolor.multisurvey import conditional_log_prob
+    from qso_pcolor.projected_xd import native_mixture
+    cfg, tasks = stopping_run(tmp_path)
+    data = runner.arrays(tmp_path, 'qso'); layout = json.loads((tmp_path/'layout.json').read_text())
+    panel = dict(np.load(tmp_path/'stopping/qso_00.npz')); mix = GaussianMixture.from_dict(tasks[1]['init'])
+    native = native_mixture(mix, *runner.operator(layout, 'qso'))
+    values = []
+    for r in panel['rows']:
+        cov = np.diag(data['noise'][r])[None]
+        values.append(conditional_log_prob(native, data['y'][r][None], cov, data['observed'][r][None], 0)[0])
+    assert runner.stopping_density(mix, layout, 'qso', data, panel, 5) == pytest.approx(np.mean(values), rel=1e-12)
