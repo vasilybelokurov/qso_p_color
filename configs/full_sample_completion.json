@@ -1,0 +1,24 @@
+{
+  "density_model": "models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/model.json",
+  "source_bundle": "models/multisurvey_psf/630f47f63b6f0694",
+  "active_pointer": "models/multisurvey_psf/current",
+  "input_root": "models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8",
+  "stellar_root": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
+  "output_root": "models/multisurvey_psf/work/full_sample_completion",
+  "seed": 20260930,
+  "count_roles": ["fit", "select"],
+  "catchall_roles": ["calib"],
+  "count_batch_size": 50000,
+  "density_batch_size": 512,
+  "checkpoint_rows": 20000,
+  "min_abs_b_deg": 25.0,
+  "spatial": {"nside": 4, "nside_parent": 2, "density_n0": 100},
+  "prior_policy": {
+    "qso": "Preserve every numerical QSO abundance-prior value, grid and completeness constant from the active bundle. Increased spectroscopic training counts are not an abundance calibration.",
+    "stellar": "Use all fit+select stellar counts. Legacy optical uses measured per-band masked area. Other bands retain the historical convention: base Legacy usable area of cones with any usable measurement in the survey; flag these areas as approximate, not measured external-survey footprints.",
+    "magnitude_edges": "Inherit reference-prior edges; merge adjacent stellar bins only if pooled counts are zero. Record counts outside the retained range."
+  },
+  "catchall": {"family": "student_t", "nu": 4.0, "kappa": 1.0, "noise": "exact", "magnitude_bins": 3, "minimum_bin_count": 200, "pooling_strength": 1000.0, "global_prior_mean": 0.5, "global_prior_strength": 2.0},
+  "diagnostic": {"role": "calib", "maximum_rows": 30000, "bright_reference_luptitude": 20.0, "primary_redshifts": [0.5, 1.0, 1.8, 2.5, 3.5], "log_bf_threshold": 5.0, "tail_quantile": 0.99, "ood_flag_sigma": 4.0},
+  "policy": "Freeze the existing density and spatial model. Complete priors and catch-all, then diagnose bright stellar optical evidence. Never refit shapes, acquire data, or change the active pointer. Subsequent complete-score release checks remain separate."
+}

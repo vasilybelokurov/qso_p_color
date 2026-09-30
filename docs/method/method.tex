@@ -487,6 +487,25 @@ population, with component likelihoods calculated in batches. New shapes and
 spatial weights form a candidate; population priors, calibration-role catch-all
 fits and reserved validation must precede any replacement of the active bundle.
 
+For the completed full-data candidate (30 September 2026), the assembled
+300-iteration density shapes and their matching spatial weights are retained
+without further fitting. Stellar surface-density counts use all fitting and
+selection sources. Legacy optical denominators use the saved per-band usable
+areas; the other 35 reference bands retain the earlier approximate convention
+of base Legacy usable cone area wherever that survey has measurements. These
+are explicitly approximate external-band areas, not newly measured footprints.
+The existing quasar abundance grids and completeness constant are retained
+numerically: enlarging a spectroscopic colour-training sample does not by
+itself recalibrate the sky abundance of quasars. The broad Student-$t$ shape
+is recomputed from the new stellar mixture moments, with the previously
+selected degrees of freedom $\nu=4$, scale multiplier $\kappa=1$, and exact
+measurement-noise convolution. Positive pooled shares are fitted on all
+502,251 calibration-role stellar sources, using three reference-luptitude
+bins and the inherited pooling settings. No calibration or test rows enter
+the density shapes, spatial weights or stellar count priors. The resulting
+bundle is a candidate for subsequent complete-score checks; the active pointer
+and the unresolved status of full probability calibration are unchanged.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order
@@ -528,7 +547,7 @@ retains EM's non-decreasing observed-likelihood property. The calculation uses
 an eigendecomposition and does not form a matrix inverse. Measurement errors
 and missing bands enter through the same existing E step. This is currently
 a separate diagnostic trial, not the update used by the active bundle or the
-running additive-regularization continuation. An improvement in training
+completed additive-regularization continuation. An improvement in training
 likelihood alone does not establish predictive validity or probability
 calibration.
 

@@ -1,68 +1,51 @@
 # Current project state
 
-**CONVERGENCE REVIEW AND COVARIANCE-FLOOR TRIAL COMPLETE (30 September).**
-Both diagnostic runs have finished. The additive-update continuation used
-100% of its additional QSO and stellar EM budgets. QSO slices 01 and 40
-converged at iterations 398 and 352; nine other continued slices and the stars
-reached 400 without convergence. The 25 previously converged QSO fits were
-retained; seven declining slices were held for investigation. Their fixed-row
-prediction comparisons show large changes for some objects, so the result is
-not a blanket stability certification. Results:
-`docs/CONVERGENCE_CONTINUATION_RESULTS_2026-09-30.json`.
+**ITEMS 1–3 IMPLEMENTED (30 September).** The full-data density/spatial model is
+frozen, its priors and catch-all are complete, and the focused bright-star
+optical diagnosis is saved. The active pointer is unchanged. No new downloads
+or density fitting were needed. The next task is item 4: complete-score release
+checks, followed by promotion if satisfactory. Do not restart density workers,
+capacity searches, convergence continuations or covariance-floor trials.
 
-The separate covariance-floor trial completed all 20 iterations on each of the
-seven held slices (140 updates; 100% of its diagnostic compute budget).
-Every update increased full-data likelihood, with total gains of 0.40--0.71
-nats/object and covariance eigenvalues at or above 0.001 within roundoff.
-None met the original stopping tolerance after 20 steps. The trial demonstrates
-consistent optimization behaviour, not converged or independently validated
-models. Evidence: `docs/COVARIANCE_FLOOR_TRIAL_2026-09-30.json`; full histories,
-mixtures, fixed-row probes and automatic `REPORT.md` are in
-`models/multisurvey_psf/work/covariance_floor_trial/20260930/`.
+Candidate: `models/multisurvey_psf/work/full_sample_completion/e894d3c77baab446/`.
+Its `model.json` is byte-identical to the assembled 300-iteration full-data
+candidate. All 41 prior pairs load; stellar counts use all 1,975,894 fit/select
+sources from 180 regions. QSO abundance grids are inherited numerically,
+explicitly distinguished from the enlarged spectroscopic colour-training sample.
+Six Legacy optical reference bands have measured band areas; the other 35
+retain marked approximate area denominators. This is not full area or posterior
+calibration. The Student-t catch-all uses all 502,251 calibration-role stellar
+sources, inherited hyperparameters and strictly positive pooled shares.
+The candidate pointer is `models/multisurvey_psf/work/full_sample_completion/candidate.json`.
+Never confuse it with the active `models/multisurvey_psf/current` pointer.
 
-The current priority is practical replacement of the small-data model, following
-the user's 30 September request to stop the convergence rabbit hole. A direct
-paired comparison on 30,000 held-out QSOs and 30,000 held-out stellar sources
-shows the assembled full-data density/spatial candidate improves mean log
-predictive density for all three tested band choices. All-band gains are +0.357
-nats/QSO and +0.231 nats/stellar source. The active small model itself has only
-20/43 converged QSO slices and an unconverged stellar fit; convergence flags
-alone do not justify retaining it. A specific regression remains for bright
-stars using combined optical bands (-0.531 nats/object), while bright Legacy-only
-predictions improve. Investigate that focused issue and finish the coherent
-population-prior/catch-all bundle, preserving matching spatial weights and the
-hard support guard. No blanket refit or covariance-update migration is the next
-step. The continuation and covariance-floor experiments remain diagnostics.
-See `docs/FULL_VS_SMALL_HEALTH_2026-09-30.md` for the comparison and bounded plan.
-The test sample has now been inspected; do not call it untouched. No fits or
-downloads were launched during this comparison; the active pointer is unchanged.
+Bright-star diagnosis: 1,648 bright objects in a fixed 30,000-source calibration
+sample. Combined-optical density loss reproduces (-0.233 nats/object), but high
+QSO-evidence counts after catch-all/support guard decrease from 10 to 4. The
+all-band tail stays at 7. SDSS-only increases from 5 to 8; exact newly high row
+identities are saved for item 4. These are uncalibrated evidence diagnostics on
+a star-dominated sample, not confirmed false-positive labels. The calibration
+rows also enter catch-all fitting. Do not claim an independent release audit.
+No density repair is justified by this diagnostic alone; preserve the practical
+replacement objective and focus the next checks on the documented tails.
 
-The completed additive continuation is under
-`models/multisurvey_psf/work/convergence_continuation/20260930/` (former
-coordinator 2282 and monitor 2283). The floor trial's coordinator was 21931.
-Its initial queued launch 3588 failed before fitting on a sandbox process-health
-permission check; `launch_failed_sandbox.json` retains that record. The
-permitted restart began after stellar completion. Do not relaunch either
-completed run from its historical command. All parent results and the active
-pointer are preserved. No downloads are needed.
+All 41 singleton bands pass functional scoring smoke checks. The direct
+full-versus-small test audit remains as recorded: mean all-band gains +0.357
+nats/QSO and +0.231 nats/stellar source, using 30,000 objects per population.
+The test sample has been inspected; do not describe it as untouched. Neither
+that audit nor candidate completion establishes full probability calibration.
 
-The original scheduled run finished at 23:08 UTC on 29 September; its density-EM
-compute is 100% overall, QSO and stellar. This continuation has a separate
-row-times-components-times-additional-iterations budget. Prediction comparisons
-and decline diagnostics are not included in that EM percentage. The parent
-`models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/` remains unchanged,
-including its previously assembled density/spatial candidate. Continuation
-outputs are individual fits and diagnostics, not an assembled release.
+Detailed completion evidence and assumptions:
+`docs/FULL_SAMPLE_COMPLETION_2026-09-30.md` and its JSON report.
+Configuration: `configs/full_sample_completion.json`.
+Implementation: `scripts/complete_full_sample.py`; focused diagnosis:
+`scripts/diagnose_bright_stars.py`. Raw calibration predictions, checkpoints and
+provenance are beside the candidate. Parent models, completed continuations,
+covariance-floor experiments and the previous active bundle are preserved.
 
-The active model is unchanged. The focused bright-star check, coherent population
-priors, calibration-role catch-all fitting and complete-score validation remain. No further acquisition is needed.
-Details and restart rules: [continuation record](docs/CONVERGENCE_CONTINUATION_2026-09-30.md).
-Initial 19-fit table: [convergence audit](docs/CONVERGENCE_AUDIT_2026-09-30.md).
-
-Updated 30 September 2026 after the direct full-versus-small held-out comparison.
-Read this file before scheduling work. It supersedes
-older progress statements in the dated preparation documents; those documents
-retain the selection rationale and provenance. `JOURNAL.md` records the history.
+Updated 30 September 2026. Read this file before scheduling work. This status
+supersedes older operational instructions and progress statements. JOURNAL.md
+retains the historical findings.
 
 ## Objective and authorization
 
@@ -198,15 +181,13 @@ the current continuation uses `scripts/train_stellar_parallel.py` as above. Read
 [the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
 The old capped recovery scripts are historical and are not this run's entry point.
 
-1. Follow the bounded replacement plan in the full-versus-small health report:
-   inspect the bright stellar optical regression, then finish the existing
-   full-data candidate's population priors and catch-all. Do not start another
-   general convergence/capacity exercise or restart completed workers.
-2. The historical population-completion script needs adaptation to the new
-   role/input layout; do not run it unchanged. Preserve spatial weights matched
-   to the selected shapes and document external-survey area assumptions.
-3. Compare complete-score tails and practical band subsets before promotion.
-   Full probability calibration remains a separate, explicitly unfinished task.
+1. Items 1–3 are complete; use the candidate and diagnostic evidence above.
+2. Next perform complete-score release checks, including the saved newly high
+   bright SDSS-only objects and practical band subsets. Preserve the support
+   guard, spatial dependence and both Legacy hemispheres.
+3. Promote only after those checks; retain the old bundle for rollback. Full
+   probability calibration and external-survey area precision remain explicit
+   limitations, not hidden claims of completion.
 
 ## Working rules
 
