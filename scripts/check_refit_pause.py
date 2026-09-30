@@ -100,6 +100,7 @@ def main():
     parser.add_argument('--run', required=True)
     parser.add_argument('--workers', type=int, default=8)
     parser.add_argument('--tasks', nargs='*', help='QSO slices to score (default: all)')
+    parser.add_argument('--stopping-only', action='store_true', help='check stopping records only; safe while fitting')
     args = parser.parse_args(); root = Path(args.run); tasks = read(root/'tasks.json'); cfg = read(root/'config.json')
     rule = cfg['predictive_stopping']; out_dir = root/'pause_check'; out_dir.mkdir(exist_ok=True)
     report = dict(criteria=CRITERIA, stopping={}, slices={}, background={})
@@ -122,6 +123,16 @@ def main():
             entry['keeps_warm_start'] = best['iteration'] == 0
         schedule_ok &= entry['finite'] and entry['on_schedule'] and entry['best_consistent']
         report['stopping'][t['name']] = entry
+
+    if args.stopping_only:
+        declining = {n: dict(gain=e['first_block_gain'], best_iteration=e['best_iteration'], stop_reason=e['stop_reason'])
+                     for n, e in report['stopping'].items() if e.get('declining_first_block')}
+        summary = dict(stopping_records_valid=bool(schedule_ok),
+                       evaluated_first_block=sum(e.get('first_block_gain') is not None for e in report['stopping'].values()),
+                       stopped={n: e['stop_reason'] for n, e in report['stopping'].items() if e.get('stop_reason')},
+                       declining_first_block=declining)
+        write_json(root/'stopping_check.json', dict(report['stopping'], summary=summary))
+        print(json.dumps(summary, indent=1)); return
 
     # 1: background swap.
     star, _, _, trace = background_models(root, tasks)
