@@ -15,7 +15,7 @@ for name in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'
 import numpy as np
 from qso_pcolor.full_sample import file_hash, write_json
 from qso_pcolor.sky_acquisition import acquisition_lock
-from run_unified_pilot import prepare, fit_task, arrays, task_rows
+from run_unified_pilot import prepare, fit_task, arrays, task_rows, FitPaused
 
 
 def validate_config(cfg):
@@ -150,13 +150,23 @@ def run_fits(root, cfg):
                     continue
                 pool = qpool if task['kind'] == 'qso' else coordinator
                 pending[pool.submit(fit_task, task, cfg, str(root))] = task
+            paused = []
             while pending:
                 done, _ = wait(pending, timeout=15, return_when=FIRST_COMPLETED)
                 for future in done:
-                    print('FIT COMPLETE', future.result(), flush=True)
+                    try:
+                        print('FIT COMPLETE', future.result(), flush=True)
+                    except FitPaused as stop:
+                        paused.append(str(stop)); print('FIT PAUSED', stop, flush=True)
                     del pending[future]
                 state = progress_state(root, tasks, cfg, start)
                 write_json(root/'progress.json', state); print('PROGRESS', json.dumps(state), flush=True)
+            if paused:
+                record.update(state='paused', paused_tasks=sorted(paused),
+                    note='Every paused fit stopped at a stopping check with its model, history and evaluation saved. '
+                         'Remove PAUSE and rerun --fit to continue; completed fits are reused.')
+                write_json(root/'execution.json', record); print('RUN PAUSED', len(paused), flush=True)
+                return
         except BaseException as error:
             for future in pending:
                 future.cancel()

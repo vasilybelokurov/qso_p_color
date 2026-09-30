@@ -22,6 +22,10 @@ from qso_pcolor.xd import XDFitResult
 from qso_pcolor.unified import observation_layout, operator
 
 
+class FitPaused(Exception):
+    """Raised at a stopping check when the run root contains a PAUSE file."""
+
+
 def arrays(root, kind):
     return {p.stem: np.load(p, mmap_mode='r') for p in (Path(root)/kind).glob('*.npy')}
 
@@ -206,6 +210,9 @@ def predictive_fit(task,cfg,root,data,layout,source,init,history,accumulator,opt
             elif it>=cfg['max_iter']:trace['stop_reason']='iteration_limit'
             write_json(trace_path,trace)
             if trace['stop_reason']:break
+        # Pause only here: model, history and evaluation are all saved, so a
+        # resume continues exactly as an uninterrupted run would.
+        if (root/'PAUSE').exists():raise FitPaused(name)
         elif converged and last['iteration']==it:
             trace['stop_reason']='objective_tolerance';write_json(trace_path,trace);break
         fit=fit_projected(source,init=mix,max_iter=min((it//block+1)*block,cfg['max_iter']),

@@ -162,3 +162,25 @@ def test_stopping_density_matches_direct_conditional_density(tmp_path, runner):
         cov = np.diag(data['noise'][r])[None]
         values.append(conditional_log_prob(native, data['y'][r][None], cov, data['observed'][r][None], 0)[0])
     assert runner.stopping_density(mix, layout, 'qso', data, panel, 5) == pytest.approx(np.mean(values), rel=1e-12)
+
+
+def test_pause_file_stops_at_a_stopping_check_and_resume_matches_uninterrupted(tmp_path, runner):
+    full = importlib.import_module('train_unified_full')
+    cfg, tasks = stopping_run(tmp_path/'whole', min_gain=-1e9); full.run_fits(tmp_path/'whole', cfg)
+    cfg, tasks = stopping_run(tmp_path/'cut', min_gain=-1e9); root = tmp_path/'cut'
+    (root/'PAUSE').write_text('pause')
+    full.run_fits(root, cfg)
+    execution = json.loads((root/'execution.json').read_text())
+    assert execution['state'] == 'paused' and len(execution['paused_tasks']) == len(tasks)
+    assert not list((root/'fits').glob('*.json')) and not (root/'training_complete.json').exists()
+    for task in tasks:                                   # each paused right after its warm-start evaluation
+        trace = json.loads((root/'progress'/(task['name']+'_stopping.json')).read_text())
+        assert [e['iteration'] for e in trace['evaluations']] == [0] and trace['stop_reason'] is None
+    (root/'PAUSE').unlink()
+    full.run_fits(root, cfg)
+    assert json.loads((root/'execution.json').read_text())['state'] == 'completed'
+    for task in tasks:
+        a = json.loads((root/'fits'/(task['name']+'.json')).read_text())
+        b = json.loads((tmp_path/'whole/fits'/(task['name']+'.json')).read_text())
+        for key in ('mixture', 'history', 'stopping_evaluations', 'selected_iteration', 'stop_reason', 'mean_loglike'):
+            assert a[key] == b[key], (task['name'], key)
