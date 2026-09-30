@@ -130,3 +130,62 @@ as well as the original tails, before considering activation.
 Sources previously inspected:
 [DESI correction](https://desitarget.readthedocs.io/en/latest/_modules/desitarget/cuts.html#shift_photo_north)
 and [Duncan (2022)](https://academic.oup.com/mnras/article/512/3/3662/6544645).
+
+## Review of the user's external design proposal
+
+Status: recommendations for discussion, not an approved implementation or a
+new fitted model. The proposal uses a common latent distribution and predicts
+native observations through a linear operator, with class-dependent residual
+means and covariance. This is consistent with the projected-observation
+formulation of [extreme deconvolution](https://arxiv.org/abs/0905.2979).
+The DESI coefficients in the proposal agree with the official source checked
+on 30 September. The following details matter for this repository:
+
+- Keep 41 accepted input labels, but distinguish them from latent dimensions.
+  Sharing only the three Legacy optical pairs gives 38 latent coordinates;
+  sharing W1/W2 as well gives 36. The latter requires consistent softenings
+  and treatment of duplicate/correlated measurements. There are 31 non-Legacy
+  coordinates. A rectangular observation operator can accept either or both
+  Legacy systems for the same source.
+- An affine model in asinh coordinates is a practical approximation, not an
+  exact consequence of DESI's ordinary-magnitude relation. Native asinh
+  softenings differ. Negative measurements remain usable, but the current
+  Gaussian measurement covariance is itself a first-order approximation after
+  the nonlinear flux transform. Validate both approximations near the softening
+  scale before deciding that a constant affine operator is adequate.
+- Calibrate the relation on paired fit/selection data with uncertainty in both
+  systems. Fix its convention and parameters before pooled density fitting,
+  rather than allowing transformation offsets, class offsets and mixture means
+  to absorb one another. Absorb the stellar residual mean into the common
+  offset, or otherwise constrain that degeneracy explicitly.
+- Start QSO residuals with a constant, regularized mean and simple extra
+  covariance. Independent offsets in all 43 redshift slices are not supported
+  by the demonstrated overlap sample. Add a smooth or coarsely pooled redshift
+  dependence only if reserved predictive checks justify it. The reported 116
+  bright QSOs are evaluation objects, not a new calibration-training sample;
+  their reported medians must not be inserted directly as fitted offsets.
+- Estimate excess residual covariance with measurement errors included in the
+  likelihood. Raw paired scatter also includes possible variability and other
+  effects; it is not solely filter mismatch. An unseparated scatter allowance
+  is a sensitivity scenario, not guaranteed conservative classification.
+- Preserve spatial stellar weights, surface densities and local refitting.
+  Preserve conditioning on the measured reference band and use priors in that
+  same native observed-band convention. Both the joint and reference marginal
+  must use the same projected, noise-convolved distribution.
+- The current XD E step selects observed coordinates; general linear mixing
+  is not yet implemented in the production trainer. Extend and validate the
+  serial and streaming/parallel paths consistently. The existing diagnostic
+  projects fitted distributions but does not implement pooled XD training.
+- The catch-all is a broad unmodelled component, not a calibrated stellar SED
+  family. Its native-observation density must remain normalized and compatible
+  with the new model; recalibrate its share and retest tails. Unification does
+  not certify support everywhere or replace the existing guard.
+
+Recommended sequence: settle the coordinate and residual conventions; estimate
+and test the observation relation from existing paired data; then implement
+projected training and perform a pooled refit if that relation is adequate.
+Before promotion, compare real paired-source scores at the same sky position
+with consistent priors and account for differing errors/epochs, test genuine
+QSO performance and quantify high-score/low-support frequency in reserved PSF
+sources. Previously inspected test objects remain useful regression examples
+but must not be described as untouched validation.

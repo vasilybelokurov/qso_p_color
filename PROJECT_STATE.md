@@ -85,6 +85,16 @@ launch that fitting or implement the production design ahead of this discussion.
 Component-level training support remains an additional proposed guard, not an
 implemented repair. Real-catalogue incidence and full calibration remain open.
 
+The user's external latent-forward-model proposal has been reviewed against
+the code and primary sources. Recommendations and implementation gaps are
+recorded in the unification report's design-review section: distinguish 41
+input labels from 38 optical-only or 36 fully shared latent coordinates,
+calibrate an errors-in-both-systems affine relation before density fitting,
+start with simple QSO residuals rather than 43 independent offsets, and preserve
+native reference-band conditioning and priors. General projected XD training
+is not yet implemented. These are discussion recommendations; no implementation
+or pooled training was launched in response to the proposal.
+
 Main evidence: `docs/FULL_SAMPLE_RELEASE_2026-09-30.md` and JSON.
 Reproduce with `scripts/validate_full_sample_release.py` and
 `configs/full_sample_release.json`. Focused support evidence and scripts are
