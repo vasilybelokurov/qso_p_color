@@ -20,6 +20,42 @@ from .multisurvey_data import Photometry
 from .projected_xd import native_mixture
 
 
+def catalogue_photometry(values, errors, bands, *, ra_deg, dec_deg,
+                         measurement: str = 'flux', legacy_hemisphere=None) -> Photometry:
+    """Convert catalogue arrays to labelled native photometry.
+
+    Flux inputs/errors are nanomaggies. Magnitudes/errors must be AB mag.
+    ``legacy:g`` (and r/z/w1/w2) uses the position-based default system unless
+    a per-row north/south provenance is supplied. Explicit native labels win.
+    Missing entries are NaN; weak and negative fluxes remain valid.
+    """
+    values, errors = np.asarray(values, float), np.asarray(errors, float)
+    if values.ndim != 2 or values.shape != errors.shape or values.shape[1] != len(bands):
+        raise ValueError('values/errors must have shape (objects, bands)')
+    if measurement == 'abmag':
+        flux = 10**((22.5-values)/2.5)
+        error = np.log(10)/2.5*flux*errors
+    elif measurement == 'flux':
+        flux, error = values, errors
+    else:
+        raise ValueError('measurement must be flux or abmag')
+    n = len(values)
+    hemi = hemisphere_of(np.broadcast_to(ra_deg,(n,)), np.broadcast_to(dec_deg,(n,))) if legacy_hemisphere is None else np.broadcast_to(legacy_hemisphere,(n,))
+    if not np.isin(hemi,['north','south']).all():
+        raise ValueError('native Legacy provenance must be north or south')
+    labels=[];columns=[]
+    for j,label in enumerate(bands):
+        if label.startswith('legacy:'):
+            for h in ('south','north'):
+                labels.append('decals_dr9_'+h+':'+label.split(':')[1]);columns.append((j,hemi==h))
+        else:
+            labels.append(label);columns.append((j,np.ones(n,bool)))
+    f=np.full((n,len(labels)),np.nan);v=np.full_like(f,np.inf)
+    for k,(j,use) in enumerate(columns):
+        f[use,k]=flux[use,j];v[use,k]=np.where(error[use,j]>0,error[use,j]**2,np.inf)
+    return Photometry(f,v,tuple(labels))
+
+
 def observation_layout(transform: BandLuptitudeTransform, calibration: dict,
                        *, native_variance_floor: float) -> dict:
     """Create a 36-latent/41-native layout with common Legacy WISE softening.
@@ -89,7 +125,8 @@ def conditional_predictive_mixture(qso, z: float, x: np.ndarray,
         mix = qso.mixtures[j].marginal(dims)
         noisy = GaussianMixture(mix.weights, mix.means,
             mix.covs+covariance[np.ix_(dims, dims)], mix.labels)
-        _, conditional = condition_joint(noisy, [x[anchor]], np.array([a]))
+        with np.errstate(divide='ignore'):
+            _, conditional = condition_joint(noisy, [x[anchor]], np.array([a]))
         parts.append((weight, conditional))
     return GaussianMixture(np.concatenate([w*m.weights for w,m in parts]),
         np.concatenate([m.means for _,m in parts]), np.concatenate([m.covs for _,m in parts])), other
@@ -169,3 +206,14 @@ class UnifiedPSFModel:
         decision.update(qso_support=support, support_rejected=rejected,
                         coordinate_hemisphere=hemisphere_of(ra, dec, b))
         return scores, decision
+
+    def score_catalogue(self, values, errors, bands, *, ra_deg, dec_deg,
+                        z_primary, measurement='flux', legacy_hemisphere=None, **kwargs):
+        """Score fluxes or AB magnitudes with errors, candidate RA/Dec and primary z."""
+        phot=catalogue_photometry(values,errors,bands,ra_deg=ra_deg,dec_deg=dec_deg,
+            measurement=measurement,legacy_hemisphere=legacy_hemisphere)
+        return self.score(phot,ra_deg=ra_deg,dec_deg=dec_deg,z_primary=z_primary,**kwargs)
+
+    def fit_local(self, **kwargs):
+        """Refit local contaminant weights/counts; QSO support calibration is unchanged."""
+        return type(self)(self.base.fit_local(**kwargs), dict(self.support))

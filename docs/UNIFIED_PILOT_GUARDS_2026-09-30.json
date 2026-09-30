@@ -1,0 +1,30 @@
+{
+  "south": {
+    "parent_diagnostic_auc_before_guards": 0.99853515625,
+    "raw_diagnostic_auc_before_guards": 0.999267578125,
+    "qso_rejected_by_fixed_distance": 5,
+    "of_those_accepted_by_calibrated_support": 4,
+    "qso_support_percentiles_on_fixed_distance_rejections": [
+      0.33203125,
+      0.0078125,
+      0.125,
+      0.03515625,
+      0.15234375
+    ]
+  },
+  "north": {
+    "parent_diagnostic_auc_before_guards": 0.995849609375,
+    "raw_diagnostic_auc_before_guards": 0.978515625,
+    "qso_rejected_by_fixed_distance": 6,
+    "of_those_accepted_by_calibrated_support": 4,
+    "qso_support_percentiles_on_fixed_distance_rejections": [
+      0.109375,
+      0.1796875,
+      0.27734375,
+      0.00390625,
+      0.05078125,
+      0.00390625
+    ]
+  },
+  "interpretation": "Read-only counterfactual from saved intensity terms, not a change of deployment gates. Much of the pilot full-band ranking loss is caused by fixed component-distance rejection; some northern density-ranking loss remains. The percentile cut also loses more test QSOs than its calibration target."
+}

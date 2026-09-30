@@ -666,6 +666,26 @@ but cannot enter scientific ranking. A single observed band has no colour
 support information. Same-redshift QSOs, other-redshift QSOs, the empirical
 contaminant population and the catch-all remain separate competing terms.
 
+The pilot completed all 44 fits in $86.6$ seconds using eight iterations each;
+none is claimed converged. Its original northern bright/intermediate tail
+counts fall from 72/79 to zero, already before the new percentile veto. The
+percentile cut retains $98.2\%$ of calibration mask-evaluations but $60/64$
+reserved QSOs in each hemisphere. Stacking it with the old component-distance
+veto leaves $56/64$ eligible in each hemisphere. Four northern and four southern
+QSOs rejected by the old distance gate pass the percentile check. Thus the
+pipeline is functional, but this pilot does not pass the declared completeness
+checks. Rejection-policy calibration is a separate follow-up and does not
+block density retraining. A matched control with free native coordinates,
+identical initial native predictions, pilot rows, component counts and eight
+iterations passes all twelve rejection-free density/ranking checks. Full-band
+ranking AUC is $0.9957/0.9925$ (South/North) for the unified fit versus
+$0.9961/0.9921$ for the control; mean held-out QSO log-density improves by
+$0.014/0.129$ nats. Legacy-optical comparisons also pass. This supports a
+full-data unified refit, without claiming convergence or calibrated posterior
+probabilities from the short pilot. Neither the active model nor its gate has
+changed. Full results, limitations and saved artifacts are recorded in
+\texttt{docs/UNIFIED\_PILOT\_2026-09-30.md}.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order

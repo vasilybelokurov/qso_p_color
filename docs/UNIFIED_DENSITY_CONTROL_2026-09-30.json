@@ -1,0 +1,116 @@
+{
+  "settings": {
+    "score_rows_per_class_per_hemisphere": 512,
+    "predictive_rows_per_class_per_hemisphere": 2000,
+    "seed": 20261148,
+    "maximum_auc_loss": 0.03,
+    "maximum_conditional_density_loss": 0.1,
+    "gate_policy": "No rejection rules in density/ranking comparison; no support thresholds changed",
+    "control": "Independent 41 native coordinates; same projected initial distributions, row sets, K and eight-iteration budget; no N/S tying"
+  },
+  "root": "models/multisurvey_psf/work/unified_pilot/20260930/b5c55adf3698419d",
+  "predictive": {
+    "all_qso_south": {
+      "n": 2000,
+      "n_reference_detected": 2000,
+      "mean_delta_all": 0.01397999418015291,
+      "mean_delta_reference_detected": 0.01397999418015291,
+      "median_delta_reference_detected": 0.01261491261649006
+    },
+    "all_qso_north": {
+      "n": 2000,
+      "n_reference_detected": 2000,
+      "mean_delta_all": 0.1290476318965933,
+      "mean_delta_reference_detected": 0.1290476318965933,
+      "median_delta_reference_detected": 0.176256506672485
+    },
+    "all_stars_south": {
+      "n": 2000,
+      "n_reference_detected": 2000,
+      "mean_delta_all": 0.026742780354194914,
+      "mean_delta_reference_detected": 0.026742780354194914,
+      "median_delta_reference_detected": 0.0015905858651807936
+    },
+    "all_stars_north": {
+      "n": 2000,
+      "n_reference_detected": 2000,
+      "mean_delta_all": 0.0693217061601562,
+      "mean_delta_reference_detected": 0.0693217061601562,
+      "median_delta_reference_detected": 0.005133901390299123
+    },
+    "legacy_optical_qso_south": {
+      "n": 2000,
+      "n_reference_detected": 2000,
+      "mean_delta_all": -0.0002727175971785363,
+      "mean_delta_reference_detected": -0.0002727175971785363,
+      "median_delta_reference_detected": -0.00263219631070577
+    },
+    "legacy_optical_qso_north": {
+      "n": 2000,
+      "n_reference_detected": 2000,
+      "mean_delta_all": 0.03681270997738852,
+      "mean_delta_reference_detected": 0.03681270997738852,
+      "median_delta_reference_detected": 0.07881207145687785
+    },
+    "legacy_optical_stars_south": {
+      "n": 2000,
+      "n_reference_detected": 1977,
+      "mean_delta_all": -2.489824753495379e-05,
+      "mean_delta_reference_detected": -6.731773558485518e-06,
+      "median_delta_reference_detected": -0.00040266642211839176
+    },
+    "legacy_optical_stars_north": {
+      "n": 2000,
+      "n_reference_detected": 1986,
+      "mean_delta_all": 0.000336822620540892,
+      "mean_delta_reference_detected": 0.0004500855157984402,
+      "median_delta_reference_detected": 0.003581494022531051
+    }
+  },
+  "ranking": {
+    "all_south": {
+      "unified": 0.9957468133223685,
+      "native_control": 0.9960894668311403,
+      "n_qso": 512,
+      "n_background": 456
+    },
+    "all_north": {
+      "unified": 0.9924956689765458,
+      "native_control": 0.992120868869936,
+      "n_qso": 512,
+      "n_background": 469
+    },
+    "legacy_optical_south": {
+      "unified": 0.9886239035087719,
+      "native_control": 0.9887738144188597,
+      "n_qso": 512,
+      "n_background": 456
+    },
+    "legacy_optical_north": {
+      "unified": 0.9830192683133859,
+      "native_control": 0.9819030642560055,
+      "n_qso": 510,
+      "n_background": 462
+    }
+  },
+  "checks": {
+    "density_all_qso_south": true,
+    "density_all_qso_north": true,
+    "density_all_stars_south": true,
+    "density_all_stars_north": true,
+    "ranking_all_south": true,
+    "ranking_all_north": true,
+    "density_legacy_optical_qso_south": true,
+    "density_legacy_optical_qso_north": true,
+    "density_legacy_optical_stars_south": true,
+    "density_legacy_optical_stars_north": true,
+    "ranking_legacy_optical_south": true,
+    "ranking_legacy_optical_north": true
+  },
+  "active_model_changed": false,
+  "rejection_rules_tuned": false,
+  "probability_calibration": false,
+  "checks_pass": true,
+  "elapsed_seconds": 149.64266962511465,
+  "implementation_sha256": "d1cc97895a7085b1cf372a21fab5524fcc95a99beb9f47e8fdf5d9e1b6d3de16"
+}

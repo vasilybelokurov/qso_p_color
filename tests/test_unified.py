@@ -8,7 +8,7 @@ from qso_pcolor.gaussmix import GaussianMixture
 from qso_pcolor.multisurvey import BandLuptitudeTransform, MultiSurveyModel, conditional_log_prob
 from qso_pcolor.multisurvey_data import Photometry, band_labels
 from qso_pcolor.qso_model import SlicedColourRedshiftModel
-from qso_pcolor.unified import observation_layout, native_view, conditional_predictive_mixture, qso_support
+from qso_pcolor.unified import observation_layout, native_view, conditional_predictive_mixture, qso_support, catalogue_photometry
 
 
 def fixture_model():
@@ -26,6 +26,17 @@ def test_reference_prefers_detection_without_discarding_negative_band():
     np.testing.assert_array_equal(model.reference_indices(p),[1,0])
     assert p.observed.all()
     assert np.isfinite(model.transform(p).x).all()
+
+
+def test_catalogue_coordinates_provenance_and_ab_magnitude_conversion():
+    mags=np.array([[20.,19.],[21.,22.]])
+    p=catalogue_photometry(mags,np.full_like(mags,.1),['legacy:g','sdss:r'],
+        ra_deg=[180.,180.],dec_deg=[50.,0.],measurement='abmag')
+    np.testing.assert_array_equal(p.observed,[[False,True,True],[True,False,True]])
+    assert p.flux[0,1]==pytest.approx(10.)
+    override=catalogue_photometry([[-1.]],[[.2]],['legacy:g'],ra_deg=180.,dec_deg=50.,legacy_hemisphere='south')
+    assert override.flux[0,0]==-1 and override.observed[0,0]
+    assert not override.observed[0,1]
 
 
 def test_support_conditional_matches_scorer_with_correlated_errors_and_masks():
@@ -69,5 +80,9 @@ def test_full_native_layout_preserves_other_surveys_and_joint_roundtrip():
             k=labels.index(label);j=layout['canonical_indices'].index(k)
             assert view.means[0,k]==mix.means[0,j]
     np.testing.assert_allclose(view.covs,restored.covs)
+    for j in range(41):
+        one=np.zeros((1,41),bool);one[0,j]=True
+        expected=-.5*np.log(2*np.pi*(view.covs[0,j,j]+.01))
+        assert view.log_prob(view.means,np.eye(41)*.01,observed=one)[0]==pytest.approx(expected)
     obs=np.zeros((1,41),bool);obs[0,[0,10,13,15,36]]=True
     assert np.isfinite(view.log_prob(view.means,np.eye(41)*.01,observed=obs)).all()

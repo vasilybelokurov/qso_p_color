@@ -8,28 +8,63 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**UNIFIED FULL-SURVEY PILOT AUTHORIZED AND PREPARED (30 September).**
-The user requested preparation followed by a small end-to-end pilot, not the
-full production retraining. Use `configs/unified_pilot.json` and
-`scripts/run_unified_pilot.py --fit`. Training covers Galactic nside=4 cells
-22, 63 and 169; separate test cells are 28, 62 and 170. Frozen roles remain
-unchanged. All 27,686 QSO and 49,809 contaminant fit/select rows enter, with
-no S/N cut or row caps; 43 QSO slices plus one contaminant fit, four workers,
-eight iterations per fit. Canonical warm starts come from the completed
-full-data candidate, so this is a limited-area refit and engineering pilot,
-not a stand-alone small-area model or new independent scientific validation.
+**UNIFIED PILOT PASSES MATCHED DENSITY/RANKING TEST (30 September).**
+The user explicitly separates rejection tuning from deciding whether to unify.
+Rejection thresholds can be tuned later; they must not block density retraining.
+The matched native-coordinate control uses the same pilot rows, initial native
+predictions, K and eight iterations. All 12 checks pass, with no rejection
+rules in the comparison. Full-band ranking AUC control -> unified is
+.9961 -> .9957 South and .9921 -> .9925 North. Mean held-out QSO log-density
+changes are +.014 South / +.129 North; background +.027 / +.069 nats.
+Legacy-optical comparisons also pass. Read
+`docs/UNIFIED_DENSITY_CONTROL_2026-09-30.json` and the pilot report.
+Conclusion: proceed to the planned full-data unified refit; tune rejection
+separately on calibration roles afterward, before promotion. This is a bounded
+warm-start pilot, not convergence or posterior-calibration certification.
+No full-data unified fit is launched and the active model is unchanged.
 
-Prepared run `models/multisurvey_psf/work/unified_pilot/20260930/b5c55adf3698419d/`
-contains the frozen rows, counts, layout and 44 tasks. The model has 36 latent
-coordinates and 41 external labels, with shared Legacy W1/W2 softening and a
-recorded 1e-6 mag^2 northern WISE residual variance. NSC u/VR and VHS H lack
-pilot training measurements and must not be declared empirically validated.
-Logs: `/tmp/unified_pilot_training.log`; structured fit progress/checkpoints
-live in the run directory. Continue with `scripts/complete_unified_pilot.py`
-for spatial weights, counts and a calibration-role Student-t catch-all, then
-support calibration and held-out end-to-end tests. No downloads, active-pointer
-change or full-production fit. Prelaunch software suite: 358 passed in 74.08s,
-`/tmp/unified_pilot_prelaunch_suite.log`.
+**UNIFIED FULL-SURVEY PILOT COMPLETE; PILOT ITSELF IS NOT A RELEASE.**
+The requested end-to-end pilot finished. Read
+`docs/UNIFIED_PILOT_2026-09-30.md` and its numerical JSON/guard diagnostic.
+No pilot worker remains to restart. All 43 QSO slices plus the contaminant
+fit completed eight iterations in 86.6 seconds; 27,686 QSOs and 49,809
+contaminants, no S/N training cut or row caps. All selected QSOs entered the
+existing slice coverage. Spatial weights/counts and calibration-role catch-all
+(28,673 objects) completed in 13.2 seconds; support/score audit in 36 seconds.
+All 44 fits hit the deliberate pilot budget; no convergence claim.
+
+Run: `models/multisurvey_psf/work/unified_pilot/20260930/b5c55adf3698419d/`.
+Config: `configs/unified_pilot.json`; train cells22/63/169, test28/62/170 at
+Galactic nside4, saved roles preserved. Canonical full-data warm starts make
+this a limited-area update, not independent small-area training. Bundle has
+36 latent coordinates / 41 input labels and the RA/Dec convenience interface,
+with native catalogue provenance overrides, optional local refits and a
+separate QSO-support percentile. NSC u/VR and VHS H have no pilot training
+measurements; do not claim empirical validation of those coordinates.
+
+Known northern high-score grid tails 72/79 become zero; southern grids also
+have zero, already before the new support veto. Functional subset checks pass
+where measured. Overall 13/21 declared checks pass: full-band/Legacy-optical
+QSO retention/ranking fail. New support cut retains 98.2% of 614 calibration
+mask-evaluations (192 distinct QSOs), but 60/64 test QSOs per hemisphere.
+Both guards together leave only 56/64 QSOs eligible per hemisphere.
+
+A saved-intensity diagnostic shows much of the full-band AUC loss is the old
+fixed component-distance veto: raw ungated AUC south/north .9993/.9785 versus
+control .9985/.9958, while the old gate gives pilot .9254/.8899. Four of the
+five southern and four of six northern QSOs rejected by the old gate pass
+the new calibrated support test. This does not endorse removing all guards.
+The user's subsequent direction supersedes the proposed pretraining gate
+investigation. The matched control above now establishes that unification
+preserves ranking and predictive density. Defer rejection calibration until
+after the full-data fit; do not reopen ultra-faint/capacity investigations.
+All pilot and matched-control workers have exited.
+
+Software suite 359 passed in 70.73s (`/tmp/unified_pilot_final_suite.log`),
+plus all-41-single-band marginal assertions passed. Native WISE residual
+variance 1e-6 mag^2 is explicit in the operator; affected abundance-prior grids
+carry the coordinate Jacobian. Active pointer remains unchanged. No downloads
+or full-production fitting. Logs `/tmp/unified_pilot_{training,completion,validation}.log`.
 
 **LATEST USER DIRECTION: TRAIN ALL ELIGIBLE ROWS; VALIDATE MAINLY ABOVE 5 SIGMA.**
 The user separates unification from extreme-outlier classification and rejects
@@ -39,12 +74,12 @@ plan is `docs/UNIFIED_MODEL_RETRAINING_PLAN_2026-09-30.md`, incorporating the
 user's `docs/xd_qso_contaminant_ood.tex`. The user endorsed steps 2--5 and
 clarified step 1: keep all quality-eligible training rows, including below
 5 sigma, without caps. Five sigma sets the main validation/reporting domain,
-not a training cut or automatic scoring rejection. No new fit has started.
+not a training cut or automatic scoring rejection. The pilot above is complete.
 The intended user interface accepts candidate RA/Dec, named photometry with
 errors, and primary-QSO redshift; derive l,b and the default Legacy hemisphere
 internally, respecting actual photometric provenance in overlap regions. The
 current low-level scorer takes l,b and survey-labelled bands; the convenience
-RA/Dec wrapper remains implementation work.
+RA/Dec wrapper is now implemented and tested in the pilot.
 
 The existing stellar-named sample is already empirical PSF catalogue background
 with known QSOs removed, not a pure-star selection. Reuse it as the contaminant
