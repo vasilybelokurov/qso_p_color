@@ -519,6 +519,62 @@ on component-level observed-band information remains to be implemented; the
 active bundle and existing thresholds are unchanged. This limitation is not
 resolved by numerical convergence or a larger total training-set size.
 
+\paragraph{Experimental sharing of Legacy optical coordinates (30 September).}
+The active model is unchanged. A separate diagnostic compares the published
+DESI north-to-south colour relation with an overlap-fitted cubic relation of
+the form used by Duncan (2022), using cached measurements of the same objects
+in both systems. The cubic coefficients are newly estimated for DR9; they are
+not taken from that DR8 study. Reciprocal, unambiguous matches within
+$0.35$ arcsec retain the existing sky-field roles. Only fit/selection fields
+and objects with signal-to-noise above ten in both systems' three optical
+bands enter the correction fit; known quasars are excluded from that fit.
+These signal-to-noise cuts define the calibration experiment, not a new
+science-candidate selection. Calibration/test fields provide the comparison.
+No flux is clipped or silently imputed.
+
+For complete ordinary AB magnitudes, DESI's correction is affine:
+$\boldsymbol m_S=A\boldsymbol m_N+\boldsymbol d$, where $N,S$ denote
+northern and southern $g,r,z$ vectors, respectively. The matrix and offset are
+\[
+A=\begin{pmatrix}0.941&0.059&0\\0&0.976&0.024\\0&0.015&0.985\end{pmatrix},
+\qquad \boldsymbol d=(0.004,-0.003,-0.013)^T\ {\rm mag}.
+\]
+The experimental application of this relation to native luptitudes is finite
+for negative flux, but is only an approximation to the original flux
+transformation at low signal-to-noise. The full covariance of a transformed
+complete vector is $A S A^T$, where $S$ is its measurement covariance.
+The cubic alternative subtracts per-band polynomials in northern $g-z$, with
+the correction colour bounded to $[0.3,3.3]$ mag, and propagates covariance
+with its local Jacobian. Bounding the correction does not clip measurements.
+
+To test the effect of shared shapes while retaining arbitrary missing bands,
+the diagnostic instead predicts northern coordinates from a common southern
+vector: $\boldsymbol u_N=B\boldsymbol u_S+\boldsymbol a+\boldsymbol\epsilon$,
+where $B=A^{-1}$ is computed by a linear solve,
+$\boldsymbol a=-B\boldsymbol d$, and
+$\boldsymbol\epsilon\sim\mathcal N(0,C)$ describes residual transformation
+scatter in mag. Here $C$ is estimated from the paired fit-field residuals;
+it includes measurement noise and is explicitly a diagnostic total scatter,
+not an intrinsic-scatter calibration. For a retained component mean
+$\boldsymbol\mu$ and covariance $V$, the expanded native-coordinate model
+has mean $P\boldsymbol\mu+\boldsymbol a'$ and covariance
+$PVP^T+C'$. The matrix $P$ preserves all retained coordinates and inserts the
+northern affine view; $\boldsymbol a'$ and $C'$ embed the northern offset and
+scatter in the full band ordering. Thus any observed subset, including one
+northern band, has a Gaussian marginal without estimating a missing colour.
+
+This diagnostic reuses the completed candidate's southern marginal shapes and
+inherits its spatial weights, priors and catch-all numerically, with explicit
+diagnostic provenance. It is not a density fit to pooled data, and the inherited
+calibrations do not constitute validation of the modified shapes. Only the
+three optical coordinates are tied; Legacy $W1,W2$ remain untied pending a
+consistent common-softening and measurement-error treatment. The saved bright
+and intermediate northern grids change from 72 and 79 high-QSO low-density
+points to zero in this experiment. This establishes a useful direction for
+unification, not a calibrated production release or an empirical contamination
+rate. Sources and quantitative tests are recorded in
+\texttt{docs/LEGACY\_UNIFICATION\_2026-09-30.md}.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order

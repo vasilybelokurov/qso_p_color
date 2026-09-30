@@ -1,0 +1,726 @@
+{
+  "bundle": "models/multisurvey_psf/work/legacy_unification/20260930/shared_optical_3db05ecc8781b2f0",
+  "identity": {
+    "parent": {
+      "model.json": "ad9f435978f3477d866fe7fec282da0c15857c83f2f5c3a26987521128e7a6d7",
+      "priors.json": "9488a01221af2a93e647f11cef2b630598fa16a4ee6b2e16815ba306206ff92d",
+      "outlier.json": "1deee7b70a9d41793cf784cb22c0bdddc59458996bf67e5ce7de80d2fab1728c"
+    },
+    "map": {
+      "north_from_south": [
+        [
+          1.0626992561105209,
+          -0.0642651064192122,
+          0.0015658503086914647
+        ],
+        [
+          0.0,
+          1.0249739854318418,
+          -0.024973985431841834
+        ],
+        [
+          0.0,
+          -0.015608740894901144,
+          1.0156087408949013
+        ]
+      ],
+      "offset": [
+        -0.004423236289686731,
+        0.0027502601456815814,
+        0.013156087408949012
+      ],
+      "residual_covariance": [
+        [
+          0.000824602179395747,
+          1.0117824631198011e-05,
+          3.544220988665189e-05
+        ],
+        [
+          1.0117824631198011e-05,
+          0.00034255975531016206,
+          1.846493525751092e-05
+        ],
+        [
+          3.544220988665189e-05,
+          1.846493525751092e-05,
+          0.00039599805366216683
+        ]
+      ],
+      "n": 2327,
+      "note": "Total paired residual covariance; conservative diagnostic scatter, not a deconvolved calibration."
+    },
+    "code": "5bf8cc28bf00b0bafaa2c8dd5bed918187efee6b2a404c42be4001aea75792c2",
+    "implementation": "45b0a6ea99d37ef68a48f811041747886f5ca5bf19e70fd99af45c70473e6bd5"
+  },
+  "scope": "Southern marginal shapes reused; north grz is an affine view with total paired residual scatter. No pooled density fitting. Priors, spatial weights and catch-all numerically inherited for intervention test only.",
+  "real": {
+    "legacy_optical": {
+      "qso": {
+        "all": {
+          "parent": {
+            "n": 251,
+            "eligible": 251,
+            "status": {
+              "ok": 251
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 71,
+            "median_log_r": -2.0613355208001005,
+            "spatial_weight_mean": 0.8758197697779162,
+            "density_levels": {
+              "1": 227,
+              "2": 24
+            }
+          },
+          "shared": {
+            "n": 251,
+            "eligible": 251,
+            "status": {
+              "ok": 251
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 76,
+            "median_log_r": -2.0201525227983126,
+            "spatial_weight_mean": 0.8758197697779162,
+            "density_levels": {
+              "1": 227,
+              "2": 24
+            }
+          }
+        },
+        "north": {
+          "parent": {
+            "n": 80,
+            "eligible": 80,
+            "status": {
+              "ok": 80
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 16,
+            "median_log_r": -2.6861652486759415,
+            "spatial_weight_mean": 0.9685949375039258,
+            "density_levels": {
+              "1": 80
+            }
+          },
+          "shared": {
+            "n": 80,
+            "eligible": 80,
+            "status": {
+              "ok": 80
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 21,
+            "median_log_r": -2.468245412112543,
+            "spatial_weight_mean": 0.9685949375039258,
+            "density_levels": {
+              "1": 80
+            }
+          }
+        },
+        "south": {
+          "parent": {
+            "n": 171,
+            "eligible": 171,
+            "status": {
+              "ok": 171
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 55,
+            "median_log_r": -1.7348250134228718,
+            "spatial_weight_mean": 0.8324161825376778,
+            "density_levels": {
+              "1": 147,
+              "2": 24
+            }
+          },
+          "shared": {
+            "n": 171,
+            "eligible": 171,
+            "status": {
+              "ok": 171
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 55,
+            "median_log_r": -1.7348250134228718,
+            "spatial_weight_mean": 0.8324161825376778,
+            "density_levels": {
+              "1": 147,
+              "2": 24
+            }
+          }
+        }
+      },
+      "stars": {
+        "all": {
+          "parent": {
+            "n": 256,
+            "eligible": 214,
+            "status": {
+              "ok": 249,
+              "qso_prior_empty_at_this_magnitude": 7
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 0,
+            "median_log_r": -10.65702094821804,
+            "spatial_weight_mean": 0.8549420131284734,
+            "density_levels": {
+              "1": 189,
+              "2": 25
+            }
+          },
+          "shared": {
+            "n": 256,
+            "eligible": 214,
+            "status": {
+              "ok": 249,
+              "qso_prior_empty_at_this_magnitude": 7
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 0,
+            "median_log_r": -10.78330347731374,
+            "spatial_weight_mean": 0.8549420131284734,
+            "density_levels": {
+              "1": 189,
+              "2": 25
+            }
+          }
+        },
+        "north": {
+          "parent": {
+            "n": 110,
+            "eligible": 91,
+            "status": {
+              "ok": 107,
+              "qso_prior_empty_at_this_magnitude": 3
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 0,
+            "median_log_r": -10.093355103501757,
+            "spatial_weight_mean": 0.9700414927006037,
+            "density_levels": {
+              "1": 91
+            }
+          },
+          "shared": {
+            "n": 110,
+            "eligible": 91,
+            "status": {
+              "ok": 107,
+              "qso_prior_empty_at_this_magnitude": 3
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 0,
+            "median_log_r": -10.198600733281435,
+            "spatial_weight_mean": 0.9700414927006037,
+            "density_levels": {
+              "1": 91
+            }
+          }
+        },
+        "south": {
+          "parent": {
+            "n": 146,
+            "eligible": 123,
+            "status": {
+              "ok": 142,
+              "qso_prior_empty_at_this_magnitude": 4
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 0,
+            "median_log_r": -11.462214903765837,
+            "spatial_weight_mean": 0.7697871136076292,
+            "density_levels": {
+              "1": 98,
+              "2": 25
+            }
+          },
+          "shared": {
+            "n": 146,
+            "eligible": 123,
+            "status": {
+              "ok": 142,
+              "qso_prior_empty_at_this_magnitude": 4
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 0,
+            "median_log_r": -11.462214903765837,
+            "spatial_weight_mean": 0.7697871136076292,
+            "density_levels": {
+              "1": 98,
+              "2": 25
+            }
+          }
+        }
+      },
+      "auc": {
+        "parent": 0.9858690239043825,
+        "shared": 0.9878299302788844
+      }
+    },
+    "all_available": {
+      "qso": {
+        "all": {
+          "parent": {
+            "n": 256,
+            "eligible": 249,
+            "status": {
+              "ok": 249,
+              "outside_both_models": 7
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 7,
+            "qso_above_half": 226,
+            "median_log_r": 0.7106714941276875,
+            "spatial_weight_mean": 0.8635169067200773,
+            "density_levels": {
+              "1": 206,
+              "2": 43
+            }
+          },
+          "shared": {
+            "n": 256,
+            "eligible": 249,
+            "status": {
+              "ok": 249,
+              "outside_both_models": 7
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 7,
+            "qso_above_half": 226,
+            "median_log_r": 0.7068341309893651,
+            "spatial_weight_mean": 0.8635169067200773,
+            "density_levels": {
+              "1": 206,
+              "2": 43
+            }
+          }
+        },
+        "north": {
+          "parent": {
+            "n": 80,
+            "eligible": 79,
+            "status": {
+              "ok": 79,
+              "outside_both_models": 1
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 1,
+            "qso_above_half": 69,
+            "median_log_r": 0.4985817212636987,
+            "spatial_weight_mean": 0.9685949375039254,
+            "density_levels": {
+              "1": 79
+            }
+          },
+          "shared": {
+            "n": 80,
+            "eligible": 79,
+            "status": {
+              "ok": 79,
+              "outside_both_models": 1
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 1,
+            "qso_above_half": 69,
+            "median_log_r": 0.5919245578429279,
+            "spatial_weight_mean": 0.9685949375039254,
+            "density_levels": {
+              "1": 79
+            }
+          }
+        },
+        "south": {
+          "parent": {
+            "n": 176,
+            "eligible": 170,
+            "status": {
+              "ok": 170,
+              "outside_both_models": 6
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 6,
+            "qso_above_half": 157,
+            "median_log_r": 0.7500146490569868,
+            "spatial_weight_mean": 0.8146865277087594,
+            "density_levels": {
+              "1": 127,
+              "2": 43
+            }
+          },
+          "shared": {
+            "n": 176,
+            "eligible": 170,
+            "status": {
+              "ok": 170,
+              "outside_both_models": 6
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 6,
+            "qso_above_half": 157,
+            "median_log_r": 0.7500146490569868,
+            "spatial_weight_mean": 0.8146865277087594,
+            "density_levels": {
+              "1": 127,
+              "2": 43
+            }
+          }
+        }
+      },
+      "stars": {
+        "all": {
+          "parent": {
+            "n": 256,
+            "eligible": 213,
+            "status": {
+              "ok": 249,
+              "outside_both_models": 1,
+              "qso_prior_empty_at_this_magnitude": 6
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 1,
+            "qso_above_half": 1,
+            "median_log_r": -15.559457945006054,
+            "spatial_weight_mean": 0.8543346954741419,
+            "density_levels": {
+              "1": 186,
+              "2": 27
+            }
+          },
+          "shared": {
+            "n": 256,
+            "eligible": 208,
+            "status": {
+              "ok": 243,
+              "outside_both_models": 7,
+              "qso_prior_empty_at_this_magnitude": 6
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 7,
+            "qso_above_half": 1,
+            "median_log_r": -15.283950748356137,
+            "spatial_weight_mean": 0.851462894416418,
+            "density_levels": {
+              "1": 181,
+              "2": 27
+            }
+          }
+        },
+        "north": {
+          "parent": {
+            "n": 110,
+            "eligible": 91,
+            "status": {
+              "ok": 108,
+              "qso_prior_empty_at_this_magnitude": 2
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 0,
+            "qso_above_half": 1,
+            "median_log_r": -14.35012087884263,
+            "spatial_weight_mean": 0.9700414927006037,
+            "density_levels": {
+              "1": 91
+            }
+          },
+          "shared": {
+            "n": 110,
+            "eligible": 86,
+            "status": {
+              "ok": 102,
+              "qso_prior_empty_at_this_magnitude": 2,
+              "outside_both_models": 6
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 6,
+            "qso_above_half": 1,
+            "median_log_r": -13.96016873146803,
+            "spatial_weight_mean": 0.96982288067881,
+            "density_levels": {
+              "1": 86
+            }
+          }
+        },
+        "south": {
+          "parent": {
+            "n": 146,
+            "eligible": 122,
+            "status": {
+              "ok": 141,
+              "outside_both_models": 1,
+              "qso_prior_empty_at_this_magnitude": 4
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 1,
+            "qso_above_half": 0,
+            "median_log_r": -16.652543116729177,
+            "spatial_weight_mean": 0.7680288057396498,
+            "density_levels": {
+              "1": 95,
+              "2": 27
+            }
+          },
+          "shared": {
+            "n": 146,
+            "eligible": 122,
+            "status": {
+              "ok": 141,
+              "outside_both_models": 1,
+              "qso_prior_empty_at_this_magnitude": 4
+            },
+            "finite_eligible": true,
+            "probabilities_bounded": true,
+            "window_identity": true,
+            "hard_guard": true,
+            "outside_both": 1,
+            "qso_above_half": 0,
+            "median_log_r": -16.652543116729177,
+            "spatial_weight_mean": 0.7680288057396498,
+            "density_levels": {
+              "1": 95,
+              "2": 27
+            }
+          }
+        }
+      },
+      "auc": {
+        "parent": 0.9743270874023438,
+        "shared": 0.974761962890625
+      }
+    }
+  },
+  "grids": {
+    "north_18.5": {
+      "metrics": {
+        "n": 225,
+        "eligible": 160,
+        "status": {
+          "outside_both_models": 65,
+          "ok": 160
+        },
+        "finite_eligible": true,
+        "probabilities_bounded": true,
+        "window_identity": true,
+        "hard_guard": true,
+        "outside_both": 65,
+        "qso_above_half": 1,
+        "median_log_r": -44.21951559825983,
+        "spatial_weight_mean": 0.999124203179033,
+        "density_levels": {
+          "0": 160
+        }
+      },
+      "common_low_density": 214,
+      "high_qso_low_density": 0,
+      "parent_high_qso_low_density": 72,
+      "probe": {
+        "p_quasar": 0.00712832456148386,
+        "eligible": true
+      }
+    },
+    "north_21.0": {
+      "metrics": {
+        "n": 225,
+        "eligible": 161,
+        "status": {
+          "outside_both_models": 64,
+          "ok": 161
+        },
+        "finite_eligible": true,
+        "probabilities_bounded": true,
+        "window_identity": true,
+        "hard_guard": true,
+        "outside_both": 64,
+        "qso_above_half": 2,
+        "median_log_r": -43.06201357003039,
+        "spatial_weight_mean": 0.999124203179033,
+        "density_levels": {
+          "0": 161
+        }
+      },
+      "common_low_density": 209,
+      "high_qso_low_density": 0,
+      "parent_high_qso_low_density": 79
+    },
+    "north_24.3": {
+      "metrics": {
+        "n": 225,
+        "eligible": 0,
+        "status": {
+          "outside_both_models": 51,
+          "ok": 174
+        },
+        "finite_eligible": true,
+        "probabilities_bounded": true,
+        "window_identity": true,
+        "hard_guard": true,
+        "outside_both": 51,
+        "qso_above_half": 0,
+        "median_log_r": null,
+        "spatial_weight_mean": null,
+        "density_levels": {}
+      },
+      "common_low_density": 189,
+      "high_qso_low_density": 0,
+      "parent_high_qso_low_density": 0
+    },
+    "south_18.5": {
+      "metrics": {
+        "n": 225,
+        "eligible": 148,
+        "status": {
+          "outside_both_models": 77,
+          "ok": 148
+        },
+        "finite_eligible": true,
+        "probabilities_bounded": true,
+        "window_identity": true,
+        "hard_guard": true,
+        "outside_both": 77,
+        "qso_above_half": 1,
+        "median_log_r": -44.154607777845584,
+        "spatial_weight_mean": 0.9991242031790332,
+        "density_levels": {
+          "0": 148
+        }
+      },
+      "common_low_density": 220,
+      "high_qso_low_density": 0,
+      "parent_high_qso_low_density": 0,
+      "probe": {
+        "p_quasar": 0.019982486851313066,
+        "eligible": true
+      }
+    },
+    "south_21.0": {
+      "metrics": {
+        "n": 225,
+        "eligible": 147,
+        "status": {
+          "outside_both_models": 78,
+          "ok": 147
+        },
+        "finite_eligible": true,
+        "probabilities_bounded": true,
+        "window_identity": true,
+        "hard_guard": true,
+        "outside_both": 78,
+        "qso_above_half": 1,
+        "median_log_r": -42.76821556255224,
+        "spatial_weight_mean": 0.999124203179033,
+        "density_levels": {
+          "0": 147
+        }
+      },
+      "common_low_density": 217,
+      "high_qso_low_density": 0,
+      "parent_high_qso_low_density": 0
+    },
+    "south_24.3": {
+      "metrics": {
+        "n": 225,
+        "eligible": 158,
+        "status": {
+          "outside_both_models": 67,
+          "ok": 158
+        },
+        "finite_eligible": true,
+        "probabilities_bounded": true,
+        "window_identity": true,
+        "hard_guard": true,
+        "outside_both": 67,
+        "qso_above_half": 0,
+        "median_log_r": -51.1310557766072,
+        "spatial_weight_mean": 0.9991242031790332,
+        "density_levels": {
+          "0": 158
+        }
+      },
+      "common_low_density": 211,
+      "high_qso_low_density": 0,
+      "parent_high_qso_low_density": 0
+    }
+  },
+  "active_model_changed": false
+}

@@ -161,6 +161,16 @@ retired Legacy-only model; their rules still hold, their file names are archived
 **Commit and push after every tested step.** Run the suite to a file, commit
 only if it passed (8b), then `git push origin main`.
 
+**Automatic checkpoint cadence (user reaffirmed 30 September).** Do this
+without waiting for the user to ask: after each coherent, verified step,
+record findings in JOURNAL.md, update PROJECT_STATE.md when the state changes,
+commit the relevant code, tests, configuration, reports and plots, and push.
+Verify the remote branch contains the commit before reporting it as pushed.
+Before ending an implementation or experiment turn, check for outstanding
+task changes. If a checkpoint is blocked by failing checks or a push error,
+report the specific blocker and preserve the work. Do not include unrelated
+user files or use a blind timer to commit incomplete or untested work.
+
 **Full band requirement (28 September, clarified by the user).** The recovery
 must support any nonempty subset of all 41 bands from the seven surveys, by
 marginalising one joint model. A Legacy-only optical repair is insufficient.

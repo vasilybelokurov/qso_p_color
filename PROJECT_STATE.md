@@ -55,12 +55,35 @@ median QSO colours is 0.019 mag in g-r and 0.038 mag in r-z. These compare
 different populations, not same-object filter corrections. They contrast with
 the several-magnitude displacement of the explicit synthetic failing example.
 
-Next: measure how often this extrapolation affects a larger reserved northern
-sample and its highest-ranked background objects, before choosing the repair.
-Component-level observed-band training support remains a proposed guard repair,
-not an implemented or validated solution. Preserve one joint 41-band model
-and both hemispheres. No new guard, shape repair, retraining or promotion has
-occurred. The current evidence does not justify whole-model retraining.
+**North-South unification experiments completed (30 September).** The user
+requested tests of photometric unification and then required discussion of
+the shared-model design before further implementation or training. The
+DESI correction and a locally fitted cubic were compared on the same objects
+in cached overlap fields. On reserved bright samples (3,788 stellar-background
+objects and 116 QSOs), DESI leaves median g/r/z residuals of
+0.004/-0.006/-0.005 mag for stars and 0.005/0.011/0.033 mag for QSOs.
+QSO robust scatter remains 0.19/0.13/0.12 mag; only three independent bright
+evaluation fields contribute. The cubic has no clear overall QSO advantage.
+
+A separate diagnostic ties northern optical coordinates to existing southern
+shapes through the DESI relation and measured total residual scatter. The
+72 and 79 northern high-QSO low-density grid points become zero; the explicit
+probe changes from 0.995 to 0.007 total-QSO score. Legacy-optical AUC on the
+saved small real-object sample changes from 0.9859 to 0.9878. This is not a
+pooled fit: priors, catch-all and spatial weights are numerically inherited,
+and Legacy W1/W2 are not tied. No production model was changed or promoted.
+Reports, figures, limitations and reproducible locations are in
+`docs/LEGACY_UNIFICATION_2026-09-30.md`.
+
+Next: discuss and settle the measurement relation, including faint/negative
+flux, missing bands, residual uncertainty and WISE measurement conventions.
+DESI is the recommended starting relation, not a finalized production design.
+If adopted, pooled fitting requires the joint QSO slices and stellar model to
+be refitted, spatial component weights re-estimated, the catch-all rebuilt and
+affected priors reviewed. Reuse the existing data and frozen roles. Do not
+launch that fitting or implement the production design ahead of this discussion.
+Component-level training support remains an additional proposed guard, not an
+implemented repair. Real-catalogue incidence and full calibration remain open.
 
 Main evidence: `docs/FULL_SAMPLE_RELEASE_2026-09-30.md` and JSON.
 Reproduce with `scripts/validate_full_sample_release.py` and
@@ -209,13 +232,18 @@ The old capped recovery scripts are historical and are not this run's entry poin
 
 1. Items 1–3 are complete. Item 4 exposed the northern component-support
    failure documented above; activation is held for that measured reason.
-2. Repair component support using actual observed training information, with
-   calibration-role checks, then rerun the saved complete-score audit.
-3. Promote only after the focused repair passes; retain the old bundle for
-   rollback. Do not reopen blanket fitting or acquisition.
+2. Settle the proposed shared-model measurement relation with the user, using
+   the completed overlap and diagnostic tests above. No pooled retraining has
+   been launched; do not infer authorization from historical fitting commands.
+3. Validate any agreed candidate on reserved objects and the saved tail tests
+   before promotion; retain the old bundle for rollback. Acquisition is complete.
 
 ## Working rules
 
+- Automatically commit and push each coherent verified step without another
+  user reminder. Update state and findings first, verify the remote commit,
+  and report any failure explicitly. Check outstanding task changes before
+  ending a work turn. Stage only relevant files; the full rule is in AGENTS.md.
 - Read this state, the location index and recent journal entries before acting.
 - Before expensive work, record the missing fact, its purpose, local evidence,
   proposed query and measurable completion criterion. An old checklist item is
