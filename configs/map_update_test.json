@@ -1,0 +1,33 @@
+{
+  "prepared_run": "models/multisurvey_psf/work/unified_full/20260930/5fd837e5cafee6c1",
+  "nuisance_bundle": "models/multisurvey_psf/work/unified_pilot/20260930/b5c55adf3698419d/bundle",
+  "previous_trial": "models/multisurvey_psf/work/unified_covariance_trial/20260930/8176eab7484bf5e1",
+  "output": "models/multisurvey_psf/work/map_update_test/20260930",
+  "cases": ["qso_13", "qso_15", "qso_16", "qso_22", "qso_31", "qso_39"],
+  "case_roles": {
+    "qso_13": "worst historical decline (z=1.45, 114,657 rows)",
+    "qso_15": "most historical declines (z=1.65, 119,828 rows)",
+    "qso_16": "control: historically converged without declines (z=1.75)",
+    "qso_22": "declining, capped (z=2.35)",
+    "qso_31": "sparse declining, capped (z=3.25)",
+    "qso_39": "sparse slow edge slice where the eigenvalue floor lost 0.47 nats (z=4.05)"
+  },
+  "updates": ["additive", "map"],
+  "regularization": 0.001,
+  "prior_strength": 1.0,
+  "tolerance": 0.0001,
+  "max_iter": 120,
+  "block_iterations": 20,
+  "wall_budget_seconds": 9000,
+  "workers": 8,
+  "development_rows_per_hemisphere": 512,
+  "score_rows_per_hemisphere": 64,
+  "random_background_score_rows": 0,
+  "seed": 20261004,
+  "roundoff_tolerance": 1e-9,
+  "acceptance": {
+    "maximum_mean_density_loss": 0.02,
+    "maximum_auc_loss": 0.002
+  },
+  "policy": "Bounded test of the MAP covariance update against the historical additive update. All fit/select rows of six QSO slices, identical canonical warm starts, production fit_projected code path, tolerance 1e-4, at most 120 updates, 2.5 h wall budget checked between 20-update blocks. Background not refitted (monotone, only slow). Development rows are role 3 and are added to the final-assessment exclusions; role 2 untouched. Nuisance terms fixed to the unified pilot bundle. No production change or promotion."
+}

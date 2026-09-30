@@ -85,16 +85,40 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
                   expected_rows: int, max_iter: int, tol: float,
                   regularization: float, progress: Callable | None = None,
                   initial_history: tuple[float, ...] = (),
-                  accumulator: Callable | None = None) -> XDFitResult:
+                  accumulator: Callable | None = None,
+                  covariance_update: str = 'additive',
+                  prior_strength: float = 1.0) -> XDFitResult:
     """Fit all rows using fixed operators; check row accounting on every pass.
 
-    ``progress(iteration, model, mean_log_density, rows)`` receives each updated
-    mixture. The reported history is the pre-update density in native mag units.
-    A restart supplies that history with its corresponding updated mixture.
+    ``progress(iteration, model, mean_objective, rows)`` receives each updated
+    mixture. The reported history is the pre-update objective per row in native
+    mag units. A restart supplies that history with its updated mixture.
     An optional accumulator parallelizes the E step, retaining one global update.
+
+    ``covariance_update='additive'`` reproduces the historical update, which
+    adds ``regularization`` (mag^2) to every covariance after the M step. It
+    maximises no fixed objective, so its log likelihood can decline; it stops
+    only on a non-negative change below ``tol``. ``'map'`` is the conjugate
+    prior update of Bovy, Hogg & Roweis (2011, eqs. 19-20):
+    ``V = (q S + nu w I) / (q + nu)`` with ``w = regularization`` and
+    ``nu = prior_strength``, from the per-component log prior
+    ``-(nu/2) [log|V| + w tr(V^-1)]``. Then the history is the mean log
+    posterior (likelihood plus log prior, per row), which EM cannot decrease;
+    the fit stops when its absolute relative change is below ``tol``.
+    ``mean_loglike`` is always the plain log likelihood of the returned model.
     """
     if expected_rows < 1 or max_iter < 1 or tol < 0 or regularization < 0:
         raise ValueError('invalid projected fit settings')
+    if covariance_update not in ('additive', 'map'):
+        raise ValueError('covariance_update must be additive or map')
+    if covariance_update == 'map' and not (regularization > 0 and np.isfinite(prior_strength) and prior_strength > 0):
+        raise ValueError('map covariance update needs positive regularization and prior strength')
+    use_map = covariance_update == 'map'
+
+    def stationary(new, old):
+        change = new - old
+        scale = tol * max(1., abs(old))
+        return abs(change) < scale if use_map else 0 <= change < scale
     for h, b, t in operators.values():
         native_mixture(init, h, b, t)
     history = list(initial_history)
@@ -103,7 +127,7 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     mix, converged, it = init, False, len(history)
     accumulate = accumulate_projected if accumulator is None else accumulator
     if len(history) > 1:
-        converged = 0 <= history[-1]-history[-2] < tol * max(1., abs(history[-2]))
+        converged = stationary(history[-1], history[-2])
     for it in range(it + 1, (it if converged else max_iter) + 1):
         count, first, second, ll, n = accumulate(source, mix, operators)
         if n != expected_rows:
@@ -113,13 +137,21 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
         means, covs = mix.means.copy(), mix.covs.copy()
         means[alive] += shift[alive]
         c = second[alive] / count[alive, None, None] - shift[alive, :, None] * shift[alive, None, :]
-        covs[alive] = .5 * (c + c.swapaxes(-1, -2)) + regularization * np.eye(mix.n_dim)
+        c = .5 * (c + c.swapaxes(-1, -2))
+        if use_map:
+            # Scatter about the new mean, S = q c; prior adds nu w I and nu counts.
+            q = count[alive, None, None]
+            covs[alive] = (q*c + prior_strength*regularization*np.eye(mix.n_dim)) / (q + prior_strength)
+            objective = ll + log_covariance_prior(mix.covs, regularization, prior_strength)
+        else:
+            covs[alive] = c + regularization * np.eye(mix.n_dim)
+            objective = ll
         np.linalg.cholesky(covs)
         mix = GaussianMixture(count / count.sum(), means, covs, init.labels)
-        history.append(ll / n)
+        history.append(objective / n)
         if progress is not None:
             progress(it, mix, history[-1], n)
-        if len(history) > 1 and 0 <= history[-1] - history[-2] < tol * max(1., abs(history[-2])):
+        if len(history) > 1 and stationary(history[-1], history[-2]):
             converged = True
             break
     ll, n = 0., 0
@@ -132,3 +164,16 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     if n != expected_rows:
         raise ValueError('row accounting changed during final evaluation')
     return XDFitResult(mix, it, float(ll/n), converged, history)
+
+
+def log_covariance_prior(covs: np.ndarray, regularization: float, prior_strength: float) -> float:
+    """Summed log prior ``-(nu/2)[log|V| + w tr(V^-1)]`` over components (unnormalised).
+
+    ``covs`` in mag^2 with shape (K, d, d); ``regularization`` is ``w`` in mag^2.
+    Uses Cholesky factors only; the additive constant is omitted.
+    """
+    chol = np.linalg.cholesky(covs)
+    logdet = 2*np.log(np.diagonal(chol, axis1=-2, axis2=-1)).sum(axis=-1)
+    eye = np.broadcast_to(np.eye(covs.shape[-1]), covs.shape)
+    trace_inv = (np.linalg.solve(chol, eye)**2).sum(axis=(-2, -1))
+    return float(-.5*prior_strength*(logdet + regularization*trace_inv).sum())

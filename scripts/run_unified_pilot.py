@@ -130,12 +130,16 @@ def fit_task(task,cfg,root):
     with context as accumulator:
         fit=fit_projected(source,init=init,operators={0:op},expected_rows=len(rr),
             max_iter=cfg['max_iter'],tol=cfg['tol'],regularization=cfg['regularization'],
-            progress=progress,initial_history=initial_history,accumulator=accumulator)
+            progress=progress,initial_history=initial_history,accumulator=accumulator,
+            covariance_update=cfg.get('covariance_update','additive'),prior_strength=cfg.get('prior_strength',1.0))
     write_json(out,dict(task=task['name'],mixture=fit.mixture.to_dict(),n=len(rr),k=task['k'],
         n_iter=fit.n_iter,history=fit.history,converged=fit.converged,mean_loglike=fit.mean_loglike,
         elapsed_seconds=time.monotonic()-start,fit_rows_sha256=row_hash,
-        resumed_iteration=len(initial_history),
-        likelihood_decreased=bool(np.any(np.diff(fit.history+[fit.mean_loglike])<0))))
+        resumed_iteration=len(initial_history),covariance_update=cfg.get('covariance_update','additive'),
+        history_quantity='mean log posterior' if cfg.get('covariance_update')=='map' else 'mean log likelihood',
+        # A MAP history is likelihood plus log prior; never append the plain likelihood to it.
+        likelihood_decreased=bool(np.any(np.diff(fit.history if cfg.get('covariance_update')=='map'
+                                                 else fit.history+[fit.mean_loglike])<0))))
     write_json(root/'progress'/(task['name']+'.json'),dict(iteration=fit.n_iter,complete=True,rows=len(rr),elapsed_seconds=time.monotonic()-start))
     return task['name']
 
