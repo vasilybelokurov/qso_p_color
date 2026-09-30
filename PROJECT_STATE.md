@@ -8,6 +8,32 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
+**LATEST USER DIRECTION: UNIFY; USE THE 5-SIGMA SCIENCE DOMAIN.**
+The user separates unification from extreme-outlier classification and rejects
+an investigation of sources below the detection limits as a release blocker.
+The previous proposed faint-end stellar refit is superseded. The requested
+plan is `docs/UNIFIED_MODEL_RETRAINING_PLAN_2026-09-30.md`, incorporating the
+user's `docs/xd_qso_contaminant_ood.tex`. This is planning, not authorization
+from this turn to launch production retraining. No new fit has started.
+
+The existing stellar-named sample is already empirical PSF catalogue background
+with known QSOs removed, not a pure-star selection. Reuse it as the contaminant
+population. Keep same-z/other-z QSOs, contaminant background and catch-all;
+add a calibrated QSO-support percentile as a separate ranking eligibility
+criterion, not a replacement binary score or a probability multiplier.
+
+A saved-prediction re-summary gives northern stellar loss 0.0279 nats on
+35,992 objects with >=5-sigma reference-band detection, within the existing
+0.1-nat tolerance. Requiring >=5 sigma in any grz band leaves a 0.1701-nat loss
+under the old reference choice: most faint-reference objects are detected in
+another band. Use actual flux/error detection selection, preserve weak/negative
+other bands, and prefer a >=5-sigma reference when present. That reference
+change still needs a focused evaluation; do not claim it has already passed.
+Numbers: `docs/POOLED_OPTICAL_DETECTION_DOMAIN_2026-09-30.json`.
+The next implementation is the full shared observation operator, empirical
+background/support integration, then one uncapped pooled campaign and focused
+validation, as outlined in the plan. No downloads or ultra-faint refit campaign.
+
 **POOLED OPTICAL PROTOTYPE COMPLETE (30 September); FEASIBLE, ONE FAILED CHECK.**
 All fitting and validation have finished. No prototype worker needs restarting.
 Read `docs/POOLED_OPTICAL_PROTOTYPE_2026-09-30.md` for the decision, comparison,
@@ -46,15 +72,11 @@ convergence/refit campaign is authorized by these results. The QSO scatter
 choice used held-out diagnostics, so the reused test sample is development
 evidence rather than independent confirmation of that choice.
 
-Recommendation: keep the shared latent observation-model approach. Next,
-check/calibrate the relation in the actual asinh coordinates at the faint end
-using existing fit/select overlap measurements, including their errors, before
-one targeted stellar retry. A faint-end relation must improve paired residuals
-before spending compute on a refit; do not assume it is the cause or widen
-sample cuts to hide the loss. Retain the southern grid points as regressions.
-Full 41-band integration/retraining follows that bounded check, not another
-broad convergence study. No such follow-up fit has started. The active model
-remains `models/multisurvey_psf/630f47f63b6f0694`; no downloads or promotion.
+The earlier proposal to investigate and refit the faint stellar population
+is superseded by the latest 5-sigma-domain plan above. The prototype metrics
+remain the historical measurements; do not relabel the original failed check
+as a pass or treat the entire faint bin as undetected. Production remains
+`models/multisurvey_psf/630f47f63b6f0694` until the planned replacement is ready.
 
 **COMPLETE-SCORE AUDIT FINISHED; ACTIVATION HELD (30 September).**
 The full-data candidate improves real-object ranking but fails the northern
@@ -147,9 +169,9 @@ recorded in the unification report's design-review section: distinguish 41
 input labels from 38 optical-only or 36 fully shared latent coordinates,
 calibrate an errors-in-both-systems affine relation before density fitting,
 start with simple QSO residuals rather than 43 independent offsets, and preserve
-native reference-band conditioning and priors. General projected XD training
-is not yet implemented. These are discussion recommendations; no implementation
-or pooled training was launched in response to the proposal.
+native reference-band conditioning and priors. These were discussion recommendations at that stage. General projected XD
+and pooled optical training have since been implemented and tested as recorded
+above; full-band integration remains to be done.
 
 Main evidence: `docs/FULL_SAMPLE_RELEASE_2026-09-30.md` and JSON.
 Reproduce with `scripts/validate_full_sample_release.py` and

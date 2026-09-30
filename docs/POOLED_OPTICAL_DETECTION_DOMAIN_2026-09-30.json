@@ -1,0 +1,115 @@
+{
+  "source_report": "docs/POOLED_OPTICAL_PROTOTYPE_2026-09-30.json",
+  "threshold_snr": 5,
+  "note": "Post-hoc re-summary of saved predictions; no fits or likelihoods recomputed. S/N is native flux divided by its error, reconstructed by exact inverse asinh propagation. Any-band selection here refers to Legacy grz only; other survey detection metadata is not included.",
+  "results": {
+    "qso_south": {
+      "all": {
+        "n": 310294,
+        "mean_delta_logp": -0.0015884075207388492,
+        "median_delta_logp": 0.0017583423538183318
+      },
+      "reference_snr_ge5": {
+        "n": 309747,
+        "mean_delta_logp": -0.0015776326315940612,
+        "median_delta_logp": 0.0017562790936946904
+      },
+      "any_grz_snr_ge5": {
+        "n": 310285,
+        "mean_delta_logp": -0.001589265518488399,
+        "median_delta_logp": 0.001757783083386144
+      },
+      "no_grz_snr_ge5": {
+        "n": 9,
+        "mean_delta_logp": 0.02799201822581527,
+        "median_delta_logp": 0.013889144783787444
+      },
+      "reference_mag_ge24": {
+        "n": 723,
+        "any_grz_snr_ge5": 717,
+        "reference_snr_ge5": 307
+      }
+    },
+    "qso_north": {
+      "all": {
+        "n": 58227,
+        "mean_delta_logp": -0.03059259919987406,
+        "median_delta_logp": -0.06843516238271441
+      },
+      "reference_snr_ge5": {
+        "n": 57884,
+        "mean_delta_logp": -0.030419617180673614,
+        "median_delta_logp": -0.06828562654412007
+      },
+      "any_grz_snr_ge5": {
+        "n": 58227,
+        "mean_delta_logp": -0.03059259919987406,
+        "median_delta_logp": -0.06843516238271441
+      },
+      "no_grz_snr_ge5": {
+        "n": 0,
+        "mean_delta_logp": null,
+        "median_delta_logp": null
+      },
+      "reference_mag_ge24": {
+        "n": 79,
+        "any_grz_snr_ge5": 79,
+        "reference_snr_ge5": 0
+      }
+    },
+    "stars_south": {
+      "all": {
+        "n": 439886,
+        "mean_delta_logp": 0.0037833941152328452,
+        "median_delta_logp": 6.653546352408668e-05
+      },
+      "reference_snr_ge5": {
+        "n": 291674,
+        "mean_delta_logp": -0.003309585237072911,
+        "median_delta_logp": -0.0028646103975062953
+      },
+      "any_grz_snr_ge5": {
+        "n": 407822,
+        "mean_delta_logp": 0.006206715554444995,
+        "median_delta_logp": 0.0026985652505417956
+      },
+      "no_grz_snr_ge5": {
+        "n": 32064,
+        "mean_delta_logp": -0.02703883006086424,
+        "median_delta_logp": -0.011888105498982837
+      },
+      "reference_mag_ge24": {
+        "n": 208169,
+        "any_grz_snr_ge5": 177186,
+        "reference_snr_ge5": 65421
+      }
+    },
+    "stars_north": {
+      "all": {
+        "n": 60825,
+        "mean_delta_logp": -0.17062879685791527,
+        "median_delta_logp": -0.09993097074609825
+      },
+      "reference_snr_ge5": {
+        "n": 35992,
+        "mean_delta_logp": -0.02792818062379191,
+        "median_delta_logp": -0.0029940757357184156
+      },
+      "any_grz_snr_ge5": {
+        "n": 59104,
+        "mean_delta_logp": -0.1701244689184555,
+        "median_delta_logp": -0.09598785949947741
+      },
+      "no_grz_snr_ge5": {
+        "n": 1721,
+        "mean_delta_logp": -0.18794884249058777,
+        "median_delta_logp": -0.25015583921330253
+      },
+      "reference_mag_ge24": {
+        "n": 13821,
+        "any_grz_snr_ge5": 13122,
+        "reference_snr_ge5": 0
+      }
+    }
+  }
+}
