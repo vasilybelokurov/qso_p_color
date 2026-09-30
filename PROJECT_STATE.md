@@ -1,45 +1,44 @@
 # Current project state
 
-**CONVERGENCE REVIEW AND CONTINUATION LAUNCHED (30 September, 00:22 UTC).**
-The user authorized a saved-fit diagnostic and up to 100 further iterations.
-Coordinator 2282 and monitor 2283 use
-`configs/convergence_continuation.json` and `scripts/review_fit_convergence.py`.
-Current output: `models/multisurvey_psf/work/convergence_continuation/20260930/`.
-Check its `launch.json`, `execution.json`, `run.log`, per-fit status and
-`monitor_progress.json` before acting on recorded PIDs. No other trainer should
-be started. The QSO phase shares four workers between continuation and decline
-investigation; the stellar phase then uses four E-step workers.
+**CONVERGENCE REVIEW AND COVARIANCE-FLOOR TRIAL COMPLETE (30 September).**
+Both diagnostic runs have finished. The additive-update continuation used
+100% of its additional QSO and stellar EM budgets. QSO slices 01 and 40
+converged at iterations 398 and 352; nine other continued slices and the stars
+reached 400 without convergence. The 25 previously converged QSO fits were
+retained; seven declining slices were held for investigation. Their fixed-row
+prediction comparisons show large changes for some objects, so the result is
+not a blanket stability certification. Results:
+`docs/CONVERGENCE_CONTINUATION_RESULTS_2026-09-30.json`.
 
-The audit found 12 improving unfinished fits: stars and QSO slices
-00, 01, 02, 03, 04, 37, 38, 39, 40, 41, 42. These resume at iteration 300,
-with unchanged K, data, regularization and stopping tolerance, up to iteration
-400. Seven QSO fits (13, 15, 22, 27, 31, 33, 35) have declining likelihoods and
-are held: full-data one-step diagnostics compare the configured covariance
-addition with a zero-addition counterfactual, without replacing either fit.
-All 19 mixtures have finite parameters and positive-definite covariances.
-The 25 previously converged QSO fits are retained unchanged. Some of those
-converged histories also contain declines; their flags are retained in the full
-audit and their convergence is not a certification of predictive stability.
+The separate covariance-floor trial completed all 20 iterations on each of the
+seven held slices (140 updates; 100% of its diagnostic compute budget).
+Every update increased full-data likelihood, with total gains of 0.40--0.71
+nats/object and covariance eigenvalues at or above 0.001 within roundoff.
+None met the original stopping tolerance after 20 steps. The trial demonstrates
+consistent optimization behaviour, not converged or independently validated
+models. Evidence: `docs/COVARIANCE_FLOOR_TRIAL_2026-09-30.json`; full histories,
+mixtures, fixed-row probes and automatic `REPORT.md` are in
+`models/multisurvey_psf/work/covariance_floor_trial/20260930/`.
 
-**Follow-up queued (30 September, 00:45 UTC).** The 11 improving QSO continuations
-have finished: slices 01 and 40 converged at iterations 398 and 352; the other
-nine reached iteration 400 without convergence. Their fixed-row prediction
-comparisons are saved. Stellar continuation is active. All seven one-step
-covariance-floor diagnostics completed: every full-data likelihood improved
-while retaining minimum eigenvalue 0.001 (within roundoff). Evidence:
-`docs/COVARIANCE_FLOOR_DIAGNOSTIC_2026-09-30.json`.
+The immediate next implementation is to add the tested eigenvalue-floor
+covariance update coherently to the candidate trainers, retaining the old
+additive update only as an explicit reproducibility mode. Then reassess
+component selection on fit-only checkpoints scored on selection rows, and
+finish the selected final shapes under the consistent update. Convergence
+history from the old update must not silently certify a new-update fit.
+The same data, reference transform, band marginalization and frozen roles are
+retained. The active model has not been changed. A new candidate still needs
+spatial weights, population priors, calibration-role catch-all and reserved
+validation; full probability calibration remains separate.
 
-The next diagnostic is a separate 20-iteration constrained-update trial on the
-seven held slices. `configs/covariance_floor_trial.json` and
-`scripts/trial_covariance_floor.py --fit` define it. Its output is
-`models/multisurvey_psf/work/covariance_floor_trial/20260930/`; read that
-`execution.json` and `launch.json` before scheduling anything. Coordinator 3588 is
-waiting for
-the current stellar coordinator to finish normally, then use four workers and
-save `REPORT.md` and fixed-row prediction comparisons automatically. It does
-not change the active model or the existing continuation. This tests whether
-the one-step improvement persists before adopting the covariance update in
-candidate training and reassessing component selection on the correct roles.
+The completed additive continuation is under
+`models/multisurvey_psf/work/convergence_continuation/20260930/` (former
+coordinator 2282 and monitor 2283). The floor trial's coordinator was 21931.
+Its initial queued launch 3588 failed before fitting on a sandbox process-health
+permission check; `launch_failed_sandbox.json` retains that record. The
+permitted restart began after stellar completion. Do not relaunch either
+completed run from its historical command. All parent results and the active
+pointer are preserved. No downloads are needed.
 
 The original scheduled run finished at 23:08 UTC on 29 September; its density-EM
 compute is 100% overall, QSO and stellar. This continuation has a separate
@@ -55,7 +54,7 @@ fitting and reserved validation remain. No further acquisition is needed.
 Details and restart rules: [continuation record](docs/CONVERGENCE_CONTINUATION_2026-09-30.md).
 Initial 19-fit table: [convergence audit](docs/CONVERGENCE_AUDIT_2026-09-30.md).
 
-Updated 30 September 2026 after the user authorized and launched the convergence review.
+Updated 30 September 2026 after verifying both completed diagnostic runs.
 Read this file before scheduling work. It supersedes
 older progress statements in the dated preparation documents; those documents
 retain the selection rationale and provenance. `JOURNAL.md` records the history.

@@ -1,0 +1,143 @@
+{
+  "directory": "models/multisurvey_psf/work/covariance_floor_trial/20260930",
+  "trial_compute_percent": 100,
+  "all_140_updates_improved": true,
+  "results": [
+    {
+      "name": "qso_13",
+      "rows": 114657,
+      "k": 20,
+      "iterations": 20,
+      "total_gain": 0.4581429198565047,
+      "min_step_gain": 0.005213956769473223,
+      "last_step_gain": 0.005213956769473223,
+      "min_covariance_eigenvalue": 0.0009999999999975079,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.4491879398562313,
+        "median_abs_change": 0.4474397991823875,
+        "p95_abs_change": 2.32645193100398,
+        "max_abs_change": 28.31623505012575
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_13.json"
+    },
+    {
+      "name": "qso_15",
+      "rows": 119828,
+      "k": 20,
+      "iterations": 20,
+      "total_gain": 0.4479944464781468,
+      "min_step_gain": 0.007237848523297368,
+      "last_step_gain": 0.007237848523297368,
+      "min_covariance_eigenvalue": 0.0009999999999986816,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.45123726338916553,
+        "median_abs_change": 0.41350020680502153,
+        "p95_abs_change": 2.308993305835186,
+        "max_abs_change": 12.629603745171417
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_15.json"
+    },
+    {
+      "name": "qso_22",
+      "rows": 81316,
+      "k": 8,
+      "iterations": 20,
+      "total_gain": 0.39953720611599286,
+      "min_step_gain": 0.0053061129900594485,
+      "last_step_gain": 0.0053061129900594485,
+      "min_covariance_eigenvalue": 0.0009999999999987397,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.3863790916295441,
+        "median_abs_change": 0.36756113698103077,
+        "p95_abs_change": 2.217684043374619,
+        "max_abs_change": 14.580565955913091
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_22.json"
+    },
+    {
+      "name": "qso_27",
+      "rows": 34276,
+      "k": 8,
+      "iterations": 20,
+      "total_gain": 0.4205385016635166,
+      "min_step_gain": 0.005500819472049895,
+      "last_step_gain": 0.005500819472049895,
+      "min_covariance_eigenvalue": 0.0009999999999974806,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.42263555673731834,
+        "median_abs_change": 0.4231718311021244,
+        "p95_abs_change": 2.2745089999947776,
+        "max_abs_change": 15.40584213500281
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_27.json"
+    },
+    {
+      "name": "qso_31",
+      "rows": 15955,
+      "k": 8,
+      "iterations": 20,
+      "total_gain": 0.5294011548022014,
+      "min_step_gain": 0.0066638006561987725,
+      "last_step_gain": 0.0066638006561987725,
+      "min_covariance_eigenvalue": 0.0009999999999981048,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.5200803187921298,
+        "median_abs_change": 0.49216567076252127,
+        "p95_abs_change": 2.466327988203479,
+        "max_abs_change": 15.214898455911477
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_31.json"
+    },
+    {
+      "name": "qso_33",
+      "rows": 8250,
+      "k": 8,
+      "iterations": 20,
+      "total_gain": 0.6179318989678082,
+      "min_step_gain": 0.00608090522944809,
+      "last_step_gain": 0.00608090522944809,
+      "min_covariance_eigenvalue": 0.0009999999999976527,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.6167376542673411,
+        "median_abs_change": 0.5498731319994206,
+        "p95_abs_change": 2.7575159636577684,
+        "max_abs_change": 11.893233976826481
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_33.json"
+    },
+    {
+      "name": "qso_35",
+      "rows": 5126,
+      "k": 8,
+      "iterations": 20,
+      "total_gain": 0.707029425391108,
+      "min_step_gain": 0.006652618238973773,
+      "last_step_gain": 0.006652618238973773,
+      "min_covariance_eigenvalue": 0.0009999999999872338,
+      "meets_original_gain_tolerance": false,
+      "prediction_change": {
+        "rows": 5126,
+        "mean_change": 0.7047758827990974,
+        "median_abs_change": 0.6663276279208199,
+        "p95_abs_change": 2.9862843741630214,
+        "max_abs_change": 8.872892969628246
+      },
+      "detail_path": "models/multisurvey_psf/work/covariance_floor_trial/20260930/qso_35.json"
+    }
+  ],
+  "active_model_changed": false,
+  "release_ready": false,
+  "recommendation": "Integrate the eigenvalue-floor update coherently in the candidate trainers, preserve additive mode for reproducibility, then reassess fit-only component selection and final-fit convergence. Preserve all frozen roles; this experiment is not independent validation."
+}

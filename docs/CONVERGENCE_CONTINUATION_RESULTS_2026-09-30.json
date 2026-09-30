@@ -1,0 +1,223 @@
+{
+  "source": "models/multisurvey_psf/work/convergence_continuation/20260930",
+  "completion_time": "2026-09-30T03:13:26Z",
+  "additional_em_percent": 100.0,
+  "continued_fits": {
+    "background": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 1975894,
+      "k": 20,
+      "last_gain": 7.811733658247277e-05,
+      "threshold": 3.797434862816491e-05,
+      "gain_threshold_ratio": 2.057108005916776,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.013620156754354039,
+        "median_abs_change": 0.024866288139948622,
+        "p95_abs_change": 0.16251266915873633,
+        "max_abs_change": 4.677925378278138
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/background.prediction_change.json"
+    },
+    "qso_00": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 1137,
+      "k": 4,
+      "last_gain": 8.976549771411158e-05,
+      "threshold": 2.8920560768215423e-05,
+      "gain_threshold_ratio": 3.1038643556582275,
+      "prediction_change": {
+        "rows": 1137,
+        "mean_change": 0.011844997462354047,
+        "median_abs_change": 0.0018225903563724444,
+        "p95_abs_change": 0.1380634901354363,
+        "max_abs_change": 0.6229903466554187
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_00.prediction_change.json"
+    },
+    "qso_01": {
+      "iterations": 398,
+      "converged": true,
+      "training_rows": 2523,
+      "k": 20,
+      "last_gain": 2.470308340107863e-05,
+      "threshold": 4.614799983479804e-05,
+      "gain_threshold_ratio": 0.5353012804349365,
+      "prediction_change": {
+        "rows": 2523,
+        "mean_change": 0.028636830930689437,
+        "median_abs_change": 0.07859013489076538,
+        "p95_abs_change": 0.5020826254395014,
+        "max_abs_change": 7.790157831786188
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_01.prediction_change.json"
+    },
+    "qso_02": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 5910,
+      "k": 20,
+      "last_gain": 8.655485065389712e-05,
+      "threshold": 4.8780931831420345e-05,
+      "gain_threshold_ratio": 1.7743582872303019,
+      "prediction_change": {
+        "rows": 5910,
+        "mean_change": 0.007654823887047962,
+        "median_abs_change": 0.021766554795797255,
+        "p95_abs_change": 0.12530298959478006,
+        "max_abs_change": 3.193384902469373
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_02.prediction_change.json"
+    },
+    "qso_03": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 11802,
+      "k": 20,
+      "last_gain": 0.00021395549360203603,
+      "threshold": 4.785283589314274e-05,
+      "gain_threshold_ratio": 4.4711141901768805,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.019848247230567086,
+        "median_abs_change": 0.034573464677040366,
+        "p95_abs_change": 0.28229094038531666,
+        "max_abs_change": 4.8539504824314985
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_03.prediction_change.json"
+    },
+    "qso_04": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 20080,
+      "k": 20,
+      "last_gain": 0.0009196124380252968,
+      "threshold": 4.661009534932675e-05,
+      "gain_threshold_ratio": 19.729898236275115,
+      "prediction_change": {
+        "rows": 8192,
+        "mean_change": 0.041595001476364885,
+        "median_abs_change": 0.19720973203643632,
+        "p95_abs_change": 0.9449865245884501,
+        "max_abs_change": 12.062603522882346
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_04.prediction_change.json"
+    },
+    "qso_37": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 3745,
+      "k": 8,
+      "last_gain": 2.2479325469060285e-05,
+      "threshold": 1.6639817961059946e-05,
+      "gain_threshold_ratio": 1.3509357807679025,
+      "prediction_change": {
+        "rows": 3745,
+        "mean_change": 0.002682978437734439,
+        "median_abs_change": 0.001985378324657283,
+        "p95_abs_change": 0.02141364829474063,
+        "max_abs_change": 0.7698622713374803
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_37.prediction_change.json"
+    },
+    "qso_38": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 2941,
+      "k": 8,
+      "last_gain": 0.00012362217120998054,
+      "threshold": 2.1119291517520354e-05,
+      "gain_threshold_ratio": 5.853518860110663,
+      "prediction_change": {
+        "rows": 2941,
+        "mean_change": 0.02786795899796084,
+        "median_abs_change": 0.03860719404831525,
+        "p95_abs_change": 0.2637083930717783,
+        "max_abs_change": 2.757132285194694
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_38.prediction_change.json"
+    },
+    "qso_39": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 2152,
+      "k": 8,
+      "last_gain": 0.00014027083142975627,
+      "threshold": 2.5716106908030455e-05,
+      "gain_threshold_ratio": 5.45459046081168,
+      "prediction_change": {
+        "rows": 2152,
+        "mean_change": 0.04089804235108276,
+        "median_abs_change": 0.058726166229694066,
+        "p95_abs_change": 0.3967619477842299,
+        "max_abs_change": 5.847096597743709
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_39.prediction_change.json"
+    },
+    "qso_40": {
+      "iterations": 352,
+      "converged": true,
+      "training_rows": 1465,
+      "k": 8,
+      "last_gain": 2.904567731043528e-05,
+      "threshold": 2.9133029463739954e-05,
+      "gain_threshold_ratio": 0.9970016110609645,
+      "prediction_change": {
+        "rows": 1465,
+        "mean_change": 0.0021318367330245367,
+        "median_abs_change": 0.0053363974289011296,
+        "p95_abs_change": 0.03192482522330033,
+        "max_abs_change": 0.3867484278082687
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_40.prediction_change.json"
+    },
+    "qso_41": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 1054,
+      "k": 12,
+      "last_gain": 0.00019351411009704833,
+      "threshold": 3.314357310005471e-05,
+      "gain_threshold_ratio": 5.838661676967138,
+      "prediction_change": {
+        "rows": 1054,
+        "mean_change": 0.01466867319050743,
+        "median_abs_change": 0.02255740547997398,
+        "p95_abs_change": 0.15410033741489648,
+        "max_abs_change": 2.9880436481948145
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_41.prediction_change.json"
+    },
+    "qso_42": {
+      "iterations": 400,
+      "converged": false,
+      "training_rows": 640,
+      "k": 8,
+      "last_gain": 3.926437116996695e-05,
+      "threshold": 2.9691901839943917e-05,
+      "gain_threshold_ratio": 1.3223932701119665,
+      "prediction_change": {
+        "rows": 640,
+        "mean_change": 0.004864742820196313,
+        "median_abs_change": 0.0007262283983445195,
+        "p95_abs_change": 0.03953454939120358,
+        "max_abs_change": 0.2683941147015467
+      },
+      "detail_path": "models/multisurvey_psf/work/convergence_continuation/20260930/qso_42.prediction_change.json"
+    }
+  },
+  "retained_previously_converged_qso": 25,
+  "held_qso": [
+    "qso_13",
+    "qso_15",
+    "qso_22",
+    "qso_27",
+    "qso_31",
+    "qso_33",
+    "qso_35"
+  ],
+  "release_ready": false,
+  "interpretation": "Training-row sensitivity only. Continuation met tolerance for two further QSO slices; nine continued QSO slices and stars remain unconverged. Large changes for some individual rows preclude a blanket claim of predictive stability."
+}

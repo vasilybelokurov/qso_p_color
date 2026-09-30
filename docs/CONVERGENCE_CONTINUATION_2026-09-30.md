@@ -109,3 +109,51 @@ readable `REPORT.md` automatically. The next decision is whether this update
 should enter the candidate training path, followed by fit-only/selection-role
 model-selection checks. The final test sample remains untouched. The active
 bundle, old checkpoints and ongoing stellar fit remain unchanged.
+
+## Completed additive-update continuation
+
+The authorized continuation finished at 03:13 UTC. Both QSO and stellar
+additional-EM budgets are 100% complete. Two further QSO slices converged
+(01 at 398 iterations; 40 at 352). Nine other continued slices and the stars
+reached 400 without convergence. The 25 already-converged QSO fits remain
+unchanged, and the seven declining slices remain held. Detailed outcomes are
+in `docs/CONVERGENCE_CONTINUATION_RESULTS_2026-09-30.json`.
+
+On the fixed 8,192-row stellar diagnostic sample, the median absolute change
+in conditional log density was 0.0249 nat, the 95th percentile was 0.1625 and
+the maximum was 4.678. For QSO slice 04 these values were 0.1972, 0.9450 and
+12.063 nats. These changes compare iterations 300 and 400 on identical
+measurements. They are not posterior-probability changes or independent
+validation. Large changes for particular objects mean that completion of the
+iteration budget cannot be described as blanket predictive stability.
+
+The first queued covariance-floor trial failed before fitting because the
+sandbox prohibited its process-health check. The launch record is retained as
+`launch_failed_sandbox.json`. It was restarted with the required permission at
+05:48 UTC, after verifying stellar completion; its execution record
+identifies the restarted coordinator. No completed fitting work was repeated.
+
+## Completed covariance-floor trial and recommendation
+
+All seven slices completed 20 constrained updates. Every one of the 140
+updates increased the full-data likelihood; total gains ranged from 0.3995
+to 0.7070 nats/object. Covariance eigenvalues remained at or above the 0.001
+bound within floating-point precision. None met the original convergence
+tolerance in this short trial. The summary and paths to detailed prediction
+comparisons are in `docs/COVARIANCE_FLOOR_TRIAL_2026-09-30.json`. All workers
+from both diagnostic runs have exited.
+
+The recommendation is to integrate this constrained covariance update in the
+shared candidate training path, retaining additive updates as an explicit
+historical reproduction option. It addresses the measured optimization defect
+without removing the minimum-variance safeguard. Component selection must then
+be checked with fit-only shapes evaluated on the selection role; the final
+fit+selection models cannot supply independent selection scores. Previously
+converged additive fits also need review under the consistent update, rather
+than treating their old stopping flags as convergence of a different update.
+All scientific settings and changed update identities must remain explicit.
+
+After component selection and final-shape convergence, rebuild spatial weights
+and complete priors, calibration-role catch-all fitting and reserved validation.
+These training diagnostics do not establish probability calibration or support
+for every sparsely sampled band combination. The active bundle remains unchanged.
