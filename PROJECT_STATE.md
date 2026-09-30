@@ -8,6 +8,29 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
+**UNIFIED FULL-SURVEY PILOT AUTHORIZED AND PREPARED (30 September).**
+The user requested preparation followed by a small end-to-end pilot, not the
+full production retraining. Use `configs/unified_pilot.json` and
+`scripts/run_unified_pilot.py --fit`. Training covers Galactic nside=4 cells
+22, 63 and 169; separate test cells are 28, 62 and 170. Frozen roles remain
+unchanged. All 27,686 QSO and 49,809 contaminant fit/select rows enter, with
+no S/N cut or row caps; 43 QSO slices plus one contaminant fit, four workers,
+eight iterations per fit. Canonical warm starts come from the completed
+full-data candidate, so this is a limited-area refit and engineering pilot,
+not a stand-alone small-area model or new independent scientific validation.
+
+Prepared run `models/multisurvey_psf/work/unified_pilot/20260930/b5c55adf3698419d/`
+contains the frozen rows, counts, layout and 44 tasks. The model has 36 latent
+coordinates and 41 external labels, with shared Legacy W1/W2 softening and a
+recorded 1e-6 mag^2 northern WISE residual variance. NSC u/VR and VHS H lack
+pilot training measurements and must not be declared empirically validated.
+Logs: `/tmp/unified_pilot_training.log`; structured fit progress/checkpoints
+live in the run directory. Continue with `scripts/complete_unified_pilot.py`
+for spatial weights, counts and a calibration-role Student-t catch-all, then
+support calibration and held-out end-to-end tests. No downloads, active-pointer
+change or full-production fit. Prelaunch software suite: 358 passed in 74.08s,
+`/tmp/unified_pilot_prelaunch_suite.log`.
+
 **LATEST USER DIRECTION: TRAIN ALL ELIGIBLE ROWS; VALIDATE MAINLY ABOVE 5 SIGMA.**
 The user separates unification from extreme-outlier classification and rejects
 an investigation of sources below the detection limits as a release blocker.

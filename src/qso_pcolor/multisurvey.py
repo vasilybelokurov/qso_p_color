@@ -336,8 +336,7 @@ class MultiSurveyModel:
         n = features.n_obs
         if not n:
             return []
-        order = np.array([features.labels.index(b) for b in self.reference_priority])
-        anchor = order[np.argmax(features.observed[:, order], axis=1)]
+        anchor = self.reference_indices(photometry)
         result = [None] * n
         for a in np.unique(anchor):
             rows = np.flatnonzero(anchor == a)
@@ -352,6 +351,9 @@ class MultiSurveyModel:
             fs.ref_snr = np.divide(fs.ref_flux, np.sqrt(safe_variance),
                                    out=np.full(len(rows), np.nan),
                                    where=usable_reference)
+            reference_snr = self.meta.get("reference_min_snr")
+            if reference_snr is not None:
+                fs.flags["weak_reference"] = fs.ref_snr < reference_snr
             primary=np.broadcast_to(np.asarray(z_primary),(n,))[rows]
             fs.flags["primary_z_outside_model_support"]=~self.qso.in_support(primary)
             per_slice=self.qso.meta.get("per_slice",[])
@@ -398,6 +400,24 @@ class MultiSurveyModel:
                 result[i] = MultiSurveyScore(**asdict(score), reference_band=label if used else "",
                     bands_used=used, surveys_used=tuple(sorted({survey_of(b) for b in used})))
         return result
+
+    def reference_indices(self, photometry: Photometry) -> np.ndarray:
+        """Choose a measured reference, preferring configured S/N when available.
+
+        This changes neither the observed-band mask nor the training selection.
+        Models without ``reference_min_snr`` retain their original behaviour.
+        """
+        p = photometry.align(self.transform.bands)
+        order = np.array([self.transform.bands.index(b) for b in self.reference_priority])
+        available = p.observed[:, order]
+        threshold = self.meta.get("reference_min_snr")
+        if threshold is not None:
+            if not np.isfinite(threshold) or threshold <= 0:
+                raise ValueError("reference_min_snr must be positive and finite")
+            with np.errstate(invalid="ignore", divide="ignore"):
+                strong = available & (p.flux[:, order] / np.sqrt(p.variance[:, order]) >= threshold)
+            available = np.where(strong.any(axis=1)[:, None], strong, available)
+        return order[np.argmax(available, axis=1)]
 
     def to_dict(self) -> dict:
         return dict(kind="multisurvey_conditional_photometry", version=3,

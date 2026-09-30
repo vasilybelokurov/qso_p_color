@@ -632,6 +632,40 @@ for continued unification work with a specific faint-star limitation; the
 active 41-band model is unchanged. Results and plots are in
 \texttt{docs/POOLED\_OPTICAL\_PROTOTYPE\_2026-09-30.md}.
 
+\paragraph{Full-survey unified pilot (experimental).}
+A bounded follow-up retains all 41 native input labels while fitting 36 latent
+coordinates: the five duplicated Legacy coordinates are shared, with the
+optical observation operator above and common WISE asinh softening. AllWISE
+remains a distinct measurement system. A configured northern Legacy WISE
+residual variance of $10^{-6}\,\mathrm{mag}^2$ is included in the observation
+operator to make the exported native covariance nonsingular; it is not a
+likelihood floor. Magnitude-prior grids affected by the softening change are
+mapped with the density Jacobian. The empirical background consists of PSF
+catalogue sources with known QSOs removed, including unresolved contaminants;
+it is not restricted to spectroscopically confirmed stars.
+
+The reference band is the first in the recorded priority with signal-to-noise
+at least five, if one exists, otherwise the first measured band. This does not
+remove weak or negative measurements. Five sigma defines the main reporting
+domain, not a training cut. One shared projected-XD fit is performed per QSO
+slice and one for contaminants, followed by spatial weights/counts and a
+calibration-role catch-all. The small-sky pilot uses all eligible rows in its
+fixed sky cells and a bounded iteration budget, warm-started from the previous
+full-data candidate; it is an engineering test, not a new independent sample.
+
+An additional support diagnostic ranks the candidate's QSO conditional log
+likelihood at the target redshift against draws from that same noisy,
+reference-conditioned mixture. Noise is added before conditioning, once;
+redshift interpolation mixes the normalized conditional slice distributions.
+The Monte Carlo percentile is $(1+n_{\leq})/(1+N)$ for $N$ draws, where
+$n_{\leq}$ counts draws with log density no larger than the candidate's.
+A cutoff is selected using calibration-role spectroscopic QSOs and checked
+on reserved objects. This diagnostic is not a class probability and is not
+multiplied into the posterior. Rejected sources retain diagnostic likelihoods
+but cannot enter scientific ranking. A single observed band has no colour
+support information. Same-redshift QSOs, other-redshift QSOs, the empirical
+contaminant population and the catch-all remain separate competing terms.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order

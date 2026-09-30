@@ -58,11 +58,11 @@ def evaluate_densities(model, data, rows, outliers, *, chunk, background=True):
               **{name: np.empty(len(rows)) for name in outliers}}
     if background:
         result["background"] = np.empty(len(rows))
-    order = np.array([bands.index(b) for b in model.reference_priority])
     for lo in range(0, len(rows), chunk):
         r = rows[lo:lo+chunk]
-        f = model.transform(Photometry(data["flux"][r], data["variance"][r], bands))
-        anchors = order[np.argmax(f.observed[:, order], axis=1)]
+        photometry = Photometry(data["flux"][r], data["variance"][r], bands)
+        f = model.transform(photometry)
+        anchors = model.reference_indices(photometry)
         result["anchor"][lo:lo+len(r)] = anchors
         result["magnitude"][lo:lo+len(r)] = f.x[np.arange(len(r)), anchors]
         for a in np.unique(anchors):
