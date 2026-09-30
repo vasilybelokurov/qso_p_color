@@ -1,0 +1,12 @@
+{
+  "magnitude_edges": [14, 18, 20, 22, 24, 30],
+  "paired_background_rows": 512,
+  "subset_rows_per_population_per_hemisphere": 64,
+  "paired_primary_redshift": 1.8,
+  "minimum_summary_rows": 20,
+  "maximum_pair_absolute_score_increase": 0.02,
+  "grid_low_density_fraction": 0.01,
+  "background_acceptance_rates": [0.01, 0.05],
+  "maximum_qso_completeness_loss": 0.03,
+  "scope": "All test-role rows for native predictive density; reproducible random test subsets for expensive complete-score checks. All held-out overlap QSOs and a saved random background subset for paired scores. No training caps, no probability calibration."
+}

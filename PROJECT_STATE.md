@@ -8,7 +8,7 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**POOLED OPTICAL PROTOTYPE AUTHORIZED; IMPLEMENTATION IN PROGRESS.**
+**POOLED OPTICAL PROTOTYPE RUNNING; ONE TARGETED QSO ADJUSTMENT.**
 Use `configs/pooled_optical_prototype.json` and
 `scripts/run_pooled_optical_prototype.py` (default preparation; `--fit` fits the
 isolated experiment). Compare genuinely pooled projected-XD grz fits against
@@ -28,6 +28,26 @@ predictive performance and QSO discrimination. Test all seven optical subsets,
 paired North/South consistency and original grids. Public diagnostic scores
 inherit identical native priors/catch-all across alternatives to isolate the
 shape change; they are not recalibrated population probabilities.
+
+Run `aa79cd8f3486dee8` has completed all 129 QSO fits and the separate northern
+stellar fit; the pooled and southern stellar fits continue. Original QSO
+validation on 310,294 informative southern and 58,227 northern reserved objects
+gives mean conditional log-density changes of -0.0055 and -0.7897 nats versus
+the new separate-system fits. The large paired-QSO excess scatter is the main
+identified issue: a prediction-only intervention replacing it with the
+star-calibrated instrumental scatter reduces the northern loss to -0.0474 nats.
+This intervention is diagnostic, not a fitted replacement.
+
+One targeted QSO-only refit is now running through
+`scripts/check_pooled_qso_scatter.py --fit`, with two workers alongside the two
+remaining original stellar fits. The variant is located by the original run's
+`scatter_variant.json`. It retains the QSO offset, uses the stellar instrumental
+residual covariance for the QSO observation operator, and learns broader QSO
+variation in the population density instead of adding the full paired excess
+again. It explicitly reuses the unchanged stellar and separate-system fits.
+Do not start another correction/refit campaign. Validate this bounded variant
+and report the decision. Logs: `/tmp/pooled_optical_training.log` and
+`/tmp/pooled_qso_scatter_refit.log`; both runs save structured progress.
 
 **COMPLETE-SCORE AUDIT FINISHED; ACTIVATION HELD (30 September).**
 The full-data candidate improves real-object ranking but fails the northern

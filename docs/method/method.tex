@@ -602,6 +602,18 @@ The bounded experiment is configured in
 \texttt{configs/pooled\_optical\_prototype.json}. Its purpose is feasibility,
 not production activation or probability calibration.
 
+The first prototype's paired-QSO excess scatter degraded northern held-out
+conditional density by $0.790$ nats on average. A prediction-only intervention
+using the star-calibrated instrumental scatter reduced this loss to $0.047$
+nats. One subsequent QSO-only prototype refit therefore retains the fitted
+QSO offset but uses the stellar instrumental residual covariance in the
+observation operator. Broader QSO variation is learned by the population
+mixture. This is a tested alternative to interpreting all paired-epoch QSO
+scatter as additional filter noise; variability has not been independently
+measured or isolated. The stellar and separate-system fits are reused with
+explicit provenance. Reserved performance, paired consistency and tails must
+be checked before concluding that this alternative is adequate.
+
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
 convolution. Their sufficient statistics are summed in a fixed chunk order
