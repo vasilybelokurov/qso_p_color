@@ -20,16 +20,22 @@ models. Evidence: `docs/COVARIANCE_FLOOR_TRIAL_2026-09-30.json`; full histories,
 mixtures, fixed-row probes and automatic `REPORT.md` are in
 `models/multisurvey_psf/work/covariance_floor_trial/20260930/`.
 
-The immediate next implementation is to add the tested eigenvalue-floor
-covariance update coherently to the candidate trainers, retaining the old
-additive update only as an explicit reproducibility mode. Then reassess
-component selection on fit-only checkpoints scored on selection rows, and
-finish the selected final shapes under the consistent update. Convergence
-history from the old update must not silently certify a new-update fit.
-The same data, reference transform, band marginalization and frozen roles are
-retained. The active model has not been changed. A new candidate still needs
-spatial weights, population priors, calibration-role catch-all and reserved
-validation; full probability calibration remains separate.
+The current priority is practical replacement of the small-data model, following
+the user's 30 September request to stop the convergence rabbit hole. A direct
+paired comparison on 30,000 held-out QSOs and 30,000 held-out stellar sources
+shows the assembled full-data density/spatial candidate improves mean log
+predictive density for all three tested band choices. All-band gains are +0.357
+nats/QSO and +0.231 nats/stellar source. The active small model itself has only
+20/43 converged QSO slices and an unconverged stellar fit; convergence flags
+alone do not justify retaining it. A specific regression remains for bright
+stars using combined optical bands (-0.531 nats/object), while bright Legacy-only
+predictions improve. Investigate that focused issue and finish the coherent
+population-prior/catch-all bundle, preserving matching spatial weights and the
+hard support guard. No blanket refit or covariance-update migration is the next
+step. The continuation and covariance-floor experiments remain diagnostics.
+See `docs/FULL_VS_SMALL_HEALTH_2026-09-30.md` for the comparison and bounded plan.
+The test sample has now been inspected; do not call it untouched. No fits or
+downloads were launched during this comparison; the active pointer is unchanged.
 
 The completed additive continuation is under
 `models/multisurvey_psf/work/convergence_continuation/20260930/` (former
@@ -48,13 +54,12 @@ and decline diagnostics are not included in that EM percentage. The parent
 including its previously assembled density/spatial candidate. Continuation
 outputs are individual fits and diagnostics, not an assembled release.
 
-The active model is unchanged. Convergence/capacity review, refreshed spatial
-weights after final shapes settle, population priors, calibration-role catch-all
-fitting and reserved validation remain. No further acquisition is needed.
+The active model is unchanged. The focused bright-star check, coherent population
+priors, calibration-role catch-all fitting and complete-score validation remain. No further acquisition is needed.
 Details and restart rules: [continuation record](docs/CONVERGENCE_CONTINUATION_2026-09-30.md).
 Initial 19-fit table: [convergence audit](docs/CONVERGENCE_AUDIT_2026-09-30.md).
 
-Updated 30 September 2026 after verifying both completed diagnostic runs.
+Updated 30 September 2026 after the direct full-versus-small held-out comparison.
 Read this file before scheduling work. It supersedes
 older progress statements in the dated preparation documents; those documents
 retain the selection rationale and provenance. `JOURNAL.md` records the history.
@@ -193,17 +198,15 @@ the current continuation uses `scripts/train_stellar_parallel.py` as above. Read
 [the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
 The old capped recovery scripts are historical and are not this run's entry point.
 
-1. Review convergence of the 18 capped QSO fits and the capped stellar fit,
-   together with component selection at the edge of the tested capacity grid.
-   The authorized continuation and diagnostic run is recorded at the top of this file;
-   preserve its fixed-K scope before beginning a separate capacity review.
-2. After density fits, complete population priors and calibration-role catch-all
-   fitting consistently with the new shapes. The historical population-completion
-   script needs adaptation to the new role/input layout; do not run it unchanged.
-   Review external-survey count-prior area assumptions at that stage. This is
-   separate from the completed colour-density input preparation.
-3. Assess convergence, selected capacity and reserved validation before any
-   promotion. Full probability calibration is not established by these steps.
+1. Follow the bounded replacement plan in the full-versus-small health report:
+   inspect the bright stellar optical regression, then finish the existing
+   full-data candidate's population priors and catch-all. Do not start another
+   general convergence/capacity exercise or restart completed workers.
+2. The historical population-completion script needs adaptation to the new
+   role/input layout; do not run it unchanged. Preserve spatial weights matched
+   to the selected shapes and document external-survey area assumptions.
+3. Compare complete-score tails and practical band subsets before promotion.
+   Full probability calibration remains a separate, explicitly unfinished task.
 
 ## Working rules
 

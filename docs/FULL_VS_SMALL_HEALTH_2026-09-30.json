@@ -1,0 +1,1270 @@
+{
+  "seed": 20260930,
+  "evaluation_cap_per_population": 30000,
+  "inputs": "models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8",
+  "models": {
+    "models/multisurvey_psf/630f47f63b6f0694/model.json": "de09e9a2d29b9655ec88ea20ba4cf5d8d82b758ad693299f192c267f8fa646ff",
+    "models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/model.json": "ad9f435978f3477d866fe7fec282da0c15857c83f2f5c3a26987521128e7a6d7"
+  },
+  "active_small": {
+    "qso_converged": 20,
+    "slices": 43,
+    "stellar_components": 12,
+    "finite_parameters": true,
+    "positive_weights": true,
+    "max_weight_sum_error": 2.220446049250313e-16,
+    "minimum_covariance_eigenvalue": 0.0011731102275523754
+  },
+  "full_300": {
+    "qso_converged": 25,
+    "slices": 43,
+    "stellar_components": 20,
+    "finite_parameters": true,
+    "positive_weights": true,
+    "max_weight_sum_error": 4.440892098500626e-16,
+    "minimum_covariance_eigenvalue": 0.0010046539949350136
+  },
+  "training_rows": {
+    "small_qso": 55994,
+    "full_qso": 1049260,
+    "small_stars": 20000,
+    "full_stars": 1975894
+  },
+  "interpretation": "Paired held-out conditional predictive densities, not calibrated probabilities or a ranking validation.",
+  "continuation": "Secondary global-shape comparison only; continued shapes have no refreshed spatial weights.",
+  "populations": {
+    "qso": {
+      "initial_test_rows": 368813,
+      "independent_pool": 291976,
+      "evaluated": 30000,
+      "selection": "New test role intersected with original QSO held-out nside=4 Galactic cells and trained redshift support.",
+      "modes": {
+        "all_available": {
+          "n": 30000,
+          "nonfinite_pairs": 0,
+          "old_mean": 1.3428665403688276,
+          "new_mean": 1.699390849722821,
+          "mean_gain": 0.35652430935399365,
+          "median_gain": 0.19684106601132928,
+          "gain_p05_p95": [
+            -1.1361679916682437,
+            2.206036403994917
+          ],
+          "fraction_improved": 0.625,
+          "fraction_loss_over_1_nat": 0.0621,
+          "sky_groups": 15,
+          "sky_bootstrap_mean_gain_95": [
+            0.31033855499298474,
+            0.3981307747625372
+          ],
+          "rows_without_colour_information": 0,
+          "strata": {
+            "north_dec_ge_32": {
+              "n": 1334,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.8270128703128221,
+              "new_mean": 2.2914146303315714,
+              "mean_gain": 0.46440176001874856,
+              "median_gain": 0.24046480601134101,
+              "gain_p05_p95": [
+                -1.113061320103954,
+                2.5536783366030034
+              ],
+              "fraction_improved": 0.6266866566716641,
+              "fraction_loss_over_1_nat": 0.06146926536731634,
+              "sky_groups": 4,
+              "sky_bootstrap_mean_gain_95": [
+                0.4030205016637445,
+                0.808292877879584
+              ]
+            },
+            "south_dec_lt_32": {
+              "n": 28666,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.3203363232424308,
+              "new_mean": 1.6718404512252254,
+              "mean_gain": 0.35150412798279485,
+              "median_gain": 0.19563457312138488,
+              "gain_p05_p95": [
+                -1.1373272244294133,
+                2.1849212915045158
+              ],
+              "fraction_improved": 0.6249215098025536,
+              "fraction_loss_over_1_nat": 0.062129351845391756,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.3048151681584742,
+                0.39191880901842885
+              ]
+            },
+            "abs_b_lt_40": {
+              "n": 13488,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.0932467057559014,
+              "new_mean": 1.4221686817949695,
+              "mean_gain": 0.3289219760390681,
+              "median_gain": 0.16568656273151494,
+              "gain_p05_p95": [
+                -1.2179978749752038,
+                2.101123934544914
+              ],
+              "fraction_improved": 0.6073546856465006,
+              "fraction_loss_over_1_nat": 0.06709667852906287,
+              "sky_groups": 10,
+              "sky_bootstrap_mean_gain_95": [
+                0.2867303570292543,
+                0.367065973007086
+              ]
+            },
+            "abs_b_ge_40": {
+              "n": 16512,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.5467711145729908,
+              "new_mean": 1.9258426787569092,
+              "mean_gain": 0.37907156418391824,
+              "median_gain": 0.22147395475532555,
+              "gain_p05_p95": [
+                -1.084936977618533,
+                2.27024101746066
+              ],
+              "fraction_improved": 0.6394137596899225,
+              "fraction_loss_over_1_nat": 0.05801841085271318,
+              "sky_groups": 11,
+              "sky_bootstrap_mean_gain_95": [
+                0.3015709937681693,
+                0.42995431154765257
+              ]
+            },
+            "reference_luptitude_lt_20": {
+              "n": 3997,
+              "nonfinite_pairs": 0,
+              "old_mean": 8.023331738291285,
+              "new_mean": 9.044512192634954,
+              "mean_gain": 1.0211804543436702,
+              "median_gain": 0.8525562172338743,
+              "gain_p05_p95": [
+                -1.340651564248875,
+                3.300104510867707
+              ],
+              "fraction_improved": 0.7813360020015011,
+              "fraction_loss_over_1_nat": 0.07005253940455342,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.8832208122686986,
+                1.207318901146394
+              ]
+            },
+            "reference_luptitude_ge_20": {
+              "n": 26003,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.31599197219992153,
+              "new_mean": 0.5703499695313125,
+              "mean_gain": 0.2543579973313909,
+              "median_gain": 0.14612116729292435,
+              "gain_p05_p95": [
+                -1.1147974625888197,
+                1.821612448114614
+              ],
+              "fraction_improved": 0.6009691189478137,
+              "fraction_loss_over_1_nat": 0.06087759104718686,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.18800868931371909,
+                0.29946469587423924
+              ]
+            },
+            "z_0_1": {
+              "n": 3400,
+              "nonfinite_pairs": 0,
+              "old_mean": 3.3895788599215892,
+              "new_mean": 3.973675767541661,
+              "mean_gain": 0.5840969076200713,
+              "median_gain": 0.3400823366173531,
+              "gain_p05_p95": [
+                -1.3913294188056298,
+                2.6950623208074678
+              ],
+              "fraction_improved": 0.6623529411764706,
+              "fraction_loss_over_1_nat": 0.07058823529411765,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.42038705080851735,
+                0.751814439781973
+              ]
+            },
+            "z_1_2": {
+              "n": 15582,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.2132894243132213,
+              "new_mean": 1.6241675568820246,
+              "mean_gain": 0.4108781325688034,
+              "median_gain": 0.2274540032788586,
+              "gain_p05_p95": [
+                -1.0644901027728357,
+                2.284871880645069
+              ],
+              "fraction_improved": 0.6353484790142472,
+              "fraction_loss_over_1_nat": 0.0562187139006546,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.35792457543662665,
+                0.4713144819910657
+              ]
+            },
+            "z_2_3": {
+              "n": 9531,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.8165839131420148,
+              "new_mean": 1.0516392733115567,
+              "mean_gain": 0.23505536016954187,
+              "median_gain": 0.14614761438052803,
+              "gain_p05_p95": [
+                -1.1387543069370807,
+                1.9404064506327945
+              ],
+              "fraction_improved": 0.6122127793515896,
+              "fraction_loss_over_1_nat": 0.06326723323890462,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.15637016634872247,
+                0.27998646649954445
+              ]
+            },
+            "z_3_5": {
+              "n": 1487,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.3941432424520919,
+              "new_mean": 1.4393242076495156,
+              "mean_gain": 0.04518096519742367,
+              "median_gain": 0.026366336801677992,
+              "gain_p05_p95": [
+                -1.3701338867831585,
+                1.4250429861911575
+              ],
+              "fraction_improved": 0.5131136516476127,
+              "fraction_loss_over_1_nat": 0.0968392737054472,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                -0.017924093083138522,
+                0.103126626075983
+              ]
+            }
+          },
+          "continuation_vs_300_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": 1.699390849722821,
+            "new_mean": 1.6996454295427934,
+            "mean_gain": 0.00025457981997230886,
+            "median_gain": 0.0,
+            "gain_p05_p95": [
+              0.0,
+              0.0
+            ],
+            "fraction_improved": 0.0164,
+            "fraction_loss_over_1_nat": 0.00016666666666666666,
+            "sky_groups": 15,
+            "sky_bootstrap_mean_gain_95": [
+              -0.00014573426598105468,
+              0.0007107413494740998
+            ]
+          }
+        },
+        "optical": {
+          "n": 30000,
+          "nonfinite_pairs": 0,
+          "old_mean": 2.334067051773741,
+          "new_mean": 2.579966644898524,
+          "mean_gain": 0.24589959312478354,
+          "median_gain": 0.13090443785859252,
+          "gain_p05_p95": [
+            -0.7084983362258693,
+            1.391063857335685
+          ],
+          "fraction_improved": 0.6241,
+          "fraction_loss_over_1_nat": 0.018933333333333333,
+          "sky_groups": 15,
+          "sky_bootstrap_mean_gain_95": [
+            0.21948237085490133,
+            0.2715101322871405
+          ],
+          "rows_without_colour_information": 0,
+          "strata": {
+            "north_dec_ge_32": {
+              "n": 1334,
+              "nonfinite_pairs": 0,
+              "old_mean": 2.6253070198149038,
+              "new_mean": 2.8813008659693797,
+              "mean_gain": 0.2559938461544757,
+              "median_gain": 0.13211680060195552,
+              "gain_p05_p95": [
+                -0.8254860363918342,
+                1.4784376248796613
+              ],
+              "fraction_improved": 0.6011994002998501,
+              "fraction_loss_over_1_nat": 0.026986506746626688,
+              "sky_groups": 4,
+              "sky_bootstrap_mean_gain_95": [
+                0.21340905119548545,
+                0.7002639079542312
+              ]
+            },
+            "south_dec_lt_32": {
+              "n": 28666,
+              "nonfinite_pairs": 0,
+              "old_mean": 2.320513918536913,
+              "new_mean": 2.565943765846389,
+              "mean_gain": 0.24542984730947592,
+              "median_gain": 0.130841926098772,
+              "gain_p05_p95": [
+                -0.7026851877975064,
+                1.3840766765560417
+              ],
+              "fraction_improved": 0.6251657015279425,
+              "fraction_loss_over_1_nat": 0.018558571129561153,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.21725514881363703,
+                0.27195163496095875
+              ]
+            },
+            "abs_b_lt_40": {
+              "n": 13488,
+              "nonfinite_pairs": 0,
+              "old_mean": 2.009031278856076,
+              "new_mean": 2.2354190098836826,
+              "mean_gain": 0.2263877310276065,
+              "median_gain": 0.11128772133754772,
+              "gain_p05_p95": [
+                -0.7008070311369254,
+                1.3556735625787975
+              ],
+              "fraction_improved": 0.6069839857651246,
+              "fraction_loss_over_1_nat": 0.018016014234875446,
+              "sky_groups": 10,
+              "sky_bootstrap_mean_gain_95": [
+                0.19825299139381372,
+                0.2518270706802892
+              ]
+            },
+            "abs_b_ge_40": {
+              "n": 16512,
+              "nonfinite_pairs": 0,
+              "old_mean": 2.5995759244186942,
+              "new_mean": 2.8614139862914625,
+              "mean_gain": 0.2618380618727683,
+              "median_gain": 0.14990347083588862,
+              "gain_p05_p95": [
+                -0.717015616112967,
+                1.4212355224086022
+              ],
+              "fraction_improved": 0.6380813953488372,
+              "fraction_loss_over_1_nat": 0.01968265503875969,
+              "sky_groups": 11,
+              "sky_bootstrap_mean_gain_95": [
+                0.21513348889928144,
+                0.29199876886631093
+              ]
+            },
+            "reference_luptitude_lt_20": {
+              "n": 3997,
+              "nonfinite_pairs": 0,
+              "old_mean": 7.12812829709817,
+              "new_mean": 7.771620453381148,
+              "mean_gain": 0.6434921562829801,
+              "median_gain": 0.5226404004841854,
+              "gain_p05_p95": [
+                -0.8169511289291734,
+                2.1017780459645437
+              ],
+              "fraction_improved": 0.7700775581686264,
+              "fraction_loss_over_1_nat": 0.03452589442081561,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.5702760308975625,
+                0.7100656493328731
+              ]
+            },
+            "reference_luptitude_ge_20": {
+              "n": 26003,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.597157356832321,
+              "new_mean": 1.7819417911314568,
+              "mean_gain": 0.18478443429913605,
+              "median_gain": 0.09893485330916985,
+              "gain_p05_p95": [
+                -0.6963301563839327,
+                1.1700314735230493
+              ],
+              "fraction_improved": 0.6016613467676807,
+              "fraction_loss_over_1_nat": 0.016536553474599085,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.16458494675943736,
+                0.20312546643366583
+              ]
+            },
+            "z_0_1": {
+              "n": 3400,
+              "nonfinite_pairs": 0,
+              "old_mean": 3.7100742533701174,
+              "new_mean": 4.031808843180432,
+              "mean_gain": 0.32173458981031405,
+              "median_gain": 0.19805518880504658,
+              "gain_p05_p95": [
+                -0.775380437401034,
+                1.7031462633720236
+              ],
+              "fraction_improved": 0.6385294117647059,
+              "fraction_loss_over_1_nat": 0.025588235294117648,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.2621164566339993,
+                0.39590496029186767
+              ]
+            },
+            "z_1_2": {
+              "n": 15582,
+              "nonfinite_pairs": 0,
+              "old_mean": 2.283960680329022,
+              "new_mean": 2.560198114830602,
+              "mean_gain": 0.2762374345015803,
+              "median_gain": 0.14848553875892356,
+              "gain_p05_p95": [
+                -0.6916331456911239,
+                1.4608149034244529
+              ],
+              "fraction_improved": 0.6268129893466821,
+              "fraction_loss_over_1_nat": 0.016750096264921063,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.24360235921414897,
+                0.30708091944289356
+              ]
+            },
+            "z_2_3": {
+              "n": 9531,
+              "nonfinite_pairs": 0,
+              "old_mean": 2.0168637774077838,
+              "new_mean": 2.2083715475046346,
+              "mean_gain": 0.19150777009685108,
+              "median_gain": 0.10782654801741387,
+              "gain_p05_p95": [
+                -0.7252384792537334,
+                1.1875908021903945
+              ],
+              "fraction_improved": 0.6238589864652188,
+              "fraction_loss_over_1_nat": 0.019410345189382016,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.1677352033468554,
+                0.21186302364256318
+              ]
+            },
+            "z_3_5": {
+              "n": 1487,
+              "nonfinite_pairs": 0,
+              "old_mean": 1.746035715126712,
+              "new_mean": 1.849262296963785,
+              "mean_gain": 0.10322658183707285,
+              "median_gain": 0.05944186293672882,
+              "gain_p05_p95": [
+                -0.6650535143900418,
+                0.9955267711922637
+              ],
+              "fraction_improved": 0.5642232683254875,
+              "fraction_loss_over_1_nat": 0.023537323470073975,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.07570650770978578,
+                0.12987806076872352
+              ]
+            }
+          },
+          "continuation_vs_300_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": 2.579966644898524,
+            "new_mean": 2.580306208796058,
+            "mean_gain": 0.00033956389753379986,
+            "median_gain": 0.0,
+            "gain_p05_p95": [
+              0.0,
+              0.0
+            ],
+            "fraction_improved": 0.0166,
+            "fraction_loss_over_1_nat": 6.666666666666667e-05,
+            "sky_groups": 15,
+            "sky_bootstrap_mean_gain_95": [
+              5.733576664133728e-05,
+              0.0006430525181878737
+            ]
+          }
+        },
+        "legacy_optical": {
+          "n": 29966,
+          "nonfinite_pairs": 0,
+          "old_mean": 0.4906527647006768,
+          "new_mean": 0.5417055761537835,
+          "mean_gain": 0.051052811453106674,
+          "median_gain": 0.042011826403528296,
+          "gain_p05_p95": [
+            -0.4555372990199861,
+            0.43596583937584144
+          ],
+          "fraction_improved": 0.578722552225856,
+          "fraction_loss_over_1_nat": 0.0015350730828272042,
+          "sky_groups": 15,
+          "sky_bootstrap_mean_gain_95": [
+            0.04115871916583501,
+            0.06336131362370295
+          ],
+          "rows_without_colour_information": 34,
+          "strata": {
+            "north_dec_ge_32": {
+              "n": 1300,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.3416715892959726,
+              "new_mean": 0.3639269925446408,
+              "mean_gain": 0.022255403248668218,
+              "median_gain": 0.012402798296217044,
+              "gain_p05_p95": [
+                -0.5875568745833367,
+                0.49062657387811126
+              ],
+              "fraction_improved": 0.5184615384615384,
+              "fraction_loss_over_1_nat": 0.005384615384615384,
+              "sky_groups": 4,
+              "sky_bootstrap_mean_gain_95": [
+                0.0027083758520453373,
+                0.1244360846998967
+              ]
+            },
+            "south_dec_lt_32": {
+              "n": 28666,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.49740904489415044,
+              "new_mean": 0.5497678156951177,
+              "mean_gain": 0.0523587708009672,
+              "median_gain": 0.043162258072913545,
+              "gain_p05_p95": [
+                -0.44830243118172886,
+                0.4339969325073794
+              ],
+              "fraction_improved": 0.5814553826833182,
+              "fraction_loss_over_1_nat": 0.0013604967557385055,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.04257547345576411,
+                0.06481606839633741
+              ]
+            },
+            "abs_b_lt_40": {
+              "n": 13454,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.43854057038185873,
+              "new_mean": 0.4796926230717251,
+              "mean_gain": 0.041152052689866415,
+              "median_gain": 0.029545929831049866,
+              "gain_p05_p95": [
+                -0.4567946467828172,
+                0.4403966868421581
+              ],
+              "fraction_improved": 0.5564144492344284,
+              "fraction_loss_over_1_nat": 0.001040582726326743,
+              "sky_groups": 10,
+              "sky_bootstrap_mean_gain_95": [
+                0.0355233041588766,
+                0.0458584536169924
+              ]
+            },
+            "abs_b_ge_40": {
+              "n": 16512,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.5331138513264871,
+              "new_mean": 0.5922338144511439,
+              "mean_gain": 0.05911996312465671,
+              "median_gain": 0.05166038369403475,
+              "gain_p05_p95": [
+                -0.4546634409170296,
+                0.428542278931874
+              ],
+              "fraction_improved": 0.5968992248062015,
+              "fraction_loss_over_1_nat": 0.001937984496124031,
+              "sky_groups": 11,
+              "sky_bootstrap_mean_gain_95": [
+                0.04166014308585602,
+                0.07783822155888567
+              ]
+            },
+            "reference_luptitude_lt_20": {
+              "n": 4171,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.907948276519669,
+              "new_mean": 1.0373796650249996,
+              "mean_gain": 0.12943138850533042,
+              "median_gain": 0.13163144054207554,
+              "gain_p05_p95": [
+                -0.5189918444725947,
+                0.5887977628697277
+              ],
+              "fraction_improved": 0.67537760728842,
+              "fraction_loss_over_1_nat": 0.004075761208343323,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.10664513844465642,
+                0.15273144524641952
+              ]
+            },
+            "reference_luptitude_ge_20": {
+              "n": 25795,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.4231769135746052,
+              "new_mean": 0.46155606560205475,
+              "mean_gain": 0.03837915202744955,
+              "median_gain": 0.031618589082522686,
+              "gain_p05_p95": [
+                -0.44449347371478204,
+                0.3918084795560124
+              ],
+              "fraction_improved": 0.5630936227951153,
+              "fraction_loss_over_1_nat": 0.0011242488854429154,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.02950163354479271,
+                0.050216511783219855
+              ]
+            },
+            "z_0_1": {
+              "n": 3395,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.5661495705593755,
+              "new_mean": 0.5776282559349726,
+              "mean_gain": 0.01147868537559707,
+              "median_gain": 0.016142254984412574,
+              "gain_p05_p95": [
+                -0.5035116592751913,
+                0.38162955686570754
+              ],
+              "fraction_improved": 0.5298969072164949,
+              "fraction_loss_over_1_nat": 0.002061855670103093,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                -0.006101021762737927,
+                0.030974215399467802
+              ]
+            },
+            "z_1_2": {
+              "n": 15566,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.5278705088231537,
+              "new_mean": 0.5832906801832687,
+              "mean_gain": 0.05542017136011497,
+              "median_gain": 0.044138745849734984,
+              "gain_p05_p95": [
+                -0.42192699957928864,
+                0.42981698671742186
+              ],
+              "fraction_improved": 0.5824874726969035,
+              "fraction_loss_over_1_nat": 0.0012848515996402416,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.04928975868886762,
+                0.06288830174172809
+              ]
+            },
+            "z_2_3": {
+              "n": 9520,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.4259880704403725,
+              "new_mean": 0.4888625446943689,
+              "mean_gain": 0.06287447425399656,
+              "median_gain": 0.05130389172422756,
+              "gain_p05_p95": [
+                -0.4939152507866878,
+                0.46879912729103157
+              ],
+              "fraction_improved": 0.5928571428571429,
+              "fraction_loss_over_1_nat": 0.0015756302521008404,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                0.04792395920430659,
+                0.08183126578050007
+              ]
+            },
+            "z_3_5": {
+              "n": 1485,
+              "nonfinite_pairs": 0,
+              "old_mean": 0.34248093201201696,
+              "new_mean": 0.36244256761070087,
+              "mean_gain": 0.01996163559868388,
+              "median_gain": 0.029817934211903596,
+              "gain_p05_p95": [
+                -0.42090429347523434,
+                0.3008758682148855
+              ],
+              "fraction_improved": 0.5602693602693603,
+              "fraction_loss_over_1_nat": 0.0026936026936026937,
+              "sky_groups": 15,
+              "sky_bootstrap_mean_gain_95": [
+                -0.0013381571817433645,
+                0.042591436624873
+              ]
+            }
+          },
+          "continuation_vs_300_global": {
+            "n": 29966,
+            "nonfinite_pairs": 0,
+            "old_mean": 0.5417055761537835,
+            "new_mean": 0.5420838945364349,
+            "mean_gain": 0.00037831838265141326,
+            "median_gain": 0.0,
+            "gain_p05_p95": [
+              0.0,
+              0.0
+            ],
+            "fraction_improved": 0.018520990455849963,
+            "fraction_loss_over_1_nat": 0.0,
+            "sky_groups": 15,
+            "sky_bootstrap_mean_gain_95": [
+              0.0002919426373747449,
+              0.00046443775169343997
+            ]
+          }
+        }
+      }
+    },
+    "stars": {
+      "initial_test_rows": 500712,
+      "independent_pool": 500712,
+      "evaluated": 30000,
+      "selection": "New test regions, excluding every original stellar cone within 0.3 degree (original radius 0.15 degree).",
+      "modes": {
+        "all_available": {
+          "n": 30000,
+          "nonfinite_pairs": 0,
+          "old_mean": -2.0839681593130717,
+          "new_mean": -1.8531791902338905,
+          "mean_gain": 0.23078896907918064,
+          "median_gain": 0.045654230469163615,
+          "gain_p05_p95": [
+            -1.1643853428751472,
+            1.9574309531473206
+          ],
+          "fraction_improved": 0.5416333333333333,
+          "fraction_loss_over_1_nat": 0.0619,
+          "sky_groups": 49,
+          "sky_bootstrap_mean_gain_95": [
+            0.16124490324736657,
+            0.301764260074467
+          ],
+          "rows_without_colour_information": 0,
+          "strata": {
+            "north_dec_ge_32": {
+              "n": 4132,
+              "nonfinite_pairs": 0,
+              "old_mean": -2.9531213335803113,
+              "new_mean": -2.8321613735304116,
+              "mean_gain": 0.12095996004989983,
+              "median_gain": 0.02259645046144909,
+              "gain_p05_p95": [
+                -1.5375018479131732,
+                1.8351196791642694
+              ],
+              "fraction_improved": 0.5142787996127783,
+              "fraction_loss_over_1_nat": 0.09583736689254599,
+              "sky_groups": 11,
+              "sky_bootstrap_mean_gain_95": [
+                -0.022565290801852027,
+                0.22760814957677972
+              ]
+            },
+            "south_dec_lt_32": {
+              "n": 25868,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.9451348163382671,
+              "new_mean": -1.6968024165605793,
+              "mean_gain": 0.248332399777688,
+              "median_gain": 0.04835652018181413,
+              "gain_p05_p95": [
+                -1.0913275593061627,
+                1.9735811246899388
+              ],
+              "fraction_improved": 0.5460027833616824,
+              "fraction_loss_over_1_nat": 0.05647904747177981,
+              "sky_groups": 39,
+              "sky_bootstrap_mean_gain_95": [
+                0.16721225465763934,
+                0.3181120384036531
+              ]
+            },
+            "abs_b_lt_40": {
+              "n": 15743,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.3506811076461864,
+              "new_mean": -1.0833371376340135,
+              "mean_gain": 0.2673439700121732,
+              "median_gain": 0.08460264770220194,
+              "gain_p05_p95": [
+                -1.2841762919870063,
+                2.0768131716743596
+              ],
+              "fraction_improved": 0.5604395604395604,
+              "fraction_loss_over_1_nat": 0.07222257511274853,
+              "sky_groups": 23,
+              "sky_bootstrap_mean_gain_95": [
+                0.15863655401885426,
+                0.36592117826489445
+              ]
+            },
+            "abs_b_ge_40": {
+              "n": 14257,
+              "nonfinite_pairs": 0,
+              "old_mean": -2.893685354683189,
+              "new_mean": -2.7032614960541803,
+              "mean_gain": 0.19042385862900868,
+              "median_gain": 0.019043106905466622,
+              "gain_p05_p95": [
+                -1.0084189098382552,
+                1.8099915318866617
+              ],
+              "fraction_improved": 0.5208669425545346,
+              "fraction_loss_over_1_nat": 0.050501508031142596,
+              "sky_groups": 26,
+              "sky_bootstrap_mean_gain_95": [
+                0.1077949779178088,
+                0.2770873322316202
+              ]
+            },
+            "reference_luptitude_lt_20": {
+              "n": 2357,
+              "nonfinite_pairs": 0,
+              "old_mean": 13.910473951514192,
+              "new_mean": 13.717916302045108,
+              "mean_gain": -0.19255764946908505,
+              "median_gain": -0.2770694996366778,
+              "gain_p05_p95": [
+                -2.765117848571195,
+                2.035227577980113
+              ],
+              "fraction_improved": 0.4136614340263046,
+              "fraction_loss_over_1_nat": 0.27916843445057277,
+              "sky_groups": 49,
+              "sky_bootstrap_mean_gain_95": [
+                -0.5208400166523278,
+                0.12310624966506956
+              ]
+            },
+            "reference_luptitude_ge_20": {
+              "n": 27643,
+              "nonfinite_pairs": 0,
+              "old_mean": -3.4477456094892416,
+              "new_mean": -3.1808596907331714,
+              "mean_gain": 0.2668859187560704,
+              "median_gain": 0.055306838854061624,
+              "gain_p05_p95": [
+                -0.9068197607453217,
+                1.9546423266836317
+              ],
+              "fraction_improved": 0.5525449480881236,
+              "fraction_loss_over_1_nat": 0.043374452845204935,
+              "sky_groups": 49,
+              "sky_bootstrap_mean_gain_95": [
+                0.20793336391202044,
+                0.32813999131207916
+              ]
+            }
+          },
+          "continuation_vs_300_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": -1.9843984685500637,
+            "new_mean": -1.9702058243182508,
+            "mean_gain": 0.014192644231812957,
+            "median_gain": 0.004035610739678175,
+            "gain_p05_p95": [
+              -0.08687866195948808,
+              0.139025372890341
+            ],
+            "fraction_improved": 0.5447666666666666,
+            "fraction_loss_over_1_nat": 0.0002666666666666667,
+            "sky_groups": 49,
+            "sky_bootstrap_mean_gain_95": [
+              0.011472814190421076,
+              0.017467377984419
+            ]
+          },
+          "full_vs_small_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": -2.1007527739701573,
+            "new_mean": -1.9843984685500637,
+            "mean_gain": 0.11635430542009388,
+            "median_gain": -0.0038437925457643907,
+            "gain_p05_p95": [
+              -1.3903679836007556,
+              1.7054001269084413
+            ],
+            "fraction_improved": 0.49646666666666667,
+            "fraction_loss_over_1_nat": 0.0761,
+            "sky_groups": 49,
+            "sky_bootstrap_mean_gain_95": [
+              0.04491370175638673,
+              0.18939852877319882
+            ]
+          }
+        },
+        "optical": {
+          "n": 30000,
+          "nonfinite_pairs": 0,
+          "old_mean": -0.6753779728472664,
+          "new_mean": -0.6137921874548514,
+          "mean_gain": 0.061585785392414945,
+          "median_gain": -0.014971180583695232,
+          "gain_p05_p95": [
+            -0.922771221124971,
+            1.1080108054154423
+          ],
+          "fraction_improved": 0.4774,
+          "fraction_loss_over_1_nat": 0.043866666666666665,
+          "sky_groups": 49,
+          "sky_bootstrap_mean_gain_95": [
+            0.014327473259086931,
+            0.10711909109692387
+          ],
+          "rows_without_colour_information": 0,
+          "strata": {
+            "north_dec_ge_32": {
+              "n": 4132,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.022264391001599,
+              "new_mean": -1.0393850398680824,
+              "mean_gain": -0.01712064886648331,
+              "median_gain": -0.03116557633461864,
+              "gain_p05_p95": [
+                -1.1884175460052346,
+                1.0770427395938722
+              ],
+              "fraction_improved": 0.4566795740561471,
+              "fraction_loss_over_1_nat": 0.06558567279767667,
+              "sky_groups": 11,
+              "sky_bootstrap_mean_gain_95": [
+                -0.11379980325668437,
+                0.0792938953443572
+              ]
+            },
+            "south_dec_lt_32": {
+              "n": 25868,
+              "nonfinite_pairs": 0,
+              "old_mean": -0.6199684058218411,
+              "new_mean": -0.5458105241576708,
+              "mean_gain": 0.0741578816641703,
+              "median_gain": -0.012767747594052414,
+              "gain_p05_p95": [
+                -0.8788026788073876,
+                1.1100516038799049
+              ],
+              "fraction_improved": 0.4807097572290088,
+              "fraction_loss_over_1_nat": 0.040397402195763106,
+              "sky_groups": 39,
+              "sky_bootstrap_mean_gain_95": [
+                0.020361986016205622,
+                0.12049710076837879
+              ]
+            },
+            "abs_b_lt_40": {
+              "n": 15743,
+              "nonfinite_pairs": 0,
+              "old_mean": -0.30534582896314655,
+              "new_mean": -0.19292894832467009,
+              "mean_gain": 0.11241688063847648,
+              "median_gain": 0.0002962813449030044,
+              "gain_p05_p95": [
+                -0.9073421677700341,
+                1.205946686454998
+              ],
+              "fraction_improved": 0.500412881915772,
+              "fraction_loss_over_1_nat": 0.0424950771771581,
+              "sky_groups": 23,
+              "sky_bootstrap_mean_gain_95": [
+                0.029188075641606834,
+                0.1755394849347546
+              ]
+            },
+            "abs_b_ge_40": {
+              "n": 14257,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.0839783825525129,
+              "new_mean": -1.0785217921140675,
+              "mean_gain": 0.005456590438445208,
+              "median_gain": -0.026449677758500933,
+              "gain_p05_p95": [
+                -0.9426337998353345,
+                0.9046468178913828
+              ],
+              "fraction_improved": 0.4519884968787262,
+              "fraction_loss_over_1_nat": 0.04538121624465175,
+              "sky_groups": 26,
+              "sky_bootstrap_mean_gain_95": [
+                -0.030454591259527382,
+                0.03974875543131761
+              ]
+            },
+            "reference_luptitude_lt_20": {
+              "n": 2357,
+              "nonfinite_pairs": 0,
+              "old_mean": 8.083098292056706,
+              "new_mean": 7.551952695625947,
+              "mean_gain": -0.5311455964307595,
+              "median_gain": -0.4334175388281727,
+              "gain_p05_p95": [
+                -2.1824417394812383,
+                0.41988356719610526
+              ],
+              "fraction_improved": 0.24692405600339415,
+              "fraction_loss_over_1_nat": 0.2689859991514637,
+              "sky_groups": 49,
+              "sky_bootstrap_mean_gain_95": [
+                -0.755449004236623,
+                -0.3322445451864963
+              ]
+            },
+            "reference_luptitude_ge_20": {
+              "n": 27643,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.4221756632708333,
+              "new_mean": -1.3100502162296386,
+              "mean_gain": 0.11212544704119483,
+              "median_gain": -0.0016420932782117426,
+              "gain_p05_p95": [
+                -0.6773058536816937,
+                1.1422962657789733
+              ],
+              "fraction_improved": 0.49705169482328254,
+              "fraction_loss_over_1_nat": 0.024671707122960605,
+              "sky_groups": 49,
+              "sky_bootstrap_mean_gain_95": [
+                0.06975291193084136,
+                0.15434585925446948
+              ]
+            }
+          },
+          "continuation_vs_300_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": -0.7448353126844911,
+            "new_mean": -0.7365678869264901,
+            "mean_gain": 0.008267425758001011,
+            "median_gain": 0.002783921824931479,
+            "gain_p05_p95": [
+              -0.044705272866391185,
+              0.07726853008257252
+            ],
+            "fraction_improved": 0.5578666666666666,
+            "fraction_loss_over_1_nat": 0.0001,
+            "sky_groups": 49,
+            "sky_bootstrap_mean_gain_95": [
+              0.006537852505619167,
+              0.010291371459535044
+            ]
+          },
+          "full_vs_small_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": -0.6952878007958085,
+            "new_mean": -0.7448353126844911,
+            "mean_gain": -0.049547511888682616,
+            "median_gain": -0.057947284887808426,
+            "gain_p05_p95": [
+              -1.1555618257929665,
+              0.8313938338899054
+            ],
+            "fraction_improved": 0.40313333333333334,
+            "fraction_loss_over_1_nat": 0.0602,
+            "sky_groups": 49,
+            "sky_bootstrap_mean_gain_95": [
+              -0.08222134636697055,
+              -0.015426054096495683
+            ]
+          }
+        },
+        "legacy_optical": {
+          "n": 30000,
+          "nonfinite_pairs": 0,
+          "old_mean": -1.4806928673671937,
+          "new_mean": -1.4101259926055858,
+          "mean_gain": 0.07056687476160782,
+          "median_gain": 0.00976035767767991,
+          "gain_p05_p95": [
+            -0.45083926122867635,
+            0.8651470525116967
+          ],
+          "fraction_improved": 0.5177666666666667,
+          "fraction_loss_over_1_nat": 0.005266666666666667,
+          "sky_groups": 49,
+          "sky_bootstrap_mean_gain_95": [
+            0.044547496603060004,
+            0.09818258187348788
+          ],
+          "rows_without_colour_information": 0,
+          "strata": {
+            "north_dec_ge_32": {
+              "n": 4132,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.4013881634514176,
+              "new_mean": -1.3466647825226707,
+              "mean_gain": 0.054723380928747005,
+              "median_gain": 0.015220286255276438,
+              "gain_p05_p95": [
+                -0.46769030099695064,
+                0.6560865513041294
+              ],
+              "fraction_improved": 0.5258954501452081,
+              "fraction_loss_over_1_nat": 0.003872216844143272,
+              "sky_groups": 11,
+              "sky_bootstrap_mean_gain_95": [
+                0.025280245390114378,
+                0.08032131579624863
+              ]
+            },
+            "south_dec_lt_32": {
+              "n": 25868,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.4933605276648578,
+              "new_mean": -1.4202629077154745,
+              "mean_gain": 0.07309761994938349,
+              "median_gain": 0.008873289142139251,
+              "gain_p05_p95": [
+                -0.44895115084693676,
+                0.8923808413057127
+              ],
+              "fraction_improved": 0.5164682232874594,
+              "fraction_loss_over_1_nat": 0.00548940776248647,
+              "sky_groups": 39,
+              "sky_bootstrap_mean_gain_95": [
+                0.04209241175874491,
+                0.10433507529232111
+              ]
+            },
+            "abs_b_lt_40": {
+              "n": 15743,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.5400103367609053,
+              "new_mean": -1.4364428107301517,
+              "mean_gain": 0.10356752603075346,
+              "median_gain": 0.02786876102594893,
+              "gain_p05_p95": [
+                -0.46571911851130804,
+                0.9489923053076844
+              ],
+              "fraction_improved": 0.542844438798196,
+              "fraction_loss_over_1_nat": 0.005907387410277584,
+              "sky_groups": 23,
+              "sky_bootstrap_mean_gain_95": [
+                0.05773226775954965,
+                0.1422344426309145
+              ]
+            },
+            "abs_b_ge_40": {
+              "n": 14257,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.4151927677203393,
+              "new_mean": -1.3810661856521562,
+              "mean_gain": 0.03412658206818285,
+              "median_gain": -0.004258222927377542,
+              "gain_p05_p95": [
+                -0.4281015079512813,
+                0.6861213223534587
+              ],
+              "fraction_improved": 0.4900750508522129,
+              "fraction_loss_over_1_nat": 0.004559163919478151,
+              "sky_groups": 26,
+              "sky_bootstrap_mean_gain_95": [
+                0.018132239909021148,
+                0.049981047900124746
+              ]
+            },
+            "reference_luptitude_lt_20": {
+              "n": 2453,
+              "nonfinite_pairs": 0,
+              "old_mean": -0.70485901139052,
+              "new_mean": -0.6731433959954338,
+              "mean_gain": 0.031715615395086216,
+              "median_gain": 0.07095590538345586,
+              "gain_p05_p95": [
+                -0.3526576327812778,
+                0.30977526702689046
+              ],
+              "fraction_improved": 0.6278026905829597,
+              "fraction_loss_over_1_nat": 0.0012229922543823889,
+              "sky_groups": 49,
+              "sky_bootstrap_mean_gain_95": [
+                0.015470643892156216,
+                0.04703518293230734
+              ]
+            },
+            "reference_luptitude_ge_20": {
+              "n": 27547,
+              "nonfinite_pairs": 0,
+              "old_mean": -1.549779172544192,
+              "new_mean": -1.4757526782513803,
+              "mean_gain": 0.07402649429281184,
+              "median_gain": 0.004225853141457403,
+              "gain_p05_p95": [
+                -0.4584796281558127,
+                0.8938987236950812
+              ],
+              "fraction_improved": 0.5079681998039713,
+              "fraction_loss_over_1_nat": 0.0056267470141939235,
+              "sky_groups": 49,
+              "sky_bootstrap_mean_gain_95": [
+                0.04621119493600173,
+                0.10395548691140111
+              ]
+            }
+          },
+          "continuation_vs_300_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": -1.4834119496777618,
+            "new_mean": -1.4792968630799737,
+            "mean_gain": 0.004115086597787923,
+            "median_gain": 0.0024230388237191924,
+            "gain_p05_p95": [
+              -0.02651002304785381,
+              0.048805476126076774
+            ],
+            "fraction_improved": 0.5647666666666666,
+            "fraction_loss_over_1_nat": 6.666666666666667e-05,
+            "sky_groups": 49,
+            "sky_bootstrap_mean_gain_95": [
+              0.0032687369010417256,
+              0.005094144054578217
+            ]
+          },
+          "full_vs_small_global": {
+            "n": 30000,
+            "nonfinite_pairs": 0,
+            "old_mean": -1.4954510795220433,
+            "new_mean": -1.4834119496777618,
+            "mean_gain": 0.012039129844281633,
+            "median_gain": -0.018114280815730688,
+            "gain_p05_p95": [
+              -0.4296608461054504,
+              0.628504237568411
+            ],
+            "fraction_improved": 0.46426666666666666,
+            "fraction_loss_over_1_nat": 0.005366666666666666,
+            "sky_groups": 49,
+            "sky_bootstrap_mean_gain_95": [
+              -0.0007294114484016353,
+              0.025638834553418425
+            ]
+          }
+        }
+      }
+    }
+  },
+  "elapsed_seconds": 38.268992624944076,
+  "saved_predictions": "models/multisurvey_psf/work/paired_health/20260930"
+}
