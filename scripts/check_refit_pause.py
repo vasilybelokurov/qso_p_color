@@ -51,9 +51,10 @@ def background_models(root, tasks):
     iterations = [e['iteration'] for e in trace['evaluations']]
     if len(iterations) < 2:
         raise ValueError('background has not reached its first stopping check')
+    # Use the latest evaluated checkpoint; a paused fit saves exactly that model.
     checkpoint = read(root/'progress'/(star['name']+'_checkpoint.json'))
-    if checkpoint['iteration'] != iterations[1] or trace['stop_reason'] is not None and checkpoint['iteration'] != iterations[-1]:
-        raise ValueError('background checkpoint is not the evaluated first-check model')
+    if checkpoint['iteration'] != iterations[-1]:
+        raise ValueError('background checkpoint is not the latest evaluated model')
     return star, GaussianMixture.from_dict(star['init']), GaussianMixture.from_dict(checkpoint['mixture']), trace
 
 
@@ -92,6 +93,8 @@ def score_slice(args):
 
 
 def auc(q, b):
+    """Ranking AUC; undefined ranks (zero target-window weight) sit at the bottom."""
+    q, b = (np.where(np.isnan(x), -np.inf, x) for x in (q, b))
     return float(mannwhitneyu(q, b).statistic/(len(q)*len(b)))
 
 
@@ -136,8 +139,9 @@ def main():
 
     # 1: background swap.
     star, _, _, trace = background_models(root, tasks)
-    report['background']['density'] = dict(start=trace['evaluations'][0]['mean'], first_check=trace['evaluations'][1]['mean'],
-        iteration=trace['evaluations'][1]['iteration'], gain=trace['evaluations'][1]['mean']-trace['evaluations'][0]['mean'])
+    report['background']['density'] = dict(start=trace['evaluations'][0]['mean'], latest=trace['evaluations'][-1]['mean'],
+        iteration=trace['evaluations'][-1]['iteration'], trajectory=trace['evaluations'],
+        gain=trace['evaluations'][-1]['mean']-trace['evaluations'][0]['mean'])
     chosen = [t for t in tasks if t['kind'] == 'qso' and (not args.tasks or t['name'] in args.tasks)] + [star]
     jobs = [(str(root), t, which, str(out_dir)) for t in chosen for which in ('start', 'first')]
     with ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('spawn')) as pool:
@@ -163,6 +167,8 @@ def main():
         entry['change_excluding_certain'] = (auc(raw_rank(r['first']['qso']), raw_rank(r['first']['stars'])[keep]) -
                                              auc(raw_rank(r['start']['qso']), raw_rank(r['start']['stars'])[keep])) if keep.any() else None
         entry['high_qso_background'] = {w: int((r[w]['stars']['p_quasar'] > high).sum()) for w in ('start', 'first')}
+        entry['undefined_rank_rows'] = {w: int(np.isnan(raw_rank(r[w]['qso'])).sum() + np.isnan(raw_rank(r[w]['stars'])).sum())
+                                        for w in ('start', 'first')}
         report['slices'][t['name']] = entry; changes.append(entry['change'])
     median = float(np.median(changes)) if changes else None
     worst = [n for n, e in report['slices'].items() if e['change'] < -CRITERIA['maximum_slice_auc_loss'] and

@@ -8,7 +8,22 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**MAP TEST FINISHED; FULL REFIT PREPARED, AWAITING USER GO (30 September).**
+**FULL UNIFIED REFIT RUNNING (resumed 30 September ~22:40 BST).**
+Run `models/multisurvey_psf/work/unified_full/20260930/a637f155f7f48d00` (MAP update,
+tol 1e-4, max 300, predictive stopping every 20 updates at 0.02 nats; stopping panels
+in `stopping/`, excluded from final assessment). Launch `python scripts/train_unified_full.py --fit`
+(detached, log `train.log`); `touch <run>/PAUSE` pauses every fit at its next stopping
+check, rerunning --fit resumes exactly. Paused once by design and checked
+(`pause_check.json`, `scripts/check_refit_pause.py`), all pre-set criteria PASS:
+background held-out density -1.980 -> -1.254 nats at update 40; with only the background
+swapped, complete-score AUC change over 43 slices median -0.0001, range -0.0014..+0.0004;
+random 1,024-object panel high-QSO count 5 -> 4 (six tail objects move both ways); one
+score-panel object 0.417 -> 0.826. Live stopping records valid; qso_15 stopped at 60 on
+a plateau; large-slice trajectories reproduce the MAP test exactly. Remaining: per-slice
+first-block checks for the other 39 slices (`--stopping-only`, read-only) as they arrive;
+then bundle completion, rejection calibration, release checks. Active model unchanged.
+
+**MAP TEST FINISHED (30 September).**
 Report: `models/multisurvey_psf/work/map_update_test/20260930/c108415a6a7a695f/report.json`.
 Formal result 1/4 checks. (1) Zero MAP objective declines in all six (additive: 41 on the
 z1.75 control): pass. (2) Tolerance 1e-4 not reached by 120 in any MAP fit: replaced by
