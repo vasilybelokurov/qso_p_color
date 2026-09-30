@@ -1,5 +1,16 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
+**Keep the goal in view (user priority, 30 September).** Deliver a pragmatic,
+working, robust model with the requested functionality. Choose the simplest
+defensible solution and bring it through validation to use. Before adding an
+investigation, state which concrete decision or measured failure it resolves
+and what result ends the investigation. Distinguish release blockers from
+optional refinements; record non-blocking limitations and move on. Do not turn
+every uncertainty into a prerequisite, reopen settled work without new evidence,
+or expand the scope into an endless research programme. Preserve the scientific
+requirements below. Reports must give a conclusion, its practical significance,
+and the next action, rather than just a list of measurements.
+
 **Read `PROJECT_STATE.md` first for the current objective, completed data,
 running or paused work, and remaining requirements.** It supersedes older
 operational progress statements below. Update it after substantive progress;

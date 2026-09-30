@@ -1,5 +1,13 @@
 # Current project state
 
+**Standing priority:** deliver a pragmatic working model. Use the simplest
+defensible solution that meets the requested functionality and focused
+validation. Each additional investigation must resolve a concrete decision or
+measured failure and have a stopping criterion. Keep optional improvements
+separate from release blockers; document non-blocking limitations and proceed.
+Report the conclusion, practical impact and next action. This priority does not
+authorize new training ahead of the design discussion recorded below.
+
 **COMPLETE-SCORE AUDIT FINISHED; ACTIVATION HELD (30 September).**
 The full-data candidate improves real-object ranking but fails the northern
 low-density colour-grid check. The active pointer remains
