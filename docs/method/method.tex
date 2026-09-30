@@ -692,7 +692,13 @@ convolution. Their sufficient statistics are summed in a fixed chunk order
 before a single global M step; all selected stars still enter every iteration.
 The partition controls scheduling and memory, not the statistical sample.
 Regrouping sums can change floating-point rounding, so serial and parallel
-calculations are checked on identical data. A change of execution engine
+calculations are checked on identical data. The shared-latent projected E step
+now uses this same scheme: four QSO-slice workers run alongside four workers
+cooperating on one contaminant fit, each with one numerical thread. Resume
+checkpoints include the updated mixture, full likelihood history and exact
+run/row identities. A small negative likelihood change is not labelled
+convergence. Serial, parallel and interrupted-continuation comparisons check
+that the execution change preserves the fitted distribution. A change of execution engine
 continues the saved mixture and likelihood history in a versioned output
 directory with explicit checkpoint provenance; it does not reset convergence
 or silently overwrite the previous run.

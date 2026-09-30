@@ -83,19 +83,29 @@ def accumulate_projected(source: Callable, mix: GaussianMixture, operators: dict
 
 def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
                   expected_rows: int, max_iter: int, tol: float,
-                  regularization: float, progress: Callable | None = None) -> XDFitResult:
+                  regularization: float, progress: Callable | None = None,
+                  initial_history: tuple[float, ...] = (),
+                  accumulator: Callable | None = None) -> XDFitResult:
     """Fit all rows using fixed operators; check row accounting on every pass.
 
     ``progress(iteration, model, mean_log_density, rows)`` receives each updated
     mixture. The reported history is the pre-update density in native mag units.
+    A restart supplies that history with its corresponding updated mixture.
+    An optional accumulator parallelizes the E step, retaining one global update.
     """
     if expected_rows < 1 or max_iter < 1 or tol < 0 or regularization < 0:
         raise ValueError('invalid projected fit settings')
     for h, b, t in operators.values():
         native_mixture(init, h, b, t)
-    mix, history, converged = init, [], False
-    for it in range(1, max_iter + 1):
-        count, first, second, ll, n = accumulate_projected(source, mix, operators)
+    history = list(initial_history)
+    if len(history) > max_iter or not np.isfinite(history).all():
+        raise ValueError('invalid projected restart history')
+    mix, converged, it = init, False, len(history)
+    accumulate = accumulate_projected if accumulator is None else accumulator
+    if len(history) > 1:
+        converged = 0 <= history[-1]-history[-2] < tol * max(1., abs(history[-2]))
+    for it in range(it + 1, (it if converged else max_iter) + 1):
+        count, first, second, ll, n = accumulate(source, mix, operators)
         if n != expected_rows:
             raise ValueError(f'row accounting: expected {expected_rows}, saw {n}')
         alive = count > 1e-10
@@ -109,7 +119,7 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
         history.append(ll / n)
         if progress is not None:
             progress(it, mix, history[-1], n)
-        if len(history) > 1 and abs(history[-1] - history[-2]) < tol * max(1., abs(history[-2])):
+        if len(history) > 1 and 0 <= history[-1] - history[-2] < tol * max(1., abs(history[-2])):
             converged = True
             break
     ll, n = 0., 0

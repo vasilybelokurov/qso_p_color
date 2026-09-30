@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Prepare or fit the bounded, full-survey shared-latent pilot from cached data."""
 import argparse
+from contextlib import nullcontext
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 import hashlib
 import json
@@ -23,6 +24,11 @@ def arrays(root, kind):
     return {p.stem: np.load(p, mmap_mode='r') for p in (Path(root)/kind).glob('*.npy')}
 
 
+def selected_cells(cells, selection):
+    """None explicitly selects the full footprint; an empty list selects none."""
+    return np.ones(len(cells), bool) if selection is None else np.isin(cells, selection)
+
+
 def prepare(cfg):
     parent = MultiSurveyModel.load(Path(cfg['parent'])/'model.json')
     calibration = json.loads(Path(cfg['calibration']).read_text())
@@ -42,7 +48,8 @@ def prepare(cfg):
     for kind in ('qso','stars'):
         source = arrays(cfg['inputs'],kind)
         cells = galactic_healpix(source['l'],source['b'],cfg['nside'])
-        keep = source['eligible'] & np.isin(cells,cfg['training_cells']+cfg['test_cells'])
+        keep = source['eligible'] & (selected_cells(cells,cfg['training_cells']) |
+                                     selected_cells(cells,cfg['test_cells']))
         rows = np.flatnonzero(keep)
         for key in ('flux','variance','ra','dec','l','b','role','field','zspec','eligible'):
             np.save(root/kind/(key+'.npy'),source[key][rows])
@@ -55,7 +62,7 @@ def prepare(cfg):
             rr=rows[lo:lo+2048];f=transform(Photometry(source['flux'][rr],source['variance'][rr],transform.bands))
             y[lo:lo+len(rr)]=f.x;noise[lo:lo+len(rr)]=np.diagonal(f.cov,axis1=1,axis2=2);obs[lo:lo+len(rr)]=f.observed
         y.flush();noise.flush();obs.flush()
-        fit=np.isin(source['role'][rows],cfg['fit_roles']) & np.isin(cells[rows],cfg['training_cells'])
+        fit=np.isin(source['role'][rows],cfg['fit_roles']) & selected_cells(cells[rows],cfg['training_cells'])
         summary[kind]=dict(total=n,roles={str(i):int((source['role'][rows]==i).sum()) for i in range(4)},
             fit_rows=int(fit.sum()),fit_band_counts=obs[fit].sum(axis=0).tolist(),
             negative_flux_fit_rows=int((obs[fit]&(source['flux'][rows[fit]]<0)).any(axis=1).sum()),
@@ -80,7 +87,7 @@ def prepare(cfg):
 
 
 def task_rows(data,task,cfg):
-    keep=np.isin(data['role'],cfg['fit_roles'])&np.isin(data['cell'],cfg['training_cells'])
+    keep=np.isin(data['role'],cfg['fit_roles'])&selected_cells(data['cell'],cfg['training_cells'])
     if task['kind']=='qso':keep&=(data['zspec']>=task['z']-cfg['z_half_width'])&(data['zspec']<task['z']+cfg['z_half_width'])
     return np.flatnonzero(keep)
 
@@ -89,22 +96,46 @@ def fit_task(task,cfg,root):
     root=Path(root);out=root/'fits'/(task['name']+'.json')
     if out.exists():return task['name']
     data=arrays(root,task['kind']);rr=task_rows(data,task,cfg)
+    row_hash=hashlib.sha256(data['source_row'][rr].tobytes()).hexdigest()
+    identity_hash=file_hash(root/'identity.json')
+    if len(rr)!=task['n']:raise ValueError('prepared fit row count changed')
     layout=json.loads((root/'layout.json').read_text());op=operator(layout,task['kind'])
     def source():
         for lo in range(0,len(rr),cfg['batch_size']):
             ii=rr[lo:lo+cfg['batch_size']];v=data['noise'][ii];cov=np.zeros((len(ii),v.shape[1],v.shape[1]))
             cov[:,np.arange(v.shape[1]),np.arange(v.shape[1])]=v
             yield data['y'][ii],cov,data['observed'][ii],np.zeros(len(ii),int)
-    start=time.monotonic()
+    start=time.monotonic();history=[];init=GaussianMixture.from_dict(task['init'])
+    checkpoint_path=root/'progress'/(task['name']+'_checkpoint.json')
+    if checkpoint_path.exists():
+        saved=json.loads(checkpoint_path.read_text())
+        if saved.get('identity_sha256')!=identity_hash or saved.get('fit_rows_sha256')!=row_hash:
+            raise ValueError('checkpoint identity or selected rows mismatch')
+        history=saved['history']
+        if saved['iteration']!=len(history):raise ValueError('checkpoint history incomplete')
+        init=GaussianMixture.from_dict(saved['mixture'])
+    initial_history=tuple(history)
     def progress(iteration,mix,ll,n):
+        history.append(ll)
+        if iteration!=len(history):raise ValueError('checkpoint iteration mismatch')
+        write_json(checkpoint_path,dict(mixture=mix.to_dict(),iteration=iteration,history=history,
+            identity_sha256=identity_hash,fit_rows_sha256=row_hash,rows=n))
         write_json(root/'progress'/(task['name']+'.json'),dict(iteration=iteration,complete=False,
             rows=n,mean_loglike=ll,elapsed_seconds=time.monotonic()-start))
-        write_json(root/'progress'/(task['name']+'_checkpoint.json'),dict(mixture=mix.to_dict(),iteration=iteration))
-    fit=fit_projected(source,init=GaussianMixture.from_dict(task['init']),operators={0:op},
-        expected_rows=len(rr),max_iter=cfg['max_iter'],tol=cfg['tol'],regularization=cfg['regularization'],progress=progress)
+    context=nullcontext(None)
+    if task['kind']=='stars' and cfg.get('stellar_workers',1)>1:
+        from qso_pcolor.projected_parallel import ProjectedBatchFactory, ProjectedParallelAccumulator
+        context=ProjectedParallelAccumulator(ProjectedBatchFactory(root/'stars',rr,cfg['batch_size']),
+            len(rr),workers=cfg['stellar_workers'],task_rows=cfg['stellar_task_rows'],status_directory=root/'progress')
+    with context as accumulator:
+        fit=fit_projected(source,init=init,operators={0:op},expected_rows=len(rr),
+            max_iter=cfg['max_iter'],tol=cfg['tol'],regularization=cfg['regularization'],
+            progress=progress,initial_history=initial_history,accumulator=accumulator)
     write_json(out,dict(task=task['name'],mixture=fit.mixture.to_dict(),n=len(rr),k=task['k'],
         n_iter=fit.n_iter,history=fit.history,converged=fit.converged,mean_loglike=fit.mean_loglike,
-        elapsed_seconds=time.monotonic()-start,fit_rows_sha256=hashlib.sha256(data['source_row'][rr].tobytes()).hexdigest()))
+        elapsed_seconds=time.monotonic()-start,fit_rows_sha256=row_hash,
+        resumed_iteration=len(initial_history),
+        likelihood_decreased=bool(np.any(np.diff(fit.history+[fit.mean_loglike])<0))))
     write_json(root/'progress'/(task['name']+'.json'),dict(iteration=fit.n_iter,complete=True,rows=len(rr),elapsed_seconds=time.monotonic()-start))
     return task['name']
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Complete the small-sky unified candidate: spatial weights, counts and catch-all."""
 from copy import deepcopy
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -19,11 +20,11 @@ from qso_pcolor.qso_model import SlicedColourRedshiftModel
 from qso_pcolor.spatial import component_log_prob
 from qso_pcolor.unified import native_view
 from compare_psf_catchalls import evaluate_densities, fit_fractions
-from run_unified_pilot import arrays
+from run_unified_pilot import arrays, selected_cells
 
 
-def get_root():
-    cfg=json.loads(Path('configs/unified_pilot.json').read_text())
+def get_root(config='configs/unified_pilot.json'):
+    cfg=json.loads(Path(config).read_text())
     return Path(json.loads((Path(cfg['output'])/'current.json').read_text())['directory'])
 
 
@@ -37,7 +38,7 @@ def remap_mag(value,oldsoft,newsoft):
 def build_priors(root,cfg,model,data,parent):
     original=json.loads((Path(cfg['parent'])/'priors.json').read_text());saved=deepcopy(original)
     regions={r['cone']:r for r in json.loads((Path(cfg['stellar_root'])/'spatial_roles.json').read_text())['regions']}
-    train=np.isin(data['role'],cfg['fit_roles']) & np.isin(data['cell'],cfg['training_cells'])
+    train=np.isin(data['role'],cfg['fit_roles']) & selected_cells(data['cell'],cfg['training_cells'])
     rows=np.flatnonzero(train);fields=np.unique(data['field'][rows]);bands=model.transform.bands
     p=Photometry(data['flux'][rows],data['variance'][rows],bands);obs=p.observed
     a=2.5/np.log(10);values=22.5-a*(np.arcsinh(p.flux/(2*model.transform.softening))+np.log(model.transform.softening))
@@ -62,7 +63,7 @@ def build_priors(root,cfg,model,data,parent):
                 if obs[use][:,cols].any():area[k]=info['area_deg2']
             counts[k]=np.histogram(values[use & obs[:,j],j],edges)[0]
         meta=dict(reference_band=label,transform_id=model.transform_id,model_run_id=model.meta['run_id'],population='psf',
-            roles=['fit','select'],pilot=True,area_calibration_complete=system.startswith('decals_') and band in ('g','r','z'))
+            roles=['fit','select'],pilot=cfg.get('pilot',True),area_calibration_complete=system.startswith('decals_') and band in ('g','r','z'))
         if counts.sum() and area.sum():
             density=count_prior(counts,area,np.array(cells),edges,nside=cfg['nside'],nside_parent=cfg['spatial']['nside_parent'],n0=cfg['density_n0'],meta=meta)
             pair['background_density']=density.to_dict();origin='pilot fit/select counts'
@@ -83,7 +84,12 @@ def build_priors(root,cfg,model,data,parent):
 
 
 def main():
-    root=get_root();cfg=json.loads((root/'config.json').read_text());layout=json.loads((root/'layout.json').read_text())
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--config',default='configs/unified_pilot.json')
+    parser.add_argument('--root',type=Path)
+    args=parser.parse_args()
+    root=args.root if args.root is not None else get_root(args.config)
+    cfg=json.loads((root/'config.json').read_text());layout=json.loads((root/'layout.json').read_text())
     if not (root/'training_complete.json').exists():raise RuntimeError('pilot fits have not finished')
     out=root/'bundle';out.mkdir(exist_ok=True)
     parent=MultiSurveyModel.load(Path(cfg['parent'])/'model.json')
@@ -91,7 +97,7 @@ def main():
     stars=json.loads((root/'fits'/'stars_00.json').read_text())
     latent_q=[GaussianMixture.from_dict(f['mixture']) for f in fits];latent_b=GaussianMixture.from_dict(stars['mixture'])
     qmix=[native_view(m,layout,'qso') for m in latent_q];bmix=native_view(latent_b,layout,'stars')
-    data=arrays(root,'stars');rows=np.flatnonzero(np.isin(data['role'],cfg['fit_roles']) & np.isin(data['cell'],cfg['training_cells']))
+    data=arrays(root,'stars');rows=np.flatnonzero(np.isin(data['role'],cfg['fit_roles']) & selected_cells(data['cell'],cfg['training_cells']))
     transform=BandLuptitudeTransform(tuple(layout['native_labels']),np.array(layout['softening']))
     start=time.monotonic();path=root/'spatial.json'
     if path.exists():
@@ -103,7 +109,7 @@ def main():
             rr=rows[lo:lo+512];f=transform(Photometry(data['flux'][rr],data['variance'][rr],transform.bands))
             lp[lo:lo+len(rr)]=component_log_prob(bmix,f.x,f.cov,f.observed)
         spatial=fit_joint_spatial_log_prob(bmix,lp,data['l'][rows],data['b'][rows],np.ones(len(rows)),
-            **cfg['spatial'],meta=dict(roles=['fit','select'],pilot=True))
+            **cfg['spatial'],meta=dict(roles=['fit','select'],pilot=cfg.get('pilot',True)))
         write_json(path,spatial.to_dict())
     print('SPATIAL COMPLETE',len(rows),flush=True)
     qso=SlicedColourRedshiftModel(parent.qso.z_centres,qmix,np.array([f['n'] for f in fits]),'unified_'+root.name,transform.bands,
@@ -113,8 +119,8 @@ def main():
         bounds[j]=remap_mag(bounds[j],parent.transform.softening[j],transform.softening[j])[0]
     model=MultiSurveyModel(qso,bmix,transform,parent.reference_priority,bounds,
         meta=dict(population='psf',run_id='unified_'+root.name,reference_min_snr=cfg['reference_min_snr'],
-                  pilot=True,latent_dimensions=36,background_population='empirical PSF non-QSO contaminants',
-                  settings={'config':{'min_band_training':20}}),spatial_background=spatial)
+                  pilot=cfg.get('pilot',True),latent_dimensions=len(layout['latent_labels']),background_population='empirical PSF non-QSO contaminants',
+                  settings={'config':{'min_band_training':cfg.get('min_band_training',20)}}),spatial_background=spatial)
     model.save(out/'model.json');build_priors(root,cfg,model,data,parent)
     print('PRIORS COMPLETE',flush=True)
     catch=cfg['catchall'];mean,cov=mixture_moments([model.background])
@@ -133,12 +139,12 @@ def main():
     logs={k:np.concatenate([v[k] for v in parts]) for k in parts[0]}
     outlier.fractions=fit_fractions(logs['background'],logs['outlier'],logs['anchor'],logs['magnitude'],transform.bands,
         n_bins=catch['magnitude_bins'],strength=catch['pooling_strength'],config=catch)
-    outlier.meta.update(roles=['calib'],rows=len(rr),pilot=True);outlier.save(out/'outlier.json')
+    outlier.meta.update(roles=['calib'],rows=len(rr),pilot=cfg.get('pilot',True));outlier.save(out/'outlier.json')
     write_json(out/'latent.json',dict(layout=layout,qso=[m.to_dict() for m in latent_q],background=latent_b.to_dict(),
         warm_start=cfg['parent'],scope=cfg['policy']))
     files={name:file_hash(out/name) for name in ('model.json','priors.json','outlier.json')}
     write_json(out/'manifest.json',dict(kind='multisurvey_psf_bundle',files=files,bundle_id=root.name,
-        min_abs_b_deg=25.,population='psf',status='small-sky pilot; support calibration pending',
+        min_abs_b_deg=cfg.get('min_abs_b_deg',25.),population='psf',status='candidate; support calibration pending',
         full_probability_calibration=False))
     write_json(root/'completion.json',dict(count_rows=len(rows),catchall_rows=len(rr),elapsed_seconds=time.monotonic()-start,
         active_model_changed=False))

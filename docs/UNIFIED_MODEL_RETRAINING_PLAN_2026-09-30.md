@@ -39,7 +39,8 @@ old reference choice. Of 13,821 northern stars with reference asinh magnitude
 faint bin cannot simply be called undetected. Re-evaluate the saved models
 with the stronger reference choice before fitting anything further; measure
 ranking and conditional-density changes consistently under that same choice.
-This proposed reference change has not yet been evaluated or implemented.
+Update: the reference change is implemented; the full-survey pilot and matched
+comparison passed the density/ranking checks. See UNIFIED_PILOT_2026-09-30.md.
 
 Numbers and scope are recorded in
 `POOLED_OPTICAL_DETECTION_DOMAIN_2026-09-30.json`. The re-summary uses the exact
@@ -123,9 +124,10 @@ global evidence statistic, or covariance tuning to suppress selected outliers.
 3. **Run one pooled full-data training campaign.** Refit all 43 joint QSO
    slices and one joint empirical contaminant model. Reuse the existing
    component counts and frozen data roles, with a declared iteration budget,
-   checkpoints and at most four numerical workers. Parallelize QSO slices;
-   use the established batched stellar execution where compatible with the
-   projected update. Report completed work and estimated fraction of compute.
+   checkpoints and, following the user's later request, eight numerical workers:
+   four QSO slice workers plus four cooperating projected stellar E-step
+   workers. The full launcher and preflight are now prepared; see
+   `UNIFIED_FULL_PREFLIGHT_2026-09-30.md`. Report completed work and estimated fraction of compute.
    Do not reopen a broad component-count search. No production launch is part
    of this planning step.
 
@@ -167,5 +169,5 @@ position alone does not identify which instrument produced a measurement.
 
 The current low-level PSF scorer instead takes l,b explicitly and identifies
 the native system through survey-labelled bands. The RA/Dec convenience layer
-is planned work, not an already implemented interface. The input redshift is
+is now implemented and tested by the full-survey pilot. The input redshift is
 the primary QSO redshift, not an assumed known redshift of its candidate.

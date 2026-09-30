@@ -8,6 +8,29 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
+**FULL UNIFIED LAUNCHER PREPARED: 4 QSO + 4 STELLAR WORKERS (30 September).**
+The user requested a pragmatic loose-end audit before launch, then specified
+four QSO and four stellar workers. Read `docs/UNIFIED_FULL_PREFLIGHT_2026-09-30.md`.
+Full-data preflight passed: all 39 input hashes match; 1,049,260 QSO and
+1,975,894 background fit/select rows; all 43 QSO slices populated; all 41
+native bands have some measurements. Rare SkyMapper u/v support remains
+explicit; no acquisitions needed. Active pointer unchanged.
+Use `scripts/train_unified_full.py` and `configs/unified_full_training.json`.
+Default is preparation only; `--fit` explicitly starts the candidate fits.
+**No production fit has been launched: 44 tasks prepared, zero fit results.**
+Run: `models/multisurvey_psf/work/unified_full/20260930/5fd837e5cafee6c1`.
+The launcher runs independent QSO slices on four processes while four other
+processes cooperate on one projected stellar E step. One numerical thread per
+process. Checkpoints restore model, full history and iteration after identity
+verification; completed fits are reused. Maximum 300 iterations, tol 1e-5,
+fixed existing K/regularization. Likelihood declines and iteration limits
+remain reported. Full bundle completion accepts this explicit config/root.
+Four-worker versus serial equivalence and interruption/worker-failure tests
+pass, as does the 4+4 launcher integration test. Full suite: **366 passed
+in 78.45 seconds**; `/tmp/unified_full_launcher_suite.log`.
+Next: report readiness to the user before launching, then run the prepared
+refit. Rejection tuning is a subsequent calibration task, not a fit blocker.
+
 **UNIFIED PILOT PASSES MATCHED DENSITY/RANKING TEST (30 September).**
 The user explicitly separates rejection tuning from deciding whether to unify.
 Rejection thresholds can be tuned later; they must not block density retraining.
@@ -92,8 +115,8 @@ A saved-prediction re-summary gives northern stellar loss 0.0279 nats on
 0.1-nat tolerance. Requiring >=5 sigma in any grz band leaves a 0.1701-nat loss
 under the old reference choice: most faint-reference objects are detected in
 another band. Use actual flux/error for the validation domain, preserve weak/negative
-other bands, and prefer a >=5-sigma reference when present. That reference
-change still needs a focused evaluation; do not claim it has already passed.
+other bands, and prefer a >=5-sigma reference when present. The full-survey pilot and matched comparison above subsequently evaluated
+that reference rule successfully for density/ranking.
 Numbers: `docs/POOLED_OPTICAL_DETECTION_DOMAIN_2026-09-30.json`.
 The next implementation is the full shared observation operator, empirical
 background/support integration, then one uncapped pooled campaign and focused
