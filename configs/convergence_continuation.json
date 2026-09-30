@@ -1,0 +1,13 @@
+{
+  "parent": "models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b",
+  "output": "models/multisurvey_psf/work/convergence_continuation/20260930",
+  "training_config": "configs/full_sample_training.json",
+  "additional_iterations": 100,
+  "history_window": 50,
+  "workers": 4,
+  "task_rows": 8192,
+  "diagnostic_rows": 8192,
+  "diagnostic_seed": 20260930,
+  "magnitude_quantiles": 5,
+  "tail_fraction": 0.01
+}

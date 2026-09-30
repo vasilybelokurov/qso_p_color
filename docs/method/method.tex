@@ -498,6 +498,20 @@ continues the saved mixture and likelihood history in a versioned output
 directory with explicit checkpoint provenance; it does not reset convergence
 or silently overwrite the previous run.
 
+An iteration limit is not evidence of convergence. A continuation audit examines
+the recent changes in training log likelihood and the saved covariance spectra.
+Improving fits may continue at fixed component count, with the same data,
+regularization and stopping tolerance; the earlier artifacts are retained.
+Material likelihood declines are investigated separately. In particular, adding
+a positive diagonal term to every covariance update is not the unconstrained
+maximum-likelihood M step, so ordinary EM monotonicity does not follow for the
+reported, unpenalized data likelihood. A one-step diagnostic can reuse the same
+full-data sufficient statistics with and without that term, without replacing
+either production fit. Before/after density comparisons on fixed training rows
+measure sensitivity to continuation, not held-out predictive performance or
+posterior calibration. Model selection still uses fit-only shapes evaluated on
+the selection role; final shapes have already included those selection rows.
+
 
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}

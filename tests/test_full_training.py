@@ -151,6 +151,26 @@ def test_candidate_training_roundtrip_and_resume_preserves_active_pointer(tmp_pa
     assert [m.to_dict() for m in parallel.qso.mixtures] == expected
     assert file_hash(out/'background.json') == previous
     assert file_hash(Path(cfg['source_pointer'])) == pointer_hash
+    # A separate, fixed-K convergence review preserves this completed parent,
+    # runs spawned QSO tasks and parallel stellar E steps, and saves comparisons.
+    from qso_pcolor.convergence_review import run_review
+    from qso_pcolor.sky_acquisition import acquisition_lock
+    review_cfg = tmp_path/'review_training.json'
+    write_json(review_cfg, cfg)
+    continuation = tmp_path/'convergence_review'
+    options = dict(parent=str(out), output=str(continuation), training_config=str(review_cfg),
+        additional_iterations=2, history_window=50, workers=2, task_rows=14,
+        diagnostic_rows=11, diagnostic_seed=517, magnitude_quantiles=2, tail_fraction=.1)
+    hashes = {p.name:file_hash(p) for p in out.glob('*.json')}
+    assert run_review(options, fit=True) == continuation
+    assert json.loads((continuation/'execution.json').read_text())['state'] == 'completed'
+    assert all(file_hash(out/name)==digest for name,digest in hashes.items())
+    assert file_hash(Path(cfg['source_pointer'])) == pointer_hash
+    assert (continuation/'background.prediction_change.json').exists()
+    assert run_review(options, fit=True) == continuation
+    with acquisition_lock(continuation/'worker.lock'):
+        with pytest.raises(RuntimeError, match='already holds'):
+            run_review(options, fit=True)
     execution = json.loads((out/'parallel_execution.json').read_text())
     assert execution['state'] == 'completed'
     assert sorted(execution['slice_order']) == [0, 1]

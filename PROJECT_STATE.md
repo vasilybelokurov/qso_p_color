@@ -1,15 +1,42 @@
 # Current project state
 
-**FOUR-WORKER STELLAR FIT ACTIVE (29 September).** The earlier QSO pool
-has exited. Coordinator 84397 and stellar workers 84415, 84416, 84419, 84420
-continue the final stellar fit from saved iteration 18; monitor 84411 tracks it.
-Current output: `models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/`.
-The parent `5d1429d22b40d24d/` remains an unchanged handover snapshot. All 43
-completed QSO slice files were copied and verified byte-for-byte. Read the
-run `current.json`, `launch.json` and live progress before acting on PIDs.
+**CONVERGENCE REVIEW AND CONTINUATION LAUNCHED (30 September, 00:22 UTC).**
+The user authorized a saved-fit diagnostic and up to 100 further iterations.
+Coordinator 2282 and monitor 2283 use
+`configs/convergence_continuation.json` and `scripts/review_fit_convergence.py`.
+Current output: `models/multisurvey_psf/work/convergence_continuation/20260930/`.
+Check its `launch.json`, `execution.json`, `run.log`, per-fit status and
+`monitor_progress.json` before acting on recorded PIDs. No other trainer should
+be started. The QSO phase shares four workers between continuation and decline
+investigation; the stellar phase then uses four E-step workers.
 
-Updated 29 September 2026 after the user authorized full-sample retraining
-and the training worker was launched. Read this file before scheduling work. It supersedes
+The audit found 12 improving unfinished fits: stars and QSO slices
+00, 01, 02, 03, 04, 37, 38, 39, 40, 41, 42. These resume at iteration 300,
+with unchanged K, data, regularization and stopping tolerance, up to iteration
+400. Seven QSO fits (13, 15, 22, 27, 31, 33, 35) have declining likelihoods and
+are held: full-data one-step diagnostics compare the configured covariance
+addition with a zero-addition counterfactual, without replacing either fit.
+All 19 mixtures have finite parameters and positive-definite covariances.
+The 25 previously converged QSO fits are retained unchanged. Some of those
+converged histories also contain declines; their flags are retained in the full
+audit and their convergence is not a certification of predictive stability.
+
+The original scheduled run finished at 23:08 UTC on 29 September; its density-EM
+compute is 100% overall, QSO and stellar. This continuation has a separate
+row-times-components-times-additional-iterations budget. Prediction comparisons
+and decline diagnostics are not included in that EM percentage. The parent
+`models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/` remains unchanged,
+including its previously assembled density/spatial candidate. Continuation
+outputs are individual fits and diagnostics, not an assembled release.
+
+The active model is unchanged. Convergence/capacity review, refreshed spatial
+weights after final shapes settle, population priors, calibration-role catch-all
+fitting and reserved validation remain. No further acquisition is needed.
+Details and restart rules: [continuation record](docs/CONVERGENCE_CONTINUATION_2026-09-30.md).
+Initial 19-fit table: [convergence audit](docs/CONVERGENCE_AUDIT_2026-09-30.md).
+
+Updated 30 September 2026 after the user authorized and launched the convergence review.
+Read this file before scheduling work. It supersedes
 older progress statements in the dated preparation documents; those documents
 retain the selection rationale and provenance. `JOURNAL.md` records the history.
 
@@ -28,7 +55,7 @@ worker is running. NSC, SkyMapper and VHS acquisition remains paused.
 Retain and use existing measurements from those surveys, with unavailable
 measurements masked; the model's 41-band interface is unchanged. Do not turn
 their incomplete acquisition into a requirement to resume downloads. The
-independent association auditor remains stopped. Uncapped density retraining is now launched; see the run record below.
+independent association auditor remains stopped. The scheduled uncapped density fits are complete; see the run record below.
 
 ## Completed data
 
@@ -83,13 +110,14 @@ why local evidence cannot supply it, and the smallest necessary target set.
 
 All 43 QSO final slice files are saved: 25 meet the configured convergence
 criterion; 18 reached the 300-iteration limit and require convergence review.
-The QSO worker pool has exited. Stellar fitting now uses four parallel E-step workers.
+The QSO worker pool has exited. The subsequent four-worker stellar fit has also finished.
 Verified per-slice row counts and frozen roles, 41-dimensional finite mixtures,
 positive-definite covariances and unchanged active pointer. Evidence is in
 `models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d/qso_completion.json`.
-QSO density-EM compute is 100%; overall is about 53.0%, stellar 22.3%.
+At QSO completion, density-EM compute was about 53.0% overall and 22.3% stellar.
+The final run is now 100% for both populations.
 This completes the scheduled QSO fits, not scientific validation or release.
-Parallel stellar EM is now active; see the current run details below.
+See the completed stellar run details below.
 
 ## Training run and remaining work
 
@@ -97,7 +125,7 @@ The requested local assembly and uncapped density-training integration are
 complete. Inputs are in
 `models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8/`, with
 checksummed memory-mapped arrays and an assembly report. The final shape fits
-will use all 1,049,260 QSO fit+selection rows and 1,975,894 stellar fit+selection
+used all 1,049,260 QSO fit+selection rows and 1,975,894 stellar fit+selection
 rows. Calibration and test roles remain separate. No new downloads were launched.
 
 The current launch record, log and preflight remain in
@@ -107,11 +135,11 @@ now the training log; the earlier serial and QSO-parallel logs and launch
 records are retained as history. The original coordinator and its four idle
 QSO workers exited at a checkpoint-safe handover.
 
-Use `scripts/train_stellar_parallel.py --workers 4 --task-rows 8192
+Historical handover command: `scripts/train_stellar_parallel.py --workers 4 --task-rows 8192
 --resume-from models/multisurvey_psf/work/full_training_fits/5d1429d22b40d24d`
-for a checkpoint restart only after verifying that the existing coordinator
-has exited. Both parent and destination run locks reject duplicate fitting.
-The active continuation directory is
+was used to continue the saved fit. This run is complete; do not relaunch it
+from this historical command. Both parent and destination run locks reject
+duplicate fitting. The completed continuation directory is
 `models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/`.
 Its `checkpoint_lineage.json` records all transferred hashes. The changed
 streaming-engine implementation has its own identity; the old directory is
@@ -126,7 +154,7 @@ cover serial-checkpoint continuation, worker failure without partial updates,
 and unchanged completed QSO fits. Details: `docs/STELLAR_PARALLEL_2026-09-29.md`.
 The active model pointer remains unchanged.
 
-Progress monitoring runs independently every 60 seconds through
+Progress monitoring ran independently every 60 seconds through
 `scripts/monitor_full_training.py --watch`. In the run directory,
 `PROGRESS.md` is the readable live summary, `progress.json` is its structured
 form, and `progress_history.jsonl` records successive checks. The monitor
@@ -146,9 +174,10 @@ the current continuation uses `scripts/train_stellar_parallel.py` as above. Read
 [the readiness report](docs/FULL_TRAINING_READINESS_2026-09-29.md) before launch.
 The old capped recovery scripts are historical and are not this run's entry point.
 
-1. Monitor the authorized density fit through saved iteration checkpoints and
-   completed component-selection records. At iteration limits the uncapped
-   workload can take several days; every iteration is checkpointed.
+1. Review convergence of the 18 capped QSO fits and the capped stellar fit,
+   together with component selection at the edge of the tested capacity grid.
+   The authorized continuation and diagnostic run is recorded at the top of this file;
+   preserve its fixed-K scope before beginning a separate capacity review.
 2. After density fits, complete population priors and calibration-role catch-all
    fitting consistently with the new shapes. The historical population-completion
    script needs adaptation to the new role/input layout; do not run it unchanged.

@@ -174,3 +174,12 @@ identities and rows accumulated within an iteration.
 includes total, QSO and stellar estimated row-component EM work completed,
 worker CPU/memory and stage checkpoints. It never restarts a training process.
 These percentages exclude later spatial/population fitting and validation.
+
+## Convergence review, 30 September
+
+Current diagnostic/continuation output: `models/multisurvey_psf/work/convergence_continuation/20260930/`.
+Configuration: `configs/convergence_continuation.json`. Parent density artifacts
+remain in `models/multisurvey_psf/work/full_training_fits/45aa8f6cdb34802b/`.
+Read `PROJECT_STATE.md` and `docs/CONVERGENCE_CONTINUATION_2026-09-30.md` before
+restarting. The new output contains individual fits and diagnostics, not an
+assembled or validated release. No input data are downloaded or replaced.

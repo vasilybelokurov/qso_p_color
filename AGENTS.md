@@ -20,12 +20,13 @@ The user authorized full-sample production fitting on 29 September; the run is
 recorded in `PROJECT_STATE.md`. Check that record before starting any worker.
 The active model remains unchanged pending candidate completion and validation.
 
-**Current stellar continuation (29 September).** All 43 QSO fits are saved and
-the QSO pool has exited. The final stellar fit now uses four E-step workers via
-`scripts/train_stellar_parallel.py`; see `PROJECT_STATE.md` and
-`docs/STELLAR_PARALLEL_2026-09-29.md` for the active run and restart command.
-The new implementation identity retains an explicit parent-checkpoint lineage.
-Do not relaunch the earlier serial or QSO-parallel workers for this run.
+**Convergence review (30 September).** The original 43 QSO fits and stellar
+fit have finished; their coordinator and workers exited. The user authorized a
+convergence audit and up to 100 additional iterations. Use PROJECT_STATE.md and
+`docs/CONVERGENCE_CONTINUATION_2026-09-30.md` for the current fixed-K continuation,
+seven held QSO decline diagnostics, output locations and restart rules. The
+previous serial, QSO-parallel and stellar-only launch commands are historical;
+do not relaunch them. Preserve the parent and the active model pointer.
 
 Read this before touching the repository. It is the working contract for
 `qso_pcolor`. `docs/method/method.tex` is the scientific write-up — the
