@@ -8,6 +8,41 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
+**FULL-ROW COVARIANCE TRIAL PREPARED; WAITING FOR RESOURCES (30 September).**
+The user authorized the focused additive-versus-eigenvalue-floor comparison,
+then explicitly asked to wait when resource checks found two unrelated jobs
+occupying ten CPU cores. **Do not launch or automatically queue the trial yet.**
+No fitting worker from this trial is running. Read
+`docs/UNIFIED_COVARIANCE_TRIAL_2026-09-30.md` before resuming.
+The computer has 48 GiB RAM, 14 cores (10 performance / 4 efficiency), and
+1.2 TiB available disk; the immediate constraint was CPU contention, not disk.
+Other jobs: `real_oc.py --workers 6` (parent 46447) and
+`inject_recover_macho.py --workers 4` (parent 46927); these PIDs are historical
+snapshots, not commands to terminate. Recheck resources before launching.
+
+Prepared comparison: all 114,657 training QSOs at z~1.45, 2,152 at z~4.05,
+and 1,975,894 background objects; identical canonical warm starts, two updates,
+20-update blocks, maximum 60 updates per fit / four-hour fitting budget.
+Root: `models/multisurvey_psf/work/unified_covariance_trial/20260930/8176eab7484bf5e1`.
+Launcher: `scripts/trial_unified_covariance.py` (prepare only; `--fit` runs).
+The saved development manifest permanently excludes 1,646 QSO and 2,045
+background source rows from future independent final assessment. Roles remain
+unchanged and calibration objects are untouched. Complete-score comparisons
+hold pilot priors/catch-all/spatial weights fixed; these are diagnostics, not
+a completed scientific refit. No method or active-pointer change.
+An initial attempt failed during baseline scoring, before any fit: legitimate
+negative-infinite ranks from zero target-redshift priors were rejected by the
+diagnostic. Reporting now retains these objects at the bottom of the ranking,
+counts zero-weight transitions, and has a regression test. The corrected run
+has only been prepared, not launched. Full suite: **372 passed in 94.86 s**,
+`/tmp/unified_covariance_trial_fullsuite_final.log`.
+
+The earlier recommendation to retain the additive covariance update for
+production is superseded: choose the production update only after this
+full-row predictive comparison. Tol 1e-4 stopped the miniature additive runs;
+none of the miniature floor runs reached it by 120 updates. Do not forecast
+the additive stopping-time savings for flooring.
+
 **CONVERGENCE ASSESSMENT AND QUICK TEST COMPLETE (30 September).**
 The user asks to address iteration limits, not hypothetical premature stopping.
 Read `docs/CONVERGENCE_PRACTICAL_ASSESSMENT_2026-09-30.md` and its three JSON
