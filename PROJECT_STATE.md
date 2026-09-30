@@ -8,46 +8,53 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**POOLED OPTICAL PROTOTYPE RUNNING; ONE TARGETED QSO ADJUSTMENT.**
-Use `configs/pooled_optical_prototype.json` and
-`scripts/run_pooled_optical_prototype.py` (default preparation; `--fit` fits the
-isolated experiment). Compare genuinely pooled projected-XD grz fits against
-separate native North/South fits, using every eligible optical fit/select row,
-all 43 QSO slices, parent-selected component counts and a common 40-iteration
-budget. Four numerical workers are configured. No new catalogue acquisition.
-The active pointer is not changed. Output and progress are under
-`models/multisurvey_psf/work/pooled_optical_prototype/20260930/`, located by
-`current.json`. Stop after this bounded fit and its declared validation;
-do not expand to production retraining or automatic additional fit campaigns.
+**POOLED OPTICAL PROTOTYPE COMPLETE (30 September); FEASIBLE, ONE FAILED CHECK.**
+All fitting and validation have finished. No prototype worker needs restarting.
+Read `docs/POOLED_OPTICAL_PROTOTYPE_2026-09-30.md` for the decision, comparison,
+plots and exact saved locations; the accompanying JSON contains all metrics.
+The experiment used all 1,049,258 eligible optical fit/select QSOs, all 43
+redshift slices and all 1,975,894 fit/select stars, without sample caps.
 
-The experiment fixes DESI affine slopes in asinh coordinates and estimates
-constant offsets and diagonal excess scatter from paired fit/select sources,
-including both measurement covariances. Its purpose is to decide whether
-pooling removes the observed northern failure while preserving reserved-source
-predictive performance and QSO discrimination. Test all seven optical subsets,
-paired North/South consistency and original grids. Public diagnostic scores
-inherit identical native priors/catch-all across alternatives to isolate the
-shape change; they are not recalibrated population probabilities.
+The final pooled model preserves QSO ranking: AUC 0.99182 -> 0.99181 south and
+0.98807 -> 0.98759 north. Mean held-out conditional log-density changes relative
+to separate optical fits are -0.0016/-0.0306 nats for southern/northern QSOs
+and +0.0038/-0.1706 for stars. The northern stellar loss fails the declared
+0.1-nat tolerance. Most of that loss comes from reference asinh magnitude
+24--30 (13,821 objects, 22.7% of northern test stars; mean loss 0.525 nats).
+The fixed affine relation near the asinh softening regime is a candidate
+explanation, not a demonstrated cause. No classification collapse was measured.
 
-Run `aa79cd8f3486dee8` has completed all 129 QSO fits and the separate northern
-stellar fit; the pooled and southern stellar fits continue. Original QSO
-validation on 310,294 informative southern and 58,227 northern reserved objects
-gives mean conditional log-density changes of -0.0055 and -0.7897 nats versus
-the new separate-system fits. The large paired-QSO excess scatter is the main
-identified issue: a prediction-only intervention replacing it with the
-star-calibrated instrumental scatter reduces the northern loss to -0.0474 nats.
-This intervention is diagnostic, not a fitted replacement.
+The original northern bright/intermediate low-density high-QSO grid counts
+72/79 become 0/0. Both separate optical refits and pooled fits remove this
+failure; pooling cannot claim sole credit. Four southern intermediate grid
+points remain above 0.5 total-QSO score, versus three in the separate optical
+control and zero in the original full-data candidate. These use the original
+fixed low-density mask and are stress tests, not measured contamination.
+All seven nonempty grz subsets pass numerical/guard checks. Paired absolute
+score disagreement improves slightly, 0.0829 -> 0.0806. Overall 16/17 declared
+checks pass; do not describe this as a fully validated release.
 
-One targeted QSO-only refit is now running through
-`scripts/check_pooled_qso_scatter.py --fit`, with two workers alongside the two
-remaining original stellar fits. The variant is located by the original run's
-`scatter_variant.json`. It retains the QSO offset, uses the stellar instrumental
-residual covariance for the QSO observation operator, and learns broader QSO
-variation in the population density instead of adding the full paired excess
-again. It explicitly reuses the unchanged stellar and separate-system fits.
-Do not start another correction/refit campaign. Validate this bounded variant
-and report the decision. Logs: `/tmp/pooled_optical_training.log` and
-`/tmp/pooled_qso_scatter_refit.log`; both runs save structured progress.
+Original run: `models/multisurvey_psf/work/pooled_optical_prototype/20260930/aa79cd8f3486dee8/`.
+Final variant: its `instrumental_scatter_6d29f313e9caa5d7/` subdirectory.
+The original paired-QSO scatter caused a northern density loss of 0.790 nats.
+One completed targeted refit uses the stellar instrumental residual covariance
+with the fitted QSO offset; excess QSO variation belongs to the learned
+population for this prototype. Separate fits and stellar fits were reused.
+The final variant contains 132 fits: 103 converged within the common budget,
+29 reached 40 iterations, with no recorded likelihood decreases. No automatic
+convergence/refit campaign is authorized by these results. The QSO scatter
+choice used held-out diagnostics, so the reused test sample is development
+evidence rather than independent confirmation of that choice.
+
+Recommendation: keep the shared latent observation-model approach. Next,
+check/calibrate the relation in the actual asinh coordinates at the faint end
+using existing fit/select overlap measurements, including their errors, before
+one targeted stellar retry. A faint-end relation must improve paired residuals
+before spending compute on a refit; do not assume it is the cause or widen
+sample cuts to hide the loss. Retain the southern grid points as regressions.
+Full 41-band integration/retraining follows that bounded check, not another
+broad convergence study. No such follow-up fit has started. The active model
+remains `models/multisurvey_psf/630f47f63b6f0694`; no downloads or promotion.
 
 **COMPLETE-SCORE AUDIT FINISHED; ACTIVATION HELD (30 September).**
 The full-data candidate improves real-object ranking but fails the northern

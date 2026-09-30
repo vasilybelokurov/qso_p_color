@@ -611,8 +611,26 @@ observation operator. Broader QSO variation is learned by the population
 mixture. This is a tested alternative to interpreting all paired-epoch QSO
 scatter as additional filter noise; variability has not been independently
 measured or isolated. The stellar and separate-system fits are reused with
-explicit provenance. Reserved performance, paired consistency and tails must
-be checked before concluding that this alternative is adequate.
+explicit provenance. The completed alternative changes mean held-out QSO
+conditional log density by $-0.002$ nats in the south and $-0.031$ in the north
+relative to separate optical fits; ranking AUC changes by less than $0.001$.
+Northern stellar density instead loses $0.171$ nats, exceeding the declared
+$0.1$-nat tolerance, concentrated at reference asinh magnitudes $24$--$30$
+($0.525$ nats lost on 13,821 objects). The fixed faint-end affine approximation
+is a candidate explanation, not an established cause.
+
+The northern bright/intermediate low-density grid counts fall from 72/79 to
+zero, but the separate optical refits also remove them. Four southern
+intermediate grid points retain high total-QSO scores, compared with three in
+the separate optical control, under the original fixed low-density mask.
+These counts are stress tests, not contamination rates. All seven optical
+subsets pass numerical and guard checks; mean absolute paired score difference
+changes from $0.0829$ to $0.0806$. Overall, 16 of 17 declared checks pass.
+The scatter choice used held-out diagnostics, so reusing those objects gives
+development evidence rather than independent confirmation. This is evidence
+for continued unification work with a specific faint-star limitation; the
+active 41-band model is unchanged. Results and plots are in
+\texttt{docs/POOLED\_OPTICAL\_PROTOTYPE\_2026-09-30.md}.
 
 The stellar E step can also be evaluated by several workers over disjoint row
 chunks. Every worker uses the same fixed mixture and the same measurement-error
