@@ -8,17 +8,19 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**FULL-ROW COVARIANCE TRIAL PREPARED; WAITING FOR RESOURCES (30 September).**
-The user authorized the focused additive-versus-eigenvalue-floor comparison,
-then explicitly asked to wait when resource checks found two unrelated jobs
-occupying ten CPU cores. **Do not launch or automatically queue the trial yet.**
-No fitting worker from this trial is running. Read
-`docs/UNIFIED_COVARIANCE_TRIAL_2026-09-30.md` before resuming.
+**FULL-ROW COVARIANCE TRIAL LAUNCHED (30 September, 16:51 UTC).**
+The user resumed the focused additive-versus-eigenvalue-floor comparison after
+the resource pause. The corrected trial was launched at 16:51:36 UTC;
+coordinator PID 52878. Check its `execution.json`, `progress.json`, `run.log`
+and `finished.json` before any restart; **do not launch a duplicate worker**.
+Read `docs/UNIFIED_COVARIANCE_TRIAL_2026-09-30.md` for the trial policy.
 The computer has 48 GiB RAM, 14 cores (10 performance / 4 efficiency), and
 1.2 TiB available disk; the immediate constraint was CPU contention, not disk.
-Other jobs: `real_oc.py --workers 6` (parent 46447) and
+At the original pause, other jobs were `real_oc.py --workers 6` (parent 46447) and
 `inject_recover_macho.py --workers 4` (parent 46927); these PIDs are historical
-snapshots, not commands to terminate. Recheck resources before launching.
+snapshots, not commands to terminate. At resumption, CPU was approximately
+60% idle with five other numerical workers; no swap activity was observed in
+the short sample. The eight-worker diagnostic was launched.
 
 Prepared comparison: all 114,657 training QSOs at z~1.45, 2,152 at z~4.05,
 and 1,975,894 background objects; identical canonical warm starts, two updates,
@@ -34,7 +36,7 @@ An initial attempt failed during baseline scoring, before any fit: legitimate
 negative-infinite ranks from zero target-redshift priors were rejected by the
 diagnostic. Reporting now retains these objects at the bottom of the ranking,
 counts zero-weight transitions, and has a regression test. The corrected run
-has only been prepared, not launched. Full suite: **372 passed in 94.86 s**,
+is now launched. Full suite: **372 passed in 94.86 s**,
 `/tmp/unified_covariance_trial_fullsuite_final.log`.
 
 The earlier recommendation to retain the additive covariance update for

@@ -1,8 +1,9 @@
 # Full-row covariance comparison
 
-The user authorized this diagnostic, then asked to wait because other work
-occupies ten CPU cores. It is prepared, **not running or automatically queued**.
-The production method and active model remain unchanged.
+The user resumed this diagnostic after the CPU-resource pause. It was launched
+on 30 September at **16:51:36 UTC**, coordinator PID **52878**. The production
+method and active model remain unchanged. Read the run's live status before
+any restart; do not launch a duplicate coordinator.
 
 The decision is whether constrained covariance updates preserve predictive
 quality while removing the likelihood declines caused by additive broadening.
@@ -85,12 +86,15 @@ Prepared root:
 
 `python scripts/trial_unified_covariance.py` only prepares.
 `python scripts/trial_unified_covariance.py --fit` runs the diagnostic.
-**Wait for the user's resumption before launching; recheck CPU availability.**
+The user authorized resumption and the diagnostic is launched. Check
+`execution.json`, `progress.json`, `run.log` and `finished.json` before restarting.
 
 At the pause, the machine had 48 GiB memory, 14 CPU cores (10 performance),
 1.2 TiB free disk, approximately 1 GiB allocated swap with no swapping observed
 during the short sample, and 80--90% CPU use. Two unrelated Python jobs used
-six and four workers. No other process was stopped or modified.
+six and four workers. No other process was stopped or modified. At resumption,
+approximately 60% of CPU capacity was idle with five other numerical workers.
+The trial retains its configured four QSO plus four background workers.
 
 Validation: 372 tests passed in 94.86 seconds, including exact restart/full-row
 accounting, training/calibration exclusion, and zero-prior ranking regression.
