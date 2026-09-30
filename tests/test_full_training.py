@@ -171,6 +171,26 @@ def test_candidate_training_roundtrip_and_resume_preserves_active_pointer(tmp_pa
     with acquisition_lock(continuation/'worker.lock'):
         with pytest.raises(RuntimeError, match='already holds'):
             run_review(options, fit=True)
+    # Exercise the separately queued, fixed-floor trial with real spawned
+    # workers, a completed dependency and an unchanged parent/source pointer.
+    from scripts.trial_covariance_floor import run_trial
+    trial_audit=json.loads((continuation/'audit.json').read_text())
+    trial_audit['fits']['qso_00']['action']='hold_for_diagnosis'
+    write_json(tmp_path/'trial_audit.json',trial_audit)
+    trial_options=dict(parent=str(out),training_config=str(review_cfg),audit=str(tmp_path/'trial_audit.json'),
+        wait_for_execution=str(continuation/'execution.json'),output=str(tmp_path/'floor_trial'),
+        iterations=2,workers=2,roundoff_tolerance=1e-9,diagnostic_rows=11,
+        diagnostic_seed=417,magnitude_quantiles=2,tail_fraction=.1)
+    run_trial(trial_options)
+    trial_out=Path(trial_options['output'])
+    assert json.loads((trial_out/'execution.json').read_text())['state']=='completed'
+    assert (trial_out/'REPORT.md').exists()
+    assert json.loads((trial_out/'qso_00.json').read_text())['iterations']==2
+    assert file_hash(Path(cfg['source_pointer']))==pointer_hash
+    assert all(file_hash(out/name)==digest for name,digest in hashes.items())
+    trial_hash=file_hash(trial_out/'qso_00.checkpoint.json')
+    run_trial(trial_options)
+    assert file_hash(trial_out/'qso_00.checkpoint.json')==trial_hash
     execution = json.loads((out/'parallel_execution.json').read_text())
     assert execution['state'] == 'completed'
     assert sorted(execution['slice_order']) == [0, 1]

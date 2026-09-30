@@ -512,6 +512,26 @@ measure sensitivity to continuation, not held-out predictive performance or
 posterior calibration. Model selection still uses fit-only shapes evaluated on
 the selection role; final shapes have already included those selection rows.
 
+An isolated diagnostic also tests a fixed lower bound on each intrinsic
+covariance eigenvalue. Let $S_k$ be the conditional centred scatter from the
+full-data E step for component $k$, and let $\epsilon>0$ be the configured
+minimum variance in squared luptitude units. If
+$S_k=U_k\,\mathrm{diag}(s_{kj})\,U_k^\top$, the constrained M step is
+\begin{equation}
+ V_k^{\rm new}=U_k\,\mathrm{diag}\!\left(\max(s_{kj},\epsilon)\right)U_k^\top.
+\end{equation}
+Here $U_k$ contains orthonormal eigenvectors and $s_{kj}$ are the eigenvalues
+of $S_k$. This minimizes $\log|V_k|+\mathrm{tr}(S_kV_k^{-1})$ subject to
+$V_k\succeq\epsilon I$: variances already above the bound are unchanged by
+the constraint. Starting from a feasible mixture, an exact constrained M step
+retains EM's non-decreasing observed-likelihood property. The calculation uses
+an eigendecomposition and does not form a matrix inverse. Measurement errors
+and missing bands enter through the same existing E step. This is currently
+a separate diagnostic trial, not the update used by the active bundle or the
+running additive-regularization continuation. An improvement in training
+likelihood alone does not establish predictive validity or probability
+calibration.
+
 
 \subsection{Luptitudes and their covariance}
 \label{sec:luptitudes}

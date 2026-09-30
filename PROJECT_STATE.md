@@ -21,6 +21,26 @@ The 25 previously converged QSO fits are retained unchanged. Some of those
 converged histories also contain declines; their flags are retained in the full
 audit and their convergence is not a certification of predictive stability.
 
+**Follow-up queued (30 September, 00:45 UTC).** The 11 improving QSO continuations
+have finished: slices 01 and 40 converged at iterations 398 and 352; the other
+nine reached iteration 400 without convergence. Their fixed-row prediction
+comparisons are saved. Stellar continuation is active. All seven one-step
+covariance-floor diagnostics completed: every full-data likelihood improved
+while retaining minimum eigenvalue 0.001 (within roundoff). Evidence:
+`docs/COVARIANCE_FLOOR_DIAGNOSTIC_2026-09-30.json`.
+
+The next diagnostic is a separate 20-iteration constrained-update trial on the
+seven held slices. `configs/covariance_floor_trial.json` and
+`scripts/trial_covariance_floor.py --fit` define it. Its output is
+`models/multisurvey_psf/work/covariance_floor_trial/20260930/`; read that
+`execution.json` and `launch.json` before scheduling anything. Coordinator 3588 is
+waiting for
+the current stellar coordinator to finish normally, then use four workers and
+save `REPORT.md` and fixed-row prediction comparisons automatically. It does
+not change the active model or the existing continuation. This tests whether
+the one-step improvement persists before adopting the covariance update in
+candidate training and reassessing component selection on the correct roles.
+
 The original scheduled run finished at 23:08 UTC on 29 September; its density-EM
 compute is 100% overall, QSO and stellar. This continuation has a separate
 row-times-components-times-additional-iterations budget. Prediction comparisons

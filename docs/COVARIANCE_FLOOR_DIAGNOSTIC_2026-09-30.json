@@ -1,0 +1,144 @@
+{
+  "training_identity": {
+    "config": {
+      "qso_root": "models/multisurvey_psf/work/full_sample_photometry/e2615aaa39862aff",
+      "stellar_root": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
+      "input_root": "models/multisurvey_psf/work/full_training_inputs",
+      "output_root": "models/multisurvey_psf/work/full_training_fits",
+      "source_pointer": "models/multisurvey_psf/current",
+      "assembly_batch_size": 50000,
+      "fit_batch_size": 256,
+      "seed": 20260929,
+      "z_step": 0.1,
+      "background_k_candidates": [
+        4,
+        8,
+        12,
+        20
+      ],
+      "qso_k_candidates": [
+        4,
+        8,
+        12,
+        20
+      ],
+      "selection_max_iter": 40,
+      "max_iter": 300,
+      "tol": 1e-05,
+      "regularization": 0.001,
+      "memory_budget_gib": 4.0,
+      "fit_roles": [
+        "fit"
+      ],
+      "selection_roles": [
+        "select"
+      ],
+      "final_shape_roles": [
+        "fit",
+        "select"
+      ],
+      "catchall_roles": [
+        "calib"
+      ],
+      "test_roles": [
+        "test"
+      ],
+      "acquisition_complete_surveys": [
+        "sdss",
+        "decals",
+        "allwise",
+        "ps1"
+      ],
+      "reuse_only_surveys": [
+        "nsc",
+        "skymapper",
+        "vhs"
+      ],
+      "spatial": {
+        "nside": 4,
+        "nside_parent": 2,
+        "colour_n0": 1000,
+        "max_iter": 500,
+        "tol": 1e-08
+      },
+      "policy": "Every eligible row in the declared roles is used, without row caps. Preserve the active transform and redshift slices. Missing survey outcomes are masked, not queried. Shape fitting writes a candidate, never the active pointer. Population priors and catch-all calibration remain separate candidate-completion stages."
+    },
+    "inputs_sha256": "d4500a0054f2875a802db0fff70c402afb34314e06a2bd6faa92c1d4fa41f20f",
+    "source_sha256": "de09e9a2d29b9655ec88ea20ba4cf5d8d82b758ad693299f192c267f8fa646ff",
+    "source_pointer_sha256": "e7af2680ab3f07600f3c7fb316f20584f8360fd1b9b5e33dcbd8e2eaa36de471",
+    "implementation": {
+      "full_training.py": "af98f1657b1572dc69c87c7efe30810d316ca001905f2ba4c2633016bcd62a65",
+      "full_sample.py": "cd31937c85bbe7eb64f2cbea95c22296d9b55ad0bcee092ea8b59ca1282e39a5",
+      "streaming_xd.py": "bd75b1bb7615c3d9fe785f087f9d89a7081a9807efea761041522d877816a332",
+      "xd.py": "dfd5146cd8cb8ec8e8777a09fd00b06c62cd11b036632a097ef8d20990750ab9",
+      "joint_spatial.py": "e4036d498b67939b0b7db99d50dd92d6f5fadd68fc662e6a220bb5077141d654"
+    }
+  },
+  "floor": 0.001,
+  "results": {
+    "qso_13": {
+      "rows": 114657,
+      "floor": 0.001,
+      "before": 0.612051067331434,
+      "after": 0.7270471540267678,
+      "change": 0.11499608669533389,
+      "min_eigenvalue": 0.0017734806520749923,
+      "production_model_changed": false
+    },
+    "qso_15": {
+      "rows": 119828,
+      "floor": 0.001,
+      "before": 0.6851396964818038,
+      "after": 0.8076327545460523,
+      "change": 0.12249305806424847,
+      "min_eigenvalue": 0.0016647401333754527,
+      "production_model_changed": false
+    },
+    "qso_22": {
+      "rows": 81316,
+      "floor": 0.001,
+      "before": -0.04709355121595268,
+      "after": 0.05067317567214257,
+      "change": 0.09776672688809526,
+      "min_eigenvalue": 0.002625479001722059,
+      "production_model_changed": false
+    },
+    "qso_27": {
+      "rows": 34276,
+      "floor": 0.001,
+      "before": 0.0985467622344498,
+      "after": 0.20646900036993696,
+      "change": 0.10792223813548717,
+      "min_eigenvalue": 0.002303718198835772,
+      "production_model_changed": false
+    },
+    "qso_31": {
+      "rows": 15955,
+      "floor": 0.001,
+      "before": 0.23145525343436157,
+      "after": 0.3568751648487961,
+      "change": 0.12541991141443457,
+      "min_eigenvalue": 0.002239080968740041,
+      "production_model_changed": false
+    },
+    "qso_33": {
+      "rows": 8250,
+      "floor": 0.001,
+      "before": 0.6034367548250295,
+      "after": 0.745483939005866,
+      "change": 0.14204718418083653,
+      "min_eigenvalue": 0.002476019459320195,
+      "production_model_changed": false
+    },
+    "qso_35": {
+      "rows": 5126,
+      "floor": 0.001,
+      "before": 1.9023152120304019,
+      "after": 2.0825965591318405,
+      "change": 0.18028134710143837,
+      "min_eigenvalue": 0.000999999999997801,
+      "production_model_changed": false
+    }
+  },
+  "complete": true
+}

@@ -67,3 +67,45 @@ Before restarting, read PROJECT_STATE.md and verify all recorded PIDs. Restart
 only the same configuration and implementation; changed lineage is rejected.
 After results are reviewed, spatial weights and the density candidate must be
 rebuilt from the settled shapes before population completion and validation.
+
+## Covariance-floor investigation and queued trial
+
+The seven full-data one-step diagnostics finished. Additive covariance
+regularization reduced the likelihood at the next step for six slices; slice
+13 improved slightly at that next step despite its preceding declining history.
+All seven zero-addition counterfactuals improved. A constrained M step that
+replaces only eigenvalues below 0.001 with that existing minimum variance also
+improved every slice: gains were 0.114996, 0.122493, 0.097767, 0.107922,
+0.125420, 0.142047 and 0.180281 nats/object for slices 13, 15, 22, 27, 31, 33
+and 35, respectively. Minimum resulting covariance eigenvalues stayed at or
+above the declared floor, to floating-point precision. The full-data results
+are saved as `covariance_floor_diagnostic.json` in the continuation directory.
+
+This is the exact constrained Gaussian covariance M step, applied to the XD
+conditional sufficient statistics. It retains protection against covariance
+collapse without adding variance to every direction at every iteration.
+See the derivation in the method note. Related constrained mixture updates are
+described in [Browne, Subedi and McNicholas, section 3.1](https://arxiv.org/html/1306.5824).
+The XD extension here follows from the conditional-scatter objective and is
+checked with missing dimensions, correlated measurement errors and row weights.
+No production trainer has been switched to this update.
+
+Next is a separate 20-iteration diagnostic trial for the seven held slices,
+using every original fit+selection row and the original component counts.
+Configuration: `configs/covariance_floor_trial.json`; entry point:
+`scripts/trial_covariance_floor.py --fit`. It waits for the existing stellar
+continuation to complete normally before using four QSO workers. Failure or
+disappearance of that coordinator blocks the trial rather than starting an
+unrelated job. Output: `models/multisurvey_psf/work/covariance_floor_trial/20260930/`.
+`queued_identity.json` pins code, configuration and audit while waiting;
+`lineage.json` records parent/input hashes. Each iteration checks the full-data
+likelihood and saves a restart checkpoint. A decrease beyond configured
+floating-point tolerance stops the trial. Twenty iterations is a diagnostic
+budget, not a convergence claim. Trial convergence histories begin with the
+new covariance update; the original iteration 300 remains explicit provenance.
+
+The queued job saves per-slice prediction comparisons, `results.json`, and a
+readable `REPORT.md` automatically. The next decision is whether this update
+should enter the candidate training path, followed by fit-only/selection-role
+model-selection checks. The final test sample remains untouched. The active
+bundle, old checkpoints and ongoing stellar fit remain unchanged.
