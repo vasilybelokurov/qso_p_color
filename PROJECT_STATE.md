@@ -1,5 +1,11 @@
 # Current project state
 
+**SUPPORT-CUT SWEEP (1 October): the baseline's four AUC failures are caused by the untuned cut.**
+`docs/SUPPORT_CUT_SWEEP_2026-10-01.md`/`.json`, `scripts/sweep_support_cut.py` (cached scores, no
+rescoring). Baseline at 99.5% calibration retention (threshold 0.0078): all 8 panels pass (worst
+-0.0039 vs active), test QSO retention >= 0.986, grid stray points 1/0/0/0 (no cut: 8/13/3/4).
+Threshold chosen on the reporting rows: confirm on rows that did not choose it before quoting.
+Unconstrained run 5f4002492dbb849c still awaits the user's decision.
 **BASELINE (corrected, magnitude-independent) BUNDLE COMPLETE AND RELEASE-CHECKED (1 October).**
 `docs/UNIFIED_RELEASE_BASELINE_2026-10-01.json`. AUC with cut / no cut / active:
 all S .953/.965/.945, all N .976/.977/.941, LegOpt S .977/.988/.978, LegOpt N .977/.990/.986 FAIL,
