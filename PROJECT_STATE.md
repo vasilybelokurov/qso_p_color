@@ -8,7 +8,24 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**FULL UNIFIED REFIT COMPLETE (1 October); BUNDLE COMPLETION IS NEXT.**
+**UNIFIED BUNDLE COMPLETE; RELEASE CHECKS RUN; PROMOTION DECISION PENDING (1 October).**
+Bundle `models/multisurvey_psf/work/unified_full/20260930/a637f155f7f48d00/bundle` (spatial on
+1,975,894 rows, priors, Student-t catch-all fractions on 502,251 calibration rows; 433 s).
+Release checks: `docs/UNIFIED_RELEASE_2026-10-01.json`, `scripts/validate_unified_release.py`;
+role-3 test rows outside all 34,259 QSO / 2,045 background recorded exclusions, 500 per class
+per hemisphere; support cut calibrated on 800 role-2 QSOs (target retention 0.98).
+AUC vs ACTIVE (with cut / no cut / active): all S .971/.981/.945, all N .977/.975/.941,
+LegacyOpt S .978/.990/.978, LegacyOpt N .977/.992/.986 FAIL, SDSS S .977/.982/.976,
+SDSS N .971/.980/.967, PS1 S .929/.946/.941 FAIL, PS1 N .940/.960/.952 FAIL (tolerance .005).
+Without the cut the new model beats the active one in all eight panels; the cut rejects
+2-4% of test QSOs (retention .964-.983, all above .94) and costs .01-.02 AUC.
+Colour-grid high-QSO points in the original low-density mask (S18.5/S21/N18.5/N21):
+active 0/1/0/12, parent 72/79 north, new without cut 1/3/1/0, new with cut 0/0/0/0.
+High-QSO random background objects per 500: new with cut 0-2, active 1-5.
+Decision for the user: promote with the cut (3 AUC checks fail by .009-.012 as the cost of
+abstaining on 2-4% of QSOs), relax the retention target and re-test, or demote the cut to a flag.
+
+**FULL UNIFIED REFIT COMPLETE (1 October).**
 All 44 fits finished (`training_complete.json`, state completed). All stopped on the
 predictive plateau; no objective decrease in any fit; median 60 updates, max 100
 (background). Held-out stopping-panel gain over the warm start: median +0.538 nats,

@@ -1,0 +1,1529 @@
+{
+  "root": "models/multisurvey_psf/work/unified_full/20260930/a637f155f7f48d00",
+  "support_policy": {
+    "threshold": 0.0234375,
+    "draws": 255,
+    "seed": 20260930,
+    "roles": [
+      "calib"
+    ],
+    "target_retention": 0.98,
+    "calibration_retention": 0.9824909150974562,
+    "calibration_rows": 800,
+    "calibration_evaluations": 3027,
+    "by_mask": {
+      "all": 800,
+      "legacy_optical": 800,
+      "sdss": 641,
+      "ps1": 786
+    },
+    "row_indices_sha256": "6dbb4a558de248b59940c727535975af81bcaa665ced14d2d342da56d87b2340",
+    "informative_threshold": true,
+    "interpretation": "conditional density percentile at target redshift; not a class probability",
+    "scope": "Pooled pilot cutoff calibrated on all/Legacy-optical/SDSS/PS1 masks; other masks exploratory"
+  },
+  "real": {
+    "all_south": {
+      "qso": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 471,
+          "status": {
+            "ok": 471,
+            "outside_both_models": 29
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 29,
+          "qso_above_half": 439,
+          "median_log_r": 0.6175955616283011,
+          "spatial_weight_mean": 0.5916052289013842,
+          "density_levels": {
+            "1": 146,
+            "2": 146,
+            "0": 179
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 493,
+          "status": {
+            "ok": 493,
+            "outside_both_models": 7
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 7,
+          "qso_above_half": 439,
+          "median_log_r": 0.6179319210586134,
+          "spatial_weight_mean": 0.8979661658234476,
+          "density_levels": {
+            "1": 394,
+            "2": 99
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 490,
+          "status": {
+            "ok": 490,
+            "outside_both_models": 10
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 10,
+          "qso_above_half": 433,
+          "median_log_r": 0.650692062348624,
+          "spatial_weight_mean": 0.8976102359778226,
+          "density_levels": {
+            "1": 392,
+            "2": 98
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 478,
+          "status": {
+            "ok": 478,
+            "outside_both_models": 10,
+            "qso_support_rejected": 12
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 10,
+          "qso_above_half": 426,
+          "median_log_r": 0.6701484287822764,
+          "spatial_weight_mean": 0.8956631842313099,
+          "density_levels": {
+            "1": 380,
+            "2": 98
+          }
+        },
+        "support_retention": 0.966
+      },
+      "stars": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 443,
+          "status": {
+            "ok": 475,
+            "outside_both_models": 21,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 21,
+          "qso_above_half": 1,
+          "median_log_r": -18.34533197964527,
+          "spatial_weight_mean": 0.395615636960141,
+          "density_levels": {
+            "1": 67,
+            "0": 134,
+            "2": 242
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 456,
+          "status": {
+            "ok": 488,
+            "outside_both_models": 8,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 8,
+          "qso_above_half": 3,
+          "median_log_r": -16.6860232789207,
+          "spatial_weight_mean": 0.8493564850802524,
+          "density_levels": {
+            "1": 372,
+            "2": 84
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 454,
+          "status": {
+            "ok": 486,
+            "outside_both_models": 11,
+            "qso_prior_empty_at_this_magnitude": 3
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 11,
+          "qso_above_half": 0,
+          "median_log_r": -16.998632756850824,
+          "spatial_weight_mean": 0.8553412916561254,
+          "density_levels": {
+            "1": 374,
+            "2": 80
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 158,
+          "status": {
+            "qso_support_rejected": 296,
+            "ok": 190,
+            "outside_both_models": 11,
+            "qso_prior_empty_at_this_magnitude": 3
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 11,
+          "qso_above_half": 0,
+          "median_log_r": -13.938427725685024,
+          "spatial_weight_mean": 0.8581843126191777,
+          "density_levels": {
+            "1": 138,
+            "2": 20
+          }
+        },
+        "support_retention": 0.364
+      },
+      "auc": {
+        "active": 0.94467,
+        "parent": 0.985336,
+        "raw": 0.980512,
+        "unified": 0.970704
+      },
+      "high_qso_background": {
+        "active": 1,
+        "parent": 3,
+        "raw": 0,
+        "unified": 0
+      }
+    },
+    "all_north": {
+      "qso": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 469,
+          "status": {
+            "ok": 469,
+            "outside_both_models": 31
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 31,
+          "qso_above_half": 449,
+          "median_log_r": 0.682611452031942,
+          "spatial_weight_mean": 0.4989087477294768,
+          "density_levels": {
+            "0": 120,
+            "2": 204,
+            "1": 145
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 492,
+          "status": {
+            "ok": 492,
+            "outside_both_models": 8
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 8,
+          "qso_above_half": 462,
+          "median_log_r": 0.7296291882906725,
+          "spatial_weight_mean": 0.9660632320702783,
+          "density_levels": {
+            "1": 492
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 487,
+          "status": {
+            "ok": 487,
+            "outside_both_models": 13
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 13,
+          "qso_above_half": 451,
+          "median_log_r": 0.7891844258206575,
+          "spatial_weight_mean": 0.9661023811105294,
+          "density_levels": {
+            "1": 487
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 482,
+          "status": {
+            "ok": 482,
+            "outside_both_models": 13,
+            "qso_support_rejected": 5
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 13,
+          "qso_above_half": 447,
+          "median_log_r": 0.7936206912679933,
+          "spatial_weight_mean": 0.9660384781930711,
+          "density_levels": {
+            "1": 482
+          }
+        },
+        "support_retention": 0.982
+      },
+      "stars": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 444,
+          "status": {
+            "ok": 486,
+            "outside_both_models": 14
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 14,
+          "qso_above_half": 5,
+          "median_log_r": -16.63738484284967,
+          "spatial_weight_mean": 0.3331575678758009,
+          "density_levels": {
+            "2": 260,
+            "1": 170,
+            "0": 14
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 458,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -14.830998344847169,
+          "spatial_weight_mean": 0.9689946449197021,
+          "density_levels": {
+            "1": 458
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 452,
+          "status": {
+            "ok": 494,
+            "outside_both_models": 6
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 6,
+          "qso_above_half": 4,
+          "median_log_r": -15.553272172811106,
+          "spatial_weight_mean": 0.9690855899795086,
+          "density_levels": {
+            "1": 452
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 136,
+          "status": {
+            "qso_support_rejected": 316,
+            "ok": 178,
+            "outside_both_models": 6
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 6,
+          "qso_above_half": 2,
+          "median_log_r": -10.829352972391685,
+          "spatial_weight_mean": 0.9689664982033359,
+          "density_levels": {
+            "1": 136
+          }
+        },
+        "support_retention": 0.338
+      },
+      "auc": {
+        "active": 0.94056,
+        "parent": 0.984136,
+        "raw": 0.974892,
+        "unified": 0.976784
+      },
+      "high_qso_background": {
+        "active": 5,
+        "parent": 3,
+        "raw": 4,
+        "unified": 2
+      }
+    },
+    "legacy_optical_south": {
+      "qso": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 500,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 233,
+          "median_log_r": -1.2423840373358077,
+          "spatial_weight_mean": 0.59590007880895,
+          "density_levels": {
+            "1": 153,
+            "2": 153,
+            "0": 194
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 500,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 167,
+          "median_log_r": -1.6131336039307196,
+          "spatial_weight_mean": 0.8988768975451664,
+          "density_levels": {
+            "1": 465,
+            "2": 35
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 500,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 234,
+          "median_log_r": -1.3550975109816132,
+          "spatial_weight_mean": 0.8988768975451664,
+          "density_levels": {
+            "1": 465,
+            "2": 35
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 491,
+          "status": {
+            "ok": 491,
+            "qso_support_rejected": 9
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 234,
+          "median_log_r": -1.3346254671636122,
+          "spatial_weight_mean": 0.8996842970608353,
+          "density_levels": {
+            "1": 457,
+            "2": 34
+          }
+        },
+        "support_retention": 0.982
+      },
+      "stars": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 461,
+          "status": {
+            "ok": 495,
+            "qso_prior_empty_at_this_magnitude": 4,
+            "outside_both_models": 1
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 1,
+          "qso_above_half": 3,
+          "median_log_r": -12.061315044209005,
+          "spatial_weight_mean": 0.38776526709149906,
+          "density_levels": {
+            "1": 72,
+            "0": 134,
+            "2": 255
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 462,
+          "status": {
+            "ok": 496,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -11.849218610683192,
+          "spatial_weight_mean": 0.8510525462753985,
+          "density_levels": {
+            "1": 407,
+            "2": 55
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 462,
+          "status": {
+            "ok": 496,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 0,
+          "median_log_r": -12.16205258585487,
+          "spatial_weight_mean": 0.8510525462753985,
+          "density_levels": {
+            "1": 407,
+            "2": 55
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 239,
+          "status": {
+            "qso_support_rejected": 223,
+            "ok": 273,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 0,
+          "median_log_r": -11.247082634007675,
+          "spatial_weight_mean": 0.8567201013984217,
+          "density_levels": {
+            "1": 212,
+            "2": 27
+          }
+        },
+        "support_retention": 0.542
+      },
+      "auc": {
+        "active": 0.97778,
+        "parent": 0.98042,
+        "raw": 0.98964,
+        "unified": 0.97815
+      },
+      "high_qso_background": {
+        "active": 3,
+        "parent": 3,
+        "raw": 0,
+        "unified": 0
+      }
+    },
+    "legacy_optical_north": {
+      "qso": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 500,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 232,
+          "median_log_r": -1.2529709027626492,
+          "spatial_weight_mean": 0.5108477577222764,
+          "density_levels": {
+            "1": 214,
+            "2": 211,
+            "0": 75
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 500,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 178,
+          "median_log_r": -1.602828947484074,
+          "spatial_weight_mean": 0.9660692042651806,
+          "density_levels": {
+            "1": 500
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 500,
+          "status": {
+            "ok": 500
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 236,
+          "median_log_r": -1.3207288635869059,
+          "spatial_weight_mean": 0.9660692042651806,
+          "density_levels": {
+            "1": 500
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 488,
+          "status": {
+            "ok": 488,
+            "qso_support_rejected": 12
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 235,
+          "median_log_r": -1.2784265499721363,
+          "spatial_weight_mean": 0.966064149860283,
+          "density_levels": {
+            "1": 488
+          }
+        },
+        "support_retention": 0.976
+      },
+      "stars": {
+        "rows": 500,
+        "active": {
+          "n": 500,
+          "eligible": 456,
+          "status": {
+            "ok": 498,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 1,
+          "median_log_r": -10.512836011314345,
+          "spatial_weight_mean": 0.3378326489155481,
+          "density_levels": {
+            "2": 264,
+            "1": 192
+          }
+        },
+        "parent": {
+          "n": 500,
+          "eligible": 456,
+          "status": {
+            "ok": 498,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -10.604146882931047,
+          "spatial_weight_mean": 0.9690427782998451,
+          "density_levels": {
+            "1": 456
+          }
+        },
+        "raw": {
+          "n": 500,
+          "eligible": 456,
+          "status": {
+            "ok": 498,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 1,
+          "median_log_r": -11.139448083953209,
+          "spatial_weight_mean": 0.9690427782998451,
+          "density_levels": {
+            "1": 456
+          }
+        },
+        "unified": {
+          "n": 500,
+          "eligible": 209,
+          "status": {
+            "ok": 251,
+            "qso_support_rejected": 247,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 0,
+          "median_log_r": -9.284514853966732,
+          "spatial_weight_mean": 0.969277988769794,
+          "density_levels": {
+            "1": 209
+          }
+        },
+        "support_retention": 0.498
+      },
+      "auc": {
+        "active": 0.98596,
+        "parent": 0.986164,
+        "raw": 0.991928,
+        "unified": 0.976808
+      },
+      "high_qso_background": {
+        "active": 1,
+        "parent": 3,
+        "raw": 1,
+        "unified": 0
+      }
+    },
+    "sdss_south": {
+      "qso": {
+        "rows": 353,
+        "active": {
+          "n": 353,
+          "eligible": 353,
+          "status": {
+            "ok": 353
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 252,
+          "median_log_r": -0.40764222821903834,
+          "spatial_weight_mean": 0.667605720736712,
+          "density_levels": {
+            "0": 164,
+            "1": 107,
+            "2": 82
+          }
+        },
+        "parent": {
+          "n": 353,
+          "eligible": 353,
+          "status": {
+            "ok": 353
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 232,
+          "median_log_r": -0.4208569113639666,
+          "spatial_weight_mean": 0.8854564123781863,
+          "density_levels": {
+            "1": 256,
+            "2": 97
+          }
+        },
+        "raw": {
+          "n": 353,
+          "eligible": 353,
+          "status": {
+            "ok": 353
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 231,
+          "median_log_r": -0.4389691132557401,
+          "spatial_weight_mean": 0.8854564123781863,
+          "density_levels": {
+            "1": 256,
+            "2": 97
+          }
+        },
+        "unified": {
+          "n": 353,
+          "eligible": 347,
+          "status": {
+            "ok": 347,
+            "qso_support_rejected": 6
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 231,
+          "median_log_r": -0.41096694735021755,
+          "spatial_weight_mean": 0.886832155205127,
+          "density_levels": {
+            "1": 252,
+            "2": 95
+          }
+        },
+        "support_retention": 0.9830028328611898
+      },
+      "stars": {
+        "rows": 97,
+        "active": {
+          "n": 97,
+          "eligible": 94,
+          "status": {
+            "ok": 95,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -8.916747312444581,
+          "spatial_weight_mean": 0.45929171869845653,
+          "density_levels": {
+            "0": 35,
+            "1": 15,
+            "2": 44
+          }
+        },
+        "parent": {
+          "n": 97,
+          "eligible": 94,
+          "status": {
+            "ok": 95,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -8.368586991704358,
+          "spatial_weight_mean": 0.9005487520354155,
+          "density_levels": {
+            "2": 35,
+            "1": 59
+          }
+        },
+        "raw": {
+          "n": 97,
+          "eligible": 94,
+          "status": {
+            "ok": 95,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -8.642243803188114,
+          "spatial_weight_mean": 0.9005487520354155,
+          "density_levels": {
+            "2": 35,
+            "1": 59
+          }
+        },
+        "unified": {
+          "n": 97,
+          "eligible": 31,
+          "status": {
+            "ok": 32,
+            "qso_support_rejected": 63,
+            "qso_prior_empty_at_this_magnitude": 2
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -5.739544523674622,
+          "spatial_weight_mean": 0.937048931330055,
+          "density_levels": {
+            "1": 23,
+            "2": 8
+          }
+        },
+        "support_retention": 0.35051546391752575
+      },
+      "auc": {
+        "active": 0.9761981250547589,
+        "parent": 0.9788849624718904,
+        "raw": 0.9823311235069069,
+        "unified": 0.9766361963727694
+      },
+      "high_qso_background": {
+        "active": 2,
+        "parent": 3,
+        "raw": 2,
+        "unified": 2
+      }
+    },
+    "sdss_north": {
+      "qso": {
+        "rows": 417,
+        "active": {
+          "n": 417,
+          "eligible": 417,
+          "status": {
+            "ok": 417
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 327,
+          "median_log_r": -0.08357834616361709,
+          "spatial_weight_mean": 0.5269476378364469,
+          "density_levels": {
+            "0": 122,
+            "2": 169,
+            "1": 126
+          }
+        },
+        "parent": {
+          "n": 417,
+          "eligible": 417,
+          "status": {
+            "ok": 417
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 305,
+          "median_log_r": -0.11226443589254115,
+          "spatial_weight_mean": 0.9664933515710579,
+          "density_levels": {
+            "1": 417
+          }
+        },
+        "raw": {
+          "n": 417,
+          "eligible": 417,
+          "status": {
+            "ok": 417
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 306,
+          "median_log_r": -0.1118592145238181,
+          "spatial_weight_mean": 0.9664933515710579,
+          "density_levels": {
+            "1": 417
+          }
+        },
+        "unified": {
+          "n": 417,
+          "eligible": 409,
+          "status": {
+            "ok": 409,
+            "qso_support_rejected": 8
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 305,
+          "median_log_r": -0.08419291313974009,
+          "spatial_weight_mean": 0.9663897344718231,
+          "density_levels": {
+            "1": 409
+          }
+        },
+        "support_retention": 0.9808153477218226
+      },
+      "stars": {
+        "rows": 58,
+        "active": {
+          "n": 58,
+          "eligible": 58,
+          "status": {
+            "ok": 58
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -10.07844122470313,
+          "spatial_weight_mean": 0.3675180557447567,
+          "density_levels": {
+            "2": 34,
+            "1": 12,
+            "0": 12
+          }
+        },
+        "parent": {
+          "n": 58,
+          "eligible": 58,
+          "status": {
+            "ok": 58
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -9.239904059425552,
+          "spatial_weight_mean": 0.9686919091396476,
+          "density_levels": {
+            "1": 58
+          }
+        },
+        "raw": {
+          "n": 58,
+          "eligible": 58,
+          "status": {
+            "ok": 58
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -9.218147257743421,
+          "spatial_weight_mean": 0.9686919091396476,
+          "density_levels": {
+            "1": 58
+          }
+        },
+        "unified": {
+          "n": 58,
+          "eligible": 16,
+          "status": {
+            "qso_support_rejected": 42,
+            "ok": 16
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -4.206996018317981,
+          "spatial_weight_mean": 0.9668213618588144,
+          "density_levels": {
+            "1": 16
+          }
+        },
+        "support_retention": 0.27586206896551724
+      },
+      "auc": {
+        "active": 0.9671710907136359,
+        "parent": 0.9704787893822873,
+        "raw": 0.9796576531877946,
+        "unified": 0.9711816753493757
+      },
+      "high_qso_background": {
+        "active": 3,
+        "parent": 3,
+        "raw": 2,
+        "unified": 2
+      }
+    },
+    "ps1_south": {
+      "qso": {
+        "rows": 490,
+        "active": {
+          "n": 490,
+          "eligible": 490,
+          "status": {
+            "ok": 490
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 226,
+          "median_log_r": -1.2674430107575478,
+          "spatial_weight_mean": 0.5946264263866009,
+          "density_levels": {
+            "0": 190,
+            "1": 149,
+            "2": 151
+          }
+        },
+        "parent": {
+          "n": 490,
+          "eligible": 490,
+          "status": {
+            "ok": 490
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 154,
+          "median_log_r": -1.7119394711992075,
+          "spatial_weight_mean": 0.8975884887722894,
+          "density_levels": {
+            "2": 35,
+            "1": 455
+          }
+        },
+        "raw": {
+          "n": 490,
+          "eligible": 490,
+          "status": {
+            "ok": 490
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 148,
+          "median_log_r": -1.7862633058352952,
+          "spatial_weight_mean": 0.8975884887722894,
+          "density_levels": {
+            "2": 35,
+            "1": 455
+          }
+        },
+        "unified": {
+          "n": 490,
+          "eligible": 475,
+          "status": {
+            "ok": 475,
+            "qso_support_rejected": 15
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 145,
+          "median_log_r": -1.7526374644093037,
+          "spatial_weight_mean": 0.8954861738557669,
+          "density_levels": {
+            "2": 35,
+            "1": 440
+          }
+        },
+        "support_retention": 0.9693877551020408
+      },
+      "stars": {
+        "rows": 241,
+        "active": {
+          "n": 241,
+          "eligible": 235,
+          "status": {
+            "ok": 237,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 4,
+          "median_log_r": -8.633742907170987,
+          "spatial_weight_mean": 0.32066615566092344,
+          "density_levels": {
+            "2": 148,
+            "0": 56,
+            "1": 31
+          }
+        },
+        "parent": {
+          "n": 241,
+          "eligible": 235,
+          "status": {
+            "ok": 237,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 4,
+          "median_log_r": -8.416231467888448,
+          "spatial_weight_mean": 0.8520521039109322,
+          "density_levels": {
+            "1": 207,
+            "2": 28
+          }
+        },
+        "raw": {
+          "n": 241,
+          "eligible": 235,
+          "status": {
+            "ok": 237,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 1,
+          "median_log_r": -8.495042180828355,
+          "spatial_weight_mean": 0.8520521039109322,
+          "density_levels": {
+            "1": 207,
+            "2": 28
+          }
+        },
+        "unified": {
+          "n": 241,
+          "eligible": 136,
+          "status": {
+            "qso_support_rejected": 99,
+            "ok": 138,
+            "qso_prior_empty_at_this_magnitude": 4
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 1,
+          "median_log_r": -6.491581468293589,
+          "spatial_weight_mean": 0.8409701649476408,
+          "density_levels": {
+            "1": 118,
+            "2": 18
+          }
+        },
+        "support_retention": 0.5892116182572614
+      },
+      "auc": {
+        "active": 0.9409772207638242,
+        "parent": 0.9374798882208485,
+        "raw": 0.945770175290033,
+        "unified": 0.9287026843932594
+      },
+      "high_qso_background": {
+        "active": 4,
+        "parent": 4,
+        "raw": 1,
+        "unified": 1
+      }
+    },
+    "ps1_north": {
+      "qso": {
+        "rows": 497,
+        "active": {
+          "n": 497,
+          "eligible": 497,
+          "status": {
+            "ok": 497
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 224,
+          "median_log_r": -1.1638165659096478,
+          "spatial_weight_mean": 0.5106561577246451,
+          "density_levels": {
+            "0": 143,
+            "2": 210,
+            "1": 144
+          }
+        },
+        "parent": {
+          "n": 497,
+          "eligible": 497,
+          "status": {
+            "ok": 497
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 186,
+          "median_log_r": -1.2942127490651592,
+          "spatial_weight_mean": 0.966046147806002,
+          "density_levels": {
+            "1": 497
+          }
+        },
+        "raw": {
+          "n": 497,
+          "eligible": 497,
+          "status": {
+            "ok": 497
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 171,
+          "median_log_r": -1.5605503524883426,
+          "spatial_weight_mean": 0.966046147806002,
+          "density_levels": {
+            "1": 497
+          }
+        },
+        "unified": {
+          "n": 497,
+          "eligible": 479,
+          "status": {
+            "ok": 479,
+            "qso_support_rejected": 18
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 167,
+          "median_log_r": -1.5377703574560992,
+          "spatial_weight_mean": 0.9659621055303627,
+          "density_levels": {
+            "1": 479
+          }
+        },
+        "support_retention": 0.9637826961770624
+      },
+      "stars": {
+        "rows": 265,
+        "active": {
+          "n": 265,
+          "eligible": 265,
+          "status": {
+            "ok": 265
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -8.871050274043514,
+          "spatial_weight_mean": 0.35335809007129654,
+          "density_levels": {
+            "2": 147,
+            "1": 95,
+            "0": 23
+          }
+        },
+        "parent": {
+          "n": 265,
+          "eligible": 265,
+          "status": {
+            "ok": 265
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 3,
+          "median_log_r": -8.792499633205292,
+          "spatial_weight_mean": 0.9684223753916916,
+          "density_levels": {
+            "1": 265
+          }
+        },
+        "raw": {
+          "n": 265,
+          "eligible": 265,
+          "status": {
+            "ok": 265
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -9.007474304229532,
+          "spatial_weight_mean": 0.9684223753916916,
+          "density_levels": {
+            "1": 265
+          }
+        },
+        "unified": {
+          "n": 265,
+          "eligible": 133,
+          "status": {
+            "ok": 133,
+            "qso_support_rejected": 132
+          },
+          "finite_eligible": true,
+          "probabilities_bounded": true,
+          "window_identity": true,
+          "hard_guard": true,
+          "outside_both": 0,
+          "qso_above_half": 2,
+          "median_log_r": -6.816103447626741,
+          "spatial_weight_mean": 0.9679226019548451,
+          "density_levels": {
+            "1": 133
+          }
+        },
+        "support_retention": 0.5018867924528302
+      },
+      "auc": {
+        "active": 0.9518924869974564,
+        "parent": 0.9538438176227174,
+        "raw": 0.9595155840704604,
+        "unified": 0.9399339432823355
+      },
+      "high_qso_background": {
+        "active": 3,
+        "parent": 3,
+        "raw": 2,
+        "unified": 2
+      }
+    }
+  },
+  "grids": {
+    "south_18.5": {
+      "active": 0,
+      "parent": 0,
+      "unified": 0
+    },
+    "south_21.0": {
+      "active": 1,
+      "parent": 0,
+      "unified": 0
+    },
+    "north_18.5": {
+      "active": 0,
+      "parent": 72,
+      "unified": 0
+    },
+    "north_21.0": {
+      "active": 12,
+      "parent": 79,
+      "unified": 0
+    }
+  },
+  "checks": {
+    "ranking_vs_active_all_south": true,
+    "support_retention_all_south": true,
+    "ranking_vs_active_all_north": true,
+    "support_retention_all_north": true,
+    "ranking_vs_active_legacy_optical_south": true,
+    "support_retention_legacy_optical_south": true,
+    "ranking_vs_active_legacy_optical_north": false,
+    "support_retention_legacy_optical_north": true,
+    "ranking_vs_active_sdss_south": true,
+    "support_retention_sdss_south": true,
+    "ranking_vs_active_sdss_north": true,
+    "support_retention_sdss_north": true,
+    "ranking_vs_active_ps1_south": false,
+    "support_retention_ps1_south": true,
+    "ranking_vs_active_ps1_north": false,
+    "support_retention_ps1_north": true,
+    "northern_original_tail": true,
+    "southern_original_tail": true,
+    "support_has_rejection_power": true,
+    "active_pointer_unchanged": true
+  },
+  "excluded_rows": {
+    "qso": 34259,
+    "stars": 2045
+  },
+  "test_rows": {
+    "qso": {
+      "south": 500,
+      "north": 500
+    },
+    "stars": {
+      "south": 500,
+      "north": 500
+    }
+  },
+  "probability_calibration": false,
+  "active_model_changed": false,
+  "limits": [
+    "Role-3 rows outside recorded exclusions; earlier pilot/release samples were drawn from role 3 without row records and may overlap a few test rows",
+    "QSO abundance priors inherited; external survey areas approximate",
+    "Random role-3 PSF background objects measure high-score incidence, not labelled contamination"
+  ],
+  "checks_pass": false,
+  "elapsed_seconds": 230.2862307910109
+}
