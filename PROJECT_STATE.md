@@ -1,5 +1,15 @@
 # Current project state
 
+**BLOCKER (1 October): THE 41-BAND/UNIFIED MODEL IS NOT CORRECTED FOR GALACTIC EXTINCTION.**
+The user instructed on 27 September that photometry must always be dereddened.
+`docs/BASELINE_PLAN.md:75` recorded the multi-survey model's native fluxes as needing the
+same correction, pending a PI decision; the 28 September switch back to the 41-band model
+dropped that item (no journal entry). The full-sample inputs, the unified refit
+`a637f155f7f48d00`, its bundle and the active model all use observed photometry
+(`dereddened=False`). Do not promote the unified bundle. Inputs carry RA/Dec and l,b but no
+extinction; SFD maps are local (`~/data/dustmaps/sfd`). A fix needs verified per-band
+coefficients for all 41 bands, corrected inputs, re-preparation and a refit. Awaiting user decision.
+
 **Standing priority:** deliver a pragmatic working model. Use the simplest
 defensible solution that meets the requested functionality and focused
 validation. Each additional investigation must resolve a concrete decision or
