@@ -8,7 +8,18 @@ separate from release blockers; document non-blocking limitations and proceed.
 Report the conclusion, practical impact and next action. The user authorized
 the bounded pooled-grz prototype on 30 September; production remains unchanged.
 
-**FULL UNIFIED REFIT RUNNING (resumed 30 September ~22:40 BST).**
+**FULL UNIFIED REFIT COMPLETE (1 October); BUNDLE COMPLETION IS NEXT.**
+All 44 fits finished (`training_complete.json`, state completed). All stopped on the
+predictive plateau; no objective decrease in any fit; median 60 updates, max 100
+(background). Held-out stopping-panel gain over the warm start: median +0.538 nats,
+range 0..+0.867; background -1.980 -> -1.174. Only qso_39 (z=4.05, 2,152 rows) kept its
+warm start. Seven other edge slices (z<=0.35, z>=3.95) peaked at update 20 and declined
+by 40; the best (update-20) checkpoint was kept. Stopping-panel gains are development
+evidence (the same rows chose the checkpoints). Next: bundle completion (spatial weights,
+counts, catch-all rebuild), support-cut calibration on role 2, release checks on rows
+outside all recorded exclusions. Active model unchanged.
+
+**FULL UNIFIED REFIT (resumed 30 September ~22:40 BST).**
 Run `models/multisurvey_psf/work/unified_full/20260930/a637f155f7f48d00` (MAP update,
 tol 1e-4, max 300, predictive stopping every 20 updates at 0.02 nats; stopping panels
 in `stopping/`, excluded from final assessment). Launch `python scripts/train_unified_full.py --fit`
