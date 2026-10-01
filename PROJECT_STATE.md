@@ -1,6 +1,14 @@
 # Current project state
 
-**BASELINE REFIT COMPLETE (1 October, 4.50 h); BUNDLE COMPLETION RUNNING.**
+**BASELINE (corrected, magnitude-independent) BUNDLE COMPLETE AND RELEASE-CHECKED (1 October).**
+`docs/UNIFIED_RELEASE_BASELINE_2026-10-01.json`. AUC with cut / no cut / active:
+all S .953/.965/.945, all N .976/.977/.941, LegOpt S .977/.988/.978, LegOpt N .977/.990/.986 FAIL,
+SDSS S .969/.979/.976 FAIL, SDSS N .971/.979/.967, PS1 S .928/.945/.941 FAIL, PS1 N .946/.958/.952 FAIL.
+Without the cut it beats the active model in all eight panels. Grid stray points (S18.5/S21/N18.5/N21):
+with cut 0/0/0/0; WITHOUT cut 8/13/3/4 (30 Sep magnitude-dependent uncorrected: 1/3/1/0) - the
+magnitude-independent model relies more on the support cut. Unconstrained run 5f4002492dbb849c
+prepared, awaiting user go.
+**(History) BASELINE REFIT COMPLETE (1 October, 4.50 h).**
 44/44 fits stopped on the predictive plateau; no objective decreases; median 60 updates, max 120
 (background, -2.049 -> -1.210). Held-out gain over warm start median +0.653 nats; only qso_42
 (z=4.35) kept its warm start. Next: completion, release checks, then ASK the user before
