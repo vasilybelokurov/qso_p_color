@@ -1,6 +1,10 @@
 # Current project state
 
-**NEXT: TWO EXTINCTION-CORRECTED REFITS, AWAITING USER GO (1 October). Do not launch without the user.**
+**BASELINE REFIT RUNNING (launched with user approval, 1 October ~12:21 BST).**
+Run `models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059` (magnitude-independent,
+extinction-corrected), log `train.log`; `touch <run>/PAUSE` pauses at the next stopping check.
+The unconstrained run `5f4002492dbb849c` is prepared and must NOT start until the user approves it.
+**Previously: TWO EXTINCTION-CORRECTED REFITS PLANNED (1 October).**
 Extinction (SFD98, `configs/extinction_coefficients.json`, `src/qso_pcolor/extinction.py`) and
 magnitude-independent QSO colours (fixed broad `legacy:r` coordinate, `fixed_coordinate` in
 `projected_xd.py`) are implemented, tested (401 tests) and committed (`e9505d0`).
