@@ -34,7 +34,7 @@ def prepare_full(cfg):
     cfg = dict(cfg)
     code = [Path('src/qso_pcolor') / name for name in (
         'projected_xd.py', 'projected_parallel.py', 'unified.py', 'gaussmix.py',
-        'xd.py', 'multisurvey.py', 'multisurvey_data.py', 'full_sample.py')]
+        'xd.py', 'multisurvey.py', 'multisurvey_data.py', 'full_sample.py', 'extinction.py')]
     code += [Path(__file__), Path(__file__).with_name('run_unified_pilot.py')]
     cfg['execution_hashes'] = {str(p): file_hash(p) for p in code}
     inputs = Path(cfg['inputs'])
@@ -95,12 +95,12 @@ def build_stopping_panels(root, cfg):
         anchors = model.reference_indices(Photometry(data['flux'][rows], data['variance'][rows], model.transform.bands))
         np.savez(out/(task['name']+'.npz'), rows=rows, anchors=np.asarray(anchors, int))
         for earlier in rule.get('earlier_panels', []):
-            path = Path(earlier)/(task['name']+'_rows.npz')
-            if path.exists():
-                with np.load(path) as saved:
-                    if not np.array_equal(saved['density'], rows):
-                        raise ValueError('stopping panel does not reproduce '+str(path))
-                reproduced.append(str(path))
+            for path, key in ((Path(earlier)/(task['name']+'_rows.npz'), 'density'), (Path(earlier)/(task['name']+'.npz'), 'rows')):
+                if path.exists():
+                    with np.load(path) as saved:
+                        if not np.array_equal(saved[key], rows):
+                            raise ValueError('stopping panel does not reproduce '+str(path))
+                    reproduced.append(str(path))
         exclusions.setdefault(task['kind'], []).append(data['source_row'][rows])
         reports[task['name']] = dict(rows=len(rows), north_south_cap=rule['rows_per_hemisphere'])
     exclusions = {k: np.unique(np.concatenate(v)) for k, v in exclusions.items()}

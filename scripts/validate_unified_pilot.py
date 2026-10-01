@@ -37,9 +37,9 @@ def choose(data,role,n,bands,seed,z_range=None):
     return rows
 
 
-def support_file(base,phot,z,cfg,path):
+def support_file(base,phot,z,cfg,path,l=None,b=None):
     if path.exists():return dict(np.load(path))
-    s=qso_support(base.model,phot,z,draws=cfg['validation']['support_draws'],seed=cfg['seed'])
+    s=qso_support(base.model,phot,z,draws=cfg['validation']['support_draws'],seed=cfg['seed'],l_deg=l,b_deg=b)
     np.savez_compressed(path,**s);return s
 
 
@@ -51,7 +51,8 @@ def calibration(root,base,data,cfg,masks):
     values=[];counts={}
     for name in ('all','legacy_optical','sdss','ps1'):
         phot=mask_phot(data,rows,base.model.transform.bands,masks[name]);use=phot.observed.sum(axis=1)>=2
-        s=support_file(base,phot.subset(use),data['zspec'][rows[use]],cfg,root/f'support_calibration_{name}.npz')
+        s=support_file(base,phot.subset(use),data['zspec'][rows[use]],cfg,root/f'support_calibration_{name}.npz',
+                       l=data['l'][rows[use]],b=data['b'][rows[use]])
         finite=np.isfinite(s['percentile']);values.extend(s['percentile'][finite]);counts[name]=int(finite.sum())
         print('SUPPORT CALIBRATION',name,counts[name],flush=True)
     values=np.array(values);target=cfg['validation']['support_retention']

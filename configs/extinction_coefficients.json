@@ -1,0 +1,33 @@
+{
+  "map": "SFD98",
+  "map_note": "Schlegel, Finkbeiner & Davis 1998 E(B-V) at each object's Galactic (l, b), read from the local dustmaps SFD files (~/data/dustmaps/sfd). Every coefficient is A_band / E(B-V)_SFD.",
+  "correction": "flux_corrected = flux * 10**(0.4 * R * E); variance_corrected = variance * 10**(0.8 * R * E). Applied to native fluxes before the luptitude transform.",
+  "legacy_north_rule": "decals_dr9_north g, r, z: the DESI North->South relation acts on UNcorrected magnitudes; extinction is then removed in the DECam (south) system. Because the relation is linear in magnitudes, this equals correcting the north bands with R_eff = H_north[:, latent grz] @ R_DECam[grz], computed from the observation operator at preparation. The listed values are DECam fallbacks only.",
+  "coefficients": {
+    "sdss:u": 4.239, "sdss:g": 3.303, "sdss:r": 2.285, "sdss:i": 1.698, "sdss:z": 1.263,
+    "decals_dr9_south:g": 3.214, "decals_dr9_south:r": 2.165, "decals_dr9_south:z": 1.211,
+    "decals_dr9_south:w1": 0.184, "decals_dr9_south:w2": 0.113,
+    "decals_dr9_north:g": 3.214, "decals_dr9_north:r": 2.165, "decals_dr9_north:z": 1.211,
+    "decals_dr9_north:w1": 0.184, "decals_dr9_north:w2": 0.113,
+    "allwise:w1": 0.184, "allwise:w2": 0.113, "allwise:w3": 0.0241, "allwise:w4": 0.00910,
+    "ps1:g": 3.172, "ps1:r": 2.271, "ps1:i": 1.682, "ps1:z": 1.322, "ps1:y": 1.087,
+    "nsc:u": 3.995, "nsc:g": 3.214, "nsc:r": 2.165, "nsc:i": 1.592, "nsc:z": 1.211, "nsc:y": 1.064,
+    "nsc:vr": 2.28,
+    "skymapper:u": 4.294, "skymapper:v": 4.026, "skymapper:g": 2.986, "skymapper:r": 2.288,
+    "skymapper:i": 1.588, "skymapper:z": 1.206,
+    "vhs:y": 1.00, "vhs:j": 0.709, "vhs:h": 0.449, "vhs:ks": 0.302
+  },
+  "sources": {
+    "legacy_dr9": {"bands": ["decals_dr9_*", "allwise:*", "nsc:u,g,r,i,z,y"], "status": "verified",
+      "reference": "Legacy Surveys DR9 catalogue documentation, Galactic extinction coefficients (DECam ugrizY 3.995 3.214 2.165 1.592 1.211 1.064; WISE W1-W4 0.184 0.113 0.0241 0.00910; BASS/MzLS computed as if on the DECam system; SFD98 map)",
+      "url": "https://www.legacysurvey.org/dr9/catalogs/"},
+    "sf11": {"bands": ["sdss:*", "ps1:*", "vhs:j,h,ks"], "status": "verified (VHS: approximate filter match)",
+      "reference": "Schlafly & Finkbeiner 2011, ApJ 737, 103, Table 6, R_V = 3.1, per E(B-V)_SFD. VHS J,H,Ks use the UKIRT (MKO-like) J,H,K rows as an approximation to VISTA filters.",
+      "url": "https://doi.org/10.1088/0004-637X/737/2/103"},
+    "skymapper": {"bands": ["skymapper:*"], "status": "verified",
+      "reference": "Wolf et al. 2018, PASA 35, e010, Table 1 (R_band from F99, R_V = 3.1)",
+      "url": "https://doi.org/10.1017/pasa.2018.5"},
+    "computed": {"bands": ["nsc:vr", "vhs:y"], "status": "approximate",
+      "reference": "SF11 method reproduced (F99 R_V=3.1, 7000 K blackbody, scale 0.8828 fitted to 16 SF11 Table 6 rows: residual rms 0.73%, max 1.81%) with top-hat bandpasses: DECam VR 5000-7600 A, VISTA Y 9700-10700 A. Top-hat bandpasses overestimate broad filters (PS1 w +5.5%); treat VR as +/-5%. Filter curves could not be downloaded (SVO unreachable); edges are nominal values, unverified."}
+  }
+}

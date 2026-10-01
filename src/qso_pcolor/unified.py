@@ -133,7 +133,7 @@ def conditional_predictive_mixture(qso, z: float, x: np.ndarray,
 
 
 def qso_support(model, photometry: Photometry, z_primary, *, draws: int,
-                seed: int, flux_covariance=None) -> dict:
+                seed: int, flux_covariance=None, l_deg=None, b_deg=None) -> dict:
     """Noise-aware QSO conditional-density percentile at the specified redshift.
 
     Monte Carlo ranks use (1 + count)/(draws + 1). The deterministic row seed
@@ -142,6 +142,13 @@ def qso_support(model, photometry: Photometry, z_primary, *, draws: int,
     """
     if not isinstance(draws, int) or draws < 1:
         raise ValueError('positive integer support draws required')
+    if 'extinction' in model.meta:
+        # Catalogue photometry must be corrected exactly as at training.
+        if l_deg is None or b_deg is None:
+            raise ValueError('this model is extinction-corrected: Galactic l_deg and b_deg are required')
+        from .extinction import deredden
+        photometry, flux_covariance, _ = deredden(photometry, l_deg, b_deg, model.meta['extinction'],
+                                                  flux_covariance=flux_covariance)
     f = model.transform(photometry, flux_covariance=flux_covariance)
     anchors = model.reference_indices(photometry)
     z = np.broadcast_to(np.asarray(z_primary, float), (len(f.x),))
@@ -194,7 +201,8 @@ class UnifiedPSFModel:
         scores, decision = self.base.score(photometry, z_primary=z_primary,
             l_deg=l, b_deg=b, flux_covariance=flux_covariance, **kwargs)
         support = qso_support(self.base.model, photometry, z_primary,
-            draws=self.support['draws'], seed=self.support['seed'], flux_covariance=flux_covariance)
+            draws=self.support['draws'], seed=self.support['seed'], flux_covariance=flux_covariance,
+            l_deg=l, b_deg=b)
         rejected = np.isfinite(support['percentile']) & (support['percentile'] < self.support['threshold'])
         if apply_support:
             for i in np.flatnonzero(rejected & decision['eligible']):

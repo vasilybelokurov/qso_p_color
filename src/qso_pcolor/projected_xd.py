@@ -88,7 +88,8 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
                   accumulator: Callable | None = None,
                   covariance_update: str = 'additive',
                   prior_strength: float = 1.0,
-                  final_evaluation: bool = True) -> XDFitResult:
+                  final_evaluation: bool = True,
+                  fixed_coordinate: dict | None = None) -> XDFitResult:
     """Fit all rows using fixed operators; check row accounting on every pass.
 
     ``progress(iteration, model, mean_objective, rows)`` receives each updated
@@ -109,6 +110,14 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     ``mean_loglike`` is always the plain log likelihood of the returned model;
     ``final_evaluation=False`` skips that extra pass and returns NaN, for
     callers that fit in blocks and evaluate only the model they keep.
+
+    ``fixed_coordinate=dict(index=i, mean=m, variance=s2)`` holds latent
+    coordinate ``i`` at the same mean and variance in every component, with
+    zero covariance to all others. With that block structure the component
+    likelihood factorises, so the exact constrained M step is the unconstrained
+    (or MAP) update of the remaining block. Used to make QSO colours independent
+    of magnitude: coordinate ``i`` is a magnitude, the others colours. The
+    initial mixture must already satisfy the constraint.
     """
     if expected_rows < 1 or max_iter < 1 or tol < 0 or regularization < 0:
         raise ValueError('invalid projected fit settings')
@@ -117,6 +126,14 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     if covariance_update == 'map' and not (regularization > 0 and np.isfinite(prior_strength) and prior_strength > 0):
         raise ValueError('map covariance update needs positive regularization and prior strength')
     use_map = covariance_update == 'map'
+    if fixed_coordinate is not None:
+        i_fix, m_fix, v_fix = (int(fixed_coordinate['index']), float(fixed_coordinate['mean']),
+                               float(fixed_coordinate['variance']))
+        others = np.arange(init.n_dim) != i_fix
+        if not (0 <= i_fix < init.n_dim and v_fix > 0 and np.isfinite(m_fix)
+                and np.allclose(init.means[:, i_fix], m_fix) and np.allclose(init.covs[:, i_fix, i_fix], v_fix)
+                and np.allclose(init.covs[:, i_fix, others], 0) and np.allclose(init.covs[:, others, i_fix], 0)):
+            raise ValueError('initial mixture violates the fixed-coordinate constraint')
 
     def stationary(new, old):
         change = new - old
@@ -149,6 +166,9 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
         else:
             covs[alive] = c + regularization * np.eye(mix.n_dim)
             objective = ll
+        if fixed_coordinate is not None:
+            means[:, i_fix] = m_fix
+            covs[:, i_fix, :] = 0.; covs[:, :, i_fix] = 0.; covs[:, i_fix, i_fix] = v_fix
         np.linalg.cholesky(covs)
         mix = GaussianMixture(count / count.sum(), means, covs, init.labels)
         history.append(objective / n)

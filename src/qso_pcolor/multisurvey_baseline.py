@@ -85,6 +85,9 @@ class PSFMultiSurveyBaseline:
         b = np.broadcast_to(np.asarray(b_deg, float), (n,))
         if not np.isfinite(l + b).all() or (np.abs(b) > 90).any():
             raise ValueError("finite Galactic coordinates are required")
+        # A bundle fitted to extinction-corrected photometry corrects catalogue
+        # input here, from each object's position, before anything else sees it.
+        photometry, flux_covariance = self._corrected(photometry, l, b, flux_covariance)
         morph = morphology_status(np.broadcast_to(np.asarray(morphology), (n,)))
         accepted = (morph == "point") & (np.abs(b) >= self.manifest["min_abs_b_deg"])
         reason = np.full(n, "", dtype="<U64")
@@ -102,7 +105,8 @@ class PSFMultiSurveyBaseline:
         local.setdefault("candidate_id", np.array([f"cand{i}" for i in indices]))
         local.setdefault("primary_id", np.array([f"prim{i}" for i in indices]))
         config = json.dumps(dict(match=match.__dict__, blend=blend_policy.describe(),
-            ood_flag_sigma=float(ood_flag_sigma), band_policy="any nonempty subset; exact marginalisation"),
+            ood_flag_sigma=float(ood_flag_sigma), band_policy="any nonempty subset; exact marginalisation",
+            extinction=self.model.meta["extinction"]["map"] if "extinction" in self.model.meta else "none"),
             sort_keys=True)
         config_hash = hashlib.sha256(config.encode()).hexdigest()[:16]
         scores = self.model.score(photometry.subset(indices),
@@ -124,6 +128,15 @@ class PSFMultiSurveyBaseline:
             if not eligible[i]:
                 reason[i] = score.status
         return output, dict(accepted=accepted, eligible=eligible, reason=reason, morphology=morph)
+
+    def _corrected(self, photometry, l, b, flux_covariance=None):
+        """Apply the bundle's declared Galactic extinction correction (identity if none)."""
+        record = self.model.meta.get("extinction")
+        if record is None:
+            return photometry, flux_covariance
+        from .extinction import deredden
+        corrected, cov, _ = deredden(photometry, l, b, record, flux_covariance=flux_covariance)
+        return corrected, cov
 
     def fit_local(self, photometry: Photometry, *, morphology: np.ndarray,
                   known_quasar: np.ndarray, l_deg: np.ndarray, b_deg: np.ndarray,
@@ -159,6 +172,7 @@ class PSFMultiSurveyBaseline:
                 label not in self.model.transform.bands or not np.isfinite(area) or area <= 0
                 for label, area in usable_area_deg2.items()):
             raise ValueError("positive measured usable areas are required for declared model bands")
+        photometry, flux_covariance = self._corrected(photometry, l, b, flux_covariance)
         vectors = hp.ang2vec(l, b, lonlat=True)
 
         def separation(l0, b0):

@@ -28,6 +28,21 @@ def get_root(config='configs/unified_pilot.json'):
     return Path(json.loads((Path(cfg['output'])/'current.json').read_text())['directory'])
 
 
+def fit_arrays(root,kind):
+    """Prepared arrays with fluxes the density fits used: extinction-corrected when declared."""
+    data=arrays(root,kind)
+    if 'flux_dered' in data:data=dict(data,flux=data['flux_dered'],variance=data['variance_dered'])
+    return data
+
+
+def extinction_shift(root,cfg,kind):
+    """Per-band magnitude shift R_j <E(B-V)> of a population's fit/select rows (0 without extinction)."""
+    layout=json.loads((root/'layout.json').read_text())
+    if 'extinction' not in layout:return np.zeros(len(layout['native_labels'])),0.
+    d=arrays(root,kind);use=np.isin(d['role'],cfg['fit_roles'])&selected_cells(d['cell'],cfg['training_cells'])
+    mean=float(np.mean(d['ebv'][use]));return np.asarray(layout['extinction']['coefficients'])*mean,mean
+
+
 def remap_mag(value,oldsoft,newsoft):
     a=2.5/np.log(10);f=2*oldsoft*np.sinh((22.5-np.asarray(value))/a-np.log(oldsoft))
     new=22.5-a*(np.arcsinh(f/(2*newsoft))+np.log(newsoft))
@@ -42,9 +57,14 @@ def build_priors(root,cfg,model,data,parent):
     rows=np.flatnonzero(train);fields=np.unique(data['field'][rows]);bands=model.transform.bands
     p=Photometry(data['flux'][rows],data['variance'][rows],bands);obs=p.observed
     a=2.5/np.log(10);values=22.5-a*(np.arcsinh(p.flux/(2*model.transform.softening))+np.log(model.transform.softening))
-    report={}
+    report={};qshift,qebv=extinction_shift(root,cfg,'qso');bshift,bebv=extinction_shift(root,cfg,'stars')
     for j,label in enumerate(bands):
         pair=saved['anchors'][label];q=pair['qso_prior'];oldsoft=parent.transform.softening[j];newsoft=model.transform.softening[j]
+        if qshift[j]:
+            # Inherited abundance is per observed magnitude; corrected magnitudes are brighter by R<E>.
+            # A mean shift, not a per-object convolution: E(B-V) scatter is a second-order effect.
+            q['mag_centres']=(np.array(q['mag_centres'])-qshift[j]).tolist();q['mag_edges']=(np.array(q['mag_edges'])-qshift[j]).tolist()
+            q['meta']['extinction_shift_mag']=float(qshift[j]);q['meta']['extinction_mean_ebv']=qebv
         if oldsoft!=newsoft:
             centres,jac=remap_mag(q['mag_centres'],oldsoft,newsoft)
             q['mag_centres']=centres.tolist();q['mag_edges']=remap_mag(q['mag_edges'],oldsoft,newsoft)[0].tolist()
@@ -69,7 +89,7 @@ def build_priors(root,cfg,model,data,parent):
             pair['background_density']=density.to_dict();origin='pilot fit/select counts'
         else:
             # A limited sky pilot cannot certify unobserved external-survey dimensions.
-            old=pair['background_density'];oldedges=np.array(old['mag_edges']);old['mag_edges']=edges.tolist()
+            old=pair['background_density'];oldedges=np.array(old['mag_edges']);edges=edges-bshift[j];old['mag_edges']=edges.tolist()
             old['global_density']=(np.array(old['global_density'])*np.diff(oldedges)/np.diff(edges)).tolist()
             old['meta'].update(meta,sparse_population_prior=True,inherited_no_pilot_counts=True)
             origin='inherited full-candidate counts; no pilot support'
@@ -97,7 +117,7 @@ def main():
     stars=json.loads((root/'fits'/'stars_00.json').read_text())
     latent_q=[GaussianMixture.from_dict(f['mixture']) for f in fits];latent_b=GaussianMixture.from_dict(stars['mixture'])
     qmix=[native_view(m,layout,'qso') for m in latent_q];bmix=native_view(latent_b,layout,'stars')
-    data=arrays(root,'stars');rows=np.flatnonzero(np.isin(data['role'],cfg['fit_roles']) & selected_cells(data['cell'],cfg['training_cells']))
+    data=fit_arrays(root,'stars');rows=np.flatnonzero(np.isin(data['role'],cfg['fit_roles']) & selected_cells(data['cell'],cfg['training_cells']))
     transform=BandLuptitudeTransform(tuple(layout['native_labels']),np.array(layout['softening']))
     start=time.monotonic();path=root/'spatial.json'
     if path.exists():
@@ -114,13 +134,16 @@ def main():
     print('SPATIAL COMPLETE',len(rows),flush=True)
     qso=SlicedColourRedshiftModel(parent.qso.z_centres,qmix,np.array([f['n'] for f in fits]),'unified_'+root.name,transform.bands,
         dict(per_slice=[dict(z=float(z),band_counts=t['band_counts']) for z,t in zip(parent.qso.z_centres,[t for t in json.loads((root/'tasks.json').read_text()) if t['kind']=='qso'])]))
-    bounds=parent.background_bounds.copy()
+    bounds=parent.background_bounds.copy();bshift,_=extinction_shift(root,cfg,'stars')
     for j in range(len(bounds)):
-        bounds[j]=remap_mag(bounds[j],parent.transform.softening[j],transform.softening[j])[0]
+        bounds[j]=remap_mag(bounds[j],parent.transform.softening[j],transform.softening[j])[0]-bshift[j]
     model=MultiSurveyModel(qso,bmix,transform,parent.reference_priority,bounds,
         meta=dict(population='psf',run_id='unified_'+root.name,reference_min_snr=cfg['reference_min_snr'],
                   pilot=cfg.get('pilot',True),latent_dimensions=len(layout['latent_labels']),background_population='empirical PSF non-QSO contaminants',
-                  settings={'config':{'min_band_training':cfg.get('min_band_training',20)}}),spatial_background=spatial)
+                  settings={'config':{'min_band_training':cfg.get('min_band_training',20)}},
+                  **({'extinction':layout['extinction']} if 'extinction' in layout else {}),
+                  **({'qso_colours':'magnitude-independent (fixed magnitude coordinate '+layout['latent_labels'][layout['qso_coordinates']['index']]+')'}
+                     if 'qso_coordinates' in layout else {})),spatial_background=spatial)
     model.save(out/'model.json');build_priors(root,cfg,model,data,parent)
     print('PRIORS COMPLETE',flush=True)
     catch=cfg['catchall'];mean,cov=mixture_moments([model.background])

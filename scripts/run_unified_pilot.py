@@ -35,10 +35,42 @@ def selected_cells(cells, selection):
     return np.ones(len(cells), bool) if selection is None else np.isin(cells, selection)
 
 
+def magnitude_colour_matrix(labels, magnitude):
+    """T with u = T x: u[magnitude] = x[magnitude], u[i] = x[i] - x[magnitude] otherwise."""
+    k = list(labels).index(magnitude); t = np.eye(len(labels)); t[:, k] -= 1.; t[k, k] = 1.
+    return t
+
+
+def to_magnitude_colour(mix, t, index, fixed):
+    """Express a latent mixture in (magnitude, colours) and impose the fixed magnitude block."""
+    means = mix.means @ t.T; covs = t @ mix.covs @ t.T
+    means[:, index] = fixed['mean']; covs[:, index, :] = 0.; covs[:, :, index] = 0.; covs[:, index, index] = fixed['variance']
+    return means, covs
+
+
+def finalize_layout(layout, cfg):
+    """Add the declared extinction correction and the QSO magnitude-colour coordinates."""
+    if cfg.get('extinction'):
+        from qso_pcolor.extinction import extinction_record
+        layout['extinction'] = extinction_record(layout, cfg['extinction'])
+    rule = cfg.get('qso_magnitude_independent')
+    if rule:
+        t = magnitude_colour_matrix(layout['latent_labels'], rule['magnitude'])
+        h = np.array(layout['operators']['qso']['matrix'])
+        layout['operators']['qso']['matrix'] = (h @ np.linalg.inv(t)).tolist()
+        k = layout['latent_labels'].index(rule['magnitude'])
+        layout['qso_coordinates'] = dict(matrix=t.tolist(), index=k, mean=float(rule['mean']), variance=float(rule['variance']),
+            labels=[('magnitude:' if i == k else 'colour:')+(l if i == k else l+'-'+rule['magnitude'])
+                    for i, l in enumerate(layout['latent_labels'])],
+            note='QSO colours relative to the magnitude coordinate are independent of it; magnitude dependence lives in the abundance prior.')
+    return layout
+
+
 def prepare(cfg):
     parent = MultiSurveyModel.load(Path(cfg['parent'])/'model.json')
     calibration = json.loads(Path(cfg['calibration']).read_text())
     layout = observation_layout(parent.transform, calibration, native_variance_floor=cfg['native_variance_floor'])
+    layout = finalize_layout(layout, cfg)
     identity = dict(config=cfg, layout=layout, parent=file_hash(Path(cfg['parent'])/'model.json'),
         inputs=file_hash(Path(cfg['inputs'])/'manifest.json'), calibration=file_hash(Path(cfg['calibration'])),
         projected_xd=file_hash(Path('src/qso_pcolor/projected_xd.py')),
@@ -61,11 +93,24 @@ def prepare(cfg):
             np.save(root/kind/(key+'.npy'),source[key][rows])
         np.save(root/kind/'source_row.npy',rows);np.save(root/kind/'cell.npy',cells[rows])
         n,d = len(rows),len(layout['native_labels'])
+        # flux/variance stay as catalogued; *_dered are what every density fit uses.
+        flux,variance = source['flux'],source['variance']
+        if 'extinction' in layout:
+            from qso_pcolor.extinction import sfd_ebv, deredden_arrays
+            ebv=sfd_ebv(source['l'][rows],source['b'][rows]);np.save(root/kind/'ebv.npy',ebv)
+            fd=np.lib.format.open_memmap(root/kind/'flux_dered.npy',mode='w+',dtype='f8',shape=(n,d))
+            vd=np.lib.format.open_memmap(root/kind/'variance_dered.npy',mode='w+',dtype='f8',shape=(n,d))
+            for lo in range(0,n,65536):
+                fd[lo:lo+65536],vd[lo:lo+65536]=deredden_arrays(source['flux'][rows[lo:lo+65536]],source['variance'][rows[lo:lo+65536]],
+                    ebv[lo:lo+65536],layout['extinction']['coefficients'])
+            fd.flush();vd.flush();flux,variance=fd,vd;local=True
+        else:local=False
         y = np.lib.format.open_memmap(root/kind/'y.npy',mode='w+',dtype='f8',shape=(n,d))
         noise = np.lib.format.open_memmap(root/kind/'noise.npy',mode='w+',dtype='f8',shape=(n,d))
         obs = np.lib.format.open_memmap(root/kind/'observed.npy',mode='w+',dtype='?',shape=(n,d))
         for lo in range(0,n,2048):
-            rr=rows[lo:lo+2048];f=transform(Photometry(source['flux'][rr],source['variance'][rr],transform.bands))
+            rr=rows[lo:lo+2048];ii=np.arange(lo,lo+len(rr)) if local else rr
+            f=transform(Photometry(flux[ii],variance[ii],transform.bands))
             y[lo:lo+len(rr)]=f.x;noise[lo:lo+len(rr)]=np.diagonal(f.cov,axis1=1,axis2=2);obs[lo:lo+len(rr)]=f.observed
         y.flush();noise.flush();obs.flush()
         fit=np.isin(source['role'][rows],cfg['fit_roles']) & selected_cells(cells[rows],cfg['training_cells'])
@@ -79,6 +124,9 @@ def prepare(cfg):
         for j,mix in enumerate(mixtures):
             init=mix.marginal(ix)
             init=GaussianMixture(init.weights,init.means,init.covs,tuple(layout['latent_labels']))
+            if kind=='qso' and 'qso_coordinates' in layout:
+                qc=layout['qso_coordinates'];means,covs=to_magnitude_colour(init,np.array(qc['matrix']),qc['index'],qc)
+                init=GaussianMixture(init.weights,means,covs,tuple(qc['labels']))
             task=dict(name=f'{kind}_{j:02d}',kind=kind,index=j,init=init.to_dict(),k=init.n_components)
             if kind=='qso':task['z']=float(parent.qso.z_centres[j])
             rr=task_rows(data,task,cfg);task['n']=len(rr)
@@ -133,9 +181,11 @@ def fit_task(task,cfg,root):
         from qso_pcolor.projected_parallel import ProjectedBatchFactory, ProjectedParallelAccumulator
         context=ProjectedParallelAccumulator(ProjectedBatchFactory(root/'stars',rr,cfg['batch_size']),
             len(rr),workers=cfg['stellar_workers'],task_rows=cfg['stellar_task_rows'],status_directory=root/'progress')
+    qc=layout.get('qso_coordinates') if task['kind']=='qso' else None
     options=dict(operators={0:op},expected_rows=len(rr),tol=cfg['tol'],regularization=cfg['regularization'],
         progress=progress,covariance_update=cfg.get('covariance_update','additive'),
-        prior_strength=cfg.get('prior_strength',1.0))
+        prior_strength=cfg.get('prior_strength',1.0),
+        fixed_coordinate=None if qc is None else dict(index=qc['index'],mean=qc['mean'],variance=qc['variance']))
     with context as accumulator:
         if not cfg.get('predictive_stopping'):
             fit=fit_projected(source,init=init,max_iter=cfg['max_iter'],initial_history=initial_history,
