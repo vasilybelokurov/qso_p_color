@@ -1,0 +1,76 @@
+{
+  "parent": "models/multisurvey_psf/work/full_sample_completion/e894d3c77baab446",
+  "inputs": "models/multisurvey_psf/work/full_training_inputs/370b9a1b027c3de8",
+  "stellar_root": "models/multisurvey_psf/work/stellar_preparation/2d43d81d0b5f2af0",
+  "calibration": "models/multisurvey_psf/work/pooled_optical_prototype/20260930/aa79cd8f3486dee8/instrumental_scatter_6d29f313e9caa5d7/calibration.json",
+  "overlap": "models/multisurvey_psf/work/legacy_unification/20260930/overlap_pairs.npz",
+  "output": "models/multisurvey_psf/work/unified_full/20261001",
+  "active_pointer": "models/multisurvey_psf/current",
+  "training_cells": null,
+  "test_cells": [],
+  "nside": 4,
+  "fit_roles": [
+    0,
+    1
+  ],
+  "seed": 20260930,
+  "batch_size": 128,
+  "max_iter": 300,
+  "tol": 0.0001,
+  "regularization": 0.001,
+  "native_variance_floor": 1e-06,
+  "reference_min_snr": 5.0,
+  "z_half_width": 0.1,
+  "spatial": {
+    "nside": 4,
+    "nside_parent": 2,
+    "n0": 1000.0,
+    "max_iter": 100,
+    "tol": 1e-06
+  },
+  "density_n0": 100.0,
+  "catchall": {
+    "family": "student_t",
+    "nu": 4.0,
+    "kappa": 1.0,
+    "noise": "exact",
+    "magnitude_bins": 3,
+    "minimum_bin_count": 100,
+    "pooling_strength": 1000.0,
+    "global_prior_mean": 0.5,
+    "global_prior_strength": 2.0
+  },
+  "validation": {
+    "rows_per_class_per_hemisphere": 64,
+    "calibration_qsos_per_hemisphere": 96,
+    "support_draws": 255,
+    "support_retention": 0.98,
+    "minimum_test_support_retention": 0.94,
+    "subset_rows": 12,
+    "maximum_auc_loss": 0.03,
+    "score_batch_size": 16,
+    "paired_rows": 64
+  },
+  "policy": "Full cached eligible sample, Galactic extinction corrected (SFD98, configs/extinction_coefficients.json; DESI North->South relation on uncorrected magnitudes), QSO colours unconstrained in magnitude (comparison to the magnitude-independent baseline in configs/unified_full_training.json), frozen fit/select roles, no S/N training cut or row caps. Four independent QSO slice workers plus four cooperating stellar E-step workers; one numerical thread each. Existing component counts and canonical full-data warm starts. MAP covariance update (Bovy et al. 2011 eqs. 19-20, nu=1, w=0.001 mag^2), selected by configs/map_update_test.json. Predictive early stopping: score a fixed role-3 stopping panel every 20 updates, stop when a block gains < 0.02 nats/object, objective tolerance 1e-4, or 300 updates; keep the best checkpoint including the warm start. Stopping panels are excluded from final assessment. Prepare only unless --fit is explicit. Never change active pointer; no downloads. Calibrate rejection after density fitting.",
+  "pilot": false,
+  "qso_workers": 4,
+  "stellar_workers": 4,
+  "stellar_task_rows": 8192,
+  "min_band_training": 20,
+  "min_abs_b_deg": 25.0,
+  "covariance_update": "map",
+  "prior_strength": 1.0,
+  "predictive_stopping": {
+    "block_iterations": 20,
+    "min_gain": 0.02,
+    "rows_per_hemisphere": 512,
+    "seed": 20261004,
+    "reference_bundle": "models/multisurvey_psf/work/unified_pilot/20260930/b5c55adf3698419d/bundle",
+    "earlier_panels": [
+      "models/multisurvey_psf/work/map_update_test/20260930/c108415a6a7a695f",
+      "models/multisurvey_psf/work/unified_covariance_trial/20260930/8176eab7484bf5e1",
+      "models/multisurvey_psf/work/unified_full/20260930/a637f155f7f48d00/stopping"
+    ]
+  },
+  "extinction": "configs/extinction_coefficients.json"
+}

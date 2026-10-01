@@ -1,5 +1,22 @@
 # Current project state
 
+**NEXT: TWO EXTINCTION-CORRECTED REFITS, AWAITING USER GO (1 October). Do not launch without the user.**
+Extinction (SFD98, `configs/extinction_coefficients.json`, `src/qso_pcolor/extinction.py`) and
+magnitude-independent QSO colours (fixed broad `legacy:r` coordinate, `fixed_coordinate` in
+`projected_xd.py`) are implemented, tested (401 tests) and committed (`e9505d0`).
+Read-only plateau comparison on corrected data (held-out nats/object): z2.35 dependent 2.076 vs
+independent 1.460; z3.25 2.087 vs 1.451; z4.05 2.261 vs 1.880. Loss present at all reference S/N
+(largest at S/N>50), no trend with weak bands: not convergence, not faint-end luptitude
+compression. Codex review: constraint correct; anchor artefact bounded (~0.03 nats); same-selection
+held-out density cannot settle the PI's selection concern; decide on downstream ranking.
+User decision: refit both. Pilot-scale dry runs of both passed every stage (prepare, panels, 4+4
+fits, completion, release checks). Prepared: magnitude-independent baseline
+`models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059` (configs/unified_full_training.json);
+unconstrained (configs/unified_full_training_magdep.json) preflight in progress. Run sequentially
+(~5 h each), then `validate_unified_release.py` on both. Optional later: regularised linear
+colour-magnitude slope (Codex), mixture-share diagnostic, matched DESI/SDSS split.
+
+
 **BLOCKER (1 October): THE 41-BAND/UNIFIED MODEL IS NOT CORRECTED FOR GALACTIC EXTINCTION.**
 The user instructed on 27 September that photometry must always be dereddened.
 `docs/BASELINE_PLAN.md:75` recorded the multi-survey model's native fluxes as needing the
