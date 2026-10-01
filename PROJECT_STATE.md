@@ -1,5 +1,13 @@
 # Current project state
 
+**MAGNITUDE-DEPENDENT CORRECTED REFIT RUNNING (user approved, 1 October 21:09 BST). KEEP BOTH MODELS.**
+Run `models/multisurvey_psf/work/unified_full/20261001/5f4002492dbb849c`
+(configs/unified_full_training_magdep.json; extinction-corrected, QSO colours unconstrained in
+magnitude), log `train.log`. The magnitude-independent baseline bundle
+`.../20261001/13866e45ef794059/bundle` is retained unchanged. After fitting: completion, release
+checks, support-cut sweep on both; neither is promoted without the user.
+
+
 **SUPPORT-CUT SWEEP (1 October): the baseline's four AUC failures are caused by the untuned cut.**
 `docs/SUPPORT_CUT_SWEEP_2026-10-01.md`/`.json`, `scripts/sweep_support_cut.py` (cached scores, no
 rescoring). Baseline at 99.5% calibration retention (threshold 0.0078): all 8 panels pass (worst
