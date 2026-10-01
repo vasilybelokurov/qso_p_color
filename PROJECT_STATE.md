@@ -1,6 +1,11 @@
 # Current project state
 
-**BASELINE REFIT RUNNING (launched with user approval, 1 October ~12:21 BST).**
+**BASELINE REFIT COMPLETE (1 October, 4.50 h); BUNDLE COMPLETION RUNNING.**
+44/44 fits stopped on the predictive plateau; no objective decreases; median 60 updates, max 120
+(background, -2.049 -> -1.210). Held-out gain over warm start median +0.653 nats; only qso_42
+(z=4.35) kept its warm start. Next: completion, release checks, then ASK the user before
+launching the unconstrained run.
+**(History) BASELINE REFIT LAUNCHED with user approval, 1 October ~12:21 BST.**
 Run `models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059` (magnitude-independent,
 extinction-corrected), log `train.log`; `touch <run>/PAUSE` pauses at the next stopping check.
 The unconstrained run `5f4002492dbb849c` is prepared and must NOT start until the user approves it.
