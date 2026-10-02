@@ -1,6 +1,11 @@
 # Current project state
 
-**MAGNITUDE-DEPENDENT CORRECTED REFIT RUNNING (user approved, 1 October 21:09 BST). KEEP BOTH MODELS.**
+**MAGNITUDE-DEPENDENT CORRECTED REFIT COMPLETE (2 October); completion + release checks running. KEEP BOTH.**
+44/44 predictive plateau, no decreases; only qso_39 kept its warm start. Held-out best per QSO slice:
+vs magnitude-independent corrected median +0.666 (+0.381..+0.876); vs 30 Sep uncorrected
+magnitude-dependent median +0.001 (-0.262..+0.057), i.e. extinction correction costs ~nothing.
+Background -1.210 (uncorrected -1.174). Release report will be docs/UNIFIED_RELEASE_MAGDEP_2026-10-02.json.
+**(History) MAGNITUDE-DEPENDENT CORRECTED REFIT launched 1 October 21:09 BST.**
 Run `models/multisurvey_psf/work/unified_full/20261001/5f4002492dbb849c`
 (configs/unified_full_training_magdep.json; extinction-corrected, QSO colours unconstrained in
 magnitude), log `train.log`. The magnitude-independent baseline bundle
