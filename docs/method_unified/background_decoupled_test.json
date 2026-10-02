@@ -1,0 +1,205 @@
+{
+ "test": "models/multisurvey_psf/work/background_decoupled/test1/result.json",
+ "heldout_current": -1.2099357225529304,
+ "trace": [
+  {
+   "iteration": 0,
+   "heldout": -1.6262442075765553
+  },
+  {
+   "iteration": 20,
+   "heldout": -1.4827276692958915
+  },
+  {
+   "iteration": 40,
+   "heldout": -1.4403190848683167
+  },
+  {
+   "iteration": 60,
+   "heldout": -1.4160973298055934
+  },
+  {
+   "iteration": 80,
+   "heldout": -1.3990672444001993
+  }
+ ],
+ "rows": 150000,
+ "panels": [
+  {
+   "plane": "P1",
+   "bin": [
+    17,
+    19
+   ],
+   "model": "current joint background",
+   "inside50": 0.3923063693172046,
+   "inside90": 0.9515564983087772,
+   "draws_in_empty": 0.4950580802934583
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    17,
+    19
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.46419767241873533,
+   "inside90": 0.9669208278392478,
+   "draws_in_empty": 0.4640737269603249
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    19,
+    20.5
+   ],
+   "model": "current joint background",
+   "inside50": 0.6050052137643378,
+   "inside90": 0.9653806047966632,
+   "draws_in_empty": 0.36635992889260693
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    19,
+    20.5
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.6827945776850887,
+   "inside90": 0.9766840458811262,
+   "draws_in_empty": 0.29382638010956597
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "model": "current joint background",
+   "inside50": 0.6364214004320752,
+   "inside90": 0.9567077561740162,
+   "draws_in_empty": 0.14086178072588038
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.5349260812470877,
+   "inside90": 0.9630194433854365,
+   "draws_in_empty": 0.08517878061025269
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "model": "current joint background",
+   "inside50": 0.45201753060299227,
+   "inside90": 0.9098685204775578,
+   "draws_in_empty": 0.02481653688868971
+  },
+  {
+   "plane": "P1",
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.4694574580625661,
+   "inside90": 0.9121051836179538,
+   "draws_in_empty": 0.025193128098697105
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    17,
+    19
+   ],
+   "model": "current joint background",
+   "inside50": 0.3835419777190766,
+   "inside90": 0.8627541058918112,
+   "draws_in_empty": 0.2248446527853483
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    17,
+    19
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.40484667508900885,
+   "inside90": 0.8770529459055932,
+   "draws_in_empty": 0.21846525414425294
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    19,
+    20.5
+   ],
+   "model": "current joint background",
+   "inside50": 0.36699346405228755,
+   "inside90": 0.9402894491129785,
+   "draws_in_empty": 0.06057861065504161
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    19,
+    20.5
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.5155929038281979,
+   "inside90": 0.9620915032679739,
+   "draws_in_empty": 0.08875808613555569
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "model": "current joint background",
+   "inside50": 0.6147470530451866,
+   "inside90": 0.9570235756385069,
+   "draws_in_empty": 0.13122403323745604
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.6471021611001965,
+   "inside90": 0.955734282907662,
+   "draws_in_empty": 0.13901144574461283
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "model": "current joint background",
+   "inside50": 0.5088172598669337,
+   "inside90": 0.8892190426975002,
+   "draws_in_empty": 0.32862103174603174
+  },
+  {
+   "plane": "P2",
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "model": "decoupled test background",
+   "inside50": 0.5652089658290808,
+   "inside90": 0.8954847878044054,
+   "draws_in_empty": 0.2699046637464571
+  }
+ ]
+}

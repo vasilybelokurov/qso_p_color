@@ -73,3 +73,31 @@ def test_native_conditional_colour_density_does_not_depend_on_brightness():
     x = np.array([[19., 19.3, 19.1]]); noise = np.diag([.01, .01, .01])[None]; obs1 = np.ones((1, 3), bool)
     values = [conditional_log_prob(native, x + d, noise, obs1, 0)[0] for d in (-3., 0., 3.)]
     assert max(values) - min(values) < 1e-3
+
+
+def test_decoupled_magnitude_keeps_colour_shapes_and_map_objective_monotone():
+    """Free per-component magnitude Gaussian, zero magnitude-colour covariance."""
+    rng = np.random.default_rng(11); n = 2000
+    k = rng.uniform(size=n) < .5
+    m = np.where(k, rng.normal(18, .8, n), rng.normal(21, 1., n))         # bright and faint populations
+    c = np.where(k[:, None], rng.normal([.4, .2], [.05, .04], (n, 2)), rng.normal([1.2, .9], [.08, .1], (n, 2)))
+    y = np.column_stack([m, c]); cov = np.tile(np.diag([.01, .003, .003]), (n, 1, 1))
+    y = y + np.einsum('nij,nj->ni', np.linalg.cholesky(cov), rng.normal(size=y.shape)); obs = np.ones_like(y, bool)
+    init = GaussianMixture(np.array([.5, .5]), np.array([[19., .5, .3], [20., 1., .8]]), np.tile(np.diag([4., .1, .1]), (2, 1, 1)))
+    fit = fit_projected(_source(y, cov, obs), init=init, operators={0: (np.eye(3), np.zeros(3), np.zeros((3, 3)))},
+                        expected_rows=n, max_iter=80, tol=0., regularization=1e-4, covariance_update='map', decoupled_coordinate=0)
+    mix = fit.mixture
+    assert np.abs(mix.covs[:, 0, 1:]).max() == 0 and np.abs(mix.covs[:, 1:, 0]).max() == 0
+    assert np.diff(fit.history).min() > -1e-12*max(1., abs(fit.history[-1]))
+    o = np.argsort(mix.means[:, 0])                                          # bright component first
+    np.testing.assert_allclose(mix.means[o, 0], [18, 21], atol=.1)
+    np.testing.assert_allclose(mix.means[o][:, 1:], [[.4, .2], [1.2, .9]], atol=.02)
+    # Conditional colour mean of each component does not move with magnitude: shapes fixed, only weights change.
+    from qso_pcolor.gaussmix import condition_joint
+    for r0 in (17., 22.):
+        w, cm = condition_joint(mix, np.array([r0]), np.array([0]))
+        np.testing.assert_allclose(cm.means, mix.means[:, 1:], atol=1e-12)
+    with pytest.raises(ValueError, match='decoupled'):
+        bad = GaussianMixture(init.weights, init.means, init.covs + .01)
+        fit_projected(_source(y, cov, obs), init=bad, operators={0: (np.eye(3), np.zeros(3), np.zeros((3, 3)))},
+                      expected_rows=n, max_iter=1, tol=0., regularization=1e-4, covariance_update='map', decoupled_coordinate=0)

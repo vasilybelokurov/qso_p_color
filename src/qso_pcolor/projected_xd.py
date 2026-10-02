@@ -89,7 +89,8 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
                   covariance_update: str = 'additive',
                   prior_strength: float = 1.0,
                   final_evaluation: bool = True,
-                  fixed_coordinate: dict | None = None) -> XDFitResult:
+                  fixed_coordinate: dict | None = None,
+                  decoupled_coordinate: int | None = None) -> XDFitResult:
     """Fit all rows using fixed operators; check row accounting on every pass.
 
     ``progress(iteration, model, mean_objective, rows)`` receives each updated
@@ -118,6 +119,13 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     (or MAP) update of the remaining block. Used to make QSO colours independent
     of magnitude: coordinate ``i`` is a magnitude, the others colours. The
     initial mixture must already satisfy the constraint.
+
+    ``decoupled_coordinate=i`` keeps coordinate ``i`` uncorrelated with all others in
+    every component while its mean and variance stay free. With block-diagonal
+    covariances both the likelihood and the covariance prior separate, so the exact
+    constrained M step is the (MAP) update with the cross terms set to zero. With
+    ``i`` a magnitude and the rest colours, each component has a fixed colour shape
+    and a magnitude-dependent amplitude (its own magnitude Gaussian).
     """
     if expected_rows < 1 or max_iter < 1 or tol < 0 or regularization < 0:
         raise ValueError('invalid projected fit settings')
@@ -126,6 +134,10 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     if covariance_update == 'map' and not (regularization > 0 and np.isfinite(prior_strength) and prior_strength > 0):
         raise ValueError('map covariance update needs positive regularization and prior strength')
     use_map = covariance_update == 'map'
+    if decoupled_coordinate is not None:
+        i_dec = int(decoupled_coordinate); rest = np.arange(init.n_dim) != i_dec
+        if not (0 <= i_dec < init.n_dim and np.allclose(init.covs[:, i_dec, rest], 0)):
+            raise ValueError('initial mixture violates the decoupled-coordinate constraint')
     if fixed_coordinate is not None:
         i_fix, m_fix, v_fix = (int(fixed_coordinate['index']), float(fixed_coordinate['mean']),
                                float(fixed_coordinate['variance']))
@@ -166,6 +178,8 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
         else:
             covs[alive] = c + regularization * np.eye(mix.n_dim)
             objective = ll
+        if decoupled_coordinate is not None:
+            covs[:, i_dec, rest] = 0.; covs[:, rest, i_dec] = 0.
         if fixed_coordinate is not None:
             means[:, i_fix] = m_fix
             covs[:, i_fix, :] = 0.; covs[:, :, i_fix] = 0.; covs[:, i_fix, i_fix] = v_fix
