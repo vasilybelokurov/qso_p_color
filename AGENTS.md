@@ -1,5 +1,16 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
+**Active models (promoted 2 October 2026, user decision: keep both).** Load with
+`UnifiedPSFModel.load(...)`: `models/multisurvey_psf/current` = magnitude-independent QSO colours
+(default, the PI's baseline), `models/multisurvey_psf/current_magdep` = magnitude-dependent;
+`models/multisurvey_psf/previous` = the 28 September bundle (rollback). Both promoted bundles are
+**Galactic-extinction corrected** (SFD98, `configs/extinction_coefficients.json`; the scorer corrects
+catalogue input from position; DESI North->South relation on uncorrected magnitudes), use the MAP
+covariance update with predictive early stopping, and a QSO-support cut at 99.5% calibration
+retention (chosen on reporting rows; confirm on independent rows). Statements below that the
+41-band model uses observed, not dereddened, photometry describe the bundles before this date.
+Never train or promote a non-dereddened model again without an explicit PI decision.
+
 **Keep the goal in view (user priority, 30 September).** Deliver a pragmatic,
 working, robust model with the requested functionality. Choose the simplest
 defensible solution and bring it through validation to use. Before adding an

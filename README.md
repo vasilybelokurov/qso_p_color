@@ -28,8 +28,42 @@ being called a certain quasar because of how two Gaussian tails fell.
 
 ## Current status and model choice
 
-The active PSF model is `PSFMultiSurveyBaseline`, loaded from
-`models/multisurvey_psf/current`. It accepts **any nonempty subset of all 41
+**Two models are active (2 October 2026).** Both use one shared North/South latent model over
+all 41 bands, Galactic-extinction-corrected photometry (SFD98; the scorer corrects catalogue
+input from position), a MAP covariance update with predictive early stopping, and a calibrated
+QSO-support cut at 99.5% calibration retention. They differ only in the quasar colour model:
+
+| Pointer | QSO colours | Bundle |
+|---|---|---|
+| `models/multisurvey_psf/current` (default) | independent of magnitude (XDQSO design) | `13866e45ef794059` |
+| `models/multisurvey_psf/current_magdep` | free to depend on magnitude | `5f4002492dbb849c` |
+| `models/multisurvey_psf/previous` | rollback: the 28 September bundle | `630f47f63b6f0694` |
+
+```python
+from qso_pcolor import Photometry, RedshiftMatch, BlendPolicy
+from qso_pcolor.unified import UnifiedPSFModel
+
+model = UnifiedPSFModel.load("models/multisurvey_psf/current")   # or current_magdep
+# Catalogue fluxes as observed; extinction is corrected internally from RA/Dec.
+phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
+                  ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
+scores, decision = model.score(phot, ra_deg=180., dec_deg=0., z_primary=1.8, morphology=["PSF"],
+    match=RedshiftMatch(half_width_kms=2000.), blend_policy=BlendPolicy(3., .2),
+    separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
+```
+
+At 99.5% retention, both pass all eight release ranking panels against the previous bundle.
+The magnitude-dependent model fits held-out quasars about 0.67 nats/object better, but ranks
+quasars against contaminants only about 0.002 AUC better on average. The default model relies
+more on the support cut. The cut threshold was chosen on the reporting rows and still needs
+confirmation on independent rows. Probability calibration is not established. See
+[the comparison](docs/SUPPORT_CUT_SWEEP_2026-10-01.md) and the
+[extinction coefficients](configs/extinction_coefficients.json).
+
+### The previous bundle (28 September 2026)
+
+The description below is the previous PSF model, `PSFMultiSurveyBaseline`, now loaded from
+`models/multisurvey_psf/previous`. It accepts **any nonempty subset of all 41
 bands**, including optical-only and infrared-only input. Missing bands are
 marginalised from one joint model. No band is compulsory. A single band has
 no colour information and is flagged accordingly.
@@ -58,7 +92,7 @@ they do not establish probability calibration.
 ```python
 from qso_pcolor import PSFMultiSurveyBaseline, Photometry, RedshiftMatch, BlendPolicy
 
-baseline = PSFMultiSurveyBaseline.load("models/multisurvey_psf/current")
+baseline = PSFMultiSurveyBaseline.load("models/multisurvey_psf/previous")
 # Native observed fluxes, in each band's original photometric system.
 phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
                   ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))

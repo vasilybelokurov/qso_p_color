@@ -1,6 +1,13 @@
 {
-  "bundle": "630f47f63b6f0694",
-  "validation": "docs/VALIDATION_psf_catchalls_2026-09-28.json",
-  "scope": "PSF sources; any nonempty subset of 41 bands; spatial and local background; pooled Student-t catch-all",
+  "bundle": "13866e45ef794059",
+  "qso_colours": "magnitude-independent QSO colours (baseline)",
+  "extinction": "SFD98",
+  "validation": "docs/SUPPORT_CUT_SWEEP_2026-10-01.md",
+  "release_reports": [
+    "docs/UNIFIED_RELEASE_BASELINE_2026-10-01.json",
+    "docs/UNIFIED_RELEASE_MAGDEP_2026-10-02.json"
+  ],
+  "support_retention": 0.995,
+  "scope": "PSF sources; any nonempty subset of 41 bands; extinction-corrected; spatial background; Student-t catch-all; calibrated QSO-support cut. Load with UnifiedPSFModel.load.",
   "full_probability_calibration": false
 }

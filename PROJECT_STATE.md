@@ -1,6 +1,13 @@
 # Current project state
 
-**BOTH CORRECTED MODELS COMPLETE AND RELEASE-CHECKED (2 October). KEEP BOTH; NEITHER PROMOTED.**
+**PROMOTED (2 October, user decision): both corrected models are active.**
+`current` -> 13866e45ef794059 (magnitude-independent, default); `current_magdep` -> 5f4002492dbb849c;
+`previous` -> 630f47f63b6f0694 (rollback). Bundles copied to `models/multisurvey_psf/<tag>/`, support
+cut set at 99.5% retention (threshold 0.0078125; calibration retention 0.997) by
+`scripts/promote_unified_bundles.py`. Tests: 404 passed. README, AGENTS, method note updated.
+Open: confirm the threshold on independent rows; catch-all tests; sky-dependent count check;
+probability calibration.
+**(History) BOTH CORRECTED MODELS COMPLETE AND RELEASE-CHECKED (2 October).**
 See `docs/SUPPORT_CUT_SWEEP_2026-10-01.md` (update section). At 99.5% cut retention both pass all
 eight AUC panels vs active; dependent ahead by ~+0.002 mean AUC (all-bands South +0.012), +0.67 nats
 QSO density; independent needs the cut more (grid strays 8/13/3/4 vs 1/4/1/0 without it).
@@ -59,7 +66,7 @@ unconstrained (configs/unified_full_training_magdep.json) preflight in progress.
 colour-magnitude slope (Codex), mixture-share diagnostic, matched DESI/SDSS split.
 
 
-**BLOCKER (1 October): THE 41-BAND/UNIFIED MODEL IS NOT CORRECTED FOR GALACTIC EXTINCTION.**
+**RESOLVED 2 October (was BLOCKER, 1 October): the promoted models are extinction-corrected.**
 The user instructed on 27 September that photometry must always be dereddened.
 `docs/BASELINE_PLAN.md:75` recorded the multi-survey model's native fluxes as needing the
 same correction, pending a PI decision; the 28 September switch back to the 41-band model

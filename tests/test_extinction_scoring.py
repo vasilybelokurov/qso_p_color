@@ -20,7 +20,7 @@ BANDS = ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z", "sdss
 
 
 def _bundles():
-    plain = PSFMultiSurveyBaseline.load(ROOT/"models/multisurvey_psf/current")
+    plain = PSFMultiSurveyBaseline.load(ROOT/"models/multisurvey_psf/previous")
     declared = deepcopy(plain)
     labels = list(plain.model.transform.bands)
     coeffs = json.loads((ROOT/"configs/extinction_coefficients.json").read_text())["coefficients"]

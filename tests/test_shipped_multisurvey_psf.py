@@ -1,4 +1,8 @@
-"""The active saved bundle must expose the full requirement from a clean clone."""
+"""Saved bundles must expose the full requirement from a clean clone.
+
+The 28 September bundle is now the rollback target ``previous``; the promoted
+unified bundles are ``current`` (magnitude-independent) and ``current_magdep``.
+"""
 import json
 from pathlib import Path
 import shutil
@@ -12,8 +16,8 @@ from qso_pcolor.multisurvey_data import band_labels
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_active_bundle_has_one_psf_model_all_bands_priors_and_spatial_background():
-    baseline = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf/current")
+def test_previous_bundle_has_one_psf_model_all_bands_priors_and_spatial_background():
+    baseline = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf/previous")
     assert baseline.model.transform.bands == band_labels()
     assert set(baseline.priors) == set(band_labels())
     assert not baseline.model.background_marginals
@@ -26,8 +30,8 @@ def test_active_bundle_has_one_psf_model_all_bands_priors_and_spatial_background
         assert density.nside == 4
 
 
-def test_active_optical_only_example_and_every_single_band():
-    baseline = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf/current")
+def test_previous_optical_only_example_and_every_single_band():
+    baseline = PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf/previous")
     args = dict(morphology=["PSF"], z_primary=1.8, l_deg=276.337, b_deg=60.189,
         match=RedshiftMatch(half_width_kms=2000.),
         blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2),
@@ -52,7 +56,7 @@ def test_active_optical_only_example_and_every_single_band():
 
 def test_bundle_integrity_refuses_modified_population_priors(tmp_path):
     root = ROOT / "models/multisurvey_psf"
-    pointer = json.loads((root / "current").read_text())
+    pointer = json.loads((root / "previous").read_text())
     shutil.copytree(root / pointer["bundle"], tmp_path / "bundle")
     (tmp_path / "bundle/priors.json").write_text("{}")
     with pytest.raises(ValueError, match="content does not match"):
@@ -102,3 +106,27 @@ def test_saved_catchalls_repair_the_northern_zero_weight_counterexample():
         else:
             assert pq < .05 and r.p_outlier > .95
             assert r.log_r_per_unit_z < scores["previous"].log_r_per_unit_z - 3.
+
+
+@pytest.mark.parametrize("pointer,independent", [("current", True), ("current_magdep", False)])
+def test_promoted_unified_bundles_declare_extinction_support_and_colour_rule(pointer, independent):
+    from qso_pcolor.unified import UnifiedPSFModel
+    model = UnifiedPSFModel.load(ROOT / "models/multisurvey_psf" / pointer)
+    meta = model.base.model.meta
+    assert meta["extinction"]["map"] == "SFD98" and len(meta["extinction"]["coefficients"]) == 41
+    assert ("qso_colours" in meta) == independent
+    assert model.support["target_retention"] == .995 and model.support["informative_threshold"]
+    assert model.base.model.transform.bands == band_labels()
+    phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
+        ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
+    rows, decision = model.score(phot, ra_deg=180., dec_deg=0., z_primary=1.8, morphology=["PSF"],
+        match=RedshiftMatch(half_width_kms=2000.), blend_policy=BlendPolicy(3., .2),
+        separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
+    assert rows[0].status == "ok" and decision["eligible"][0]
+    assert '"extinction": "SFD98"' in rows[0].scoring_config_json
+
+
+def test_rollback_pointer_keeps_the_previous_active_bundle():
+    pointer = json.loads((ROOT / "models/multisurvey_psf/previous").read_text())
+    assert pointer["bundle"] == "630f47f63b6f0694"
+    assert "extinction" not in PSFMultiSurveyBaseline.load(ROOT / "models/multisurvey_psf/previous").model.meta

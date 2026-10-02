@@ -179,7 +179,11 @@ class UnifiedPSFModel:
 
     @classmethod
     def load(cls, path: str | Path):
-        root = Path(path); base = PSFMultiSurveyBaseline.load(root)
+        """Load a bundle directory or a pointer file such as ``models/multisurvey_psf/current``."""
+        root = Path(path)
+        if root.is_file():
+            root = root.parent/json.loads(root.read_text())['bundle']
+        base = PSFMultiSurveyBaseline.load(root)
         for name, expected in base.manifest['unified_files'].items():
             if hashlib.sha256((root/name).read_bytes()).hexdigest() != expected:
                 raise ValueError('unified metadata hash mismatch: '+name)

@@ -1,0 +1,23 @@
+{
+  "threshold": 0.0078125,
+  "draws": 255,
+  "seed": 20260930,
+  "roles": [
+    "calib"
+  ],
+  "target_retention": 0.995,
+  "calibration_retention": 0.9976874793524942,
+  "calibration_rows": 800,
+  "calibration_evaluations": 3027,
+  "by_mask": {
+    "all": 800,
+    "legacy_optical": 800,
+    "sdss": 641,
+    "ps1": 786
+  },
+  "row_indices_sha256": "6dbb4a558de248b59940c727535975af81bcaa665ced14d2d342da56d87b2340",
+  "informative_threshold": true,
+  "interpretation": "conditional density percentile at target redshift; not a class probability",
+  "scope": "Pooled pilot cutoff calibrated on all/Legacy-optical/SDSS/PS1 masks; other masks exploratory",
+  "threshold_selection": "Retention chosen from the release-check threshold sweep (docs/SUPPORT_CUT_SWEEP_2026-10-01.md) on the same test rows that report the result; confirm on independent rows before quoting performance."
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "multisurvey_psf_bundle",
+  "files": {
+    "model.json": "abbcd9889059b6f2523f55743a26ab6c7785e0a0fc986e2b37aec6066fbe9678",
+    "priors.json": "bf3537efea796b0bccc3890e73e80d13600c8f996628dfabd80f22db6330e0b4",
+    "outlier.json": "079fbc0a6272f14d87f0e1aaae35c18163eeeb49cd373d9282593b66b01ba4ef"
+  },
+  "bundle_id": "13866e45ef794059",
+  "min_abs_b_deg": 25.0,
+  "population": "psf",
+  "status": "promoted 2 October 2026 as current: magnitude-independent QSO colours (baseline); extinction-corrected (SFD98); not full probability calibration",
+  "full_probability_calibration": false,
+  "unified_files": {
+    "latent.json": "571cd8ab2d6b476bffacc7bd2d054e218a3700db401a3679b84e2b88f75b37b2",
+    "support.json": "ad440c960424404d28724f43933bbac6ed1798c82e76fdc93b40fa2fd96e2f13"
+  }
+}

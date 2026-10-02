@@ -1,0 +1,13 @@
+{
+  "bundle": "5f4002492dbb849c",
+  "qso_colours": "magnitude-dependent QSO colours",
+  "extinction": "SFD98",
+  "validation": "docs/SUPPORT_CUT_SWEEP_2026-10-01.md",
+  "release_reports": [
+    "docs/UNIFIED_RELEASE_BASELINE_2026-10-01.json",
+    "docs/UNIFIED_RELEASE_MAGDEP_2026-10-02.json"
+  ],
+  "support_retention": 0.995,
+  "scope": "PSF sources; any nonempty subset of 41 bands; extinction-corrected; spatial background; Student-t catch-all; calibrated QSO-support cut. Load with UnifiedPSFModel.load.",
+  "full_probability_calibration": false
+}

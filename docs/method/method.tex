@@ -37,6 +37,35 @@
 \begin{document}
 \maketitle
 
+\paragraph{Promoted unified models (2 October 2026).}
+Two bundles are active: \texttt{models/multisurvey\_psf/current} (quasar colours independent of
+magnitude) and \texttt{current\_magdep} (unconstrained). Both are fitted in a 36-dimensional latent
+space shared by Legacy North and South, projected to the 41 native bands by a linear operator.
+The North relation acts on uncorrected magnitudes.
+\emph{Galactic extinction} is removed from native fluxes and variances,
+$f\to f\,10^{0.4RE}$, $\sigma^2\to\sigma^2 10^{0.8RE}$, with $E$ the SFD98 $E(B-V)$ at each position.
+Native coefficients are $R_\mathrm{native}=H R_\mathrm{latent}$, so northern Legacy bands are
+corrected in the DECam system (coefficients and sources in
+\path{configs/extinction_coefficients.json}; NSC VR and VISTA Y are computed and approximate).
+The \emph{covariance update} is the conjugate-prior MAP step of Bovy, Hogg \& Roweis (2011,
+eqs.~19--20), $V=(qS+\nu wI)/(q+\nu)$ with $\nu=1$, $w=10^{-3}$\,mag$^2$, so the log posterior
+cannot decrease. The previous additive $V=S+wI$ step maximised no fixed objective, and 24 of 43
+slices declined under it. Fits stop when the mean held-out conditional density on a fixed role-3
+panel gains less than $0.02$ nat per 20 updates, and the best checkpoint, including the warm
+start, is kept. This is predictive early stopping, not convergence.
+In \texttt{current}, each quasar component holds a magnitude coordinate (\texttt{legacy:r}) at
+$N(20,100\,\mathrm{mag}^2)$ with zero covariance to the colours, so conditional colour
+likelihoods do not depend on brightness, as in XDQSO. Magnitude dependence remains in the
+abundance prior, and the constrained M step equals a colour-only fit.
+A QSO-support percentile, computed with noise at the target redshift, excludes candidates below
+a threshold set at $99.5\%$ role-2 calibration retention.
+Release checks: both models beat or match the previous bundle in all eight band/hemisphere
+ranking panels at that retention. The unconstrained model fits held-out quasars by
+$\approx0.67$ nat/object better, but ranks only $\approx0.002$ AUC better on average. Without the
+cut, the magnitude-independent model leaves more stray high-QSO points on artificial colour grids
+(28 against 6). The threshold was chosen on the reporting rows. Probability calibration is not
+established. Details: \path{docs/SUPPORT_CUT_SWEEP_2026-10-01.md}.
+
 \paragraph{Arbitrary-band implementation (28 September 2026).}
 The multi-survey evaluator now uses the same joint Gaussian mixture for every
 nonempty subset of the 41 survey-labelled bands. For observed coordinates $O$,
@@ -48,7 +77,7 @@ colour Bayes factor in log space; population priors may still supply magnitude
 information. Empty inputs remain unscored. Spatial component proportions are
 chosen at $(l,b)$ before the same marginalisation and conditioning. Historical
 dedicated-subset routing requires explicit opt-in for reproduction.
-The active bundle, \texttt{models/multisurvey\_psf/current}, refits the quasar
+The previous bundle, now \texttt{models/multisurvey\_psf/previous}, refits the quasar
 slices and joint field on PSF sources, preserving the original reserved blocks
 and cones. It uses native observed luptitudes and spatial weights at
 $\mathrm{nside}=4$, parent $2$, with pooling $n_0=1000$. Band-specific spatial
@@ -416,9 +445,10 @@ including $W1,W2$, are AB nanomaggies. A native magnitude of $22.5$ corresponds
 to flux one. AllWISE profile-fit DN fluxes use the documented zero points
 $20.5$, $19.5$, $18.0$ and $13.0$ for $W1$--$W4$. Magnitude-only tables supply
 measured magnitudes and errors; an absent magnitude is never converted into an
-invented flux or an upper limit. Photometry is \emph{observed}, not dereddened:
-the training samples and the field sample are at $|b|\ge25^\circ$, where the
-correction is small, and a candidate must be supplied the same way.
+invented flux or an upper limit. In the bundles before 2 October 2026, photometry
+was \emph{observed}, not dereddened. The promoted unified bundles correct Galactic
+extinction from each object's position, and catalogue fluxes are supplied as observed
+(see the 2 October paragraph above).
 
 A band is usable only when its survey says so: finite flux and positive
 variance, a positive exposure count where the survey reports one, and the
