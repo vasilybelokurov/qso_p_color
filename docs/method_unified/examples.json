@@ -1,0 +1,170 @@
+[
+ {
+  "kind": "qso",
+  "prepared_row": 863521,
+  "source_row": 863521,
+  "title": "bright QSO",
+  "ra": 25.915967865256043,
+  "dec": 2.9218489458070924,
+  "scores": {
+   "independent": {
+    "z": 1.5145216680829034,
+    "logR": 1.4117654023378416,
+    "pq": 0.9999684615367065,
+    "support": 0.921875,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 1.5145216680829034,
+    "logR": 1.657340127443765,
+    "pq": 0.9999898599003333,
+    "support": 0.73046875,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 674952,
+  "source_row": 674952,
+  "title": "QSO at z~3",
+  "ra": 187.52915596736887,
+  "dec": 62.82671948010401,
+  "scores": {
+   "independent": {
+    "z": 3.037484837130654,
+    "logR": -0.5728839448747073,
+    "pq": 0.9122689516054876,
+    "support": 0.1640625,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 3.037484837130654,
+    "logR": -0.3848886433848111,
+    "pq": 0.9621594077550142,
+    "support": 0.26171875,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 683744,
+  "source_row": 683744,
+  "title": "low-redshift QSO",
+  "ra": 237.3401516236328,
+  "dec": 54.198715409114484,
+  "scores": {
+   "independent": {
+    "z": 0.646,
+    "logR": 1.4457431513396601,
+    "pq": 0.9976158693220084,
+    "support": 0.78515625,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 0.646,
+    "logR": 1.1895784231234636,
+    "pq": 0.9980422426099348,
+    "support": 0.68359375,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 710874,
+  "source_row": 710874,
+  "title": "QSO rejected by support cut",
+  "ra": 318.75040607652295,
+  "dec": 4.701063421437131,
+  "scores": {
+   "independent": {
+    "z": 1.5027126577941556,
+    "logR": NaN,
+    "pq": 0.0371690304265668,
+    "support": 0.00390625,
+    "eligible": false,
+    "reference": "sdss:r",
+    "rejected": true
+   },
+   "dependent": {
+    "z": 1.5027126577941556,
+    "logR": NaN,
+    "pq": 0.23704555395588084,
+    "support": 0.0078125,
+    "eligible": false,
+    "reference": "sdss:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "stars",
+  "prepared_row": 351979,
+  "source_row": 351979,
+  "title": "background star",
+  "ra": 197.09703655128484,
+  "dec": 25.091598285197144,
+  "scores": {
+   "independent": {
+    "z": 3.094828631625386,
+    "logR": -49.387660234756034,
+    "pq": 6.043948150417531e-21,
+    "support": 0.0078125,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 3.094828631625386,
+    "logR": -41.976851731065715,
+    "pq": 1.9151499159931988e-19,
+    "support": 0.01171875,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "stars",
+  "prepared_row": 537322,
+  "source_row": 537322,
+  "title": "background object with $p_Q>0.5$",
+  "ra": 186.03905718445822,
+  "dec": 60.026752443918156,
+  "scores": {
+   "independent": {
+    "z": 2.188777436327576,
+    "logR": -1.7580037216736903,
+    "pq": 0.6467780840195823,
+    "support": 0.2578125,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 2.188777436327576,
+    "logR": -2.4537100958687783,
+    "pq": 0.8609085121910929,
+    "support": 0.37109375,
+    "eligible": true,
+    "reference": "sdss:r",
+    "rejected": false
+   }
+  }
+ }
+]

@@ -1,5 +1,15 @@
 # Current project state
 
+**NEW METHOD NOTE DRAFTED (2 October): `docs/method_unified/method_unified.tex` (20 pp, builds clean).**
+Sections and 16 figures agreed with the user, all drawn from the promoted bundles by
+`scripts/method_unified/`. The old note `docs/method/method.tex` is retired, unchanged.
+Large independent scoring (`scripts/method_unified/score_performance.py`, 40k QSO + 40k background
+per model, rows outside all exclusions and the release rows) gives `docs/method_unified/performance.json`:
+support cut keeps 99.45% / 99.50% of test QSOs (independent confirmation of the 99.5% threshold);
+AUC 0.973 (mag-indep) / 0.978 (mag-dep); high-QSO incidence 0.44% / 0.46%. Mag-indep is weakest for
+bright QSOs (AUC 0.959 vs 0.976 at r<18); both drop to 0.94 at z=3.45. Next: user review of the note.
+
+
 **PROMOTED (2 October, user decision): both corrected models are active.**
 `current` -> 13866e45ef794059 (magnitude-independent, default); `current_magdep` -> 5f4002492dbb849c;
 `previous` -> 630f47f63b6f0694 (rollback). Bundles copied to `models/multisurvey_psf/<tag>/`, support

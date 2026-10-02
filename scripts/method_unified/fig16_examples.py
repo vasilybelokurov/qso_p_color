@@ -58,14 +58,14 @@ def panel(ax, kind, row, sc, title):
             s, bnd = l.split(':')
             if obs[j] and j != a:
                 xs.append(WAVE[s][bnd]); ms.append(mean[j] - y[a]); ss.append(sd[j])
-        o = np.argsort(xs); xs, ms, ss = np.array(xs)[o], np.array(ms)[o], np.array(ss)[o]
-        ax.fill_between(xs, ms - ss, ms + ss, color=COLOURS[name], alpha=.15, lw=0, step='mid')
-        ax.plot(xs, ms, '_', ms=10, color=COLOURS[name], mew=2)
+        shift = 1.035 if name == 'independent' else 1/1.035          # small offset in wavelength for legibility
+        ax.errorbar(np.array(xs)*shift, ms, ss, fmt='s', ms=3, color=COLOURS[name], lw=1, alpha=.85,
+                    label=LABELS[name] + ' (mean $\\pm1\\sigma$)')
     xs = [WAVE[l.split(':')[0]][l.split(':')[1]] for j, l in enumerate(lab) if obs[j] and j != a]
     ys = [y[j] - y[a] for j in range(len(lab)) if obs[j] and j != a]; es = [np.sqrt(v[j]) for j in range(len(lab)) if obs[j] and j != a]
-    ax.errorbar(xs, ys, es, fmt='o', ms=3.5, color='k', lw=.8)
+    ax.errorbar(xs, ys, es, fmt='o', ms=3.5, color='k', lw=.8, label='observed')
     ax.set_xscale('log'); ax.invert_yaxis(); ax.set_xlabel('approximate central wavelength [nm]')
-    ax.set_ylabel(f'luptitude $-$ {ref.replace("decals_dr9_", "LS-")} [mag]')
+    ax.set_ylabel(f'luptitude minus reference ({ref.replace("decals_dr9_", "LS-").replace(":", " ")}) [mag]', fontsize=7.5)
     lines = [f"{'indep' if n == 'independent' else 'dep'}: log R={sc[n]['logR']:.1f}, p_Q={sc[n]['pq']:.2f}, support={sc[n]['support']:.2f}"
              + ('' if sc[n]['eligible'] else ' (not ranked)') for n in ('independent', 'dependent')]
     ax.set_title(f'{title}, $z_0$ = {z:.2f}\n' + '\n'.join(lines), fontsize=7.5)
@@ -91,7 +91,8 @@ def main():
         sc = (common_q if kind == 'qso' else common_b)[row]; panel(ax, kind, row, sc, title)
         d = data(kind); chosen.append(dict(kind=kind, prepared_row=int(row), source_row=int(d['source_row'][row]), title=title,
                                            ra=float(d['ra'][row]), dec=float(d['dec'][row]), scores=sc))
-    fig.tight_layout()
+    h, l = axes[0, 0].get_legend_handles_labels(); fig.legend(h, l, loc='upper center', ncol=3, frameon=False, fontsize=8)
+    fig.tight_layout(rect=(0, 0, 1, .95))
     Path('docs/method_unified/examples.json').write_text(json.dumps(chosen, indent=1))
     print(save_figure(fig, 'method_unified/F16_examples'))
 

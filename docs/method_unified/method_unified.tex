@@ -51,8 +51,8 @@ better by $0.67$\,nat per object. This note replaces the earlier method note,
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
 \item \textbf{Main results.} Section~\ref{sec:validation}. Both models beat or match the previous
-  model in all eight ranking panels. The artificial colour-grid failures of earlier candidates are
-  gone. Probability calibration is not yet established.
+  model in all eight ranking panels. On artificial colour grids, the failures of earlier candidates (up to 79 spurious
+  high-quasar points) drop to 0 (magnitude-dependent) and 1 (magnitude-independent). Probability calibration is not yet established.
 \end{itemize}
 
 %======================================================================
@@ -481,14 +481,73 @@ PS1, North & 0.952 & 0.955 & 0.955 \\
 \end{table}
 
 \subsection{Performance across sky, magnitude, redshift and band coverage}\label{sec:perf}
-PERFORMANCE\_PLACEHOLDER
+These tests use larger panels: 20,000 quasars and 20,000 background objects per hemisphere. The
+rows are test-role and lie outside every development exclusion and outside the release rows that
+chose the support threshold (35,259 quasars and 3,045 background objects excluded in total).
+Background objects are scored at redshifts drawn from the test quasars' redshifts. The four metrics
+are those of Section~\ref{sec:notation}: AUC, held-out density, support retention, and high-QSO
+incidence, the fraction of background objects ranked with $p_{\rm quasar}>0.5$.
+
+\paragraph{Overall, and an independent check of the support cut.} On these rows, the cut keeps
+99.45\% (magnitude-independent) and 99.50\% (magnitude-dependent) of test quasars. Both values agree
+with the 99.5\% calibration target, so the threshold carries over to rows that did not choose it.
+The overall AUC is 0.973 and 0.978 (South 0.971 and 0.975; North 0.976 and 0.980), and the high-QSO
+incidence among background objects is 0.44\% and 0.46\%.
+
+\paragraph{Sky position and magnitude} (Fig.~\ref{fig:perfsky}). Per-cell AUC is uniform across the
+footprint to within a few thousandths. Against $|b|$, AUC changes little (0.970--0.978
+magnitude-independent, 0.975--0.984 magnitude-dependent), and it is highest at the lowest latitudes,
+where the background is most stellar. Against reference magnitude, the two models differ most for
+bright quasars: AUC 0.959 against 0.976 at $r<18$ (251 quasars), and 0.981 against 0.992 at
+$18\le r<19$. Here the magnitude-independent model's single colour width is too broad
+(Section~\ref{sec:cc}). Both models converge at $r>21$. High-QSO incidence peaks at 1.4--1.9\% for
+$20\le r<22.5$. These are random point sources, so the incidence is not a contamination rate: some of
+them are unrecognised quasars.
+
+\paragraph{Redshift} (Fig.~\ref{fig:perfz}). AUC is 0.965--0.981 for $0.5\le z_0\le3$, and falls to 0.94
+at $z_0=3.45$, where quasar colours cross the stellar locus. Held-out density falls with redshift as
+quasars become fainter, and the magnitude-dependent model stays higher at every redshift. Support
+retention is above 99\% everywhere.
+
+\paragraph{Band coverage} (Fig.~\ref{fig:perfcov}). Grouping objects by the surveys that actually
+observed them mixes coverage with brightness and redshift; for example, objects with SDSS photometry
+are brighter. Some groups also contain fewer than 150 background objects, which makes their AUCs
+noisy. The artificial masks remove both problems, because they score the same objects with fewer
+bands. With Legacy $g,r,z$ only, AUC is 0.986 and 0.987; with all Legacy bands, 0.994 and 0.995; with
+SDSS only, 0.975 and 0.976; with PS1 only, 0.957 and 0.960; with all optical bands, 0.990 for both.
+The largest difference between the models is for objects with Legacy South photometry alone (AUC
+0.955 against 0.977, 328 quasars). These are faint DESI-only quasars.
+
+\begin{figure}[p]\centering
+\includegraphics[width=\textwidth]{F12_performance_sky_magnitude.png}
+\caption{Performance against sky position and magnitude. Top: AUC and high-QSO incidence per HEALPix
+nside-4 cell (cells with at least 30 objects of each class). Bottom: AUC against $|b|$ and against
+reference-band magnitude.}
+\label{fig:perfsky}
+\end{figure}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F13_performance_redshift.png}
+\caption{Performance against redshift. Left: AUC of quasars at $z_0\pm0.1$ against background objects
+scored at $z_0$. Middle: mean held-out log density of quasars, in bins of their redshift. Right:
+support retention.}
+\label{fig:perfz}
+\end{figure}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F14_performance_coverage.png}
+\caption{AUC by band coverage. Left: objects grouped by the surveys that observed them (groups with at
+least 300 test quasars). Right: the same objects scored with artificial band masks.}
+\label{fig:perfcov}
+\end{figure}
 
 \subsection{Artificial colour grids}\label{sec:grids}
 A colour grid places synthetic sources on a $15\times15$ lattice in $(g-r,r-z)$ from $-6$ to $8$\,mag at
 fixed $r$. These are stress tests of extrapolation into empty colour space, not contamination rates.
 In the original low-density region, an unpromoted 30 September candidate gave 72 and 79 high-quasar
-points ($p_{\rm quasar}>0.5$) in the North, and the previous model gave 12 at $r=21$. Both promoted
-models give none (Fig.~\ref{fig:grids}). They abstain from most of the grid: points outside both
+points ($p_{\rm quasar}>0.5$) in the North, and the previous model gave 12 at $r=21$. With the
+support cut at 99.5\%, the magnitude-dependent model gives none and the magnitude-independent model
+one, at South $r=18.5$ (Fig.~\ref{fig:grids}). They abstain from most of the grid: points outside both
 models, or rejected by the support cut, are not ranked. Without the support cut, the
 magnitude-independent model would give 28 high-quasar grid points and the magnitude-dependent one 6, so
 the default model relies on the cut more.
@@ -501,7 +560,26 @@ Grey cells are not ranked. Black outline: the original low-density mask.}
 \end{figure}
 
 \subsection{Worked examples}
-EXAMPLES\_PLACEHOLDER
+Figure~\ref{fig:examples} shows six test objects scored by both models. For each band the panels
+compare the observed corrected luptitude, minus the reference band, with the model's conditional
+prediction at the object's redshift. A bright $z=1.51$ quasar and a $z=0.65$ quasar match their predictions
+and receive $p_{\rm quasar}=1.00$. A $z=3.04$ quasar with noisier photometry receives a lower $\log\R\approx-0.5$, though still
+$p_{\rm quasar}>0.9$. One test quasar has red optical colours,
+far from the $z=1.5$ locus, and both models decline to rank it. A background star has $\log\R<-40$. The
+last panel is a background object that both models call a quasar ($p_{\rm quasar}=0.65$ and 0.86). Its
+colours lie on the quasar locus, and it may be an unrecognised quasar. Legacy and AllWISE $W1,W2$
+appear as separate points because Legacy fluxes are AB and AllWISE Vega; the zero points differ by
+about 2.7 and 3.3\,mag.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F16_examples.png}
+\caption{Worked examples: observed luptitude minus reference-band luptitude (black) and each model's
+conditional prediction at the object's redshift (mean $\pm1\sigma$; blue magnitude-independent, orange
+magnitude-dependent). Horizontal positions are approximate central wavelengths, for display only.
+Titles give $\log\R$, $p_{\rm quasar}$ and the support percentile from both models. Object identifiers
+are in \code{docs/method\_unified/examples.json}.}
+\label{fig:examples}
+\end{figure}
 
 %======================================================================
 \section{Limitations and open items}\label{sec:limits}

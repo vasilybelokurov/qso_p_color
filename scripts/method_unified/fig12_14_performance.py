@@ -49,9 +49,10 @@ def rank(d):
 
 
 def auc(q, b):
-    if len(q) < 30 or len(b) < 30:
+    nq, nb = len(q['rows']), len(b['rows'])
+    if nq < 30 or nb < 30:
         return np.nan
-    return float(mannwhitneyu(rank(q), rank(b)).statistic/(len(q)*len(b)))
+    return float(mannwhitneyu(rank(q), rank(b)).statistic/(nq*nb))
 
 
 def sub(d, m):
@@ -129,7 +130,7 @@ def f14(main, masks, report):
         y = np.arange(len(combos)) + (k - .5)*.35
         ax[0].barh(y, [v['auc'] - .9 for v in vals], left=.9, height=.33, color=COLOURS[model], label=LABELS[model])
     ax[0].set_yticks(np.arange(len(combos))); ax[0].set_yticklabels([f'{c} ({(labq == c).sum():,} QSOs)' for c in combos], fontsize=7)
-    ax[0].set(xlabel='AUC', xlim=(.9, 1.), title='actual survey coverage (≥300 test QSOs)'); ax[0].invert_yaxis(); ax[0].legend(frameon=False, fontsize=7, loc='lower left')
+    ax[0].set(xlabel='AUC', xlim=(.9, 1.), title='actual survey coverage (≥300 test QSOs)'); ax[0].invert_yaxis(); ax[0].legend(frameon=False, fontsize=7, loc='lower center', bbox_to_anchor=(.5, -.28), ncol=2)
     report['by_mask'] = {}; names = list(next(iter(masks.values())).keys())
     for k, model in enumerate(MODELS):
         vals = [summary(*masks[model][m]) for m in names]; report['by_mask'][model] = dict(zip(names, vals))
@@ -147,7 +148,9 @@ def main():
     for m in MODELS:
         for h in ('south', 'north'):
             q, b = main_[m]; report['overall'][m+'_'+h] = summary(sub(q, q['hemi'] == h), sub(b, b['hemi'] == h))
-    zgrid = {m: {float(p.split('_z')[1].split('_')[0]): None for p in glob.glob(str(OUT/f'{m}_stars_zgrid_*_z*_000000.npz'))} for m in MODELS}
+    import re
+    zgrid = {m: {float(re.search(r'_z([0-9.]+)_[0-9]{6}\.npz$', p).group(1)): None
+                 for p in glob.glob(str(OUT/f'{m}_stars_zgrid_*_z*_000000.npz'))} for m in MODELS}
     for m in MODELS:
         for zt in list(zgrid[m]):
             zgrid[m][zt] = load(m, 'stars', 'zgrid', f'_z{zt}')
