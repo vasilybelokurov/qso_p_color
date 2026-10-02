@@ -28,6 +28,10 @@ being called a certain quasar because of how two Gaussian tails fell.
 
 ## Current status and model choice
 
+**Method write-up:** `docs/method_unified/method_unified.tex` (built with `make -C docs/method_unified`)
+describes the promoted models. The earlier note, `docs/method/method.tex`, is retired: it describes
+models before 2 October 2026 and is kept unchanged for reference.
+
 **Two models are active (2 October 2026).** Both use one shared North/South latent model over
 all 41 bands, Galactic-extinction-corrected photometry (SFD98; the scorer corrects catalogue
 input from position), a MAP covariance update with predictive early stopping, and a calibrated

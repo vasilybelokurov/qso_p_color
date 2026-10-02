@@ -40,3 +40,9 @@ models/multisurvey_psf/*
 !models/multisurvey_psf/previous
 !models/multisurvey_psf/13866e45ef794059/
 !models/multisurvey_psf/5f4002492dbb849c/
+docs/method_unified/*.aux
+docs/method_unified/*.fdb_latexmk
+docs/method_unified/*.fls
+docs/method_unified/*.log
+docs/method_unified/*.out
+docs/method_unified/*.toc

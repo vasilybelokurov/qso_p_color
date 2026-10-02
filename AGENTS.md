@@ -1,5 +1,7 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
+**Method note:** `docs/method_unified/method_unified.tex` describes the promoted models; figures are made by `scripts/method_unified/fig*.py` into `plots/method_unified/`. The old `docs/method/method.tex` is retired and kept unchanged (user decision, 2 October); do not edit it. Update the new note in the same commit as any method change.
+
 **Active models (promoted 2 October 2026, user decision: keep both).** Load with
 `UnifiedPSFModel.load(...)`: `models/multisurvey_psf/current` = magnitude-independent QSO colours
 (default, the PI's baseline), `models/multisurvey_psf/current_magdep` = magnitude-dependent;

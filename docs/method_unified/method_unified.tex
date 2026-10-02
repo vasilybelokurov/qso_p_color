@@ -1,0 +1,564 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{amsmath,amssymb,graphicx,booktabs,hyperref,xcolor,caption,float}
+\usepackage[T1]{fontenc}
+\usepackage[round]{natbib}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black}
+\captionsetup{font=small,labelfont=bf}
+\graphicspath{{../../plots/method_unified/}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\R}{\mathcal{R}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{Colour evidence for a same-redshift quasar companion:\\ the unified 41-band model (October 2026)}
+\author{Internal method note, \code{qso\_pcolor}}
+\date{2 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A quasar has a spectroscopic redshift $z_0$, and a point source lies a few arcseconds away.
+This note describes how \code{qso\_pcolor} measures, from broad-band photometry alone, how
+strongly the companion's colours support the hypothesis that it is itself a quasar at $z_0$. The
+method compares four populations: quasars at $z_0$, quasars at other redshifts, everything else
+in the imaging catalogue, and a broad catch-all. It accepts any non-empty subset of 41 bands from
+seven surveys. One latent model, shared by the northern and southern Legacy Surveys, describes all
+bands. Photometry is corrected for Galactic extinction. Two quasar models are provided: in one,
+quasar colours do not depend on apparent magnitude (the XDQSO design; the default); in the other,
+they may. Both are trained on 1.05 million spectroscopic quasars and 1.98 million point sources.
+They pass all eight quasar-versus-background ranking tests against the previous model. They rank
+equally well, to $\approx 0.002$ in AUC. The magnitude-dependent model describes held-out quasars
+better by $0.67$\,nat per object. This note replaces the earlier method note,
+\code{docs/method/method.tex}, which describes models retired on 2 October 2026.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%======================================================================
+\section{Summary of what is delivered}
+%======================================================================
+\begin{itemize}
+\item \textbf{Two promoted models.} \code{models/multisurvey\_psf/current} (default): quasar colours
+  independent of apparent magnitude. \code{models/multisurvey\_psf/current\_magdep}: quasar colours
+  free to depend on it. \code{previous} is the 28 September model, kept for rollback. Load with
+  \code{UnifiedPSFModel.load(...)}.
+\item \textbf{Inputs.} Any non-empty subset of 41 bands (SDSS $ugriz$; Legacy Surveys DR9 South and
+  North $g,r,z,W1,W2$; AllWISE $W1$--$W4$; Pan-STARRS1 $grizy$; NSC $ugrizY{+}VR$; SkyMapper
+  $uvgriz$; VHS $YJHK_s$), as catalogued fluxes or magnitudes with errors; candidate RA and Dec;
+  the primary's redshift $z_0$; morphology and blend information.
+\item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
+  quantities, a quasar-support percentile, and explicit eligibility and quality flags.
+\item \textbf{Main results.} Section~\ref{sec:validation}. Both models beat or match the previous
+  model in all eight ranking panels. The artificial colour-grid failures of earlier candidates are
+  gone. Probability calibration is not yet established.
+\end{itemize}
+
+%======================================================================
+\section{Notation and glossary}\label{sec:notation}
+%======================================================================
+\subsection{Symbols}
+\begin{center}\small
+\begin{tabular}{p{0.17\textwidth}p{0.75\textwidth}}
+\toprule
+Symbol & Meaning (units) \\
+\midrule
+$z_0$ & spectroscopic redshift of the primary quasar \\
+$z$ & redshift of a hypothetical companion quasar \\
+$\vect{y}$ & observed native luptitudes of a source in the bands it has (mag; Section~\ref{sec:photometry}) \\
+$\vect{C}$ & measurement covariance of $\vect{y}$ (mag$^2$; diagonal in practice) \\
+$\vect{x}$ & latent, noise-free luptitudes in the 36 shared coordinates (mag) \\
+$H,\ \vect{b},\ T$ & observation operator: $\vect{y}=H\vect{x}+\vect{b}+\vect{\epsilon}$, with extra instrumental scatter $\vect{\epsilon}\sim N(0,T)$ \\
+$m_{\rm ref}$ & luptitude of the reference band, the band on which colours are conditioned (mag) \\
+$a$ & index of the reference band \\
+$E$ & SFD98 reddening $E(B-V)$ at the source position (mag) \\
+$R_j$ & extinction coefficient of band $j$, $A_j/E$ \\
+$\ell,\ b$ & Galactic longitude and latitude (deg) \\
+$\Sigma_Q(z,m)$ & quasar surface density per unit redshift and magnitude (deg$^{-2}$\,mag$^{-1}$) \\
+$\Sigma_B(m)$ & background surface density per unit magnitude (deg$^{-2}$\,mag$^{-1}$) \\
+$\eta$ & catch-all share of the background intensity (dimensionless) \\
+$\lambda_X$ & intensity of hypothesis $X$: surface density times colour likelihood \\
+$\R$ & ranking statistic, Eq.~(\ref{eq:R}) (per unit redshift) \\
+$\Delta z_{\rm eff}$ & effective width of the declared redshift window, \code{dz\_match\_eff} \\
+$K$ & number of Gaussian components in a mixture \\
+$w,\ \nu$ & covariance-prior scale ($10^{-3}$\,mag$^2$) and strength ($1$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Terms}
+\begin{description}\small
+\item[Luptitude.] The inverse hyperbolic sine magnitude of \citet{Lupton1999},
+  \[m=22.5-\frac{2.5}{\ln 10}\left[\sinh^{-1}\!\left(\frac{f}{2s}\right)+\ln s\right],\]
+  for flux $f$ in the band's native unit and softening $s$. It equals the ordinary magnitude for $f\gg s$ and stays finite for zero or negative flux.
+\item[Native system.] A band's own catalogue calibration. No band is converted into another survey's system.
+\item[Slice.] The quasar model for redshifts within $\pm0.1$ of a centre $z_k$, for $z_k=0.15,0.25,\dots,4.35$ (43 slices; neighbouring slices overlap).
+\item[Reference band.] The first band, in a fixed survey-priority order, that the source has observed at
+  signal-to-noise $\geq5$. Colour likelihoods are conditioned on it.
+\item[Role.] Every training object belongs to one sky-based role: \emph{fit} and \emph{select} (training),
+  \emph{calibration} (catch-all shares and support threshold), or \emph{test} (validation). Roles are fixed
+  in advance and never reassigned.
+\item[Background.] Every point source in the imaging catalogue that is not a known quasar. It is
+  dominated by stars, and it is fitted empirically rather than as a pure stellar model.
+\item[Catch-all.] A broad Student-$t$ density with a small share of the background intensity. It
+  explains objects that neither the quasar nor the background mixture fits, so that Gaussian tails do
+  not decide their classification.
+\item[Support percentile.] For a candidate and $z_0$, the fraction of simulated quasars at $z_0$, with
+  the candidate's own errors, whose conditional density is lower than the candidate's. A small value
+  means the colours are unusual for a quasar at $z_0$.
+\item[Held-out density.] The mean, over test objects, of the conditional log density
+  $\ln p(\vect{y}_{\rm other}\mid m_{\rm ref})$ (nat per object, density per mag$^{N-1}$). Higher is better.
+\item[AUC.] The probability that a random test quasar ranks above a random test background object on
+  $\log\R$. Objects the scorer declines to rank are placed at the bottom.
+\end{description}
+
+%======================================================================
+\section{The question and the ranking statistic}\label{sec:question}
+%======================================================================
+Four hypotheses compete for a companion with photometry $\vect{y}$ near a primary at $z_0$
+(Fig.~\ref{fig:schematic}):
+\begin{enumerate}
+\item $Q(z_0)$, a quasar at the primary's redshift, within a declared window;
+\item $Q(z\neq z_0)$, a quasar at any other redshift;
+\item $B$, a member of the background population;
+\item $U$, the catch-all.
+\end{enumerate}
+Each hypothesis has an intensity, a surface density times a likelihood. With reference magnitude
+$m$ and conditional colour likelihoods,
+\begin{align}
+\lambda_{Q}(z) &= \Sigma_Q(z,m)\,p(\vect{y}\mid Q,z,m), \\
+\lambda_B &= (1-\eta)\,\Sigma_B(m)\,p(\vect{y}\mid B,m,\ell,b), \qquad
+\lambda_U = \eta\,\Sigma_B(m)\,p(\vect{y}\mid U,m).
+\end{align}
+We rank candidates on
+\begin{equation}\label{eq:R}
+\R=\frac{\lambda_Q(z_0)}{\int\lambda_Q(z)\,dz+\lambda_B+\lambda_U}\qquad[\text{per unit redshift}].
+\end{equation}
+The denominator does not depend on the redshift window, because same-redshift and other-redshift
+quasars together form the whole quasar intensity. A posterior for a window of effective width
+$\Delta z_{\rm eff}$ follows by one multiplication, $p_{\rm same}=\R\,\Delta z_{\rm eff}$ (exact for the
+window-averaged $\R$ that the scorer stores). Photometric redshifts have widths of about
+$\sigma_z\approx0.6$, while a $\pm2000$\,km\,s$^{-1}$ window at $z=1.4$ is $\Delta z=0.016$ wide, so
+$p_{\rm same}$ is small even for an ideal candidate. $\log\R$ is the quantity to compare between
+candidates. Appendix~\ref{app:window} gives the derivation.
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.72\textwidth]{F01_schematic.png}
+\caption{Schematic (synthetic, not fitted) of the four hypotheses in one colour plane. Candidate A
+lies on the same-redshift quasar locus, B on the background locus, and C far from both; the
+catch-all explains C, so the Gaussian tail of whichever population is wider does not decide it.}
+\label{fig:schematic}
+\end{figure}
+
+%======================================================================
+\section{Data and roles}\label{sec:data}
+%======================================================================
+\paragraph{Quasars.} The training quasars are the union of DESI DR1 quasars (\code{spectype=QSO},
+\code{zwarn=0}, primary) and SDSS DR16Q \citep{Lyke2020}, merged by sky position. Of 1,657,444
+eligible quasars, 1,049,260 are fit or select rows. Of these, 610,503 are DESI-only, 241,808
+SDSS-only, and 196,949 in both (Fig.~\ref{fig:samples}). The remaining quasars are 239,371
+calibration and 368,813 test rows. Their photometry was acquired from all seven surveys and stored
+as native fluxes and variances.
+
+\paragraph{Background.} The background sample is 2,978,857 cleaned point sources in 274 sky regions
+(Legacy \code{type=PSF}, mask-clean, known quasars removed), with seven-survey photometry. Of these,
+1,975,894 are fit or select rows and 502,251 calibration rows.
+
+\paragraph{Selection.} All samples satisfy $|b|\geq25^\circ$. A band is used only when its survey marks
+it usable (finite flux, positive variance, a positive exposure count where reported, and the survey's
+cleanliness flag); weak and negative fluxes are kept. No signal-to-noise cut is applied to training.
+Validation statistics use objects with at least one band at signal-to-noise $\geq5$.
+
+\paragraph{Roles.} Roles are assigned by sky region before any fitting (Fig.~\ref{fig:roles}). Rows used
+during development to choose stopping points or thresholds (34,259 quasars and 2,045 background
+objects) are recorded and excluded from every test reported in Section~\ref{sec:validation}.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F02_data_roles_bands.png}
+\caption{Top: sky distribution of quasars by role, Galactic Mollweide projection, counts per HEALPix
+nside-16 pixel (log scale). Bottom: fraction of fit/select rows with each band observed, for quasars
+(blue) and the background (aqua).}
+\label{fig:roles}
+\end{figure}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F03_qso_samples.png}
+\caption{Fit/select quasars by parent survey. Left: spectroscopic redshift. Right: Legacy $r$
+(extinction-corrected luptitude, southern band where observed, otherwise northern). The DESI-only
+sample ends near DESI's quasar target limit, $r\approx23$.}
+\label{fig:samples}
+\end{figure}
+
+%======================================================================
+\section{Photometry and the observation model}\label{sec:photometry}
+%======================================================================
+\subsection{Native luptitudes and measurement errors}
+Every band keeps its native calibration and zero point (AB for SDSS, Legacy, PS1, NSC and SkyMapper;
+Vega for AllWISE and VHS). Fluxes become luptitudes with a per-band softening $s$, and their
+variances propagate through the exact derivative of the luptitude function. A band that is not
+observed is marginalised exactly; it is never imputed.
+
+\subsection{Galactic extinction}\label{sec:extinction}
+Fluxes and variances are corrected before any other step:
+\begin{equation}
+f\rightarrow f\,10^{0.4R_jE},\qquad \sigma_f^2\rightarrow\sigma_f^2\,10^{0.8R_jE},
+\end{equation}
+where $E$ is the SFD98 reddening \citep{SFD98} at the source position. This preserves signal-to-noise
+and keeps negative fluxes negative. Table~\ref{tab:ext} lists the coefficients. Legacy DR9 values come
+from the survey documentation \citep{LSDR9}, SDSS and PS1 values from \citet{SF11}, Table~6, and
+SkyMapper values from \citet{Wolf2018}. NSC $VR$ and VHS $Y$ have no published values in these sources.
+We computed them with the \citet{SF11} method: an F99 law with $R_V=3.1$ and a 7000\,K source, with
+one scale factor fitted to 16 published rows (residual rms 0.73\%). Top-hat bandpasses were used,
+so these two values are approximate; we estimate $\pm5\%$ for $VR$. The scorer computes $E$ from
+the candidate's position and applies the same correction, so users supply catalogue fluxes as
+observed. Fig.~\ref{fig:extinction} shows that our correction reproduces the Legacy catalogue
+correction (\code{mw\_transmission}) to 0.002\,mmag.
+
+\begin{table}[t]\centering\small
+\caption{Extinction coefficients $R_j=A_j/E(B-V)_{\rm SFD}$.}\label{tab:ext}
+\begin{tabular}{p{0.27\textwidth}p{0.33\textwidth}p{0.32\textwidth}}
+\toprule
+Bands & $R_j$ & Source \\
+\midrule
+Legacy DECam $g,r,z$ & 3.214, 2.165, 1.211 & Legacy DR9 documentation \\
+Legacy North $g,r,z$ & 3.278, 2.189, 1.196 & DECam values through the DESI relation, Eq.~(\ref{eq:Rnorth}) \\
+$W1,W2$ (Legacy, AllWISE); $W3,W4$ & 0.184, 0.113; 0.0241, 0.00910 & Legacy DR9 documentation \\
+SDSS $ugriz$ & 4.239, 3.303, 2.285, 1.698, 1.263 & \citet{SF11}, $R_V=3.1$ \\
+PS1 $grizy$ & 3.172, 2.271, 1.682, 1.322, 1.087 & \citet{SF11} \\
+NSC $ugrizY$ & 3.995, 3.214, 2.165, 1.592, 1.211, 1.064 & DECam (Legacy DR9) \\
+NSC $VR$ & 2.28 & computed, approximate \\
+SkyMapper $uvgriz$ & 4.294, 4.026, 2.986, 2.288, 1.588, 1.206 & \citet{Wolf2018} \\
+VHS $J,H,K_s$; $Y$ & 0.709, 0.449, 0.302; 1.00 & UKIRT rows of \citet{SF11}; $Y$ computed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F04_extinction.png}
+\caption{Left: our correction minus the Legacy catalogue correction, in four reserved Legacy cones
+(980,793 $g,r,z$ measurements). Right: distribution of SFD98 reddening for the quasar and background
+rows (medians 0.035 and 0.033\,mag).}
+\label{fig:extinction}
+\end{figure}
+
+\subsection{One latent model for Legacy North and South}\label{sec:latent}
+Legacy DR9 South (DECam) and North (BASS/MzLS) $g,r,z$ use different filters. Earlier models fitted
+them as separate bands, and the northern fits then borrowed little from the much larger southern
+sample. We now describe every source by latent, noise-free luptitudes $\vect{x}$ in 36 coordinates:
+five shared Legacy coordinates (\code{legacy:g,r,z,W1,W2}) and 31 coordinates for the other surveys.
+The 41 native bands follow from a linear operator,
+\begin{equation}
+\vect{y}=H\vect{x}+\vect{b}+\vect{\epsilon},\qquad \vect{\epsilon}\sim N(0,T).
+\end{equation}
+Rows of $H$ for the southern Legacy and all non-Legacy bands are unit vectors. Rows for the
+northern $g,r,z$ carry the DESI North$\to$South colour relation. For example,
+$y_{g,N}=1.0627\,x_g-0.0643\,x_r+0.0016\,x_z-0.0060$. $T$ holds the instrumental scatter measured
+on overlap pairs. The relation acts on uncorrected magnitudes, so extinction is removed in the DECam
+system:
+\begin{equation}\label{eq:Rnorth}
+R_{\rm native}=H\,R_{\rm latent},
+\end{equation}
+where each latent coordinate takes the coefficient of the system it represents. Fig.~\ref{fig:northsouth}
+shows that the relation removes the colour-dependent North--South offsets on the same objects. The
+Legacy $W1,W2$ coordinates are shared after both hemispheres use common units and softening; they
+remain distinct from AllWISE $W1,W2$.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F05_north_south.png}
+\caption{Same-object North minus South luptitudes in overlap fields ($S/N>20$ in all six bands),
+against South $g-r$. Left: raw difference. Right: after applying the DESI relation to the southern
+values. Lines: binned medians.}
+\label{fig:northsouth}
+\end{figure}
+
+%======================================================================
+\section{The quasar model}\label{sec:qso}
+%======================================================================
+\subsection{Redshift slices and extreme deconvolution}
+For each of the 43 slices, the latent quasar luptitudes follow a Gaussian mixture with $K$
+components ($K=20$ for 23 slices, 12 for 6, 8 for 13, and 4 for the sparsest one, 640 objects at
+$z=4.35$):
+\begin{equation}
+p(\vect{x}\mid Q,z_k)=\sum_{i=1}^{K}\alpha_i\,N(\vect{x};\vect{\mu}_i,V_i).
+\end{equation}
+Extreme deconvolution \citep{Bovy2011XD} fits $\alpha_i,\vect{\mu}_i,V_i$ to noisy, incomplete data.
+Each object contributes $N(\vect{y};H\vect{\mu}_i+\vect{b},HV_iH^{\rm T}+T+\vect{C})$ in its observed
+bands only, so measurement errors are removed from the fitted widths rather than absorbed into them.
+Section~\ref{sec:fitting} describes the fitting. At scoring time the candidate's own covariance is
+added back, and the density is conditioned on the reference band:
+$p(\vect{y}_{\rm other}\mid m_{\rm ref})=p(\vect{y})/p(m_{\rm ref})$. The scorer interpolates linearly
+between neighbouring slices in redshift.
+
+\subsection{Two variants: with and without magnitude dependence}\label{sec:variants}
+Conditioning a joint mixture on $m_{\rm ref}$ lets a model's colour distribution depend on apparent
+magnitude: a component's colour mean shifts with $m_{\rm ref}$ unless its covariance forbids it. The
+XDQSO design \citep{Bovy2011XDQSO} forbids it, and leaves all magnitude dependence to the abundance
+prior $\Sigma_Q(z,m)$. We provide both:
+
+\paragraph{Magnitude-independent (default).} We rewrite the latent vector as one magnitude and 35 colours,
+$u_r=x_r$ and $u_j=x_j-x_r$ for $j\neq r$, with $r$ the shared Legacy $r$ coordinate. In every component
+the magnitude coordinate has the same fixed distribution, $N(20,100\,{\rm mag}^2)$, and zero
+covariance with the colours. Conditioning on any reference band then leaves the colour likelihood
+independent of brightness. The residual dependence through the finite magnitude variance is below
+$10^{-3}$\,nat for a $\pm3$\,mag shift. With this block structure the likelihood factorises, and the
+exact constrained M step is the ordinary update of the colour block. A unit test confirms that it
+equals a fit to the colours alone.
+
+\paragraph{Magnitude-dependent.} The same mixture without the constraint.
+
+\paragraph{Why both are kept.} DESI and SDSS selected their quasars with colour cuts that change with
+magnitude. A model allowed to depend on magnitude can learn that selection as if it were quasar
+physics, and then penalise genuine quasars outside the selection. The test quasars share the training
+selection, so our tests cannot measure this risk. They can measure the cost of the constraint, which
+Section~\ref{sec:validation} reports.
+
+\begin{figure}[p]\centering
+\includegraphics[width=\textwidth]{F06_colour_redshift.png}
+\caption{Quasar colour against redshift. Grey: test quasars with both bands at $S/N>10$ (density
+normalised in each redshift column of width 0.05). Lines and bands: per-slice median and 16--84\% range
+of the noise-free model colour, magnitude-independent (blue) and magnitude-dependent (orange, marginalised
+over magnitude). The data include measurement noise and a signal-to-noise selection that the model
+bands do not.}
+\label{fig:colourz}
+\end{figure}
+
+%======================================================================
+\section{The background model}\label{sec:background}
+%======================================================================
+The background is one Gaussian mixture with $K=20$ components over the same 36 latent coordinates,
+fitted by extreme deconvolution to all 1,975,894 fit/select background rows. Its colours depend on
+magnitude through the reference-band conditioning. They depend on sky position through
+HEALPix-dependent component weights: shared Gaussian shapes, with weights fitted per nside-4 cell and
+shrunk towards nside-2 parent cells and the all-sky weights. The pooling count is $n_0=1000$. The
+surface density $\Sigma_B(m)$ is measured per reference band from counts in regions of measured usable
+area, pooled with $n_0=100$. A candidate-local refit of weights and density in a declared cone is
+available.
+
+%======================================================================
+\section{Fitting}\label{sec:fitting}
+%======================================================================
+\subsection{The covariance update}
+The extreme-deconvolution E step computes each component's responsibility $q_{ni}$ for object $n$, and
+the posterior moments of $\vect{x}$. The M step updates the weights, the means, and the covariance from
+the scatter $S_i$ about the new mean. A previous implementation used $V_i=S_i+wI$. That step maximises
+no fixed objective, because its penalty is weighted by the changing responsibilities. In 24 of 43
+earlier full-data quasar fits the likelihood therefore declined, by up to 0.078\,nat per object below
+its best value, and a stopping rule that required a non-negative change could never stop such fits. We now use the
+conjugate-prior MAP update of \citet{Bovy2011XD} (their eqs.~19--20):
+\begin{equation}
+V_i=\frac{q_iS_i+\nu wI}{q_i+\nu},\qquad q_i=\sum_nq_{ni},\quad \nu=1,\ w=10^{-3}\,{\rm mag}^2,
+\end{equation}
+which maximises the log posterior with prior $-\frac{\nu}{2}\left[\ln|V_i|+w\,{\rm tr}(V_i^{-1})\right]$
+per component. EM therefore cannot decrease the reported objective (Fig.~\ref{fig:fitting}a).
+
+\subsection{Predictive early stopping}
+Every 20 updates we compute the held-out density on a fixed stopping panel: up to 512 test-role
+objects per hemisphere per fit, recorded and excluded from later validation. A fit stops when a block
+gains less than 0.02\,nat per object, when the objective changes by less than $10^{-4}$ (relative), or
+after 300 updates. The best checkpoint, including the warm start, is kept. The 0.02\,nat threshold is
+about twice the sky-bootstrap standard error of late block gains. This is predictive early stopping,
+not convergence. Sparse slices benefit most: where held-out density falls in the first block, as at
+$z=4.05$, the fit keeps its warm start. All 44 fits of each production model stopped this way, with no
+objective decrease (Fig.~\ref{fig:fitting}c,d).
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F10_fitting.png}
+\caption{(a) Training objective per object minus its starting value, $z=1.75$ slice: additive
+update (log likelihood; 41 decreasing steps) and MAP update (log posterior). (b) Held-out density for
+six slices under both updates (identical rows and warm starts). (c) Update at which each production
+fit's kept checkpoint was taken. (d) Held-out gain of that checkpoint over the model's own warm start.}
+\label{fig:fitting}
+\end{figure}
+
+%======================================================================
+\section{Priors, catch-all and support}\label{sec:priors}
+%======================================================================
+\paragraph{Abundance priors.} $\Sigma_Q(z,m)$ and $\Sigma_B(m)$ are stored per reference band, per unit
+native luptitude. Background densities are recounted from corrected photometry. The quasar abundance
+is inherited from the previous model and moved onto corrected magnitudes by the mean extinction
+shift: 0.080\,mag in Legacy $r$, at mean $E=0.037$. This is an approximation, not a recount.
+
+\paragraph{Catch-all.} $U$ is a Student-$t$ with $\nu=4$ degrees of freedom, centred on the background
+mean, with the background mixture's second-moment matrix as its scale. Measurement noise is
+convolved exactly through the $t$'s Gaussian scale-mixture representation. Its share $\eta$ is a
+Beta-MAP fit per reference band and three magnitude bins, on the 502,251 calibration background objects.
+
+\paragraph{Support cut.} For a candidate, $z_0$ and the observed bands, the scorer draws 255 simulated
+quasars from the conditional model at $z_0$, adds the candidate's errors, and ranks the candidate's
+conditional density among them. Candidates below a threshold are not ranked; their likelihoods are
+kept as diagnostics. The threshold is set on 800 calibration quasars (four band subsets, 3,027
+evaluations). At the promoted 99.5\% target it is $2/256=0.0078$, which retains 99.7\% of
+calibration evaluations. The target was chosen on the release test rows
+(Fig.~\ref{fig:supportcut}); Section~\ref{sec:perf} confirms it on independent rows.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F11_support_cut.png}
+\caption{Effect of the support-cut target retention on the release panels: worst AUC difference from
+the previous model over eight panels, lowest fraction of test quasars kept, and high-quasar points on
+artificial colour grids (Section~\ref{sec:grids}).}
+\label{fig:supportcut}
+\end{figure}
+
+%======================================================================
+\section{Validation}\label{sec:validation}
+%======================================================================
+Tests use test-role objects outside every recorded development exclusion. ``Previous'' denotes the
+28 September model.
+
+\subsection{Colour--colour distributions}\label{sec:cc}
+Figures~\ref{fig:ccmag}--\ref{fig:ccz} compare model densities with the data in two colour planes:
+Legacy South $(g-r,r-z)$ and $(r-z,z-W1)$. Model contours are conditioned on each bin's median $r$,
+weighted by the data's redshift mix, and convolved with the bin's median measurement covariance, so
+they can be compared directly with the data. Each panel title gives the fraction of the data inside the
+model's 50\% and 90\% regions; a well-calibrated model gives 0.50 and 0.90. The magnitude-dependent
+quasar model gives 0.48--0.51 and 0.89--0.90 in every magnitude bin and both planes. The
+magnitude-independent model must use one width for all magnitudes. It is too broad for bright
+quasars (0.62/0.94 at $17\le r<19$) and too narrow for faint ones (0.41/0.86 at $21.5\le r<22.5$). The
+apparent colour scatter of quasars, after deconvolution, grows towards faint magnitudes in this sample.
+Underestimated photometric errors, a change in the population, and selection can all produce this.
+The background model is less well calibrated: its 50\% coverage ranges from 0.36 to 0.62. Its broad
+outer contours come from low-density tails spread over empty colour space, not from missing the
+stellar locus.
+
+\begin{figure}[p]\centering
+\includegraphics[width=\textwidth]{F07a_colour_colour_magnitude.png}\\[2mm]
+\includegraphics[width=\textwidth]{F07b_colour_colour_magnitude.png}
+\caption{Colour--colour planes in bins of Legacy South $r$. Top rows of each block: test quasars (grey,
+log density) with both quasar models (blue, orange; thick and thin contours enclose 90\% and 50\%) and
+the background model's 90\% contour (dotted aqua). Bottom rows: test background objects with the
+background model and the magnitude-independent quasar model's 90\% contour (dotted blue).}
+\label{fig:ccmag}
+\end{figure}
+
+\begin{figure}[p]\centering
+\includegraphics[width=\textwidth]{F08a_colour_colour_sky.png}\\[2mm]
+\includegraphics[width=\textwidth]{F08b_colour_colour_sky.png}
+\caption{As Fig.~\ref{fig:ccmag}, in bins of Galactic latitude and of longitude towards
+($|\ell|<90^\circ$) or away from the Galactic centre, at $19\le r<21.5$. Background contours use the
+spatial component weights averaged over each bin's objects.}
+\label{fig:ccsky}
+\end{figure}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F09_colour_colour_redshift.png}
+\caption{Quasar colour--colour planes in six redshift slices, each conditioned on the slice's median
+$r$, with the background model's 90\% contour for reference.}
+\label{fig:ccz}
+\end{figure}
+
+\subsection{Held-out density}
+Per slice, the magnitude-dependent model's kept checkpoint has a held-out density higher than the
+magnitude-independent model's by a median 0.666\,nat per object (range 0.381--0.876). Against the
+uncorrected 30 September model, the corrected magnitude-dependent model differs by a median
+$+0.001$\,nat (range $-0.262$ to $+0.057$). The extinction correction therefore costs essentially
+nothing in density, and the density gap between the two promoted models comes from the
+magnitude constraint.
+
+\subsection{Ranking against the background}
+Table~\ref{tab:auc} gives the quasar-versus-background AUC in the eight release panels, with the support
+cut at 99.5\%. Both models are within the 0.005 tolerance of the previous model, or better, in every
+panel.
+
+\begin{table}[t]\centering\small
+\caption{Quasar-versus-background AUC on release test rows (500 per class per hemisphere), with the
+support cut at 99.5\% retention. ``Panel'' gives the bands supplied to the scorer and the hemisphere.}
+\label{tab:auc}
+\begin{tabular}{lccc}
+\toprule
+Panel & previous & magnitude-independent & magnitude-dependent \\
+\midrule
+all bands, South & 0.945 & 0.968 & 0.980 \\
+all bands, North & 0.941 & 0.982 & 0.980 \\
+Legacy $g,r,z$, South & 0.978 & 0.987 & 0.985 \\
+Legacy $g,r,z$, North & 0.986 & 0.987 & 0.989 \\
+SDSS, South & 0.976 & 0.977 & 0.981 \\
+SDSS, North & 0.967 & 0.979 & 0.978 \\
+PS1, South & 0.941 & 0.937 & 0.938 \\
+PS1, North & 0.952 & 0.955 & 0.955 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performance across sky, magnitude, redshift and band coverage}\label{sec:perf}
+PERFORMANCE\_PLACEHOLDER
+
+\subsection{Artificial colour grids}\label{sec:grids}
+A colour grid places synthetic sources on a $15\times15$ lattice in $(g-r,r-z)$ from $-6$ to $8$\,mag at
+fixed $r$. These are stress tests of extrapolation into empty colour space, not contamination rates.
+In the original low-density region, an unpromoted 30 September candidate gave 72 and 79 high-quasar
+points ($p_{\rm quasar}>0.5$) in the North, and the previous model gave 12 at $r=21$. Both promoted
+models give none (Fig.~\ref{fig:grids}). They abstain from most of the grid: points outside both
+models, or rejected by the support cut, are not ranked. Without the support cut, the
+magnitude-independent model would give 28 high-quasar grid points and the magnitude-dependent one 6, so
+the default model relies on the cut more.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{F15_colour_grids.png}
+\caption{Total quasar probability on artificial Legacy colour grids, South and North, $r=18.5$ and 21.
+Grey cells are not ranked. Black outline: the original low-density mask.}
+\label{fig:grids}
+\end{figure}
+
+\subsection{Worked examples}
+EXAMPLES\_PLACEHOLDER
+
+%======================================================================
+\section{Limitations and open items}\label{sec:limits}
+%======================================================================
+\begin{itemize}
+\item \textbf{Probability calibration} is not established. AUC and density measure ranking and fit, not
+  the reliability of $p_{\rm same}$ or $p_{\rm quasar}$.
+\item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the
+  intended benefit of the magnitude-independent model for quasars outside DESI and SDSS selection.
+\item \textbf{Quasar abundance} is inherited and shifted, not recounted.
+\item \textbf{Sparse surveys.} NSC $VR$ and VISTA $Y$ extinction coefficients are approximate, and
+  SkyMapper $u,v$ and VHS have little training support.
+\item \textbf{Background calibration} in colour--colour projections is moderate (Section~\ref{sec:cc}).
+\item \textbf{Out of scope.} Blends below the separation floor, and a physical-pair clustering prior,
+  are deferred.
+\end{itemize}
+
+\appendix
+%======================================================================
+\section{The window factorisation}\label{app:window}
+%======================================================================
+Write $\Lambda_Q=\int\lambda_Q(z)\,dz$ for the total quasar intensity, and let the declared window $W$
+around $z_0$ have effective width $\Delta z_{\rm eff}=\int_Wk(z)\,dz$ for its kernel $k$. The posterior
+that the companion is a quasar in the window is
+\begin{equation}
+p_{\rm same}=\frac{\int_Wk(z)\lambda_Q(z)\,dz}{\Lambda_Q+\lambda_B+\lambda_U}
+=\Delta z_{\rm eff}\,\frac{\langle\lambda_Q\rangle_W}{\Lambda_Q+\lambda_B+\lambda_U}\equiv\Delta z_{\rm eff}\,\R,
+\end{equation}
+with $\langle\lambda_Q\rangle_W$ the kernel-weighted mean over the window. The denominator contains no
+window, because $\Lambda_Q$ includes both same-redshift and other-redshift quasars. The scorer integrates
+the window on dense nodes at the support boundaries rather than on the coarse redshift grid. For a
+window much narrower than the photometric redshift width, $\langle\lambda_Q\rangle_W=\lambda_Q(z_0)$,
+which is Eq.~(\ref{eq:R}).
+
+\section{The constrained M step}\label{app:mstep}
+For a component with mean $(\mu_m,\vect{\mu}_c)$ and covariance ${\rm diag}(\sigma_m^2,V_c)$, where
+$\mu_m$ and $\sigma_m^2$ are fixed, the expected complete-data log likelihood separates into a
+magnitude term, constant in the free parameters, and a colour term. Maximising the colour term with
+the MAP prior on $V_c$ gives the usual updates applied to the colour block alone. The prior on the full
+covariance differs from the prior on $V_c$ by a constant. The constrained update is therefore exact.
+
+\begin{thebibliography}{9}\small
+\bibitem[Bovy et al.(2011a)]{Bovy2011XD} Bovy J., Hogg D.~W., Roweis S.~T., 2011, Ann. Appl. Stat., 5, 1657,
+  ``Extreme deconvolution'', \href{https://arxiv.org/abs/0905.2979}{arXiv:0905.2979}.
+\bibitem[Bovy et al.(2011b)]{Bovy2011XDQSO} Bovy J. et al., 2011, ApJ, 729, 141, ``Think outside the color box'' (XDQSO),
+  \href{https://arxiv.org/abs/1011.6392}{arXiv:1011.6392}.
+\bibitem[Lupton et al.(1999)]{Lupton1999} Lupton R.~H., Gunn J.~E., Szalay A.~S., 1999, AJ, 118, 1406,
+  \href{https://arxiv.org/abs/astro-ph/9903081}{arXiv:astro-ph/9903081}.
+\bibitem[Lyke et al.(2020)]{Lyke2020} Lyke B.~W. et al., 2020, ApJS, 250, 8, SDSS DR16Q,
+  \href{https://arxiv.org/abs/2007.09001}{arXiv:2007.09001}.
+\bibitem[Schlegel et al.(1998)]{SFD98} Schlegel D.~J., Finkbeiner D.~P., Davis M., 1998, ApJ, 500, 525,
+  \href{https://doi.org/10.1086/305772}{doi:10.1086/305772}.
+\bibitem[Schlafly \& Finkbeiner(2011)]{SF11} Schlafly E.~F., Finkbeiner D.~P., 2011, ApJ, 737, 103,
+  \href{https://doi.org/10.1088/0004-637X/737/2/103}{doi:10.1088/0004-637X/737/2/103}.
+\bibitem[Wolf et al.(2018)]{Wolf2018} Wolf C. et al., 2018, PASA, 35, e010, SkyMapper DR1,
+  \href{https://doi.org/10.1017/pasa.2018.5}{doi:10.1017/pasa.2018.5}.
+\bibitem[Legacy Surveys(2020)]{LSDR9} Legacy Surveys DR9 catalogue documentation, Galactic extinction coefficients,
+  \url{https://www.legacysurvey.org/dr9/catalogs/}.
+\end{thebibliography}
+\end{document}

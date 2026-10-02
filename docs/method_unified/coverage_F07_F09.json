@@ -1,0 +1,590 @@
+[
+ {
+  "title": "QSOs, 17 $\\leq r <$ 19",
+  "model": "independent",
+  "n": 12922,
+  "inside50": 0.6179383996285405,
+  "inside90": 0.9443584584429655
+ },
+ {
+  "title": "QSOs, 17 $\\leq r <$ 19",
+  "model": "dependent",
+  "n": 12922,
+  "inside50": 0.5059588299024919,
+  "inside90": 0.8969973688283548
+ },
+ {
+  "title": "background, 17 $\\leq r <$ 19",
+  "model": "background",
+  "n": 17443,
+  "inside50": 0.39127443673679985,
+  "inside90": 0.9515564983087772
+ },
+ {
+  "title": "QSOs, 19 $\\leq r <$ 20.5",
+  "model": "independent",
+  "n": 70060,
+  "inside50": 0.6081073365686555,
+  "inside90": 0.9390665144162147
+ },
+ {
+  "title": "QSOs, 19 $\\leq r <$ 20.5",
+  "model": "dependent",
+  "n": 70060,
+  "inside50": 0.49631744219240653,
+  "inside90": 0.9004995717956038
+ },
+ {
+  "title": "background, 19 $\\leq r <$ 20.5",
+  "model": "background",
+  "n": 23975,
+  "inside50": 0.6057142857142858,
+  "inside90": 0.9643795620437956
+ },
+ {
+  "title": "QSOs, 20.5 $\\leq r <$ 21.5",
+  "model": "independent",
+  "n": 95898,
+  "inside50": 0.5352040709920958,
+  "inside90": 0.9143569208951178
+ },
+ {
+  "title": "QSOs, 20.5 $\\leq r <$ 21.5",
+  "model": "dependent",
+  "n": 95898,
+  "inside50": 0.490218774114163,
+  "inside90": 0.8932615904398423
+ },
+ {
+  "title": "background, 20.5 $\\leq r <$ 21.5",
+  "model": "background",
+  "n": 23607,
+  "inside50": 0.6162155292921591,
+  "inside90": 0.954420299063837
+ },
+ {
+  "title": "QSOs, 21.5 $\\leq r <$ 22.5",
+  "model": "independent",
+  "n": 94218,
+  "inside50": 0.41400793903500394,
+  "inside90": 0.860472521174298
+ },
+ {
+  "title": "QSOs, 21.5 $\\leq r <$ 22.5",
+  "model": "dependent",
+  "n": 94218,
+  "inside50": 0.48922711159226473,
+  "inside90": 0.8894903309346409
+ },
+ {
+  "title": "background, 21.5 $\\leq r <$ 22.5",
+  "model": "background",
+  "n": 33085,
+  "inside50": 0.4434033549947106,
+  "inside90": 0.9030376303460783
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, centre",
+  "model": "independent",
+  "n": 24989,
+  "inside50": 0.5472808035535636,
+  "inside90": 0.9173636400016008
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, centre",
+  "model": "dependent",
+  "n": 24989,
+  "inside50": 0.4581215734923366,
+  "inside90": 0.8792668774260675
+ },
+ {
+  "title": "bkg, |b| 25-35$^\\circ$, centre",
+  "model": "background",
+  "n": 22048,
+  "inside50": 0.7077285921625545,
+  "inside90": 0.9702920899854862
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, anticentre",
+  "model": "independent",
+  "n": 26363,
+  "inside50": 0.5812692030497287,
+  "inside90": 0.9267534043925199
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, anticentre",
+  "model": "dependent",
+  "n": 26363,
+  "inside50": 0.49569472366574363,
+  "inside90": 0.8951560899745856
+ },
+ {
+  "title": "bkg, |b| 25-35$^\\circ$, anticentre",
+  "model": "background",
+  "n": 6363,
+  "inside50": 0.6481219550526481,
+  "inside90": 0.9558384409869558
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, centre",
+  "model": "independent",
+  "n": 15205,
+  "inside50": 0.539888194672805,
+  "inside90": 0.9128576126274252
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, centre",
+  "model": "dependent",
+  "n": 15205,
+  "inside50": 0.4582045379809273,
+  "inside90": 0.8751068727392305
+ },
+ {
+  "title": "bkg, |b| 35-55$^\\circ$, centre",
+  "model": "background",
+  "n": 7833,
+  "inside50": 0.6921996680709818,
+  "inside90": 0.9565938976126643
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, anticentre",
+  "model": "independent",
+  "n": 36042,
+  "inside50": 0.5627878586094002,
+  "inside90": 0.9240885633427668
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, anticentre",
+  "model": "dependent",
+  "n": 36042,
+  "inside50": 0.4837689362410521,
+  "inside90": 0.8909050552133622
+ },
+ {
+  "title": "bkg, |b| 35-55$^\\circ$, anticentre",
+  "model": "background",
+  "n": 4387,
+  "inside50": 0.6482790061545475,
+  "inside90": 0.9466605881012081
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, centre",
+  "model": "independent",
+  "n": 32056,
+  "inside50": 0.550630147242326,
+  "inside90": 0.9205764911405041
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, centre",
+  "model": "dependent",
+  "n": 32056,
+  "inside50": 0.4662153730970801,
+  "inside90": 0.8860743698527577
+ },
+ {
+  "title": "bkg, |b| 55-90$^\\circ$, centre",
+  "model": "background",
+  "n": 4470,
+  "inside50": 0.6583892617449665,
+  "inside90": 0.9449664429530201
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, anticentre",
+  "model": "independent",
+  "n": 31303,
+  "inside50": 0.595981215857905,
+  "inside90": 0.9393668338497908
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, anticentre",
+  "model": "dependent",
+  "n": 31303,
+  "inside50": 0.5194709772226305,
+  "inside90": 0.9120851036641855
+ },
+ {
+  "title": "bkg, |b| 55-90$^\\circ$, anticentre",
+  "model": "background",
+  "n": 2481,
+  "inside50": 0.6775493752519145,
+  "inside90": 0.9383313180169287
+ },
+ {
+  "title": "QSOs, 17 $\\leq r <$ 19",
+  "model": "independent",
+  "n": 12919,
+  "inside50": 0.3557550894032046,
+  "inside90": 0.9051010140103724
+ },
+ {
+  "title": "QSOs, 17 $\\leq r <$ 19",
+  "model": "dependent",
+  "n": 12919,
+  "inside50": 0.49949686508243674,
+  "inside90": 0.9022370152488582
+ },
+ {
+  "title": "background, 17 $\\leq r <$ 19",
+  "model": "background",
+  "n": 17414,
+  "inside50": 0.3820489261513725,
+  "inside90": 0.860514528540255
+ },
+ {
+  "title": "QSOs, 19 $\\leq r <$ 20.5",
+  "model": "independent",
+  "n": 70022,
+  "inside50": 0.5163520036559939,
+  "inside90": 0.9273085601668047
+ },
+ {
+  "title": "QSOs, 19 $\\leq r <$ 20.5",
+  "model": "dependent",
+  "n": 70022,
+  "inside50": 0.4808774385193225,
+  "inside90": 0.902516352003656
+ },
+ {
+  "title": "background, 19 $\\leq r <$ 20.5",
+  "model": "background",
+  "n": 21420,
+  "inside50": 0.36129785247432306,
+  "inside90": 0.9230158730158731
+ },
+ {
+  "title": "QSOs, 20.5 $\\leq r <$ 21.5",
+  "model": "independent",
+  "n": 94771,
+  "inside50": 0.555940108260966,
+  "inside90": 0.9268130546264153
+ },
+ {
+  "title": "QSOs, 20.5 $\\leq r <$ 21.5",
+  "model": "dependent",
+  "n": 94771,
+  "inside50": 0.479176119276994,
+  "inside90": 0.8955904232307351
+ },
+ {
+  "title": "background, 20.5 $\\leq r <$ 21.5",
+  "model": "background",
+  "n": 16288,
+  "inside50": 0.6054764243614931,
+  "inside90": 0.9536468565815324
+ },
+ {
+  "title": "QSOs, 21.5 $\\leq r <$ 22.5",
+  "model": "independent",
+  "n": 85273,
+  "inside50": 0.4454399399575481,
+  "inside90": 0.8793639252752923
+ },
+ {
+  "title": "QSOs, 21.5 $\\leq r <$ 22.5",
+  "model": "dependent",
+  "n": 85273,
+  "inside50": 0.4991028813340682,
+  "inside90": 0.9045418831283055
+ },
+ {
+  "title": "background, 21.5 $\\leq r <$ 22.5",
+  "model": "background",
+  "n": 15481,
+  "inside50": 0.5135327175247077,
+  "inside90": 0.8695820683418384
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, centre",
+  "model": "independent",
+  "n": 24855,
+  "inside50": 0.5383625025145846,
+  "inside90": 0.9231542949104808
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, centre",
+  "model": "dependent",
+  "n": 24855,
+  "inside50": 0.43657211828605913,
+  "inside90": 0.8751961375980688
+ },
+ {
+  "title": "bkg, |b| 25-35$^\\circ$, centre",
+  "model": "background",
+  "n": 17622,
+  "inside50": 0.4198161389172625,
+  "inside90": 0.9530700261037339
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, anticentre",
+  "model": "independent",
+  "n": 26186,
+  "inside50": 0.5497976017719393,
+  "inside90": 0.9273657679676163
+ },
+ {
+  "title": "QSO, |b| 25-35$^\\circ$, anticentre",
+  "model": "dependent",
+  "n": 26186,
+  "inside50": 0.4583365156954098,
+  "inside90": 0.8839456197968381
+ },
+ {
+  "title": "bkg, |b| 25-35$^\\circ$, anticentre",
+  "model": "background",
+  "n": 5376,
+  "inside50": 0.4929315476190476,
+  "inside90": 0.9494047619047619
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, centre",
+  "model": "independent",
+  "n": 15137,
+  "inside50": 0.5314130937438065,
+  "inside90": 0.9184779018299531
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, centre",
+  "model": "dependent",
+  "n": 15137,
+  "inside50": 0.4377353504657462,
+  "inside90": 0.8715069036136619
+ },
+ {
+  "title": "bkg, |b| 35-55$^\\circ$, centre",
+  "model": "background",
+  "n": 6221,
+  "inside50": 0.4655200128596689,
+  "inside90": 0.9517762417617747
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, anticentre",
+  "model": "independent",
+  "n": 35802,
+  "inside50": 0.5452209373778001,
+  "inside90": 0.929724596391263
+ },
+ {
+  "title": "QSO, |b| 35-55$^\\circ$, anticentre",
+  "model": "dependent",
+  "n": 35802,
+  "inside50": 0.4529076587900117,
+  "inside90": 0.8888888888888888
+ },
+ {
+  "title": "bkg, |b| 35-55$^\\circ$, anticentre",
+  "model": "background",
+  "n": 3565,
+  "inside50": 0.5023842917251052,
+  "inside90": 0.9453015427769986
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, centre",
+  "model": "independent",
+  "n": 31806,
+  "inside50": 0.5294284097340124,
+  "inside90": 0.9173426397535056
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, centre",
+  "model": "dependent",
+  "n": 31806,
+  "inside50": 0.4381877633150978,
+  "inside90": 0.8731371439351066
+ },
+ {
+  "title": "bkg, |b| 55-90$^\\circ$, centre",
+  "model": "background",
+  "n": 3190,
+  "inside50": 0.4990595611285266,
+  "inside90": 0.9460815047021943
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, anticentre",
+  "model": "independent",
+  "n": 31007,
+  "inside50": 0.5625826426290838,
+  "inside90": 0.9430773696262135
+ },
+ {
+  "title": "QSO, |b| 55-90$^\\circ$, anticentre",
+  "model": "dependent",
+  "n": 31007,
+  "inside50": 0.4733769793917503,
+  "inside90": 0.9039571709613958
+ },
+ {
+  "title": "bkg, |b| 55-90$^\\circ$, anticentre",
+  "model": "background",
+  "n": 1734,
+  "inside50": 0.4803921568627451,
+  "inside90": 0.9296424452133795
+ },
+ {
+  "title": "QSOs, $z$ = 0.55 $\\pm$ 0.1 (median $r$ = 20.1)",
+  "model": "independent",
+  "n": 5466,
+  "inside50": 0.5014635931211123,
+  "inside90": 0.9101719721917307
+ },
+ {
+  "title": "QSOs, $z$ = 0.55 $\\pm$ 0.1 (median $r$ = 20.1)",
+  "model": "dependent",
+  "n": 5466,
+  "inside50": 0.3933406512989389,
+  "inside90": 0.8410171972191731
+ },
+ {
+  "title": "QSOs, $z$ = 0.95 $\\pm$ 0.1 (median $r$ = 20.9)",
+  "model": "independent",
+  "n": 20792,
+  "inside50": 0.49090996537129666,
+  "inside90": 0.8928914967295114
+ },
+ {
+  "title": "QSOs, $z$ = 0.95 $\\pm$ 0.1 (median $r$ = 20.9)",
+  "model": "dependent",
+  "n": 20792,
+  "inside50": 0.3599461331281262,
+  "inside90": 0.8105040400153906
+ },
+ {
+  "title": "QSOs, $z$ = 1.45 $\\pm$ 0.1 (median $r$ = 21.2)",
+  "model": "independent",
+  "n": 33230,
+  "inside50": 0.481913933192898,
+  "inside90": 0.8804092687330726
+ },
+ {
+  "title": "QSOs, $z$ = 1.45 $\\pm$ 0.1 (median $r$ = 21.2)",
+  "model": "dependent",
+  "n": 33230,
+  "inside50": 0.4475473969304845,
+  "inside90": 0.8563045440866687
+ },
+ {
+  "title": "QSOs, $z$ = 2.25 $\\pm$ 0.1 (median $r$ = 21.6)",
+  "model": "independent",
+  "n": 26226,
+  "inside50": 0.4758636467627545,
+  "inside90": 0.8805383970106002
+ },
+ {
+  "title": "QSOs, $z$ = 2.25 $\\pm$ 0.1 (median $r$ = 21.6)",
+  "model": "dependent",
+  "n": 26226,
+  "inside50": 0.45321436742164267,
+  "inside90": 0.8566689544726607
+ },
+ {
+  "title": "QSOs, $z$ = 2.85 $\\pm$ 0.1 (median $r$ = 21.4)",
+  "model": "independent",
+  "n": 10433,
+  "inside50": 0.46870507044953513,
+  "inside90": 0.8772165244896003
+ },
+ {
+  "title": "QSOs, $z$ = 2.85 $\\pm$ 0.1 (median $r$ = 21.4)",
+  "model": "dependent",
+  "n": 10433,
+  "inside50": 0.4688967698648519,
+  "inside90": 0.8695485478769289
+ },
+ {
+  "title": "QSOs, $z$ = 3.45 $\\pm$ 0.1 (median $r$ = 21.2)",
+  "model": "independent",
+  "n": 2534,
+  "inside50": 0.4581689029202841,
+  "inside90": 0.8827940015785319
+ },
+ {
+  "title": "QSOs, $z$ = 3.45 $\\pm$ 0.1 (median $r$ = 21.2)",
+  "model": "dependent",
+  "n": 2534,
+  "inside50": 0.4664561957379637,
+  "inside90": 0.8792423046566693
+ },
+ {
+  "title": "QSOs, $z$ = 0.55 $\\pm$ 0.1 (median $r$ = 20.1)",
+  "model": "independent",
+  "n": 5460,
+  "inside50": 0.5056776556776557,
+  "inside90": 0.8983516483516484
+ },
+ {
+  "title": "QSOs, $z$ = 0.55 $\\pm$ 0.1 (median $r$ = 20.1)",
+  "model": "dependent",
+  "n": 5460,
+  "inside50": 0.39615384615384613,
+  "inside90": 0.8232600732600732
+ },
+ {
+  "title": "QSOs, $z$ = 0.95 $\\pm$ 0.1 (median $r$ = 20.9)",
+  "model": "independent",
+  "n": 20746,
+  "inside50": 0.48659982647257305,
+  "inside90": 0.8925093994022945
+ },
+ {
+  "title": "QSOs, $z$ = 0.95 $\\pm$ 0.1 (median $r$ = 20.9)",
+  "model": "dependent",
+  "n": 20746,
+  "inside50": 0.3495131591632122,
+  "inside90": 0.7965390918731322
+ },
+ {
+  "title": "QSOs, $z$ = 1.45 $\\pm$ 0.1 (median $r$ = 21.1)",
+  "model": "independent",
+  "n": 32781,
+  "inside50": 0.4767395747536683,
+  "inside90": 0.8883499588176078
+ },
+ {
+  "title": "QSOs, $z$ = 1.45 $\\pm$ 0.1 (median $r$ = 21.1)",
+  "model": "dependent",
+  "n": 32781,
+  "inside50": 0.3428815472377292,
+  "inside90": 0.7888105915011745
+ },
+ {
+  "title": "QSOs, $z$ = 2.25 $\\pm$ 0.1 (median $r$ = 21.4)",
+  "model": "independent",
+  "n": 22949,
+  "inside50": 0.47466120528127587,
+  "inside90": 0.8818684910017865
+ },
+ {
+  "title": "QSOs, $z$ = 2.25 $\\pm$ 0.1 (median $r$ = 21.4)",
+  "model": "dependent",
+  "n": 22949,
+  "inside50": 0.3343500806135344,
+  "inside90": 0.7668307987276134
+ },
+ {
+  "title": "QSOs, $z$ = 2.85 $\\pm$ 0.1 (median $r$ = 21.2)",
+  "model": "independent",
+  "n": 8690,
+  "inside50": 0.4889528193325662,
+  "inside90": 0.8834292289988492
+ },
+ {
+  "title": "QSOs, $z$ = 2.85 $\\pm$ 0.1 (median $r$ = 21.2)",
+  "model": "dependent",
+  "n": 8690,
+  "inside50": 0.3852704257767549,
+  "inside90": 0.7833141542002301
+ },
+ {
+  "title": "QSOs, $z$ = 3.45 $\\pm$ 0.1 (median $r$ = 21.0)",
+  "model": "independent",
+  "n": 2277,
+  "inside50": 0.47299077733860345,
+  "inside90": 0.8818620992534036
+ },
+ {
+  "title": "QSOs, $z$ = 3.45 $\\pm$ 0.1 (median $r$ = 21.0)",
+  "model": "dependent",
+  "n": 2277,
+  "inside50": 0.4044795783926219,
+  "inside90": 0.8252086078173034
+ }
+]
