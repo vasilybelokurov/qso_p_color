@@ -101,3 +101,37 @@ def test_decoupled_magnitude_keeps_colour_shapes_and_map_objective_monotone():
         bad = GaussianMixture(init.weights, init.means, init.covs + .01)
         fit_projected(_source(y, cov, obs), init=bad, operators={0: (np.eye(3), np.zeros(3), np.zeros((3, 3)))},
                       expected_rows=n, max_iter=1, tol=0., regularization=1e-4, covariance_update='map', decoupled_coordinate=0)
+
+
+def test_tied_colour_shapes_across_magnitude_nodes_map_monotone():
+    """Shared colour shapes replicated at fixed magnitude nodes; only replica weights vary."""
+    rng = np.random.default_rng(12); n = 3000
+    m = rng.uniform(17, 23, n); pa = np.clip((23 - m)/6, .05, .95)          # shape A dominates bright
+    a = rng.uniform(size=n) < pa
+    c = np.where(a[:, None], rng.normal([.4, .2], [.05, .04], (n, 2)), rng.normal([1.2, .9], [.08, .1], (n, 2)))
+    u = np.column_stack([m, c]); h = np.array([[1., 0, 0], [1., 1., 0], [1., 0, 1.]])   # observe m, m+c1, m+c2
+    cov = np.tile(np.diag([.01, .004, .004]), (n, 1, 1))
+    y = u @ h.T + np.einsum('nij,nj->ni', np.linalg.cholesky(cov), rng.normal(size=u.shape)); obs = np.ones_like(y, bool)
+    nodes = np.array([18., 20., 22.]); shapes = np.array([[.5, .3], [1., .8]])
+    means = np.array([[r, *s] for s in shapes for r in nodes]); group = np.repeat([0, 1], 3)
+    covs = np.tile(np.diag([.8**2, .05, .05]), (6, 1, 1))
+    init = GaussianMixture(np.full(6, 1/6), means, covs)
+    op = {0: (h, np.zeros(3), np.zeros((3, 3)))}
+    fit = fit_projected(_source(y, cov, obs), init=init, operators=op, expected_rows=n, max_iter=120, tol=0.,
+                        regularization=1e-4, covariance_update='map', tied_coordinate=dict(index=0, group=group))
+    mix = fit.mixture
+    assert np.diff(fit.history).min() > -1e-10*max(1., abs(fit.history[-1]))
+    np.testing.assert_array_equal(mix.means[:, 0], means[:, 0])
+    np.testing.assert_array_equal(mix.covs[:, 0, 0], covs[:, 0, 0])
+    assert np.abs(mix.covs[:, 0, 1:]).max() == 0
+    for g in (0, 1):
+        mem = group == g
+        np.testing.assert_allclose(mix.means[mem][:, 1:], mix.means[mem][:1, 1:].repeat(3, 0), atol=1e-12)
+        np.testing.assert_allclose(mix.covs[mem][:, 1:, 1:], mix.covs[mem][:1, 1:, 1:].repeat(3, 0), atol=1e-12)
+    np.testing.assert_allclose(mix.means[[0, 3], 1:], [[.4, .2], [1.2, .9]], atol=.02)
+    frac_a = mix.weights[:3]/(mix.weights[:3] + mix.weights[3:])          # shape-A share per node falls with m
+    assert frac_a[0] > .65 and frac_a[2] < .4 and np.all(np.diff(frac_a) < 0)
+    with pytest.raises(ValueError, match='tied'):
+        bad = GaussianMixture(init.weights, init.means + np.array([0, .01, 0])*np.arange(6)[:, None], init.covs)
+        fit_projected(_source(y, cov, obs), init=bad, operators=op, expected_rows=n, max_iter=1, tol=0.,
+                      regularization=1e-4, covariance_update='map', tied_coordinate=dict(index=0, group=group))

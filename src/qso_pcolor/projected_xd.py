@@ -90,7 +90,8 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
                   prior_strength: float = 1.0,
                   final_evaluation: bool = True,
                   fixed_coordinate: dict | None = None,
-                  decoupled_coordinate: int | None = None) -> XDFitResult:
+                  decoupled_coordinate: int | None = None,
+                  tied_coordinate: dict | None = None) -> XDFitResult:
     """Fit all rows using fixed operators; check row accounting on every pass.
 
     ``progress(iteration, model, mean_objective, rows)`` receives each updated
@@ -126,6 +127,19 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
     constrained M step is the (MAP) update with the cross terms set to zero. With
     ``i`` a magnitude and the rest colours, each component has a fixed colour shape
     and a magnitude-dependent amplitude (its own magnitude Gaussian).
+
+    ``tied_coordinate=dict(index=i, group=g)`` (``g`` an integer array, one entry per
+    component) holds coordinate ``i`` at each component's initial mean and variance,
+    uncorrelated with the rest, and ties the mean and covariance of the remaining
+    block across all components sharing a group label. Weights stay free. With ``i``
+    a magnitude and the rest colours, components of one group are replicas of a single
+    colour shape placed at fixed magnitude nodes, so the colour shapes are shared by
+    all magnitudes and only their amplitudes vary with magnitude. The likelihood
+    factorises over the two blocks, so the exact M step pools the colour-block
+    sufficient statistics over each group; the MAP prior then enters once per replica,
+    ``V = (sum_m q_m S_m + M nu w I)/(sum_m q_m + M nu)`` for a group of ``M`` replicas,
+    which is the update of the summed per-component prior. The initial mixture must
+    satisfy the constraint.
     """
     if expected_rows < 1 or max_iter < 1 or tol < 0 or regularization < 0:
         raise ValueError('invalid projected fit settings')
@@ -138,6 +152,19 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
         i_dec = int(decoupled_coordinate); rest = np.arange(init.n_dim) != i_dec
         if not (0 <= i_dec < init.n_dim and np.allclose(init.covs[:, i_dec, rest], 0)):
             raise ValueError('initial mixture violates the decoupled-coordinate constraint')
+    if tied_coordinate is not None:
+        i_tie = int(tied_coordinate['index']); group = np.asarray(tied_coordinate['group'])
+        keep = np.arange(init.n_dim) != i_tie
+        if not (0 <= i_tie < init.n_dim and group.shape == (init.n_components,)
+                and np.allclose(init.covs[:, i_tie, keep], 0)):
+            raise ValueError('initial mixture violates the tied-coordinate constraint')
+        labels_tie = np.unique(group)
+        for g in labels_tie:
+            members = np.flatnonzero(group == g)
+            if not (np.allclose(init.means[members][:, keep], init.means[members[0]][keep])
+                    and np.allclose(init.covs[members][:, keep][:, :, keep], init.covs[members[0]][np.ix_(keep, keep)])):
+                raise ValueError('initial mixture violates the tied-coordinate constraint')
+        m_tie, v_tie = init.means[:, i_tie].copy(), init.covs[:, i_tie, i_tie].copy()
     if fixed_coordinate is not None:
         i_fix, m_fix, v_fix = (int(fixed_coordinate['index']), float(fixed_coordinate['mean']),
                                float(fixed_coordinate['variance']))
@@ -180,6 +207,23 @@ def fit_projected(source: Callable, *, init: GaussianMixture, operators: dict,
             objective = ll
         if decoupled_coordinate is not None:
             covs[:, i_dec, rest] = 0.; covs[:, rest, i_dec] = 0.
+        if tied_coordinate is not None:
+            sub = np.ix_(keep, keep)
+            for g in labels_tie:
+                members = np.flatnonzero(group == g); q_g = count[members].sum()
+                if q_g <= 1e-10:
+                    continue
+                sh = first[members][:, keep].sum(axis=0) / q_g
+                c_g = second[members][:, keep][:, :, keep].sum(axis=0) / q_g - np.outer(sh, sh)
+                c_g = .5 * (c_g + c_g.T)
+                if use_map:
+                    nu = prior_strength * len(members)
+                    c_g = (q_g * c_g + nu * regularization * np.eye(keep.sum())) / (q_g + nu)
+                else:
+                    c_g = c_g + regularization * np.eye(keep.sum())
+                for j in members:
+                    means[j, keep] = mix.means[j, keep] + sh; covs[j][sub] = c_g
+            means[:, i_tie] = m_tie; covs[:, i_tie, :] = 0.; covs[:, :, i_tie] = 0.; covs[:, i_tie, i_tie] = v_tie
         if fixed_coordinate is not None:
             means[:, i_fix] = m_fix
             covs[:, i_fix, :] = 0.; covs[:, :, i_fix] = 0.; covs[:, i_fix, i_fix] = v_fix
