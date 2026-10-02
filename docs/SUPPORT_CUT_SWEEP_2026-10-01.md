@@ -97,3 +97,40 @@ density is about 0.6 nats per object lower. Without the cut, it has more stray g
 extinction correction, or the cut. The cut is now addressed above. The prepared
 unconstrained refit (`5f4002492dbb849c`: extinction-corrected, magnitude-dependent) separates
 the other two. It has not been launched; it awaits the PI's decision.
+
+## Update, 2 October: corrected magnitude-dependent refit added
+
+Bundle `models/multisurvey_psf/work/unified_full/20261001/5f4002492dbb849c/bundle`
+(extinction-corrected, QSO colours unconstrained in magnitude; otherwise identical to the
+baseline). Release report: `docs/UNIFIED_RELEASE_MAGDEP_2026-10-02.json`.
+
+**Held-out density, per QSO slice:** a median +0.666 nats/object above the
+magnitude-independent baseline (range +0.381 to +0.876). It is a median +0.001 against the
+uncorrected 30 September model (range −0.262 to +0.057), so the extinction correction itself
+costs essentially nothing. The density gap is the magnitude-independence rule.
+
+**Ranking AUC at 99.5% cut retention and with no cut:**
+
+| Panel | Active | Independent, 99.5% | Dependent, 99.5% | Independent, no cut | Dependent, no cut |
+|---|---:|---:|---:|---:|---:|
+| All, South | 0.945 | 0.968 | 0.980 | 0.965 | 0.977 |
+| All, North | 0.941 | 0.982 | 0.980 | 0.977 | 0.973 |
+| Legacy optical, South | 0.978 | 0.987 | 0.985 | 0.988 | 0.989 |
+| Legacy optical, North | 0.986 | 0.987 | 0.989 | 0.990 | 0.992 |
+| SDSS, South | 0.976 | 0.977 | 0.981 | 0.979 | 0.982 |
+| SDSS, North | 0.967 | 0.979 | 0.978 | 0.979 | 0.980 |
+| PS1, South | 0.941 | 0.937 | 0.938 | 0.945 | 0.945 |
+| PS1, North | 0.952 | 0.955 | 0.955 | 0.958 | 0.960 |
+
+At 99.5%, the dependent model is ahead by a mean of about +0.002 AUC over the eight panels.
+The only clear difference is all-bands South (+0.012). Both pass all eight panels against the
+active model (worst −0.0039 independent, −0.0030 dependent).
+
+**Grid stray points (S18.5 / S21 / N18.5 / N21):**
+- Dependent: 1 / 4 / 1 / 0 without the cut; 0 / 0 / 0 / 0 at 99.5%.
+- Independent: 8 / 13 / 3 / 4 without the cut; 1 / 0 / 0 / 0 at 99.5%.
+
+**Reading:** the magnitude-independence rule costs about 0.67 nats of QSO density but almost
+no quasar-versus-contaminant ranking power. It needs the support cut more. Both models are
+retained. The same-selection caveat applies: these tests cannot show the independent model's
+intended advantage on quasars outside DESI/SDSS selection.

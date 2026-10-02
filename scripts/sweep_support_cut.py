@@ -14,6 +14,7 @@ def ranks(raw, unified, thr):
 
 OLD = Path(json.load(open('docs/FULL_SAMPLE_RELEASE_2026-09-30.json'))['cache'])
 runs = {'baseline_corrected_mag_independent': 'models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059',
+        'corrected_mag_dependent': 'models/multisurvey_psf/work/unified_full/20261001/5f4002492dbb849c',
         'sep30_uncorrected_mag_dependent': 'models/multisurvey_psf/work/unified_full/20260930/a637f155f7f48d00'}
 out = {}
 for name, root in runs.items():

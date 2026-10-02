@@ -1,6 +1,12 @@
 # Current project state
 
-**MAGNITUDE-DEPENDENT CORRECTED REFIT COMPLETE (2 October); completion + release checks running. KEEP BOTH.**
+**BOTH CORRECTED MODELS COMPLETE AND RELEASE-CHECKED (2 October). KEEP BOTH; NEITHER PROMOTED.**
+See `docs/SUPPORT_CUT_SWEEP_2026-10-01.md` (update section). At 99.5% cut retention both pass all
+eight AUC panels vs active; dependent ahead by ~+0.002 mean AUC (all-bands South +0.012), +0.67 nats
+QSO density; independent needs the cut more (grid strays 8/13/3/4 vs 1/4/1/0 without it).
+Pending user decisions: which model to promote (or both as alternatives), confirm 99.5% threshold
+on independent rows, catch-all tests, sky-dependent count check.
+**(History) MAGNITUDE-DEPENDENT CORRECTED REFIT COMPLETE (2 October).**
 44/44 predictive plateau, no decreases; only qso_39 kept its warm start. Held-out best per QSO slice:
 vs magnitude-independent corrected median +0.666 (+0.381..+0.876); vs 30 Sep uncorrected
 magnitude-dependent median +0.001 (-0.262..+0.057), i.e. extinction correction costs ~nothing.

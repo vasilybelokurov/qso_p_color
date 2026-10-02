@@ -224,6 +224,231 @@
    }
   ]
  },
+ "corrected_mag_dependent": {
+  "current_threshold": 0.0234375,
+  "sweep": [
+   {
+    "target_retention": 0.98,
+    "threshold": 0.0234375,
+    "panels": {
+     "all_south": {
+      "auc": 0.968988,
+      "active": 0.94467,
+      "retention": 0.968
+     },
+     "all_north": {
+      "auc": 0.978526,
+      "active": 0.94056,
+      "retention": 0.982
+     },
+     "legacy_optical_south": {
+      "auc": 0.980864,
+      "active": 0.97778,
+      "retention": 0.986
+     },
+     "legacy_optical_north": {
+      "auc": 0.9783,
+      "active": 0.98596,
+      "retention": 0.978
+     },
+     "sdss_south": {
+      "auc": 0.9758476680003505,
+      "active": 0.9761981250547589,
+      "retention": 0.9830028328611898
+     },
+     "sdss_north": {
+      "auc": 0.9692797486149012,
+      "active": 0.9671710907136359,
+      "retention": 0.9760191846522782
+     },
+     "ps1_south": {
+      "auc": 0.9288678126852401,
+      "active": 0.9409772207638242,
+      "retention": 0.9714285714285714
+     },
+     "ps1_north": {
+      "auc": 0.937120838236969,
+      "active": 0.9518924869974564,
+      "retention": 0.9577464788732395
+     }
+    },
+    "grid": {
+     "south_18.5": 0,
+     "south_21.0": 0,
+     "north_18.5": 0,
+     "north_21.0": 0
+    },
+    "min_auc_minus_active": -0.014771648760487421,
+    "failed_panels": 3,
+    "min_qso_retention": 0.9577464788732395
+   },
+   {
+    "target_retention": 0.99,
+    "threshold": 0.01171875,
+    "panels": {
+     "all_south": {
+      "auc": 0.978398,
+      "active": 0.94467,
+      "retention": 0.986
+     },
+     "all_north": {
+      "auc": 0.979946,
+      "active": 0.94056,
+      "retention": 0.994
+     },
+     "legacy_optical_south": {
+      "auc": 0.984392,
+      "active": 0.97778,
+      "retention": 0.992
+     },
+     "legacy_optical_north": {
+      "auc": 0.986564,
+      "active": 0.98596,
+      "retention": 0.992
+     },
+     "sdss_south": {
+      "auc": 0.9780964340994714,
+      "active": 0.9761981250547589,
+      "retention": 0.9886685552407932
+     },
+     "sdss_north": {
+      "auc": 0.9753989911519061,
+      "active": 0.9671710907136359,
+      "retention": 0.9904076738609112
+     },
+     "ps1_south": {
+      "auc": 0.9339275129138792,
+      "active": 0.9409772207638242,
+      "retention": 0.9816326530612245
+     },
+     "ps1_north": {
+      "auc": 0.9500930108955621,
+      "active": 0.9518924869974564,
+      "retention": 0.9818913480885312
+     }
+    },
+    "grid": {
+     "south_18.5": 0,
+     "south_21.0": 0,
+     "north_18.5": 0,
+     "north_21.0": 0
+    },
+    "min_auc_minus_active": -0.007049707849944964,
+    "failed_panels": 1,
+    "min_qso_retention": 0.9816326530612245
+   },
+   {
+    "target_retention": 0.995,
+    "threshold": 0.0078125,
+    "panels": {
+     "all_south": {
+      "auc": 0.98029,
+      "active": 0.94467,
+      "retention": 0.992
+     },
+     "all_north": {
+      "auc": 0.97986,
+      "active": 0.94056,
+      "retention": 1.0
+     },
+     "legacy_optical_south": {
+      "auc": 0.985456,
+      "active": 0.97778,
+      "retention": 0.994
+     },
+     "legacy_optical_north": {
+      "auc": 0.989028,
+      "active": 0.98596,
+      "retention": 0.996
+     },
+     "sdss_south": {
+      "auc": 0.9813965713618177,
+      "active": 0.9761981250547589,
+      "retention": 0.9943342776203966
+     },
+     "sdss_north": {
+      "auc": 0.9776316877532457,
+      "active": 0.9671710907136359,
+      "retention": 0.9952038369304557
+     },
+     "ps1_south": {
+      "auc": 0.9379964433906343,
+      "active": 0.9409772207638242,
+      "retention": 0.9877551020408163
+     },
+     "ps1_north": {
+      "auc": 0.9548498538400213,
+      "active": 0.9518924869974564,
+      "retention": 0.9899396378269618
+     }
+    },
+    "grid": {
+     "south_18.5": 0,
+     "south_21.0": 0,
+     "north_18.5": 0,
+     "north_21.0": 0
+    },
+    "min_auc_minus_active": -0.0029807773731899134,
+    "failed_panels": 0,
+    "min_qso_retention": 0.9877551020408163
+   },
+   {
+    "target_retention": 1.0,
+    "threshold": 0.0,
+    "panels": {
+     "all_south": {
+      "auc": 0.976644,
+      "active": 0.94467,
+      "retention": 1.0
+     },
+     "all_north": {
+      "auc": 0.973248,
+      "active": 0.94056,
+      "retention": 1.0
+     },
+     "legacy_optical_south": {
+      "auc": 0.9894,
+      "active": 0.97778,
+      "retention": 1.0
+     },
+     "legacy_optical_north": {
+      "auc": 0.991796,
+      "active": 0.98596,
+      "retention": 1.0
+     },
+     "sdss_south": {
+      "auc": 0.9819806664524985,
+      "active": 0.9761981250547589,
+      "retention": 1.0
+     },
+     "sdss_north": {
+      "auc": 0.9800297692880179,
+      "active": 0.9671710907136359,
+      "retention": 1.0
+     },
+     "ps1_south": {
+      "auc": 0.9446693200101618,
+      "active": 0.9409772207638242,
+      "retention": 1.0
+     },
+     "ps1_north": {
+      "auc": 0.959986333092897,
+      "active": 0.9518924869974564,
+      "retention": 1.0
+     }
+    },
+    "grid": {
+     "south_18.5": 1,
+     "south_21.0": 4,
+     "north_18.5": 1,
+     "north_21.0": 0
+    },
+    "min_auc_minus_active": 0.003692099246337621,
+    "failed_panels": 0,
+    "min_qso_retention": 1.0
+   }
+  ]
+ },
  "sep30_uncorrected_mag_dependent": {
   "current_threshold": 0.0234375,
   "sweep": [
