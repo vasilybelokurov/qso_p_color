@@ -1,0 +1,106 @@
+{
+ "definition": "Flag likely quasars in the stellar (non-QSO) training sample: known QSO, Gaia astrometry, WISE colour.\n\nCuts, applied to the prepared stellar rows of a unified run (extinction-corrected luptitudes, AB):\n  quaia   Gaia DR3 source_id in Quaia G<20 (Storey-Fisher et al. 2024, ApJ 964, 69,\n          https://doi.org/10.3847/1538-4357/ad1328), on top of the DESI DR1 + DR16Q removal already\n          done in the stellar preparation.\n  pm      DIAGNOSTIC ONLY, not used in the flag: Gaia DR3 astrometry consistent with zero motion\n          (proper-motion chi^2, 2 dof with the pmra/pmdec correlation, < PM_CHI2 and |parallax|/sigma < 3).\n          Measured on 3 October: 33-56% of such objects have stellar W1-W2 even with sigma_pm < 0.2-0.5\n          mas/yr (distant, slow halo stars), and the cut only reaches r < 21 where contamination is small,\n          so it removes stars about as often as quasars.\n  wise    Legacy W1-W2 > WISE_AB (AB; = 0.8 Vega, Stern et al. 2012, ApJ 753, 30,\n          https://doi.org/10.1088/0004-637X/753/1/30) with W1, W2 S/N >= 5, EXCEPT very red optical\n          objects (r-z > RED_RZ, AB), kept as brown-dwarf candidates.\nDiagnostic for stars removed by mistake: among flagged objects with W1, W2 S/N >= 5, the fraction\nwith stellar infrared colour (W1-W2 < 0.4 Vega); for the pm cut this measures how many removed\nobjects are stars with small motion rather than quasars.\n\nWrites <run>/stars/qso_flag.npy (bool, aligned with the prepared rows), <run>/stars/qso_flag_reason.npy\nand docs/stellar_qso_cleaning.json.\nUsage: python scripts/clean_stellar_qso_contamination.py [--run models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059]\n",
+ "pm_chi2": 11.83,
+ "wise_ab": 0.15999999999999992,
+ "red_rz": 2.0,
+ "bins": [
+  {
+   "bin": [
+    15.5,
+    18
+   ],
+   "n": 36945,
+   "gaia": 36347,
+   "quaia": 0.0007578833401001489,
+   "pm": 0.0013533631073216945,
+   "wise": 0.0010556232237109216,
+   "any": 0.0010826904858573555,
+   "pm_star_ir": 0.44,
+   "any_star_ir": 0.0
+  },
+  {
+   "bin": [
+    18,
+    19
+   ],
+   "n": 33874,
+   "gaia": 33156,
+   "quaia": 0.0038967940012989313,
+   "pm": 0.011778945503926315,
+   "wise": 0.005845191001948397,
+   "any": 0.005933754501977918,
+   "pm_star_ir": 0.5391849529780565,
+   "any_star_ir": 0.0
+  },
+  {
+   "bin": [
+    19,
+    20
+   ],
+   "n": 48284,
+   "gaia": 47317,
+   "quaia": 0.00981691657691989,
+   "pm": 0.042747079777980285,
+   "wise": 0.020669372877143568,
+   "any": 0.021249275122193687,
+   "pm_star_ir": 0.40372670807453415,
+   "any_star_ir": 0.0
+  },
+  {
+   "bin": [
+    20,
+    21
+   ],
+   "n": 68348,
+   "gaia": 59552,
+   "quaia": 0.00021946509041961726,
+   "pm": 0.11229297126470417,
+   "wise": 0.035816702756481536,
+   "any": 0.035816702756481536,
+   "pm_star_ir": 0.5577483015205436,
+   "any_star_ir": 0.0
+  },
+  {
+   "bin": [
+    21,
+    22
+   ],
+   "n": 95208,
+   "gaia": 11580,
+   "quaia": 0.0,
+   "pm": 0.005020586505335686,
+   "wise": 0.047632551886396104,
+   "any": 0.047632551886396104,
+   "pm_star_ir": 0.8574712643678161,
+   "any_star_ir": 0.0
+  },
+  {
+   "bin": [
+    22,
+    23
+   ],
+   "n": 148327,
+   "gaia": 110,
+   "quaia": 0.0,
+   "pm": 0.0,
+   "wise": 0.039197179205404276,
+   "any": 0.039197179205404276,
+   "pm_star_ir": NaN,
+   "any_star_ir": 0.0
+  },
+  {
+   "bin": [
+    23,
+    24.5
+   ],
+   "n": 219880,
+   "gaia": 0,
+   "quaia": 0.0,
+   "pm": 0.0,
+   "wise": 0.03024831726396216,
+   "any": 0.03024831726396216,
+   "pm_star_ir": NaN,
+   "any_star_ir": 0.0
+  }
+ ]
+}
