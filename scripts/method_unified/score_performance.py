@@ -20,6 +20,7 @@ Usage::
 South then North, S/N >= S; that band also becomes the reference). Objects below it are not scored,
 as in the scorer, and are left out of the output; the saved bundles are not changed.
 ``--panels main`` restricts the run to the listed panels; row selection is unchanged.
+``--bundles independent=DIR dependent=DIR`` scores other bundles (e.g. test bundles) on the same rows.
 """
 import os
 for _k in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
@@ -70,11 +71,11 @@ def select(data, n, seed, excluded, z_range=None):
 
 
 def task(args):
-    model_name, kind, rows, z, mask_name, path, faint = args
+    model_name, kind, rows, z, mask_name, path, faint, pointers = args
     from validate_unified_pilot import run_unified
     from qso_pcolor.unified import UnifiedPSFModel
     if model_name not in _model:
-        _model[model_name] = UnifiedPSFModel.load(POINTERS[model_name])
+        _model[model_name] = UnifiedPSFModel.load(pointers[model_name])
         if faint is not None:
             _model[model_name].base.model.meta['faint_limit'] = dict(bands=list(FAINT_BANDS), min_snr=float(faint))
     model = _model[model_name]; data = arrays(ROOTS['independent'], kind); bands = model.base.model.transform.bands
@@ -99,11 +100,13 @@ def main():
     parser.add_argument('--smoke', action='store_true', help='tiny panels to test the pipeline')
     parser.add_argument('--faint-limit', type=float, help='Legacy r S/N limit applied at run time')
     parser.add_argument('--panels', nargs='*', default=['main', 'zgrid', 'masks'])
+    parser.add_argument('--bundles', nargs='*', default=[], help='name=bundle_dir overrides of the promoted pointers')
     args = parser.parse_args(); out = args.out; out.mkdir(parents=True, exist_ok=True)
     global CHUNK
     if args.smoke:
         SIZES.update(main=12, zgrid=4, masks=4); CHUNK = 8
     root = Path(ROOTS['independent']); cfg = json.loads((root/'config.json').read_text())
+    pointers = dict(POINTERS, **dict(b.split('=', 1) for b in args.bundles))
     excluded = excluded_rows(root)
     for r in ROOTS.values():                       # release-check rows chose the support threshold
         with np.load(Path(r)/'release'/'test_rows.npz') as t:
@@ -140,7 +143,7 @@ def main():
                             else:
                                 z = np.resize(qz, len(rr))[c:c+CHUNK]
                             name = f'{model_name}_{kind}_{panel}_{h}' + (f'_z{zval}' if zval else '') + (f'_{mask}' if mask else '') + f'_{c:06d}.npz'
-                            jobs.append((model_name, kind, part, z, mask, str(out/name), args.faint_limit))
+                            jobs.append((model_name, kind, part, z, mask, str(out/name), args.faint_limit, pointers))
     np.save(out/'job_count.npy', len(jobs))
     print('JOBS', len(jobs), flush=True)
     with ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('spawn')) as pool:
@@ -149,7 +152,7 @@ def main():
             path, n = future.result(); done += 1
             print('DONE', done, Path(path).name, n, flush=True)
     (out/'complete.json').write_text(json.dumps(dict(jobs=len(jobs), support_threshold=support['threshold'],
-        faint_limit=args.faint_limit, panels=args.panels,
+        faint_limit=args.faint_limit, panels=args.panels, bundles=pointers,
         excluded={k: int(len(v)) for k, v in excluded.items()}, z_grid=Z_GRID, masks=list(MASKS))))
     print('ALL COMPLETE', flush=True)
 
