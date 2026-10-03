@@ -93,6 +93,12 @@ class PSFMultiSurveyBaseline:
         reason = np.full(n, "", dtype="<U64")
         reason[morph != "point"] = "non_psf_not_scored"
         reason[(morph == "point") & ~accepted] = "outside_latitude"
+        limit = self.model.faint_limit_status(photometry)
+        if limit is not None:
+            has, bright = limit[0], limit[1]
+            reason[accepted & ~has] = "no_faint_limit_band"
+            reason[accepted & has & ~bright] = "too_faint"
+            accepted &= has & bright
         indices = np.flatnonzero(accepted)
         output = [None] * n
         eligible = np.zeros(n, bool)

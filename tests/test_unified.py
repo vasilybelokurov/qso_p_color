@@ -86,3 +86,20 @@ def test_full_native_layout_preserves_other_surveys_and_joint_roundtrip():
         assert view.log_prob(view.means,np.eye(41)*.01,observed=one)[0]==pytest.approx(expected)
     obs=np.zeros((1,41),bool);obs[0,[0,10,13,15,36]]=True
     assert np.isfinite(view.log_prob(view.means,np.eye(41)*.01,observed=obs)).all()
+
+
+def test_faint_limit_band_sets_reference_and_flags_faint_or_missing():
+    import dataclasses
+    model = fixture_model(); model = dataclasses.replace(model, meta=dict(model.meta, faint_limit=dict(bands=['sdss:i', 'sdss:r'], min_snr=10.)))
+    # rows: i bright; i faint; i missing & r bright; nothing in limit bands
+    flux = np.array([[50., 50., 50.], [50., 50., 5.], [50., 50., 0.], [50., 0., 0.]])
+    var = np.ones((4, 3)); var[2, 2] = np.inf; var[3, 1:] = np.inf
+    p = Photometry(flux, var, model.transform.bands)
+    has, bright, band = model.faint_limit_status(p)
+    np.testing.assert_array_equal(has, [True, True, True, False])
+    np.testing.assert_array_equal(bright, [True, False, True, False])
+    np.testing.assert_array_equal(band, [2, 2, 1, -1])
+    np.testing.assert_array_equal(model.reference_indices(p)[:3], [2, 2, 1])   # limit band is the reference
+    assert fixture_model().faint_limit_status(p) is None                          # undeclared: unchanged behaviour
+    with pytest.raises(ValueError, match='faint_limit'):
+        dataclasses.replace(model, meta=dict(model.meta, faint_limit=dict(bands=['vhs:j'], min_snr=10.)))

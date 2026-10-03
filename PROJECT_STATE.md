@@ -1,5 +1,19 @@
 # Current project state
 
+**PI DECISIONS (3 October).**
+1. Faint limit: train and score only objects with Legacy r S/N >= 10 (South r if observed, else North;
+   sigma_r <~ 0.11 mag; about r 24.1 South / 22.9 North). Fainter objects are flagged "too faint to
+   classify", not scored. Evidence: `scripts/method_unified/snr_cut_check.py`,
+   `plots/method_unified/F17_snr_cut_check.png` (QSO recall at p_Q>0.5 is 19-30% below S/N 10; 2.3% of
+   test QSOs lie there). NOT YET IMPLEMENTED. Note `reference_min_snr` only chooses the reference band;
+   it is not this cut.
+2. Stellar (background) model: binned XD in Legacy r (XDQSO design) is the chosen direction.
+   Light test `scripts/method_unified/test_background_designs.py`, run
+   `models/multisurvey_psf/work/background_designs/test1`: binned beats the current joint background in
+   every r bin (paired +4.70+-0.07 nat at 15.5-17 to +0.01 at 23-24.5) and beats tied shapes everywhere;
+   tied is worse than current at r>22. Role-3 rows in that run's rows.npz (stop/eval) must be excluded
+   from later final assessments. Next: scorer-level test, then full stellar refit only with user go.
+
 **NEW METHOD NOTE DRAFTED (2 October): `docs/method_unified/method_unified.tex` (20 pp, builds clean).**
 Sections and 16 figures agreed with the user, all drawn from the promoted bundles by
 `scripts/method_unified/`. The old note `docs/method/method.tex` is retired, unchanged.

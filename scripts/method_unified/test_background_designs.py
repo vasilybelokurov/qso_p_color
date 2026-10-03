@@ -27,6 +27,11 @@ Usage (from the repository root)::
     python scripts/method_unified/test_background_designs.py binned  --out ... --workers 8
     python scripts/method_unified/test_background_designs.py tied    --out ... --workers 10
     python scripts/method_unified/test_background_designs.py score   --out ...
+
+Larger run with the PI faint limit (Legacy r S/N >= 10), excluding an earlier run's held-out rows::
+
+    python scripts/method_unified/test_background_designs.py prepare --out .../test2 --rows-per-bin 50000 --snr-min 10 --exclude .../test1/rows.npz
+    python scripts/method_unified/test_background_designs.py binned  --out .../test2 --bins 0 2 4 6
 """
 import os
 for _k in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
@@ -60,32 +65,37 @@ def setup():
     d = arrays(ROOT, 'stars'); lab = layout['native_labels']; s, n = lab.index(S), lab.index(N)
     obs = np.asarray(d['observed'][:, [s, n]]); y = np.asarray(d['y'][:, [s, n]])
     r = np.where(obs[:, 0], y[:, 0], np.where(obs[:, 1], y[:, 1], np.nan)); anchor = np.where(obs[:, 0], s, n)
+    v = np.asarray(d['noise'][:, [s, n]]); snr = 1.0857/np.sqrt(np.where(obs[:, 0], v[:, 0], v[:, 1]))
     t = magnitude_colour_matrix(layout['latent_labels'], 'legacy:r'); k = layout['latent_labels'].index('legacy:r')
     h, b, tt = operator(layout, 'stars'); op = (h @ np.linalg.inv(t), b, tt)
     current = GaussianMixture.from_dict(json.loads((ROOT/'bundle'/'latent.json').read_text())['background'])
     current_u = GaussianMixture(current.weights, current.means @ t.T, t @ current.covs @ t.T)
-    return cfg, layout, d, r, anchor, op, k, current_u
+    return cfg, layout, d, r, anchor, op, k, current_u, snr
 
 
 def bin_of(r):
     return np.clip(np.searchsorted(EDGES, r, side='right') - 1, 0, len(EDGES) - 2)
 
 
-def prepare(out):
-    cfg, layout, d, r, anchor, op, k, cur = setup(); rng = np.random.default_rng(20261003)
-    role, ok = np.asarray(d['role']), np.asarray(d['eligible']) & np.isfinite(r)
+def prepare(out, rows_per_bin=ROWS_PER_BIN, snr_min=0., exclude=None):
+    cfg, layout, d, r, anchor, op, k, cur, snr = setup(); rng = np.random.default_rng(20261003)
+    role, ok = np.asarray(d['role']), np.asarray(d['eligible']) & np.isfinite(r) & (snr >= snr_min)
     panel = np.load(ROOT/'stopping'/'stars_00.npz')['rows']
     pool = ok & np.isin(role, cfg['fit_roles']); held = ok & (role == 3); held[panel] = False
+    if exclude is not None:
+        for v in np.load(exclude).values():
+            held[v] = False
     sets = dict(train=[], stop=[], eval=[]); counts = []
     for j, (lo, hi) in enumerate(zip(EDGES[:-1], EDGES[1:])):
         inb = (r >= lo) & (r < hi); a = np.flatnonzero(pool & inb); hh = np.flatnonzero(held & inb)
-        tr = rng.choice(a, min(ROWS_PER_BIN, len(a)), replace=False); hh = rng.permutation(hh)
+        tr = rng.choice(a, min(rows_per_bin, len(a)), replace=False); hh = rng.permutation(hh)
         sets['train'].append(tr); sets['stop'].append(hh[:STOP_PER_BIN]); sets['eval'].append(hh[STOP_PER_BIN:STOP_PER_BIN + EVAL_PER_BIN])
         counts.append(dict(bin=[lo, hi], pool=int(len(a)), train=int(len(tr)), held=int(len(hh)),
                            stop=int(len(sets['stop'][-1])), eval=int(len(sets['eval'][-1]))))
     out.mkdir(parents=True, exist_ok=True)
     np.savez(out/'rows.npz', **{key: np.sort(np.concatenate(v)) for key, v in sets.items()})
     (out/'prepare.json').write_text(json.dumps(dict(root=str(ROOT), edges=EDGES, overlap=OVERLAP, node_sigma=NODE_SIGMA,
+        rows_per_bin=rows_per_bin, snr_min=snr_min, exclude=None if exclude is None else str(exclude),
         counts=counts, note='stop/eval rows are role 3: exclude from later final assessments'), indent=1))
     for c in counts:
         print(c)
@@ -128,12 +138,12 @@ def fit_blocks(rows, init, op, cfg, workers, score, label, **constraint):
     return best, trace
 
 
-def fit_binned(out, workers):
-    cfg, layout, d, r, anchor, op, k, cur = setup(); sets = dict(np.load(out/'rows.npz')); res = []
+def fit_binned(out, workers, bins=None):
+    cfg, layout, d, r, anchor, op, k, cur, snr = setup(); sets = dict(np.load(out/'rows.npz'))
     train = sets['train']; stop = sets['stop']
     for j, (lo, hi) in enumerate(zip(EDGES[:-1], EDGES[1:])):
         path = out/f'binned_{j}.json'
-        if path.exists():
+        if path.exists() or (bins is not None and j not in bins):
             continue
         rows = train[(r[train] >= lo - OVERLAP) & (r[train] < hi + OVERLAP)]
         srows = stop[bin_of(r[stop]) == j]
@@ -154,7 +164,7 @@ def tied_init(cur, k):
 
 
 def fit_tied(out, workers):
-    cfg, layout, d, r, anchor, op, k, cur = setup(); sets = dict(np.load(out/'rows.npz'))
+    cfg, layout, d, r, anchor, op, k, cur, snr = setup(); sets = dict(np.load(out/'rows.npz'))
     init, group, nodes = tied_init(cur, k)
     score = lambda m: float(np.mean([heldout(lambda rr: [(np.ones(len(rr), bool), native_mixture(m, *op))],
                                              sets['stop'][bin_of(r[sets['stop']]) == j], d, anchor, r).mean()
@@ -167,7 +177,7 @@ def fit_tied(out, workers):
 
 def load_models(out):
     """Name -> function(r array) -> list of (row mask, native mixture)."""
-    cfg, layout, d, r, anchor, op, k, cur = setup(); nb = len(EDGES) - 1
+    cfg, layout, d, r, anchor, op, k, cur, snr = setup(); nb = len(EDGES) - 1
     models = dict(current=lambda rr: [(np.ones(len(rr), bool), native_mixture(cur, *op))])
     if all((out/f'binned_{j}.json').exists() for j in range(nb)):
         bins = [native_mixture(GaussianMixture.from_dict(json.loads((out/f'binned_{j}.json').read_text())['mixture_u']), *op)
@@ -202,8 +212,10 @@ def score_all(out):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('step', choices=('prepare', 'binned', 'tied', 'score')); p.add_argument('--out', type=Path, required=True)
-    p.add_argument('--workers', type=int, default=8); a = p.parse_args()
-    dict(prepare=lambda: prepare(a.out), binned=lambda: fit_binned(a.out, a.workers), tied=lambda: fit_tied(a.out, a.workers),
+    p.add_argument('--workers', type=int, default=8); p.add_argument('--rows-per-bin', type=int, default=ROWS_PER_BIN)
+    p.add_argument('--snr-min', type=float, default=0.); p.add_argument('--exclude', type=Path)
+    p.add_argument('--bins', type=int, nargs='*'); a = p.parse_args()
+    dict(prepare=lambda: prepare(a.out, a.rows_per_bin, a.snr_min, a.exclude), binned=lambda: fit_binned(a.out, a.workers, a.bins), tied=lambda: fit_tied(a.out, a.workers),
          score=lambda: score_all(a.out))[a.step]()
 
 

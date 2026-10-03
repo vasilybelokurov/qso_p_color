@@ -278,6 +278,11 @@ class MultiSurveyModel:
             if (not marginal.labels or len(set(marginal.labels)) != marginal.n_dim or
                     not set(marginal.labels) <= set(self.transform.bands)):
                 raise ValueError("background marginal must have unique model band labels")
+        limit = self.meta.get("faint_limit")
+        if limit is not None:
+            if (not limit.get("bands") or not set(limit["bands"]) <= set(self.transform.bands)
+                    or not np.isfinite(limit.get("min_snr", np.nan)) or limit["min_snr"] <= 0):
+                raise ValueError("faint_limit needs model bands and a positive finite min_snr")
         if self.spatial_background is not None:
             if self.legacy_field_fits:
                 raise ValueError("spatial backgrounds require the single joint field model")
@@ -401,6 +406,26 @@ class MultiSurveyModel:
                     bands_used=used, surveys_used=tuple(sorted({survey_of(b) for b in used})))
         return result
 
+    def faint_limit_status(self, photometry: Photometry):
+        """Apply ``meta['faint_limit']`` = dict(bands=[...], min_snr=s); None when undeclared.
+
+        The limit band is the first observed band of ``bands`` (Legacy South r, then
+        North r). Returns (has_band, bright_enough, band index or -1). S/N is flux over its
+        standard error, unchanged by a multiplicative extinction correction.
+        """
+        limit = self.meta.get("faint_limit")
+        if limit is None:
+            return None
+        p = photometry.align(self.transform.bands)
+        order = np.array([self.transform.bands.index(b) for b in limit["bands"]])
+        available = p.observed[:, order]; has = available.any(axis=1)
+        band = np.where(has, order[np.argmax(available, axis=1)], -1)
+        rows = np.flatnonzero(has)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            snr = p.flux[rows, band[rows]] / np.sqrt(p.variance[rows, band[rows]])
+        bright = np.zeros(len(has), bool); bright[rows] = snr >= limit["min_snr"]
+        return has, bright, band
+
     def reference_indices(self, photometry: Photometry) -> np.ndarray:
         """Choose a measured reference, preferring configured S/N when available.
 
@@ -417,7 +442,13 @@ class MultiSurveyModel:
             with np.errstate(invalid="ignore", divide="ignore"):
                 strong = available & (p.flux[:, order] / np.sqrt(p.variance[:, order]) >= threshold)
             available = np.where(strong.any(axis=1)[:, None], strong, available)
-        return order[np.argmax(available, axis=1)]
+        reference = order[np.argmax(available, axis=1)]
+        limit = self.faint_limit_status(p)
+        if limit is not None:
+            # The faint-limit band is also the reference, so magnitude-binned components and
+            # the QSO model condition on the same measured magnitude.
+            reference = np.where(limit[0], limit[2], reference)
+        return reference
 
     def to_dict(self) -> dict:
         return dict(kind="multisurvey_conditional_photometry", version=3,

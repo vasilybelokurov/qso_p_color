@@ -149,3 +149,14 @@ def test_zero_count_bins_are_merged_without_changing_the_total(monkeypatch):
     counts = np.histogram(values, edges)[0]
     assert (counts > 0).all() and counts.sum() == len(values)
     assert edges[0] == 0. and edges[-1] == 6.
+
+
+def test_faint_limit_excludes_faint_and_missing_limit_band_before_scoring():
+    model = baseline()
+    model.model.meta["faint_limit"] = dict(bands=["decals_dr9_south:r", "decals_dr9_north:r"], min_snr=10.)
+    bands = ("decals_dr9_south:r", "allwise:w2")
+    phot = Photometry([[100., 3.], [5., 3.], [np.nan, 3.]], [[1., .01], [1., .01], [np.inf, .01]], bands)
+    scores, decision = model.score(phot, morphology=["PSF"]*3, **kwargs())
+    assert decision["reason"][1] == "too_faint" and decision["reason"][2] == "no_faint_limit_band"
+    assert scores[1] is None and scores[2] is None and not decision["eligible"][1:].any()
+    assert decision["accepted"].tolist() == [True, False, False]
