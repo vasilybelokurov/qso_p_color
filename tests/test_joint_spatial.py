@@ -98,3 +98,23 @@ def test_parent_and_global_fallback_are_distinct():
     weights, share = sky.evaluate(l, b)
     assert np.allclose(weights, [[.65, .35], [.5, .5]])
     assert np.array_equal(share, [.5, 0.])
+
+
+def test_softmax_gate_recovers_sky_trend_and_tabulates_for_the_scorer():
+    from qso_pcolor.gaussmix import GaussianMixture
+    from qso_pcolor.joint_spatial import fit_softmax_gate, gate_weights, gate_to_spatial_weights
+    rng = np.random.default_rng(3); n = 6000
+    l = rng.uniform(0, 360, n); b = rng.choice([-1, 1], n) * rng.uniform(25, 90, n)
+    true = 1 / (1 + np.exp(-(1/np.sin(np.deg2rad(np.abs(b))) - 1.6) * 3))   # share of component 0 rises toward the plane
+    comp = (rng.uniform(size=n) > true).astype(int)
+    x = np.where(comp == 0, rng.normal(0, 1, n), rng.normal(4, 1, n))
+    lp = np.column_stack([-.5*x**2, -.5*(x - 4)**2]) - .5*np.log(2*np.pi)
+    gate = fit_softmax_gate(lp, l, b, np.array([.5, .5]), ridge=1e-3, max_iter=500)
+    w = gate_weights(gate, l, b)
+    assert np.corrcoef(w[:, 0], true)[0, 1] > .95
+    s = gate_to_spatial_weights(gate, nside=16, min_abs_b_deg=25., meta={})
+    tab = s.evaluate(l, b)[0]
+    assert np.abs(tab - w).max() < .1 and np.allclose(tab.sum(axis=1), 1)
+    mix = GaussianMixture(np.array([.5, .5]), np.array([[0.], [4.]]), np.ones((2, 1, 1)))
+    rows = sum(len(r) for r, _, _ in s.groups(mix, l, b))
+    assert rows == n

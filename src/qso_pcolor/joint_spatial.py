@@ -181,3 +181,76 @@ def fit_local_joint_weights(mixture: GaussianMixture, spatial: JointSpatialWeigh
         fraction * weights + (1 - fraction) * initial,
         meta=dict(meta, weight_fits=[info], local_scope=dict(l_deg=l_deg, b_deg=b_deg,
                                                           radius_deg=radius_deg)))
+
+
+GATE_FEATURES = ("csc|b|", "cos l", "sin l", "csc|b| cos l", "sign b")
+
+
+def gate_features(l_deg, b_deg, centre=None):
+    """Smooth sky features for component-weight gating, centred on ``centre`` (training mean).
+
+    ``csc|b|`` tracks the disc column through a plane-parallel layer; ``cos l``, ``sin l`` and
+    ``csc|b| cos l`` the Galactic-centre direction; ``sign b`` the north/south asymmetry.
+    """
+    l, b = np.deg2rad(np.asarray(l_deg, float)), np.deg2rad(np.asarray(b_deg, float))
+    cs = 1 / np.sin(np.abs(b))
+    f = np.column_stack([cs, np.cos(l), np.sin(l), cs * np.cos(l), np.sign(b)])
+    centre = f.mean(axis=0) if centre is None else np.asarray(centre, float)
+    return f - centre, centre
+
+
+def fit_softmax_gate(lp: np.ndarray, l_deg, b_deg, initial: np.ndarray, *, ridge: float = 1.,
+                     max_iter: int = 2000) -> dict:
+    """Maximum-likelihood weights w_k(l, b) = softmax_k(a_k + f(l, b) . beta_k) with fixed shapes.
+
+    ``lp`` (objects, components) are noise-convolved component log densities without weights.
+    The L2 penalty ``ridge`` acts on ``beta`` only. Returns a, beta, centre and the optimiser record.
+    """
+    from scipy.optimize import minimize
+    from scipy.special import logsumexp
+    lp = np.asarray(lp, float); k = lp.shape[1]
+    f, centre = gate_features(l_deg, b_deg); nf = f.shape[1]
+    e = np.exp(lp - lp.max(axis=1, keepdims=True))
+
+    def objective(theta):
+        a, beta = theta[:k], theta[k:].reshape(nf, k)
+        logits = a + f @ beta
+        w = np.exp(logits - logsumexp(logits, axis=1, keepdims=True))
+        num = w * e; den = num.sum(axis=1)
+        g = w - num / den[:, None]
+        return (-np.log(den).sum() + .5 * ridge * (beta ** 2).sum(),
+                np.concatenate([g.sum(axis=0), (f.T @ g + ridge * beta).ravel()]))
+    theta0 = np.concatenate([np.log(np.maximum(initial, 1e-12)), np.zeros(nf * k)])
+    res = minimize(objective, theta0, jac=True, method="L-BFGS-B", options=dict(maxiter=max_iter))
+    return dict(a=res.x[:k], beta=res.x[k:].reshape(nf, k), centre=centre, features=GATE_FEATURES,
+                ridge=ridge, n_iter=int(res.nit), converged=bool(res.success), message=str(res.message),
+                objective_per_row=float(res.fun / len(lp)))
+
+
+def gate_weights(gate: dict, l_deg, b_deg) -> np.ndarray:
+    """Row-wise component proportions of a fitted softmax gate."""
+    from scipy.special import softmax
+    f, _ = gate_features(l_deg, b_deg, gate["centre"])
+    return softmax(np.asarray(gate["a"]) + f @ np.asarray(gate["beta"]), axis=1)
+
+
+def gate_to_spatial_weights(gate: dict, *, nside: int, min_abs_b_deg: float, meta: dict) -> JointSpatialWeights:
+    """Tabulate a softmax gate at NESTED nside pixel centres as a JointSpatialWeights.
+
+    Every pixel whose centre lies at |b| >= min_abs_b_deg - pixel size is filled; its weights are
+    used without pooling (effective count 1e15 with n0 = 1). Global weights are the gate at the
+    training-mean features. This keeps the scorer unchanged; the gate is piecewise constant at the
+    pixel scale (nside 16: 3.7 deg).
+    """
+    from scipy.special import softmax
+    npix = hp.nside2npix(nside); pix = np.arange(npix)
+    l, b = hp.pix2ang(nside, pix, nest=True, lonlat=True)
+    size = np.rad2deg(hp.nside2resol(nside))
+    use = np.abs(b) >= min_abs_b_deg - size
+    w = gate_weights(gate, l[use], b[use])
+    cells = {int(p): v / v.sum() for p, v in zip(pix[use], w)}
+    glob = softmax(np.asarray(gate["a"]))
+    return JointSpatialWeights(nside, nside, 1., glob, cells=cells, counts={p: 1e15 for p in cells},
+                               meta=dict(meta, kind="softmax gate tabulated at pixel centres",
+                                         gate={k: (np.asarray(v).tolist() if hasattr(v, "__len__") and not isinstance(v, str) else v)
+                                               for k, v in gate.items()}))

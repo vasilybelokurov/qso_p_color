@@ -12,7 +12,15 @@
    `models/multisurvey_psf/work/background_designs/test1`: binned beats the current joint background in
    every r bin (paired +4.70+-0.07 nat at 15.5-17 to +0.01 at 23-24.5) and beats tied shapes everywhere;
    tied is worse than current at r>22. Role-3 rows in that run's rows.npz (stop/eval) must be excluded
-   from later final assessments. Next: scorer-level test, then full stellar refit only with user go.
+   from later final assessments.
+3. (3 October, later) Stellar training sample cleaned of likely QSOs (Quaia + WISE W1-W2 > 0.8 Vega;
+   Gaia zero-motion cut rejected as it removes slow halo stars). Cleaned binned background in the real
+   scorer: QSO recall 0.834 -> 0.882, false-QSO rate unchanged once flagged QSOs are removed from the
+   test background, AUC -0.002 (accepted by PI).
+4. STANDING AUTHORIZATION (3 October): PI asked to proceed through the agreed sequence WITHOUT waiting
+   for confirmation: (1) sky-weight test, (2) full cleaned binned stellar refit, (3) completion of both
+   bundles + support check + release checks, (4) probability calibration, (5) method-note update.
+   Promotion of new bundles to `current` is NOT covered: ask before changing pointers.
 
 **NEW METHOD NOTE DRAFTED (2 October): `docs/method_unified/method_unified.tex` (20 pp, builds clean).**
 Sections and 16 figures agreed with the user, all drawn from the promoted bundles by
