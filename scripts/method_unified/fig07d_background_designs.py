@@ -8,7 +8,8 @@ background, binned XD (bin containing that r), tied colour shapes. Contours encl
 fraction inside them (ideal 0.50/0.90) and the fraction of model draws landing in colour cells
 (45x45 grid) that contain no data.
 
-Usage: python scripts/method_unified/fig07d_background_designs.py [models/multisurvey_psf/work/background_designs/test1]
+Usage: python scripts/method_unified/fig07d_background_designs.py [designs_dir [output_tag]]
+(default designs test1, tag F07d_background_designs)
 """
 import json
 from pathlib import Path
@@ -21,6 +22,7 @@ import fig07_09_colour_colour as F
 from test_background_designs import load_models
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else 'models/multisurvey_psf/work/background_designs/test1')
+TAG = sys.argv[2] if len(sys.argv) > 2 else 'F07d_background_designs'
 EDGE = dict(current='#5c5c57', binned=COLOURS['background'], tied='#b5562b')
 
 
@@ -61,9 +63,9 @@ def main():
                 ax.set_xlabel(F.AXIS[plane][0])
     fig.suptitle('Background objects (grey) and background models: ' + ', '.join(names) + '; all-sky weights', fontsize=9.5)
     fig.tight_layout(rect=(0, 0, 1, .985))
-    Path('docs/method_unified/background_designs_test.json').write_text(json.dumps(dict(test=str(OUT), panels=report,
+    Path(f'docs/method_unified/{TAG}.json' if TAG != 'F07d_background_designs' else 'docs/method_unified/background_designs_test.json').write_text(json.dumps(dict(test=str(OUT), panels=report,
         score=json.loads((OUT/'score.json').read_text()) if (OUT/'score.json').exists() else None), indent=1))
-    print(save_figure(fig, 'method_unified/F07d_background_designs'))
+    print(save_figure(fig, f'method_unified/{TAG}'))
     for e in report:
         print(e['plane'], e['bin'], e['model'], round(e['inside50'], 2), round(e['inside90'], 2), round(e['draws_in_empty'], 3))
 
