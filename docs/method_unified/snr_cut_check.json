@@ -1,0 +1,404 @@
+{
+ "definition": "Classification performance against photometric S/N, to choose a training/scoring S/N limit.\n\nInput: the held-out performance scores of both promoted models (score_performance.py, main\npanel: clean role-3 QSOs and background objects). S/N = 1.0857/sigma with sigma the luptitude error\n(prepared noise, extinction corrected) of either the band the scorer used as reference ('reference';\nSDSS r has priority, so this tracks survey depth as much as brightness) or Legacy r ('legacy_r', South\nif observed else North; the magnitude the binned background model uses).\nPer S/N bin and model:\n  AUC         P(test QSO ranks above test background object on log R); unranked at the bottom.\n  incidence   fraction of background objects ranked with p_quasar > 0.5.\n  recall      fraction of QSOs ranked with p_quasar > 0.5.\n  n_qso/n_bkg objects in the bin (note: the background panel is not a random sample in S/N).\nAlso cumulative versions for objects with S/N >= threshold.\n\nUsage: python scripts/method_unified/snr_cut_check.py   (writes docs/method_unified/snr_cut_check.json,\nplots/method_unified/F17_snr_cut_check.png)\n",
+ "edges": [
+  5,
+  7,
+  10,
+  15,
+  20,
+  30,
+  50,
+  100,
+  null
+ ],
+ "models": {
+  "independent_reference": {
+   "per_bin": [
+    {
+     "n_qso": 1713,
+     "n_bkg": 14791,
+     "auc": 0.9445259919067712,
+     "incidence": 0.0013521736190926915,
+     "recall": 0.7139521307647402
+    },
+    {
+     "n_qso": 3875,
+     "n_bkg": 9656,
+     "auc": 0.9561731833123981,
+     "incidence": 0.002796188898094449,
+     "recall": 0.7481290322580645
+    },
+    {
+     "n_qso": 6449,
+     "n_bkg": 5172,
+     "auc": 0.9697757657589916,
+     "incidence": 0.005413766434648105,
+     "recall": 0.7889595286090867
+    },
+    {
+     "n_qso": 5086,
+     "n_bkg": 2142,
+     "auc": 0.9750511556044622,
+     "incidence": 0.010737628384687208,
+     "recall": 0.8328745576091231
+    },
+    {
+     "n_qso": 7422,
+     "n_bkg": 2057,
+     "auc": 0.976080519529177,
+     "incidence": 0.0106951871657754,
+     "recall": 0.8825114524386958
+    },
+    {
+     "n_qso": 8661,
+     "n_bkg": 1904,
+     "auc": 0.9807755584048652,
+     "incidence": 0.01365546218487395,
+     "recall": 0.9219489666320286
+    },
+    {
+     "n_qso": 5186,
+     "n_bkg": 2209,
+     "auc": 0.9836187531392192,
+     "incidence": 0.008601177003168854,
+     "recall": 0.9311608175858079
+    },
+    {
+     "n_qso": 1608,
+     "n_bkg": 2069,
+     "auc": 0.9941369758265223,
+     "incidence": 0.005799903334944417,
+     "recall": 0.9353233830845771
+    }
+   ],
+   "cumulative": {
+    "5": {
+     "n_qso": 40000,
+     "n_bkg": 40000,
+     "auc": 0.973442429375,
+     "incidence": 0.004425,
+     "recall": 0.85785
+    },
+    "7": {
+     "n_qso": 38287,
+     "n_bkg": 25209,
+     "auc": 0.9755879922387249,
+     "incidence": 0.006227934467848784,
+     "recall": 0.8642881395774022
+    },
+    "10": {
+     "n_qso": 34412,
+     "n_bkg": 15553,
+     "auc": 0.9782453530992282,
+     "incidence": 0.008358516041921173,
+     "recall": 0.8773683598744624
+    },
+    "15": {
+     "n_qso": 27963,
+     "n_bkg": 10381,
+     "auc": 0.980295257708451,
+     "incidence": 0.009825643001637607,
+     "recall": 0.8977577513142366
+    },
+    "20": {
+     "n_qso": 22877,
+     "n_bkg": 8239,
+     "auc": 0.9813577072802455,
+     "incidence": 0.009588542298822673,
+     "recall": 0.9121825414171438
+    }
+   }
+  },
+  "dependent_reference": {
+   "per_bin": [
+    {
+     "n_qso": 1713,
+     "n_bkg": 14791,
+     "auc": 0.9512585219795111,
+     "incidence": 0.0015549996619565953,
+     "recall": 0.7688266199649737
+    },
+    {
+     "n_qso": 3875,
+     "n_bkg": 9656,
+     "auc": 0.9553389368468878,
+     "incidence": 0.002796188898094449,
+     "recall": 0.7793548387096774
+    },
+    {
+     "n_qso": 6449,
+     "n_bkg": 5172,
+     "auc": 0.9698853620596465,
+     "incidence": 0.00580046403712297,
+     "recall": 0.8215227167002636
+    },
+    {
+     "n_qso": 5086,
+     "n_bkg": 2142,
+     "auc": 0.9775267821114552,
+     "incidence": 0.010737628384687208,
+     "recall": 0.8668895005898545
+    },
+    {
+     "n_qso": 7422,
+     "n_bkg": 2057,
+     "auc": 0.9807012538240842,
+     "incidence": 0.01166747690811862,
+     "recall": 0.9098625707356508
+    },
+    {
+     "n_qso": 8661,
+     "n_bkg": 1904,
+     "auc": 0.9889243192947424,
+     "incidence": 0.013130252100840336,
+     "recall": 0.945964669206789
+    },
+    {
+     "n_qso": 5186,
+     "n_bkg": 2209,
+     "auc": 0.9914134879625945,
+     "incidence": 0.009506564056133997,
+     "recall": 0.9527574238333976
+    },
+    {
+     "n_qso": 1608,
+     "n_bkg": 2069,
+     "auc": 0.9940541672978751,
+     "incidence": 0.005799903334944417,
+     "recall": 0.9558457711442786
+    }
+   ],
+   "cumulative": {
+    "5": {
+     "n_qso": 40000,
+     "n_bkg": 40000,
+     "auc": 0.9775470440625,
+     "incidence": 0.004625,
+     "recall": 0.8867
+    },
+    "7": {
+     "n_qso": 38287,
+     "n_bkg": 25209,
+     "auc": 0.9796559922730772,
+     "incidence": 0.006426276329882185,
+     "recall": 0.8919737770000261
+    },
+    "10": {
+     "n_qso": 34412,
+     "n_bkg": 15553,
+     "auc": 0.9828212676943403,
+     "incidence": 0.00867999742814891,
+     "recall": 0.9046553527839126
+    },
+    "15": {
+     "n_qso": 27963,
+     "n_bkg": 10381,
+     "auc": 0.9858037391759887,
+     "incidence": 0.010114632501685773,
+     "recall": 0.9238279154597147
+    },
+    "20": {
+     "n_qso": 22877,
+     "n_bkg": 8239,
+     "auc": 0.9875560103761387,
+     "incidence": 0.009952664158271635,
+     "recall": 0.9364864274161822
+    }
+   }
+  },
+  "independent_legacy_r": {
+   "per_bin": [
+    {
+     "n_qso": 228,
+     "n_bkg": 8307,
+     "auc": 0.9058377103225139,
+     "incidence": 0.00036114120621162876,
+     "recall": 0.19298245614035087
+    },
+    {
+     "n_qso": 692,
+     "n_bkg": 5012,
+     "auc": 0.9572642709520273,
+     "incidence": 0.0011971268954509178,
+     "recall": 0.3020231213872832
+    },
+    {
+     "n_qso": 2219,
+     "n_bkg": 3254,
+     "auc": 0.9597910901353982,
+     "incidence": 0.00645359557467732,
+     "recall": 0.5083370887787292
+    },
+    {
+     "n_qso": 2527,
+     "n_bkg": 1501,
+     "auc": 0.9645466536357373,
+     "incidence": 0.014656895403064623,
+     "recall": 0.6703601108033241
+    },
+    {
+     "n_qso": 4845,
+     "n_bkg": 1688,
+     "auc": 0.968635276510205,
+     "incidence": 0.015402843601895734,
+     "recall": 0.8208462332301342
+    },
+    {
+     "n_qso": 7620,
+     "n_bkg": 1753,
+     "auc": 0.9728791887323269,
+     "incidence": 0.021106674272675412,
+     "recall": 0.8900262467191601
+    },
+    {
+     "n_qso": 10252,
+     "n_bkg": 2080,
+     "auc": 0.9775843456436267,
+     "incidence": 0.01875,
+     "recall": 0.9308427623878268
+    },
+    {
+     "n_qso": 11481,
+     "n_bkg": 4209,
+     "auc": 0.9816556133555561,
+     "incidence": 0.00546448087431694,
+     "recall": 0.9509624597160526
+    }
+   ],
+   "cumulative": {
+    "5": {
+     "n_qso": 39864,
+     "n_bkg": 27804,
+     "auc": 0.9736957818141168,
+     "incidence": 0.006365990504963314,
+     "recall": 0.860300020068232
+    },
+    "7": {
+     "n_qso": 39636,
+     "n_bkg": 19497,
+     "auc": 0.9745122930303449,
+     "incidence": 0.008924449915371595,
+     "recall": 0.8641386618225855
+    },
+    "10": {
+     "n_qso": 38944,
+     "n_bkg": 14485,
+     "auc": 0.9751735708801414,
+     "incidence": 0.011598205039696238,
+     "recall": 0.8741269515201314
+    },
+    "15": {
+     "n_qso": 36725,
+     "n_bkg": 11231,
+     "auc": 0.9763544536210584,
+     "incidence": 0.013088772148517495,
+     "recall": 0.8962287270251872
+    },
+    "20": {
+     "n_qso": 34198,
+     "n_bkg": 9730,
+     "auc": 0.9772171304921758,
+     "incidence": 0.012846865364850977,
+     "recall": 0.9129188841452717
+    }
+   }
+  },
+  "dependent_legacy_r": {
+   "per_bin": [
+    {
+     "n_qso": 228,
+     "n_bkg": 8307,
+     "auc": 0.9608491781397638,
+     "incidence": 0.00048152160828217165,
+     "recall": 0.21929824561403508
+    },
+    {
+     "n_qso": 692,
+     "n_bkg": 5012,
+     "auc": 0.9800147276593978,
+     "incidence": 0.0007980845969672786,
+     "recall": 0.3901734104046243
+    },
+    {
+     "n_qso": 2219,
+     "n_bkg": 3254,
+     "auc": 0.9677098633830363,
+     "incidence": 0.007990165949600492,
+     "recall": 0.6128886885984678
+    },
+    {
+     "n_qso": 2527,
+     "n_bkg": 1501,
+     "auc": 0.9659327497536928,
+     "incidence": 0.015323117921385743,
+     "recall": 0.7443609022556391
+    },
+    {
+     "n_qso": 4845,
+     "n_bkg": 1688,
+     "auc": 0.9721730884920693,
+     "incidence": 0.01481042654028436,
+     "recall": 0.865015479876161
+    },
+    {
+     "n_qso": 7620,
+     "n_bkg": 1753,
+     "auc": 0.9742354688550412,
+     "incidence": 0.021106674272675412,
+     "recall": 0.9097112860892388
+    },
+    {
+     "n_qso": 10252,
+     "n_bkg": 2080,
+     "auc": 0.9805664326285303,
+     "incidence": 0.021153846153846155,
+     "recall": 0.9417674600078033
+    },
+    {
+     "n_qso": 11481,
+     "n_bkg": 4209,
+     "auc": 0.9884182299682625,
+     "incidence": 0.005226894749346638,
+     "recall": 0.96751154080655
+    }
+   ],
+   "cumulative": {
+    "5": {
+     "n_qso": 39864,
+     "n_bkg": 27804,
+     "auc": 0.9778089880503797,
+     "incidence": 0.006653718889368436,
+     "recall": 0.889198274132049
+    },
+    "7": {
+     "n_qso": 39636,
+     "n_bkg": 19497,
+     "auc": 0.9785895755597096,
+     "incidence": 0.009283479509668154,
+     "recall": 0.8930517711171662
+    },
+    "10": {
+     "n_qso": 38944,
+     "n_bkg": 14485,
+     "auc": 0.9791588787979177,
+     "incidence": 0.012219537452537108,
+     "recall": 0.9019874691865243
+    },
+    "15": {
+     "n_qso": 36725,
+     "n_bkg": 11231,
+     "auc": 0.9801389048921834,
+     "incidence": 0.013444929213783279,
+     "recall": 0.9194554118447924
+    },
+    "20": {
+     "n_qso": 34198,
+     "n_bkg": 9730,
+     "auc": 0.981193222925774,
+     "incidence": 0.0131551901336074,
+     "recall": 0.9323937072343412
+    }
+   }
+  }
+ }
+}
