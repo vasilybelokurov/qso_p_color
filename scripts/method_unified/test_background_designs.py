@@ -77,7 +77,7 @@ def bin_of(r):
     return np.clip(np.searchsorted(EDGES, r, side='right') - 1, 0, len(EDGES) - 2)
 
 
-def prepare(out, rows_per_bin=ROWS_PER_BIN, snr_min=0., exclude=None):
+def prepare(out, rows_per_bin=ROWS_PER_BIN, snr_min=0., exclude=None, drop_flagged=False):
     cfg, layout, d, r, anchor, op, k, cur, snr = setup(); rng = np.random.default_rng(20261003)
     role, ok = np.asarray(d['role']), np.asarray(d['eligible']) & np.isfinite(r) & (snr >= snr_min)
     panel = np.load(ROOT/'stopping'/'stars_00.npz')['rows']
@@ -85,6 +85,8 @@ def prepare(out, rows_per_bin=ROWS_PER_BIN, snr_min=0., exclude=None):
     if exclude is not None:
         for v in np.load(exclude).values():
             held[v] = False
+    if drop_flagged:                     # likely QSOs: clean_stellar_qso_contamination.py
+        flag = np.load(ROOT/'stars'/'qso_flag.npy'); pool &= ~flag; held &= ~flag
     sets = dict(train=[], stop=[], eval=[]); counts = []
     for j, (lo, hi) in enumerate(zip(EDGES[:-1], EDGES[1:])):
         inb = (r >= lo) & (r < hi); a = np.flatnonzero(pool & inb); hh = np.flatnonzero(held & inb)
@@ -95,7 +97,7 @@ def prepare(out, rows_per_bin=ROWS_PER_BIN, snr_min=0., exclude=None):
     out.mkdir(parents=True, exist_ok=True)
     np.savez(out/'rows.npz', **{key: np.sort(np.concatenate(v)) for key, v in sets.items()})
     (out/'prepare.json').write_text(json.dumps(dict(root=str(ROOT), edges=EDGES, overlap=OVERLAP, node_sigma=NODE_SIGMA,
-        rows_per_bin=rows_per_bin, snr_min=snr_min, exclude=None if exclude is None else str(exclude),
+        rows_per_bin=rows_per_bin, snr_min=snr_min, exclude=None if exclude is None else str(exclude), drop_flagged=drop_flagged,
         counts=counts, note='stop/eval rows are role 3: exclude from later final assessments'), indent=1))
     for c in counts:
         print(c)
@@ -214,8 +216,9 @@ def main():
     p.add_argument('step', choices=('prepare', 'binned', 'tied', 'score')); p.add_argument('--out', type=Path, required=True)
     p.add_argument('--workers', type=int, default=8); p.add_argument('--rows-per-bin', type=int, default=ROWS_PER_BIN)
     p.add_argument('--snr-min', type=float, default=0.); p.add_argument('--exclude', type=Path)
-    p.add_argument('--bins', type=int, nargs='*'); a = p.parse_args()
-    dict(prepare=lambda: prepare(a.out, a.rows_per_bin, a.snr_min, a.exclude), binned=lambda: fit_binned(a.out, a.workers, a.bins), tied=lambda: fit_tied(a.out, a.workers),
+    p.add_argument('--bins', type=int, nargs='*'); p.add_argument('--drop-flagged', action='store_true')
+    a = p.parse_args()
+    dict(prepare=lambda: prepare(a.out, a.rows_per_bin, a.snr_min, a.exclude, a.drop_flagged), binned=lambda: fit_binned(a.out, a.workers, a.bins), tied=lambda: fit_tied(a.out, a.workers),
          score=lambda: score_all(a.out))[a.step]()
 
 

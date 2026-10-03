@@ -19,7 +19,7 @@ import fig12_14_performance as P
 
 RUNS = dict(current=Path('models/multisurvey_psf/work/method_unified/performance_faint10'),
             binned=Path('models/multisurvey_psf/work/method_unified/performance_binned'))
-LIGHT = [Path('models/multisurvey_psf/work/background_designs')/t/'rows.npz' for t in ('test1', 'test2')]
+LIGHT = [Path('models/multisurvey_psf/work/background_designs')/t/'rows.npz' for t in ('test1', 'test2', 'test3')]
 MAG = [15.5, 18, 19, 20, 21, 22, 23, 24.5]
 
 
@@ -29,7 +29,11 @@ def metrics(q, b):
 
 
 def main():
-    used = np.unique(np.concatenate([v for f in LIGHT for v in np.load(f).values()]))
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__); ap.add_argument('--binned', type=Path, default=RUNS['binned'])
+    ap.add_argument('--json', type=Path, default=Path('docs/method_unified/binned_bundle_comparison.json')); args = ap.parse_args()
+    RUNS['binned'] = args.binned
+    used = np.unique(np.concatenate([v for f in LIGHT if f.exists() for v in np.load(f).values()]))
     report = dict(definition=__doc__, removed_light_test_rows=int(len(used)), models={})
     for model in P.MODELS:
         sc = {}
@@ -57,7 +61,7 @@ def main():
         for c, bn in zip(rep['current']['by_mag'], rep['binned']['by_mag']):
             print(f"   {c['bin'][0]:5.1f}-{c['bin'][1]:4.1f}: {c['auc']:.4f}/{bn['auc']:.4f}  {c['incidence']:.4f}/{bn['incidence']:.4f}"
                   f"  {c['recall']:.3f}/{bn['recall']:.3f}  ({c['n_qso']}, {c['n_bkg']})")
-    Path('docs/method_unified/binned_bundle_comparison.json').write_text(json.dumps(report, indent=1, default=float))
+    args.json.write_text(json.dumps(report, indent=1, default=float))
 
 
 if __name__ == '__main__':
