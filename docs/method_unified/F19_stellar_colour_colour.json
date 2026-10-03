@@ -1,5 +1,5 @@
 {
- "definition": "F19: stellar colour-colour density in magnitude bins, data vs the stellar (background) model.\n\nData (grey, log density): held-out stellar-sample objects (role 3: test cones, never fitted), Legacy\nSouth r S/N >= 10 (the faint limit), likely QSOs removed (Quaia / WISE AGN colours), all plane bands\nobserved with S/N >= 5. Extinction-corrected luptitudes (AB).\nModel (contours enclosing 50% and 90%): posterior-predictive draws for the same objects. For each\nobject with the plane bands observed, DRAWS samples are taken from the background mixture conditioned\non its measured Legacy r (component weights from the bundle's sky gate at its l, b); each drawn\nluptitude is converted to flux, the object's own flux error (extinction-corrected variance) is added\nin flux, the result is converted back to luptitude, and the same S/N >= 5 cut is applied to the noisy\ndrawn flux. This reproduces how the data were measured and selected (a fixed magnitude error would\noverstate the scatter of bright draws in low-S/N bands such as SDSS u, W1, W2). Panels with fewer\nthan 100 data objects are left empty. Titles: data N, fraction of data inside the model's 50% / 90% regions (ideal 0.50 /\n0.90), and the fraction of model draws in colour cells (45 x 45) with no data.\n\nUsage: python scripts/method_unified/fig19_stellar_colour_colour.py [bundle_dir] [output_tag]\n(default: models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent, F19_stellar_colour_colour)\n",
+ "definition": "F19: stellar colour-colour density in magnitude bins, data vs the stellar (background) model.\n\nData (grey, log density): held-out stellar-sample objects (role 3: test cones, never fitted), Legacy\nSouth r S/N >= 10 (the faint limit), likely QSOs removed (Quaia / WISE AGN colours), all plane bands\nobserved with S/N >= 5. Extinction-corrected luptitudes (AB).\nModel (contours enclosing 50% and 90%): posterior-predictive draws for the same objects. For each\nobject with the plane bands observed, DRAWS samples are taken from the background mixture conditioned\non its measured Legacy r (component weights from the bundle's sky gate at its l, b), DRAWS draws for\neach of up to MAX_ROWS objects per panel; each drawn\nluptitude is converted to flux, the object's own flux error (extinction-corrected variance) is added\nin flux, the result is converted back to luptitude, and the same S/N >= 5 cut is applied to the noisy\ndrawn flux. This reproduces how the data were measured and selected (a fixed magnitude error would\noverstate the scatter of bright draws in low-S/N bands such as SDSS u, W1, W2). Panels with fewer\nthan 100 data objects are left empty. Titles: data N, fraction of data inside the model's 50% / 90% regions (ideal 0.50 /\n0.90), and the fraction of model draws in colour cells (45 x 45) with no data.\n\nUsage: python scripts/method_unified/fig19_stellar_colour_colour.py [bundle_dir] [output_tag]\n(default: models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent, F19_stellar_colour_colour)\n",
  "bundle": "models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent",
  "panels": [
   {
@@ -18,10 +18,10 @@
     18
    ],
    "n_data": 6000,
-   "n_draws": 17999,
-   "inside50": 0.6315,
-   "inside90": 0.958,
-   "draws_in_empty": 0.05898376695574828
+   "n_draws": 399971,
+   "inside50": 0.6378333333333334,
+   "inside90": 0.9595,
+   "draws_in_empty": 0.059796517227490936
   },
   {
    "plane": [
@@ -39,10 +39,10 @@
     19.5
    ],
    "n_data": 6000,
-   "n_draws": 17990,
-   "inside50": 0.5955,
-   "inside90": 0.9525,
-   "draws_in_empty": 0.06424377970366228
+   "n_draws": 399920,
+   "inside50": 0.592,
+   "inside90": 0.9485,
+   "draws_in_empty": 0.0690500988694169
   },
   {
    "plane": [
@@ -59,11 +59,11 @@
     19.5,
     20.5
    ],
-   "n_data": 5990,
-   "n_draws": 17987,
-   "inside50": 0.5674457429048414,
-   "inside90": 0.9532554257095158,
-   "draws_in_empty": 0.04935256701499319
+   "n_data": 5983,
+   "n_draws": 399656,
+   "inside50": 0.5691124853752298,
+   "inside90": 0.9516964733411332,
+   "draws_in_empty": 0.05703817183709945
   },
   {
    "plane": [
@@ -80,11 +80,11 @@
     20.5,
     21.5
    ],
-   "n_data": 5955,
-   "n_draws": 17960,
-   "inside50": 0.5368597816960538,
-   "inside90": 0.9301427371956339,
-   "draws_in_empty": 0.06173555156222828
+   "n_data": 5968,
+   "n_draws": 398739,
+   "inside50": 0.534014745308311,
+   "inside90": 0.9279490616621984,
+   "draws_in_empty": 0.05816432928418748
   },
   {
    "plane": [
@@ -101,11 +101,11 @@
     21.5,
     22.5
    ],
-   "n_data": 5898,
-   "n_draws": 17760,
-   "inside50": 0.5113597829772805,
-   "inside90": 0.896236012207528,
-   "draws_in_empty": 0.06013416387158601
+   "n_data": 5913,
+   "n_draws": 395485,
+   "inside50": 0.49822425164890916,
+   "inside90": 0.882800608828006,
+   "draws_in_empty": 0.06012032128686788
   },
   {
    "plane": [
@@ -122,11 +122,11 @@
     22.5,
     23.5
    ],
-   "n_data": 4582,
-   "n_draws": 14139,
-   "inside50": 0.4930161501527717,
-   "inside90": 0.8841117415975557,
-   "draws_in_empty": 0.056817346563763325
+   "n_data": 4561,
+   "n_draws": 316532,
+   "inside50": 0.5018636263977198,
+   "inside90": 0.8739311554483666,
+   "draws_in_empty": 0.06222434999885231
   },
   {
    "plane": [
@@ -143,11 +143,11 @@
     16,
     18
    ],
-   "n_data": 5674,
-   "n_draws": 16437,
-   "inside50": 0.5546351780049348,
-   "inside90": 0.9282692985548114,
-   "draws_in_empty": 0.05958974983261306
+   "n_data": 5678,
+   "n_draws": 361811,
+   "inside50": 0.5563578724903135,
+   "inside90": 0.9387108136667841,
+   "draws_in_empty": 0.06295208706616232
   },
   {
    "plane": [
@@ -164,11 +164,11 @@
     18,
     19.5
    ],
-   "n_data": 2845,
-   "n_draws": 8463,
-   "inside50": 0.6274165202108963,
-   "inside90": 0.9251318101933216,
-   "draws_in_empty": 0.07941768256598414
+   "n_data": 2866,
+   "n_draws": 186270,
+   "inside50": 0.6172365666434054,
+   "inside90": 0.9180041870202372,
+   "draws_in_empty": 0.07820162608620838
   },
   {
    "plane": [
@@ -185,11 +185,11 @@
     19.5,
     20.5
    ],
-   "n_data": 1285,
-   "n_draws": 4049,
-   "inside50": 0.6264591439688716,
-   "inside90": 0.9424124513618677,
-   "draws_in_empty": 0.12905622987366858
+   "n_data": 1272,
+   "n_draws": 87674,
+   "inside50": 0.6580188679245284,
+   "inside90": 0.9504716981132075,
+   "draws_in_empty": 0.1455607744300607
   },
   {
    "plane": [
@@ -206,11 +206,11 @@
     20.5,
     21.5
    ],
-   "n_data": 321,
-   "n_draws": 1214,
-   "inside50": 0.660436137071651,
-   "inside90": 0.9314641744548287,
-   "draws_in_empty": 0.4161752316764954
+   "n_data": 297,
+   "n_draws": 26523,
+   "inside50": 0.6531986531986532,
+   "inside90": 0.9730639730639731,
+   "draws_in_empty": 0.41024056840560685
   },
   {
    "plane": [
@@ -227,11 +227,11 @@
     16,
     18
    ],
-   "n_data": 6000,
-   "n_draws": 17998,
-   "inside50": 0.626,
-   "inside90": 0.9535,
-   "draws_in_empty": 0.023067922215412047
+   "n_data": 5997,
+   "n_draws": 399955,
+   "inside50": 0.6139736534934134,
+   "inside90": 0.9518092379523095,
+   "draws_in_empty": 0.023919451379071796
   },
   {
    "plane": [
@@ -248,11 +248,11 @@
     18,
     19.5
    ],
-   "n_data": 5955,
-   "n_draws": 17822,
-   "inside50": 0.5556675062972293,
-   "inside90": 0.9340050377833753,
-   "draws_in_empty": 0.023793299261783078
+   "n_data": 5959,
+   "n_draws": 396116,
+   "inside50": 0.5608323544218828,
+   "inside90": 0.9325390166135258,
+   "draws_in_empty": 0.024395414653084993
   },
   {
    "plane": [
@@ -269,11 +269,11 @@
     19.5,
     20.5
    ],
-   "n_data": 5119,
-   "n_draws": 15252,
-   "inside50": 0.49033014260597774,
-   "inside90": 0.8859152178159797,
-   "draws_in_empty": 0.02610966057441253
+   "n_data": 5112,
+   "n_draws": 340813,
+   "inside50": 0.49608763693270735,
+   "inside90": 0.8894757433489828,
+   "draws_in_empty": 0.026138274867851995
   },
   {
    "plane": [
@@ -290,11 +290,11 @@
     20.5,
     21.5
    ],
-   "n_data": 4062,
-   "n_draws": 12239,
-   "inside50": 0.4741506646971935,
-   "inside90": 0.8653372722796652,
-   "draws_in_empty": 0.043957938286502324
+   "n_data": 4085,
+   "n_draws": 272439,
+   "inside50": 0.4783353733170135,
+   "inside90": 0.8717258261933905,
+   "draws_in_empty": 0.0432628027735456
   },
   {
    "plane": [
@@ -311,11 +311,11 @@
     21.5,
     22.5
    ],
-   "n_data": 2693,
-   "n_draws": 8604,
-   "inside50": 0.45265503156331227,
-   "inside90": 0.8020794652803565,
-   "draws_in_empty": 0.08523551919778335
+   "n_data": 2699,
+   "n_draws": 190222,
+   "inside50": 0.4653575398295665,
+   "inside90": 0.8206743238236384,
+   "draws_in_empty": 0.08298611318679348
   },
   {
    "plane": [
@@ -332,11 +332,11 @@
     22.5,
     23.5
    ],
-   "n_data": 1256,
-   "n_draws": 4112,
-   "inside50": 0.3837579617834395,
-   "inside90": 0.6910828025477707,
-   "draws_in_empty": 0.203256760686246
+   "n_data": 1319,
+   "n_draws": 93416,
+   "inside50": 0.4291129643669447,
+   "inside90": 0.7407126611068992,
+   "draws_in_empty": 0.20044503091929933
   },
   {
    "plane": [
@@ -353,11 +353,11 @@
     16,
     18
    ],
-   "n_data": 5969,
-   "n_draws": 17894,
-   "inside50": 0.5359356676160161,
-   "inside90": 0.9229351650192662,
-   "draws_in_empty": 0.01741475198022583
+   "n_data": 5968,
+   "n_draws": 397651,
+   "inside50": 0.5309986595174263,
+   "inside90": 0.9277815013404825,
+   "draws_in_empty": 0.018829646397784807
   },
   {
    "plane": [
@@ -374,11 +374,11 @@
     18,
     19.5
    ],
-   "n_data": 4420,
-   "n_draws": 13592,
-   "inside50": 0.5147058823529411,
-   "inside90": 0.8875565610859728,
-   "draws_in_empty": 0.022900763358778626
+   "n_data": 4419,
+   "n_draws": 301041,
+   "inside50": 0.5091649694501018,
+   "inside90": 0.8934147997284454,
+   "draws_in_empty": 0.02125539909870154
   },
   {
    "plane": [
@@ -395,11 +395,11 @@
     19.5,
     20.5
    ],
-   "n_data": 2826,
-   "n_draws": 9082,
-   "inside50": 0.5109695682944091,
-   "inside90": 0.8980891719745223,
-   "draws_in_empty": 0.037643932683790966
+   "n_data": 2810,
+   "n_draws": 202358,
+   "inside50": 0.5202846975088968,
+   "inside90": 0.9017793594306049,
+   "draws_in_empty": 0.04490274383580696
   },
   {
    "plane": [
@@ -416,11 +416,11 @@
     20.5,
     21.5
    ],
-   "n_data": 1578,
-   "n_draws": 5406,
-   "inside50": 0.5126742712294043,
-   "inside90": 0.9296577946768061,
-   "draws_in_empty": 0.09573283858998145
+   "n_data": 1592,
+   "n_draws": 120083,
+   "inside50": 0.5081658291457286,
+   "inside90": 0.9302763819095478,
+   "draws_in_empty": 0.09929955365352146
   },
   {
    "plane": [
@@ -437,11 +437,11 @@
     21.5,
     22.5
    ],
-   "n_data": 454,
-   "n_draws": 1948,
-   "inside50": 0.5484581497797357,
-   "inside90": 0.8898678414096917,
-   "draws_in_empty": 0.3624544981799272
+   "n_data": 481,
+   "n_draws": 42099,
+   "inside50": 0.5862785862785863,
+   "inside90": 0.9584199584199584,
+   "draws_in_empty": 0.341101440936009
   },
   {
    "plane": [
@@ -458,11 +458,11 @@
     22.5,
     23.5
    ],
-   "n_data": 143,
-   "n_draws": 600,
-   "inside50": 0.38461538461538464,
-   "inside90": 0.7552447552447552,
-   "draws_in_empty": 0.788659793814433
+   "n_data": 144,
+   "n_draws": 13826,
+   "inside50": 0.4652777777777778,
+   "inside90": 0.8472222222222222,
+   "draws_in_empty": 0.8138238573021181
   }
  ]
 }

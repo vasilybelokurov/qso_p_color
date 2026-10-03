@@ -6,7 +6,8 @@ South r S/N >= 10 (the faint limit), likely QSOs removed (Quaia / WISE AGN colou
 observed with S/N >= 5. Extinction-corrected luptitudes (AB).
 Model (contours enclosing 50% and 90%): posterior-predictive draws for the same objects. For each
 object with the plane bands observed, DRAWS samples are taken from the background mixture conditioned
-on its measured Legacy r (component weights from the bundle's sky gate at its l, b); each drawn
+on its measured Legacy r (component weights from the bundle's sky gate at its l, b), DRAWS draws for
+each of up to MAX_ROWS objects per panel; each drawn
 luptitude is converted to flux, the object's own flux error (extinction-corrected variance) is added
 in flux, the result is converted back to luptitude, and the same S/N >= 5 cut is applied to the noisy
 drawn flux. This reproduces how the data were measured and selected (a fixed magnitude error would
@@ -39,7 +40,8 @@ PLANES = [  # (x colour, y colour, x range, y range)
 ]
 LABEL = {S+'g': 'g', S+'r': 'r', S+'z': 'z', S+'w1': 'W1', S+'w2': 'W2', 'sdss:u': 'u_{SDSS}', 'sdss:g': 'g_{SDSS}', 'sdss:r': 'r_{SDSS}'}
 MAG_BINS = [(16, 18), (18, 19.5), (19.5, 20.5), (20.5, 21.5), (21.5, 22.5), (22.5, 23.5)]
-DRAWS = 3
+DRAWS = 200          # per object: Monte Carlo noise in the contours well below the contour levels
+MAX_ROWS = 2000      # objects per panel (random subset) used for the model draws
 MIN_SNR = 5.
 
 
@@ -59,13 +61,15 @@ def predictive(model, rows, plane_bands, rng):
     s00 = V[:, 0, 0][None] + nv[:, :1]                                           # (n, K)
     lw = np.log(np.maximum(w, 1e-300)) - .5*np.log(2*np.pi*s00) - .5*(y[:, :1] - mu[None, :, 0])**2/s00
     p = np.exp(lw - logsumexp(lw, axis=1, keepdims=True))
-    out = np.empty((len(rows), DRAWS, len(plane_bands)))
-    for i in range(len(rows)):
-        ks = rng.choice(len(p[i]), DRAWS, p=p[i])
-        for j, k in enumerate(ks):
-            g = V[k, 1:, 0]/s00[i, k]
-            m = mu[k, 1:] + g*(y[i, 0] - mu[k, 0]); c = V[k, 1:, 1:] - np.outer(g, V[k, 0, 1:])
-            out[i, j] = rng.multivariate_normal(m, c)
+    # Vectorised: component per draw from each row's conditional weights, then the conditional Gaussian.
+    cum = np.cumsum(p, axis=1); u = rng.uniform(size=(len(rows), DRAWS))
+    ks = np.minimum((u[:, :, None] > cum[:, None, :]).sum(axis=2), p.shape[1] - 1)          # (n, DRAWS)
+    ii = np.repeat(np.arange(len(rows)), DRAWS); kk = ks.ravel()
+    g = V[kk, 1:, 0]/s00[ii, kk][:, None]
+    m = mu[kk, 1:] + g*(y[ii, :1] - mu[kk, :1])
+    c = V[kk, 1:, 1:] - g[:, :, None]*V[kk, None, 0, 1:]
+    c = .5*(c + c.swapaxes(1, 2)) + 1e-10*np.eye(c.shape[1])
+    out = (m + np.einsum('nij,nj->ni', np.linalg.cholesky(c), rng.standard_normal(m.shape))).reshape(len(rows), DRAWS, -1)
     # Noise in flux space with each object's own flux error, then back to luptitude.
     soft = model.transform.softening[b[1:]]; a = 2.5/np.log(10)
     flux = 2*soft*np.sinh((22.5 - out)/a - np.log(soft))
@@ -94,7 +98,10 @@ def main():
                 sel = np.sort(rng.choice(sel, 6000, replace=False))
             if len(sel) < 30:
                 ax.set_visible(False); continue
-            draws, snr_draw, yobs, snr_obs = predictive(model, sel, pb, rng)
+            msel = sel if len(sel) <= MAX_ROWS else np.sort(rng.choice(sel, MAX_ROWS, replace=False))
+            draws, snr_draw, _, _ = predictive(model, msel, pb, rng)
+            yobs = np.asarray(d['y'][sel])[:, [idx(x) for x in pb]]
+            snr_obs = np.asarray(d['flux_dered'][sel])[:, [idx(x) for x in pb]]/np.sqrt(np.asarray(d['variance_dered'][sel])[:, [idx(x) for x in pb]])
             keep_d = (snr_obs >= MIN_SNR).all(axis=1)
             keep_m = (snr_draw >= MIN_SNR).all(axis=2)
             if keep_d.sum() < 100:
