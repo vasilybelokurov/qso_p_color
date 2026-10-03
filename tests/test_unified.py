@@ -103,3 +103,14 @@ def test_faint_limit_band_sets_reference_and_flags_faint_or_missing():
     assert fixture_model().faint_limit_status(p) is None                          # undeclared: unchanged behaviour
     with pytest.raises(ValueError, match='faint_limit'):
         dataclasses.replace(model, meta=dict(model.meta, faint_limit=dict(bands=['vhs:j'], min_snr=10.)))
+
+
+def test_quasar_probability_matches_scorer_formula_and_calibration_is_monotone():
+    from scipy.special import logsumexp
+    from qso_pcolor.unified import quasar_probability
+    rng = np.random.default_rng(4); ls, lf, lb, lo = rng.normal(0, 3, (4, 50))
+    q = np.logaddexp(ls, lf); expected = np.exp(q - logsumexp(np.stack([q, lb, lo]), axis=0))
+    np.testing.assert_allclose(quasar_probability(ls, lf, lb, lo), expected, rtol=1e-12)
+    cal = quasar_probability(ls, lf, lb, lo, dict(alpha=-.8, beta=.3))
+    order = np.argsort(expected); assert np.all(np.diff(cal[order]) >= -1e-15)
+    assert np.isnan(quasar_probability([np.nan], [np.nan], [0.], [0.]))[0]

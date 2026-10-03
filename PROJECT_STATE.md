@@ -21,6 +21,15 @@
    for confirmation: (1) sky-weight test, (2) full cleaned binned stellar refit, (3) completion of both
    bundles + support check + release checks, (4) probability calibration, (5) method-note update.
    Promotion of new bundles to `current` is NOT covered: ask before changing pointers.
+5. RESULTS (3 October): sky weights -> smooth softmax gate (+0.029 nat vs global, beats HEALPix +0.021).
+   Full cleaned binned stellar refit `models/multisurvey_psf/work/stellar_binned/20261003`, candidate
+   bundles `.../bundles/{independent,dependent}` (gate at nside 16, catch-all on 150k cleaned calib rows,
+   support recalibrated under the faint limit: threshold 0.0078 unchanged, calib retention 99.6%).
+   Held-out main panels vs current (faint limit, flagged QSOs removed from test background): AUC
+   0.9765 vs 0.9771 (indep) / 0.9804 vs 0.9801 (dep); p_Q>0.5 incidence 0.26% vs 0.32% / 0.25% vs 0.29%;
+   QSO recall 0.857 vs 0.834 / 0.889 vs 0.870; support retention equal. Probability calibration measured
+   (F18): raw p_Q within label bounds in mid-range, too low at p~0, too high above 0.97; no map applied.
+   Next: method-note update (step 5); then ask PI about promotion.
 
 **NEW METHOD NOTE DRAFTED (2 October): `docs/method_unified/method_unified.tex` (20 pp, builds clean).**
 Sections and 16 figures agreed with the user, all drawn from the promoted bundles by

@@ -170,12 +170,38 @@ def qso_support(model, photometry: Photometry, z_primary, *, draws: int,
                 n_colour=f.observed.sum(axis=1)-1)
 
 
+def quasar_probability(log_lambda_sameq, log_lambda_fieldq, log_lambda_bkg, log_lambda_out,
+                       calibration: dict | None = None) -> np.ndarray:
+    """p(quasar) from the scorer's intensities; optionally recalibrated in log-odds.
+
+    Raw: (lambda_sameq + lambda_fieldq) / (lambda_sameq + lambda_fieldq + lambda_bkg + lambda_out).
+    ``calibration = dict(alpha, beta)`` maps logit p -> alpha + beta logit p, fitted on a natural
+    held-out PSF population (scripts/method_unified/calibrate_probability.py). NaN stays NaN.
+    """
+    from scipy.special import logsumexp
+    with np.errstate(invalid='ignore'):
+        q = np.logaddexp(np.asarray(log_lambda_sameq, float), np.asarray(log_lambda_fieldq, float))
+        logit = q - logsumexp(np.stack([np.asarray(log_lambda_bkg, float), np.asarray(log_lambda_out, float)]), axis=0)
+    if calibration is not None:
+        logit = calibration['alpha'] + calibration['beta']*logit
+    return 1/(1 + np.exp(-logit))
+
+
 class UnifiedPSFModel:
     """Native-band PSF scorer with RA/Dec convenience and saved support policy."""
-    def __init__(self, baseline: PSFMultiSurveyBaseline, support: dict):
-        self.base, self.support = baseline, support
+    def __init__(self, baseline: PSFMultiSurveyBaseline, support: dict, calibration: dict | None = None):
+        self.base, self.support, self.calibration = baseline, support, calibration
         if not 0 <= support['threshold'] <= 1:
             raise ValueError('support threshold must be in [0,1]')
+        if calibration is not None and not (np.isfinite([calibration['alpha'], calibration['beta']]).all()
+                                            and calibration['beta'] > 0):
+            raise ValueError('probability calibration needs finite alpha and positive beta')
+
+    def quasar_probability(self, scores, calibrated: bool = True) -> np.ndarray:
+        """p(quasar) per score record (NaN for unscored rows); calibrated when the bundle declares it."""
+        get = lambda k: np.array([np.nan if s is None else getattr(s, k) for s in scores], float)
+        return quasar_probability(get('log_lambda_sameq'), get('log_lambda_fieldq'), get('log_lambda_bkg'),
+                                  get('log_lambda_out'), self.calibration if calibrated else None)
 
     @classmethod
     def load(cls, path: str | Path):
@@ -187,7 +213,11 @@ class UnifiedPSFModel:
         for name, expected in base.manifest['unified_files'].items():
             if hashlib.sha256((root/name).read_bytes()).hexdigest() != expected:
                 raise ValueError('unified metadata hash mismatch: '+name)
-        return cls(base, json.loads((root/'support.json').read_text()))
+        cal = root/'calibration.json'
+        if cal.exists() and 'calibration.json' not in base.manifest['unified_files']:
+            raise ValueError('calibration.json is not covered by the manifest')
+        return cls(base, json.loads((root/'support.json').read_text()),
+                   json.loads(cal.read_text()) if cal.exists() else None)
 
     def score(self, photometry: Photometry, *, ra_deg, dec_deg, z_primary,
               apply_support: bool = True, flux_covariance=None, **kwargs):
@@ -228,4 +258,4 @@ class UnifiedPSFModel:
 
     def fit_local(self, **kwargs):
         """Refit local contaminant weights/counts; QSO support calibration is unchanged."""
-        return type(self)(self.base.fit_local(**kwargs), dict(self.support))
+        return type(self)(self.base.fit_local(**kwargs), dict(self.support), self.calibration)
