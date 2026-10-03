@@ -1,0 +1,468 @@
+{
+ "definition": "F19: stellar colour-colour density in magnitude bins, data vs the stellar (background) model.\n\nData (grey, log density): held-out stellar-sample objects (role 3: test cones, never fitted), Legacy\nSouth r S/N >= 10 (the faint limit), likely QSOs removed (Quaia / WISE AGN colours), all plane bands\nobserved with S/N >= 5. Extinction-corrected luptitudes (AB).\nModel (contours enclosing 50% and 90%): posterior-predictive draws for the same objects. For each\nobject with the plane bands observed, DRAWS samples are taken from the background mixture conditioned\non its measured Legacy r (component weights from the bundle's sky gate at its l, b); each drawn\nluptitude is converted to flux, the object's own flux error (extinction-corrected variance) is added\nin flux, the result is converted back to luptitude, and the same S/N >= 5 cut is applied to the noisy\ndrawn flux. This reproduces how the data were measured and selected (a fixed magnitude error would\noverstate the scatter of bright draws in low-S/N bands such as SDSS u, W1, W2). Panels with fewer\nthan 100 data objects are left empty. Titles: data N, fraction of data inside the model's 50% / 90% regions (ideal 0.50 /\n0.90), and the fraction of model draws in colour cells (45 x 45) with no data.\n\nUsage: python scripts/method_unified/fig19_stellar_colour_colour.py [bundle_dir] [output_tag]\n(default: models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent, F19_stellar_colour_colour)\n",
+ "bundle": "models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent",
+ "panels": [
+  {
+   "plane": [
+    [
+     "decals_dr9_south:g",
+     "decals_dr9_south:r"
+    ],
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ]
+   ],
+   "bin": [
+    16,
+    18
+   ],
+   "n_data": 6000,
+   "n_draws": 17999,
+   "inside50": 0.6315,
+   "inside90": 0.958,
+   "draws_in_empty": 0.05898376695574828
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:g",
+     "decals_dr9_south:r"
+    ],
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ]
+   ],
+   "bin": [
+    18,
+    19.5
+   ],
+   "n_data": 6000,
+   "n_draws": 17990,
+   "inside50": 0.5955,
+   "inside90": 0.9525,
+   "draws_in_empty": 0.06424377970366228
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:g",
+     "decals_dr9_south:r"
+    ],
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ]
+   ],
+   "bin": [
+    19.5,
+    20.5
+   ],
+   "n_data": 5990,
+   "n_draws": 17987,
+   "inside50": 0.5674457429048414,
+   "inside90": 0.9532554257095158,
+   "draws_in_empty": 0.04935256701499319
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:g",
+     "decals_dr9_south:r"
+    ],
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ]
+   ],
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "n_data": 5955,
+   "n_draws": 17960,
+   "inside50": 0.5368597816960538,
+   "inside90": 0.9301427371956339,
+   "draws_in_empty": 0.06173555156222828
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:g",
+     "decals_dr9_south:r"
+    ],
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ]
+   ],
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "n_data": 5898,
+   "n_draws": 17760,
+   "inside50": 0.5113597829772805,
+   "inside90": 0.896236012207528,
+   "draws_in_empty": 0.06013416387158601
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:g",
+     "decals_dr9_south:r"
+    ],
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ]
+   ],
+   "bin": [
+    22.5,
+    23.5
+   ],
+   "n_data": 4582,
+   "n_draws": 14139,
+   "inside50": 0.4930161501527717,
+   "inside90": 0.8841117415975557,
+   "draws_in_empty": 0.056817346563763325
+  },
+  {
+   "plane": [
+    [
+     "sdss:u",
+     "sdss:g"
+    ],
+    [
+     "sdss:g",
+     "sdss:r"
+    ]
+   ],
+   "bin": [
+    16,
+    18
+   ],
+   "n_data": 5674,
+   "n_draws": 16437,
+   "inside50": 0.5546351780049348,
+   "inside90": 0.9282692985548114,
+   "draws_in_empty": 0.05958974983261306
+  },
+  {
+   "plane": [
+    [
+     "sdss:u",
+     "sdss:g"
+    ],
+    [
+     "sdss:g",
+     "sdss:r"
+    ]
+   ],
+   "bin": [
+    18,
+    19.5
+   ],
+   "n_data": 2845,
+   "n_draws": 8463,
+   "inside50": 0.6274165202108963,
+   "inside90": 0.9251318101933216,
+   "draws_in_empty": 0.07941768256598414
+  },
+  {
+   "plane": [
+    [
+     "sdss:u",
+     "sdss:g"
+    ],
+    [
+     "sdss:g",
+     "sdss:r"
+    ]
+   ],
+   "bin": [
+    19.5,
+    20.5
+   ],
+   "n_data": 1285,
+   "n_draws": 4049,
+   "inside50": 0.6264591439688716,
+   "inside90": 0.9424124513618677,
+   "draws_in_empty": 0.12905622987366858
+  },
+  {
+   "plane": [
+    [
+     "sdss:u",
+     "sdss:g"
+    ],
+    [
+     "sdss:g",
+     "sdss:r"
+    ]
+   ],
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "n_data": 321,
+   "n_draws": 1214,
+   "inside50": 0.660436137071651,
+   "inside90": 0.9314641744548287,
+   "draws_in_empty": 0.4161752316764954
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ],
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ]
+   ],
+   "bin": [
+    16,
+    18
+   ],
+   "n_data": 6000,
+   "n_draws": 17998,
+   "inside50": 0.626,
+   "inside90": 0.9535,
+   "draws_in_empty": 0.023067922215412047
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ],
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ]
+   ],
+   "bin": [
+    18,
+    19.5
+   ],
+   "n_data": 5955,
+   "n_draws": 17822,
+   "inside50": 0.5556675062972293,
+   "inside90": 0.9340050377833753,
+   "draws_in_empty": 0.023793299261783078
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ],
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ]
+   ],
+   "bin": [
+    19.5,
+    20.5
+   ],
+   "n_data": 5119,
+   "n_draws": 15252,
+   "inside50": 0.49033014260597774,
+   "inside90": 0.8859152178159797,
+   "draws_in_empty": 0.02610966057441253
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ],
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ]
+   ],
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "n_data": 4062,
+   "n_draws": 12239,
+   "inside50": 0.4741506646971935,
+   "inside90": 0.8653372722796652,
+   "draws_in_empty": 0.043957938286502324
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ],
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ]
+   ],
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "n_data": 2693,
+   "n_draws": 8604,
+   "inside50": 0.45265503156331227,
+   "inside90": 0.8020794652803565,
+   "draws_in_empty": 0.08523551919778335
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:r",
+     "decals_dr9_south:z"
+    ],
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ]
+   ],
+   "bin": [
+    22.5,
+    23.5
+   ],
+   "n_data": 1256,
+   "n_draws": 4112,
+   "inside50": 0.3837579617834395,
+   "inside90": 0.6910828025477707,
+   "draws_in_empty": 0.203256760686246
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ],
+    [
+     "decals_dr9_south:w1",
+     "decals_dr9_south:w2"
+    ]
+   ],
+   "bin": [
+    16,
+    18
+   ],
+   "n_data": 5969,
+   "n_draws": 17894,
+   "inside50": 0.5359356676160161,
+   "inside90": 0.9229351650192662,
+   "draws_in_empty": 0.01741475198022583
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ],
+    [
+     "decals_dr9_south:w1",
+     "decals_dr9_south:w2"
+    ]
+   ],
+   "bin": [
+    18,
+    19.5
+   ],
+   "n_data": 4420,
+   "n_draws": 13592,
+   "inside50": 0.5147058823529411,
+   "inside90": 0.8875565610859728,
+   "draws_in_empty": 0.022900763358778626
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ],
+    [
+     "decals_dr9_south:w1",
+     "decals_dr9_south:w2"
+    ]
+   ],
+   "bin": [
+    19.5,
+    20.5
+   ],
+   "n_data": 2826,
+   "n_draws": 9082,
+   "inside50": 0.5109695682944091,
+   "inside90": 0.8980891719745223,
+   "draws_in_empty": 0.037643932683790966
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ],
+    [
+     "decals_dr9_south:w1",
+     "decals_dr9_south:w2"
+    ]
+   ],
+   "bin": [
+    20.5,
+    21.5
+   ],
+   "n_data": 1578,
+   "n_draws": 5406,
+   "inside50": 0.5126742712294043,
+   "inside90": 0.9296577946768061,
+   "draws_in_empty": 0.09573283858998145
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ],
+    [
+     "decals_dr9_south:w1",
+     "decals_dr9_south:w2"
+    ]
+   ],
+   "bin": [
+    21.5,
+    22.5
+   ],
+   "n_data": 454,
+   "n_draws": 1948,
+   "inside50": 0.5484581497797357,
+   "inside90": 0.8898678414096917,
+   "draws_in_empty": 0.3624544981799272
+  },
+  {
+   "plane": [
+    [
+     "decals_dr9_south:z",
+     "decals_dr9_south:w1"
+    ],
+    [
+     "decals_dr9_south:w1",
+     "decals_dr9_south:w2"
+    ]
+   ],
+   "bin": [
+    22.5,
+    23.5
+   ],
+   "n_data": 143,
+   "n_draws": 600,
+   "inside50": 0.38461538461538464,
+   "inside90": 0.7552447552447552,
+   "draws_in_empty": 0.788659793814433
+  }
+ ]
+}
