@@ -59,7 +59,7 @@ it replaces the version of 2 October and the earlier \code{docs/method/method.te
 \item \textbf{Main results.} Section~\ref{sec:validation}. The binned background fits held-out stars far
   better than the joint background it replaces (Table~\ref{tab:bkgdensity}, Fig.~\ref{fig:stellarcc}).
   Against the promoted bundles on the same held-out objects, ranking is unchanged ($\Delta$AUC
-  $-0.0006$ and $+0.0003$), recall at $p_{\rm quasar}>0.5$ rises by 2.3 and 1.9 points, and the fraction of
+  $-0.0006$ and $+0.0003$), recall at $p_{\rm quasar}>0.5$ rises by 2.5 and 2.1 points, and the fraction of
   background objects with $p_{\rm quasar}>0.5$ falls (Table~\ref{tab:compare}). On artificial colour
   grids the spurious high-quasar points of earlier models (up to 79) drop to 1 and 0. $p_{\rm quasar}$
   is consistent with the observed quasar fraction in the mid range and mildly overconfident above
@@ -385,7 +385,9 @@ MAP update and predictive early stopping of Section~\ref{sec:fitting} on 1,000 t
 bin. The eight mixtures are joined into one 160-component mixture, each bin's weights scaled by its
 share of training objects. Conditioning this mixture on $m_{\rm ref}$ weights each component by
 $N(m_{\rm ref};\mu_{r,i},V_{rr,i})$, which selects the bin and blends neighbouring bins smoothly at the
-edges; on held-out stars this is $0.1$--$0.3$\,nat better than picking one bin. Because $m_{\rm ref}$ is
+edges. On 17,937 held-out stars this beats picking the single bin that contains $m_{\rm ref}$ by
+$0.12\pm0.015$\,nat per object overall ($0.24\pm0.07$ within 0.1\,mag of a bin edge, $0.08\pm0.01$ further
+than 0.3\,mag), in both hemispheres and in every bin (from $+0.002\pm0.005$ at $22\le r<23$ to $+0.23$). Because $m_{\rm ref}$ is
 Legacy $r$ for every scored source, routing and conditioning use the same magnitude.
 
 \paragraph{Training sample cleaned of quasars.} Known quasars (DESI DR1, DR16Q) were removed from the
@@ -408,14 +410,18 @@ w_i(\ell,b)\propto\exp\!\left[a_i+\vect{\beta}_i\cdot\vect{f}(\ell,b)\right],\qq
 \vect{f}=\left(\csc|b|,\ \cos\ell,\ \sin\ell,\ \csc|b|\cos\ell,\ {\rm sign}\,b\right),
 \end{equation}
 fitted by maximum likelihood with fixed component densities and an L2 penalty of 1 on $\vect{\beta}$,
-on 300,000 cleaned training rows. On 60,000 held-out rows in the test cones it improves the held-out
-density over one all-sky weight vector by $0.0285\pm0.0014$\,nat per object, positively in every
-magnitude and $|b|$ bin, and beats the previous HEALPix hierarchy (nside 4, $n_0=1000$:
-$0.0207\pm0.0011$). The scorer evaluates the gate at nside-16 pixel centres ($3.7^\circ$; loss
-0.0004\,nat). The effect is small because stellar colours at $|b|\ge25^\circ$ change little with position.
+on 300,000 cleaned training rows. The gate is fitted to the joint density, but it is judged by the
+quantity the scorer uses: on 60,000 held-out rows in the test cones, with the final background, it improves
+the conditional density $\ln p(\vect{y}_{\rm other}\mid r)$ over one all-sky weight vector by
+$0.0260\pm0.0015$\,nat per object, positively in every magnitude and $|b|$ bin, and beats the previous
+HEALPix hierarchy (nside 4, $n_0=1000$: $0.0219\pm0.0011$). The scorer evaluates the gate at nside-16 pixel
+centres ($3.7^\circ$; no measurable loss). The effect is small because stellar colours at $|b|\ge25^\circ$ change little with position.
 
 \paragraph{Surface density.} $\Sigma_B(m)$ is measured per reference band from counts in regions of
-measured usable area, pooled with $n_0=100$, as before. A candidate-local refit of weights and density
+measured usable area, pooled with $n_0=100$, as before, but on the cleaned sample, so that counts and
+colour model describe the same population. In Legacy $r$ the density falls by less than 0.5\% at $r<18.5$
+and by 3--6\% at $20\le r\le24.5$; with nothing removed the recount reproduces the earlier densities
+exactly. A candidate-local refit of weights and density
 in a declared cone is available.
 
 \begin{table}[!htbp]\centering\small
@@ -601,7 +607,7 @@ of Section~\ref{sec:perf}, both scored with the faint limit (38,881 quasars; 8,7
 outside the background design tests). The binned background leaves the ranking unchanged and raises
 the fraction of quasars given $p_{\rm quasar}>0.5$ in every magnitude bin. On all background objects
 the fraction with $p_{\rm quasar}>0.5$ rises slightly, but 400 of these objects are flagged likely quasars;
-without them it falls, from 0.32\% to 0.26\% and from 0.29\% to 0.25\%. The support cut keeps the same
+without them it falls, from 0.32\% to 0.28\% and from 0.29\% to 0.25\%. The support cut keeps the same
 fraction of quasars.
 
 \begin{table}[!htbp]\centering\footnotesize
@@ -614,9 +620,9 @@ the 400 flagged likely quasars removed ($^\ast$; AUC also); kept: support retent
 QSO model & bundle & AUC & AUC$^\ast$ & recall & incidence & incidence$^\ast$ & kept \\
 \midrule
 independent & promoted & 0.9752 & 0.9771 & 0.834 & 1.22\% & 0.32\% & 99.53\% \\
-            & candidate & 0.9744 & 0.9765 & 0.857 & 1.35\% & 0.26\% & 99.53\% \\
+            & candidate & 0.9744 & 0.9764 & 0.859 & 1.37\% & 0.28\% & 99.53\% \\
 dependent & promoted & 0.9783 & 0.9801 & 0.870 & 1.26\% & 0.29\% & 99.47\% \\
-          & candidate & 0.9784 & 0.9804 & 0.889 & 1.44\% & 0.25\% & 99.47\% \\
+          & candidate & 0.9784 & 0.9804 & 0.891 & 1.44\% & 0.25\% & 99.47\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -632,8 +638,11 @@ unidentified quasars, so incidence is not a contamination rate.
 
 \paragraph{Overall.} The AUC is 0.976 (magnitude-independent) and 0.980 (magnitude-dependent); South
 0.974 and 0.978, North 0.978 and 0.982. The support cut keeps 99.53\% and 99.47\% of test quasars, in
-agreement with the 99.5\% calibration target on rows that did not choose it. High-QSO incidence is 1.07\%
-and 1.14\% (South 0.48\% and 0.56\%, North 1.75\% and 1.81\%); the faint limit removes faint stars, which
+agreement with the 99.5\% calibration target on rows that did not choose it. In total 3.2\% and 2.9\% of test
+quasars are not ranked: besides the support cut (0.25\% and 0.30\%), 2.9\% and 2.5\% have colours outside
+both the quasar and the background model. The promoted bundles do the same (2.8\% and 2.6\%), so this
+loss is not introduced by the new background. High-QSO incidence is 1.08\%
+and 1.14\% (South 0.50\% and 0.56\%, North 1.76\% and 1.81\%); the faint limit removes faint stars, which
 almost never score high, so these fractions are larger than before the limit.
 
 \paragraph{Sky position and magnitude} (Fig.~\ref{fig:perfsky}). Per-cell AUC is uniform across the
@@ -714,23 +723,30 @@ about 2.7 and 3.3\,mag.
 \subsection{Probability calibration}\label{sec:calib}
 We test whether $p_{\rm quasar}$ is a calibrated probability on a natural population: all 1,640 known
 spectroscopic quasars inside the 49 test cones that pass the faint limit, and 40,000 of the cones'
-background objects, weighted by 2.75 to restore their natural share (1.47\% quasars). Objects the scorer
-does not rank enter with $p_{\rm quasar}=0$. The background sample still holds unidentified quasars, so the
-observed quasar fraction is bracketed by two labellings: known quasars only (a lower bound), and known
-quasars plus flagged likely quasars (an upper bound). For both candidate bundles, raw $p_{\rm quasar}$ lies
-between the bounds in the mid range ($0.1\lesssim p\lesssim0.95$; Fig.~\ref{fig:calib}). It is too low near
-zero (objects at $p<0.01$ contain 0.1--2.5\% quasars) and too high at the top ($p>0.99$: 0.69--0.98
-observed). A two-parameter map of the log-odds, fitted on half the cones, is driven by the large $p\approx0$
-population and pushes mid-range values below both bounds ($p=0.5\to0.29$), so it is not applied.
-$p_{\rm quasar}$ should be read as an approximately calibrated probability whose largest values are
-mildly overconfident.
+background objects, weighted by 2.75 to restore their natural share (1.47\% quasars). The background
+sample still holds unidentified quasars, so the observed quasar fraction is bracketed by two labellings:
+known quasars only (a lower bound), and known quasars plus flagged likely quasars (an upper bound).
+
+We separate two questions. The first is abstention. The scorer declines to rank 3.5\% and 3.8\% of the
+known quasars (magnitude-independent and magnitude-dependent model), 53\% and 63\% of the background objects, and
+36\% and 41\% of the flagged likely quasars. Background objects are set aside almost entirely by the
+support cut (96\%); known quasars mostly because their colours lie outside both models (85\%).
+The second is the reliability of the returned probability, among ranked objects only (Fig.~\ref{fig:calib}): in the
+mid range, $0.1\lesssim p\lesssim0.95$, the observed quasar fraction brackets $p_{\rm quasar}$ in most
+bins (for example 0.30--0.66 at $p\approx0.58$, and 0.48--0.87 at $p\approx0.85$). Ranked objects at $p<0.01$ contain no
+known quasars and 2.5\% flagged ones. At the top the probability is too high: $p>0.99$ gives 0.69--0.98
+observed. A two-parameter map of the log-odds, fitted on half the cones, is driven by the large
+$p\approx0$ population and pushes mid-range values below both bounds ($p=0.5\to0.29$), so it is not
+applied. $p_{\rm quasar}$ is therefore an approximately calibrated probability for ranked objects whose
+largest values are mildly overconfident; an object the scorer declines to rank should be treated as not a
+quasar candidate, which loses 3.5--3.8\% of real quasars in this sample.
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F18_probability_calibration.png}
-\caption{Reliability of $p_{\rm quasar}$ in the 49 test cones (natural population, weighted), for the promoted
-(``current'') and candidate (``new'') bundles: observed quasar fraction against mean predicted
-$p_{\rm quasar}$ in bins, counting known quasars only (blue, lower bound) or also flagged likely quasars
-(orange, upper bound). Dotted: perfect calibration.}
+\caption{Reliability of $p_{\rm quasar}$ among ranked objects in the 49 test cones (natural population,
+weighted), for the promoted (``current'') and candidate (``new'') bundles: observed quasar fraction against
+mean predicted $p_{\rm quasar}$ in bins, counting known quasars only (blue, lower bound) or also flagged
+likely quasars (orange, upper bound). Dotted: perfect calibration. Abstention rates are given in the text.}
 \label{fig:calib}
 \end{figure}
 
@@ -749,13 +765,16 @@ are in \code{docs/method\_unified/examples.json}.}
 \section{Limitations and open items}\label{sec:limits}
 %======================================================================
 \begin{itemize}
-\item \textbf{Probability calibration} is approximate: $p_{\rm quasar}$ is bracketed by the label bounds in
-  the mid range and overconfident above 0.97 (Section~\ref{sec:calib}); the reliability of $p_{\rm same}$
+\item \textbf{Probability calibration} is approximate: among ranked objects $p_{\rm quasar}$ is bracketed by
+  the label bounds in the mid range and overconfident above 0.97, and 3.5--3.8\% of real quasars are not
+  ranked (Section~\ref{sec:calib}); the reliability of $p_{\rm same}$
   for a narrow redshift window is not tested.
 \item \textbf{Background purity.} Faint unidentified quasars not detected by WISE remain in the background
-  training sample, and $\Sigma_B$ is counted on the uncleaned sample. The test background sets carry the
-  same contamination, which lowers the measured AUC slightly.
+  training sample and counts. The test background sets carry the same contamination, which lowers the
+  measured AUC slightly.
 \item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$, and sources without Legacy $r$, are not scored.
+\item \textbf{Unranked quasars.} About 3\% of test quasars above the faint limit are not ranked because their
+  colours lie outside both models (inherited from the promoted bundles); the cause is not yet investigated.
 \item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the
   intended benefit of the magnitude-independent model for quasars outside DESI and SDSS selection.
 \item \textbf{Quasar abundance} is inherited and shifted, not recounted.

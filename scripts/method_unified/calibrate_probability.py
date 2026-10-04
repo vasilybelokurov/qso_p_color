@@ -14,6 +14,9 @@ All must pass the faint limit (Legacy r S/N >= 10). Stellar objects carry weight
 N_pass / n_sampled so the mixture has its natural QSO fraction; rows used by the background light
 tests are excluded. Objects are scored at a primary redshift drawn from the test QSO redshifts.
 
+Reported twice: with unranked objects as p = 0 (the decision policy 'rank or abstain'), and among
+ranked objects only (the reliability of the returned probability), with the abstention rates of known
+QSOs, stellar objects and flagged stellar objects listed separately. The figure shows the ranked-only curves.
 Labels: known QSO = 1; stellar objects = 0, or (upper bound) 1 when flagged as likely QSO
 (Quaia or WISE AGN colours, clean_stellar_qso_contamination.py), since the stellar sample still
 contains unidentified QSOs. A calibrated p_quasar lies between the two curves.
@@ -153,6 +156,11 @@ def main():
         cone = np.concatenate([s['qcone'][keepq], s['scone'][keeps]])
         rep = dict(ranked_qso=int(e['qso'].sum()), ranked_stars=int(e['stars'].sum()), n_qso=int(len(e['qso'])), n_stars=int(len(e['stars'])), natural_qso_fraction=float(np.average(y_lo, weights=w)),
                    mean_p=float(np.average(pr, weights=w)), reliability_known=reliability(pr, y_lo, w), reliability_flagged=reliability(pr, y_hi, w))
+        # Posterior reliability among RANKED objects only (the returned probability), separately from abstention.
+        rk = np.concatenate([e['qso'], e['stars']]).astype(bool)
+        rep.update(ranked_reliability_known=reliability(pr[rk], y_lo[rk], w[rk]), ranked_reliability_flagged=reliability(pr[rk], y_hi[rk], w[rk]),
+                   abstention=dict(known_qso=float(1 - e['qso'].mean()), stellar=float(1 - e['stars'].mean()),
+                                   flagged_stellar=float(1 - e['stars'][s['sflag'].astype(bool)].mean()) if s['sflag'].any() else None))
         fits = {}
         for half in (0, 1):
             tr = (cone % 2) == half; te = ~tr
@@ -167,7 +175,10 @@ def main():
             print('  ', k, 'alpha %.3f beta %.3f  test logloss raw %.5f -> calibrated %.5f' % (f['alpha'], f['beta'], f['test_logloss_raw'], f['test_logloss_calibrated']))
         for lo_, hi_ in zip(rep['reliability_known'], rep['reliability_flagged']):
             print(f"   p in [{lo_['bin'][0]:.2f},{lo_['bin'][1]:.2f}) n {lo_['n']:6d} mean p {lo_['mean_p']:.3f}  known-QSO frac {lo_['frac']:.3f}  incl. flagged {hi_['frac']:.3f}")
-        for rel, lab, mk in ((rep['reliability_known'], 'known QSOs only', 'o'), (rep['reliability_flagged'], 'incl. flagged likely QSOs', 's')):
+        print('   abstention (not ranked): known QSOs %.3f, stellar %.3f, flagged stellar %s' % (rep['abstention']['known_qso'], rep['abstention']['stellar'], rep['abstention']['flagged_stellar']))
+        for lo_, hi_ in zip(rep['ranked_reliability_known'], rep['ranked_reliability_flagged']):
+            print(f"   RANKED p in [{lo_['bin'][0]:.2f},{lo_['bin'][1]:.2f}) n {lo_['n']:6d} mean p {lo_['mean_p']:.3f}  known {lo_['frac']:.3f}  incl. flagged {hi_['frac']:.3f}")
+        for rel, lab, mk in ((rep['ranked_reliability_known'], 'ranked; known QSOs only', 'o'), (rep['ranked_reliability_flagged'], 'ranked; incl. flagged likely QSOs', 's')):
             x = [r['mean_p'] for r in rel if r['n'] >= 20]; yv = [r['frac'] for r in rel if r['n'] >= 20]
             ax.plot(x, yv, mk+'-', ms=4, label=lab)
         ax.plot([0, 1], [0, 1], ':', color='0.5'); ax.set(xlabel='predicted $p_Q$', ylabel='observed QSO fraction', title=name)

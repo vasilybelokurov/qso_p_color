@@ -9,7 +9,7 @@
   "scores": {
    "independent": {
     "z": 1.5145216680829034,
-    "logR": 1.4444598338486982,
+    "logR": 1.4444598338486985,
     "pq": 0.9999999999999787,
     "support": 0.92578125,
     "eligible": true,
@@ -37,8 +37,8 @@
   "scores": {
    "independent": {
     "z": 2.995,
-    "logR": 0.6185675400672603,
-    "pq": 0.9997971215716916,
+    "logR": 0.6185725423358663,
+    "pq": 0.9998021228379544,
     "support": 0.87890625,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -46,8 +46,8 @@
    },
    "dependent": {
     "z": 2.995,
-    "logR": 0.5381173067886214,
-    "pq": 0.9998056044220948,
+    "logR": 0.5381220998994658,
+    "pq": 0.9998103966126632,
     "support": 0.6796875,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -65,8 +65,8 @@
   "scores": {
    "independent": {
     "z": 0.582,
-    "logR": 1.6163253344556947,
-    "pq": 0.99999968645379,
+    "logR": 1.616325341077097,
+    "pq": 0.99999969307519,
     "support": 0.984375,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -74,8 +74,8 @@
    },
    "dependent": {
     "z": 0.582,
-    "logR": 1.5267525669723674,
-    "pq": 0.9999999093037429,
+    "logR": 1.5267525688876715,
+    "pq": 0.9999999112190462,
     "support": 0.98046875,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -94,7 +94,7 @@
    "independent": {
     "z": 2.2620667842891935,
     "logR": NaN,
-    "pq": 6.172952104504181e-07,
+    "pq": 6.380408742426446e-07,
     "support": 0.00390625,
     "eligible": false,
     "reference": "decals_dr9_south:r",
@@ -103,7 +103,7 @@
    "dependent": {
     "z": 2.2620667842891935,
     "logR": NaN,
-    "pq": 3.590610946714117e-05,
+    "pq": 3.711277508284402e-05,
     "support": 0.00390625,
     "eligible": false,
     "reference": "decals_dr9_south:r",
@@ -121,8 +121,8 @@
   "scores": {
    "independent": {
     "z": 2.8259360355812255,
-    "logR": -41.56384935495199,
-    "pq": 1.6971241934178208e-15,
+    "logR": -41.562601137327555,
+    "pq": 1.699243896396994e-15,
     "support": 0.0078125,
     "eligible": true,
     "reference": "decals_dr9_south:r",
@@ -131,7 +131,7 @@
    "dependent": {
     "z": 2.8259360355812255,
     "logR": NaN,
-    "pq": 2.524827920354795e-14,
+    "pq": 2.5279814227828627e-14,
     "support": 0.00390625,
     "eligible": false,
     "reference": "decals_dr9_south:r",
@@ -149,8 +149,8 @@
   "scores": {
    "independent": {
     "z": 1.6098498936889174,
-    "logR": -5.887845851531559,
-    "pq": 0.987187464984873,
+    "logR": -5.88710039645188,
+    "pq": 0.9879236432550655,
     "support": 0.1875,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -158,8 +158,8 @@
    },
    "dependent": {
     "z": 1.6098498936889174,
-    "logR": -6.444488521706329,
-    "pq": 0.9930314472158056,
+    "logR": -6.444083148382004,
+    "pq": 0.9934340772769515,
     "support": 0.12890625,
     "eligible": true,
     "reference": "decals_dr9_north:r",

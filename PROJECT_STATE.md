@@ -30,6 +30,14 @@
    QSO recall 0.857 vs 0.834 / 0.889 vs 0.870; support retention equal. Probability calibration measured
    (F18): raw p_Q within label bounds in mid-range, too low at p~0, too high above 0.97; no map applied.
    Next: method-note update (step 5); then ask PI about promotion.
+6. (4 October) Sigma_B recounted on the cleaned sample (`recount_background_density.py`; reproduces the
+   stored densities exactly with nothing removed); candidates rescored. Codex pre-release review: no bug,
+   no leakage; its three gaps closed: (i) sky gate judged on the scorer's conditional density on the final
+   model: +0.0260+-0.0015 nat vs global (HEALPix +0.0219); (ii) concatenated bins beat per-bin routing by
+   +0.12+-0.015 nat (+0.24 near edges, >=0 in every bin, both hemispheres; `check_bin_assembly.py`);
+   (iii) calibration reported for ranked objects separately from abstention. Found: ~3% of test QSOs are
+   unranked as `outside_both_models` in BOTH promoted and candidate bundles (2.8/2.6% vs 2.9/2.5%); open.
+   Note regenerated (26 pp). Remaining before promotion: PI go; then pointer switch (promotion script).
 
 **NEW METHOD NOTE DRAFTED (2 October): `docs/method_unified/method_unified.tex` (20 pp, builds clean).**
 Sections and 16 figures agreed with the user, all drawn from the promoted bundles by
