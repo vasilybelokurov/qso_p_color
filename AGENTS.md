@@ -4,7 +4,7 @@
 
 **Active models (promoted 2 October 2026, user decision: keep both).** Load with
 `UnifiedPSFModel.load(...)`: `models/multisurvey_psf/current` = magnitude-independent QSO colours
-(default, the PI's baseline), `models/multisurvey_psf/current_magdep` = magnitude-dependent;
+(on an equal footing with current_magdep since 4 October), `models/multisurvey_psf/current_magdep` = magnitude-dependent;
 `models/multisurvey_psf/previous` = the 28 September bundle (rollback). Both promoted bundles are
 **Galactic-extinction corrected** (SFD98, `configs/extinction_coefficients.json`; the scorer corrects
 catalogue input from position; DESI North->South relation on uncorrected magnitudes), use the MAP
@@ -14,7 +14,9 @@ retention (chosen on reporting rows; confirm on independent rows). Statements be
 Never train or promote a non-dereddened model again without an explicit PI decision.
 
 **Candidate bundles (3 October 2026; promotion awaits the PI).**
-`models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}`: promoted QSO
+`models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}`: TWO MODELS ON AN
+EQUAL FOOTING (PI, 4 October): magnitude-independent and magnitude-dependent QSO colours; neither is the
+default, candidates are scored with both (method note Section 6.2). They keep the promoted QSO
 models with a binned (8 Legacy-r bins x 20), QSO-cleaned background, smooth (l,b) softmax weight gate,
 catch-all and Sigma_B redone on the cleaned sample, support recalibrated, and the PI faint limit
 (model meta `faint_limit`: Legacy r S/N >= 10, Legacy r is the reference; reasons `too_faint`,

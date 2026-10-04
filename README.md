@@ -40,7 +40,7 @@ QSO-support cut at 99.5% calibration retention. They differ only in the quasar c
 
 | Pointer | QSO colours | Bundle |
 |---|---|---|
-| `models/multisurvey_psf/current` (default) | independent of magnitude (XDQSO design) | `13866e45ef794059` |
+| `models/multisurvey_psf/current` | independent of magnitude (XDQSO design) | `13866e45ef794059` |
 | `models/multisurvey_psf/current_magdep` | free to depend on magnitude | `5f4002492dbb849c` |
 | `models/multisurvey_psf/previous` | rollback: the 28 September bundle | `630f47f63b6f0694` |
 
@@ -59,13 +59,19 @@ scores, decision = model.score(phot, ra_deg=180., dec_deg=0., z_primary=1.8, mor
 
 At 99.5% retention, both pass all eight release ranking panels against the previous bundle.
 The magnitude-dependent model fits held-out quasars about 0.67 nats/object better, but ranks
-quasars against contaminants only about 0.002 AUC better on average. The default model relies
+quasars against contaminants only about 0.002 AUC better on average. The magnitude-independent model relies
 more on the support cut. The cut threshold was chosen on the reporting rows and still needs
 confirmation on independent rows. Probability calibration is not established. See
 [the comparison](docs/SUPPORT_CUT_SWEEP_2026-10-01.md) and the
 [extinction coefficients](configs/extinction_coefficients.json).
 
 ### Candidate bundles (3 October 2026, not yet promoted)
+
+**Two models on an equal footing.** `independent` (quasar colours independent of apparent magnitude,
+the XDQSO assumption) and `dependent` (quasar colours free to depend on it) share everything else.
+Neither is the default. The magnitude-dependent model is better on the (DESI/SDSS-selected) test
+quasars, most clearly for bright ones; the magnitude-independent one makes the weaker assumption for
+quasars outside that selection. Score candidates with both; see the method note, Section 6.2.
 
 `models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}` keep the
 quasar models of the promoted bundles and change the non-quasar side:

@@ -25,8 +25,9 @@ method compares four populations: quasars at $z_0$, quasars at other redshifts, 
 in the imaging catalogue (the background, mostly stars), and a broad catch-all. It accepts any
 subset of 41 bands from seven surveys that includes Legacy Surveys $r$ at signal-to-noise $\geq10$.
 One latent model, shared by the northern and southern Legacy Surveys, describes all bands, and
-photometry is corrected for Galactic extinction. Two quasar models are provided: quasar colours
-independent of apparent magnitude (the XDQSO design; the default), or free to depend on it. The
+photometry is corrected for Galactic extinction. Two complete models are provided on an equal footing.
+They share everything except the quasar colour model: in one, quasar colours do not depend on apparent
+magnitude (the XDQSO design); in the other, they may. The
 background is fitted, as in XDQSO, separately in eight bins of Legacy $r$, on a training sample from
 which likely quasars are removed, with component weights that vary smoothly with Galactic position.
 On held-out data the two models separate quasars from background objects with AUC 0.976 and 0.980.
@@ -39,8 +40,10 @@ On held-out data the two models separate quasars from background objects with AU
 \section{Summary of what is delivered}
 %======================================================================
 \begin{itemize}\sloppy
-\item \textbf{Two models} (bundles of 3 October 2026): \code{independent} (quasar colours independent of
-  apparent magnitude; the default) and \code{dependent} (quasar colours free to depend on it), in
+\item \textbf{Two models on an equal footing} (bundles of 3 October 2026): \code{independent} (quasar colours
+  independent of apparent magnitude) and \code{dependent} (quasar colours free to depend on it). Neither
+  is the default; Section~\ref{sec:variants} explains the difference and when to prefer each, and we
+  recommend scoring candidates with both. In
   \texttt{models/\allowbreak multisurvey\_psf/\allowbreak work/\allowbreak stellar\_binned/\allowbreak 20261003/\allowbreak bundles/}. Load with
   \code{UnifiedPSFModel.load(...)}.
 \item \textbf{Inputs.} Any subset of 41 bands (SDSS $ugriz$; Legacy Surveys DR9 South and
@@ -50,7 +53,8 @@ On held-out data the two models separate quasars from background objects with AU
   Fainter sources, and sources without Legacy $r$, are flagged and not scored (Section~\ref{sec:faint}).
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
-\item \textbf{Main results} (Section~\ref{sec:validation}). AUC 0.976 and 0.980 on held-out quasars and
+\item \textbf{Main results} (Section~\ref{sec:validation}; first number for the magnitude-independent model,
+  second for the magnitude-dependent one). AUC 0.976 and 0.980 on held-out quasars and
   background objects; 86\% and 89\% of quasars receive $p_{\rm quasar}>0.5$; 0.3\% of background objects
   that are not flagged as likely quasars do. No artificial colour-grid point outside the models' dense
   core receives $p_{\rm quasar}>0.5$. Among ranked objects $p_{\rm quasar}$ agrees with the observed quasar
@@ -319,28 +323,71 @@ added back, and the density is conditioned on the reference band:
 $p(\vect{y}_{\rm other}\mid m_{\rm ref})=p(\vect{y})/p(m_{\rm ref})$. The scorer interpolates linearly
 between neighbouring slices in redshift.
 
-\subsection{Two variants: with and without magnitude dependence}\label{sec:variants}
+\subsection{Two quasar models: with and without magnitude dependence}\label{sec:variants}
+We deliver two complete models. They are identical in everything (bands, observation model, extinction,
+background, catch-all, priors, faint limit and support procedure) except one assumption about quasars:
+whether a quasar's colours at fixed redshift may depend on its apparent magnitude. Neither is a default.
+
 Conditioning a joint mixture on $m_{\rm ref}$ lets a model's colour distribution depend on apparent
-magnitude: a component's colour mean shifts with $m_{\rm ref}$ unless its covariance forbids it. The
-XDQSO design \citep{Bovy2011XDQSO} forbids it, and leaves all magnitude dependence to the abundance
-prior $\Sigma_Q(z,m)$. We provide both:
+magnitude: a component's colour mean and width shift with $m_{\rm ref}$ unless its covariance forbids it.
+Apparent magnitude enters the likelihood in both models through the abundance prior $\Sigma_Q(z,m)$; the
+question is only whether it also changes the predicted colours.
 
-\paragraph{Magnitude-independent (default).} We rewrite the latent vector as one magnitude and 35 colours,
-$u_r=x_r$ and $u_j=x_j-x_r$ for $j\neq r$, with $r$ the shared Legacy $r$ coordinate. In every component
-the magnitude coordinate has the same fixed distribution, $N(20,100\,{\rm mag}^2)$, and zero
-covariance with the colours. Conditioning on any reference band then leaves the colour likelihood
-independent of brightness. The residual dependence through the finite magnitude variance is below
-$10^{-3}$\,nat for a $\pm3$\,mag shift. With this block structure the likelihood factorises, and the
-exact constrained M step is the ordinary update of the colour block. A unit test confirms that it
-equals a fit to the colours alone.
+\paragraph{Magnitude-independent model.} This is the XDQSO assumption \citep{Bovy2011XDQSO}. We rewrite the
+latent vector as one magnitude and 35 colours, $u_r=x_r$ and $u_j=x_j-x_r$ for $j\neq r$, with $r$ the
+shared Legacy $r$ coordinate. In every component the magnitude coordinate has the same fixed distribution,
+$N(20,100\,{\rm mag}^2)$, and zero covariance with the colours, so conditioning on the reference band leaves
+the colour likelihood independent of brightness (the residual dependence through the finite magnitude
+variance is below $10^{-3}$\,nat for a $\pm3$\,mag shift). With this block structure the likelihood
+factorises, and the exact constrained M step is the ordinary update of the colour block
+(Appendix~\ref{app:mstep}); a unit test confirms that it equals a fit to the colours alone.
 
-\paragraph{Magnitude-dependent.} The same mixture without the constraint.
+\paragraph{Magnitude-dependent model.} The same mixture without the constraint: magnitude and colours are
+fitted jointly, so each slice's colour distribution may shift and change width with brightness.
 
-\paragraph{Why both are kept.} DESI and SDSS selected their quasars with colour cuts that change with
-magnitude. A model allowed to depend on magnitude can learn that selection as if it were quasar
-physics, and then penalise genuine quasars outside the selection. The test quasars share the training
-selection, so our tests cannot measure this risk. They can measure the cost of the constraint, which
-Section~\ref{sec:validation} reports.
+\paragraph{What each assumes, and its risk.} The training quasars were selected by DESI and SDSS with colour
+cuts that change with magnitude, and quasar populations themselves change with luminosity. The
+magnitude-dependent model can describe any real dependence, but it can also learn the selection as if it
+were quasar physics and then penalise a genuine quasar whose colours fall outside the selection at its
+magnitude. The magnitude-independent model cannot learn that selection, but it must use one colour width
+for all magnitudes, so where the observed colour scatter changes with brightness it is too broad for
+bright quasars and too narrow for faint ones (Section~\ref{sec:cc}). Our test quasars share the training
+selection, so the tests measure the cost of the magnitude-independent assumption on selected quasars,
+not its benefit for quasars outside the selection.
+
+\paragraph{Measured differences} (Section~\ref{sec:validation}; held-out rows, faint limit applied; density
+of the magnitude-dependent model relative to the magnitude-independent one):
+
+\begin{center}\small
+\begin{tabular}{lcc}
+\toprule
+quantity & mag.-independent & mag.-dependent \\
+\midrule
+held-out quasar density, per slice & --- & $+0.67$\,nat (0.38--0.88) \\
+quasars inside the 50\%/90\% contours, $17\le r<19$ & 0.62/0.94 & 0.51/0.90 \\
+quasars inside the 50\%/90\% contours, $21.5\le r<22.5$ & 0.41/0.86 & 0.49/0.89 \\
+AUC, all magnitudes & 0.976 & 0.980 \\
+AUC, $r<18$ & 0.955 & 0.975 \\
+AUC, $18\le r<19$ & 0.979 & 0.990 \\
+AUC, $r>21$ & 0.969--0.973 & 0.970--0.978 \\
+AUC at $z_0=3.45$ & 0.948 & 0.956 \\
+quasars with $p_{\rm quasar}>0.5$ & 86\% & 89\% \\
+unflagged background with $p_{\rm quasar}>0.5$ & 0.28\% & 0.25\% \\
+quasars not ranked & 3.2\% & 2.9\% \\
+grid points with $p_{\rm quasar}>0.5$, no support cut & 12 & 4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+On selected quasars the magnitude-dependent model is better on every measure, most clearly for bright
+quasars; the two converge at $r>21$, where most quasars are. The magnitude-independent model also relies
+more on the support cut to avoid extrapolation.
+
+\paragraph{Which to use.} For candidates that resemble the training quasars, the magnitude-dependent model
+gives the better-measured performance. For candidates that may lie outside the DESI and SDSS selection,
+for example quasars with unusual colours for their brightness, the magnitude-independent model makes the
+weaker assumption. We recommend scoring every candidate with both: a candidate ranked highly by both is
+robust to this assumption, and a large disagreement between them marks a case that depends on it.
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F06_colour_redshift.png}
@@ -692,8 +739,9 @@ are in \code{docs/method\_unified/examples.json}.}
 \item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$, and sources without Legacy $r$, are not scored.
 \item \textbf{Unranked quasars.} About 3\% of test quasars above the faint limit are not ranked because their
   colours lie outside both models; the cause is not yet investigated.
-\item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the
-  intended benefit of the magnitude-independent model for quasars outside DESI and SDSS selection.
+\item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the benefit
+  of the magnitude-independent model for quasars outside the DESI and SDSS selection, so the choice between
+  the two models (Section~\ref{sec:variants}) rests partly on that untested risk.
 \item \textbf{Quasar abundance} comes from earlier counts shifted for extinction, not a recount.
 \item \textbf{Sparse surveys.} NSC $VR$ and VISTA $Y$ extinction coefficients are approximate, and
   SkyMapper $u,v$ and VHS have little training support.
