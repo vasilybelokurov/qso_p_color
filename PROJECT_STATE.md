@@ -1,5 +1,15 @@
 # Current project state
 
+**BLEND MODE (4 October 2026, base version, built on PI request).** `src/qso_pcolor/blend.py` (`BlendModel`):
+spectroscopic QSO at z0 + unresolved companion, combined (best extended) flux; QQ (same-z QSO companion) vs QS
+(star). Validation on 2x1200 synthetic blends of held-out objects (`scripts/validate_blend_mode.py`,
+`docs/method_unified/blend_validation.json`, F20, note Section 11): AUC 0.950 (current) / 0.936 (magindep),
+>=0.97 when the companion carries >=25% of r flux, 0.79/0.69 below 10%; P(QQ) near calibrated at odds 1;
+linearisation vs flux-space Monte Carlo: sign agreement 98.7%, median |dlogBF| 0.31 where |logBF|<10.
+Codex design and code reviews: no bug in the likelihood; fixed: companion prior conditioned on the detectable
+range, instrumental covariance removed before conditioning and added once, validation cache keyed on inputs.
+Planned (PI): QSO pairs at different z, negligible companion, sub-limit companions.
+
 **PROMOTED (4 October 2026, PI decision).** `current` = `current_magdep` -> `20261003_magdep`
 (magnitude-dependent QSO colours); `current_magindep` -> `20261003_magindep` (magnitude-independent), to be
 used alongside `current` (score with both). Rollback: `previous_20261002_magindep`/`_magdep`, `previous`

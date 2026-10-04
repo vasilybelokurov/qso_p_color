@@ -20,6 +20,13 @@ Promotion script: `scripts/promote_stellar_binned.py`. The stellar-sample likely
 (`work/background_designs/test*/rows.npz`) must stay out of final assessments. Never train or promote a
 non-dereddened model without an explicit PI decision. See PROJECT_STATE.md for the decision log.
 
+**Blend mode (4 October 2026).** `src/qso_pcolor/blend.py` (`BlendModel`): spectroscopic QSO at z0 + unresolved
+companion, combined flux only; hypotheses QQ (same-z QSO companion) vs QS (star). Linearised flux addition over
+component pairs, companion r-flux share integrated on a logit grid, companion magnitude prior conditioned on the
+detectable range (each component >= 10 sigma of the blend Legacy r error). Validation:
+`scripts/validate_blend_mode.py` -> `docs/method_unified/blend_validation.json`, F20. Later hypotheses (QSO pairs at
+different z, negligible companion, sub-limit companions) are planned, not implemented.
+
 **Keep the goal in view (user priority, 30 September).** Deliver a pragmatic,
 working, robust model with the requested functionality. Choose the simplest
 defensible solution and bring it through validation to use. Before adding an

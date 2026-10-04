@@ -69,6 +69,31 @@ Objects without Legacy r, or with S/N < 10, are returned unscored with `decision
 `no_faint_limit_band` or `too_faint`. The method note (`docs/method_unified/method_unified.tex`) describes
 both models; Section 6.2 compares them.
 
+### Blend mode: known quasar + unresolved companion (4 October 2026)
+
+For a blended source made of a spectroscopic quasar at known redshift and an unresolved companion, with only
+the combined flux measured (best extended photometry: Legacy model flux, SDSS cModel, PS1 Kron; any
+morphology), `qso_pcolor.blend.BlendModel` compares QQ (companion = quasar at the same redshift) with QS
+(companion = star) using the same quasar and background models. Score with both promoted models:
+
+```python
+from qso_pcolor import Photometry
+from qso_pcolor.blend import BlendModel
+
+phot = Photometry([[4.0, 5.2, 6.1]], [[1/400, 1/600, 1/250]],          # whole-blend fluxes, nanomaggies
+                  ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
+for name in ("current", "current_magindep"):
+    blend = BlendModel.load(f"models/multisurvey_psf/{name}")
+    r = blend.score(phot, ra_deg=150.1, dec_deg=2.2, z_qso=1.5, prior_odds_qq=1.0)[0]
+    print(name, r.status, r.log_bf_qq_qs, r.p_qq, r.alpha_mean_qs)
+```
+
+Base rules: Legacy r must be present with S/N >= 20 (each component >= 10 sigma); the companion is assumed
+detectable and `prior_odds_qq` is the prior odds that a detectable companion is a quasar rather than a star.
+On synthetic blends of held-out objects: AUC 0.950 (`current`) / 0.936 (`current_magindep`), near 1 when the
+companion carries a quarter or more of the light, ~0.7-0.8 below a tenth; P(QQ) close to calibrated.
+See the method note, Section 11, and `docs/method_unified/blend_validation.json`.
+
 ### The previous bundle (28 September 2026)
 
 The description below is the previous PSF model, `PSFMultiSurveyBaseline`, now loaded from

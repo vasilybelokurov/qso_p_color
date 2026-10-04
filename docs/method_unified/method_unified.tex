@@ -733,6 +733,87 @@ are in \code{docs/method\_unified/examples.json}.}
 \label{fig:examples}
 \end{figure}
 
+%======================================================================
+\section{Blend mode: a known quasar and an unresolved companion}\label{sec:blend}
+%======================================================================
+\paragraph{Question.} A spectroscopic quasar at known redshift $z_0$ is blended with an unresolved
+companion, and only the combined flux is measured. Is the companion a second quasar at $z_0$ (QQ) or a
+star (QS)? Nothing is known about the components separately. The mode uses the same quasar and
+background models as the single-object scorer (either promoted bundle), accepts any morphology, and takes
+the best extended photometry of the whole blend (Legacy model flux, SDSS cModel, PS1 Kron). Quasar pairs
+at different redshifts, and a negligible companion, are further hypotheses to be added later.
+
+\paragraph{Likelihood.} Label the known quasar 1 and the companion 2, with reference-band (Legacy $r$)
+luptitudes $m_1, m_2$. For hypothesis $H$, with companion population $C$ (quasars at $z_0$, or the
+background at the blend's sky position),
+\begin{equation}
+L_H(\vect{y})=\iint p(m_1\mid Q,z_0)\,p(m_2\mid C,\ {\rm detectable})\,p(\vect{y}\mid m_1,m_2,H)\,dm_1\,dm_2 .
+\end{equation}
+The magnitude distributions are the bundle's surface densities normalised in magnitude:
+$\Sigma_Q(z_0,m)$ for the known quasar, and, for the companion, $\Sigma_Q(z_0,m)$ or
+$\Sigma_B(m,\ell,b)$ normalised over the detectable range only (below). Fluxes add, so we integrate over
+the companion's share $\alpha$ of the blend's $r$ flux $T$ ($F_1=(1-\alpha)T$, $F_2=\alpha T$), with $T$
+fixed at the measured value and the Jacobian of $(m_1,m_2)\to(u,\alpha)$,
+$J=aT\sqrt{T^2+4s^2}/\bigl(\sqrt{F_1^2+4s^2}\sqrt{F_2^2+4s^2}\bigr)$, on 48 points uniform in
+${\rm logit}\,\alpha$. At each $\alpha$, each component's mixture is conditioned on its own reference
+luptitude; for every pair of Gaussian components the blend luptitude in each other band is linearised in
+the component luptitudes: mean ${\rm lup}(F_{1j}+F_{2j})$ and covariance $W_1C_1W_1+W_2C_2W_2$ plus the
+measurement covariance, with $W_i={\rm diag}\bigl(\sqrt{F_{ij}^2+4s_j^2}/\sqrt{(F_{1j}+F_{2j})^2+4s_j^2}\bigr)$
+the exact first-order derivative. The instrumental covariance of the native bands enters once, as it
+belongs to the single blend measurement. The output is $\log L_{\rm QQ}$, $\log L_{\rm QS}$, the Bayes
+factor, $P({\rm QQ})$ for user-supplied prior odds, and the posterior companion share.
+
+\paragraph{Base rules.} Extinction is corrected on the blend, since both objects lie behind the same dust.
+Both components must carry at least 10 times the blend's Legacy $r$ flux error, so the blend needs
+$S/N\ge20$ in Legacy $r$; fainter companions are excluded in this base version. The companion's magnitude
+prior is therefore conditioned on the companion being detectable: the result is
+$P({\rm QQ}\mid\text{blend},\ \text{detectable companion})$, and how often a detectable companion is a
+quasar rather than a star belongs to the prior odds. (Without this conditioning, the much larger share of
+stars below the limit penalises QS for companions the mode excludes; in the validation that produced
+false quasar pairs for faint stars.) No catch-all or support cut is applied, and the known quasar's
+magnitude prior is the spectroscopic-sample $\Sigma_Q$, an assumption about the selection of the primary.
+
+\paragraph{Accuracy of the linearisation.} On 79 synthetic blends restricted to Legacy $g,r,z,W1,W2$, the
+Bayes factor agrees with a brute-force Monte Carlo of the same integral (20,000 flux-space draws per
+$\alpha$) in sign for 98.7\% of blends, with median $|\Delta\log{\rm BF}|=0.31$ where $|\log{\rm BF}|<10$; a
+few blends differ by 1--5\,nat. Large differences occur only where QS is strongly preferred, and there the
+linearisation is the more conservative (for example $-8$ against $-78$).
+
+\paragraph{Validation on synthetic blends of held-out objects.} We sum the extinction-corrected fluxes (and
+variances) of real test objects: 1,200 QQ blends of two test quasars in the same redshift slice and 1,200
+QS blends of a test quasar and a test-cone background object (likely quasars removed), each component with
+Legacy $r$ $S/N\ge10$, both classes placed at random test-cone positions. 99\% are scorable.
+\begin{center}\small
+\begin{tabular}{lcc}
+\toprule
+& \code{current} & \code{current\_magindep} \\
+\midrule
+AUC (QQ against QS, $\log{\rm BF}$) & 0.950 & 0.936 \\
+AUC, companion share $<10\%$ & 0.79 & 0.69 \\
+AUC, companion share 10--25\% & 0.90 & 0.89 \\
+AUC, companion share 25--50\% & 0.97 & 0.95 \\
+AUC, companion share $>50\%$ & $\ge0.995$ & $\ge0.994$ \\
+QQ blends with $P({\rm QQ})>0.9$ / $<0.1$ & 71\% / 0.7\% & 59\% / 1.1\% \\
+QS blends with $P({\rm QQ})<0.1$ / $>0.9$ & 69\% / 5.9\% & 66\% / 5.3\% \\
+median error of companion share, QQ / QS & 0.09 / 0.06 & 0.09 / 0.07 \\
+\bottomrule
+\end{tabular}
+\end{center}
+At prior odds 1 on this balanced sample, $P({\rm QQ})$ is close to calibrated (Fig.~\ref{fig:blend}); it is
+mildly overconfident towards QQ at the top (blends given 0.8--0.95 are QQ in 78\%), part of which is
+unidentified quasars among the ``stars''. The mode separates the hypotheses well whenever the companion
+contributes a quarter or more of the light, and poorly when it contributes less than a tenth, where the blend
+looks like the known quasar alone. The magnitude-dependent model separates slightly better, mostly for faint
+companions. Scoring takes about 0.5\,s per blend.
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{F20_blend_mode.png}
+\caption{Blend mode on synthetic blends of held-out objects. Left: Bayes factor QQ:QS for true QQ and true
+QS blends (\code{current}). Middle: reliability of $P({\rm QQ})$ at prior odds 1 on the balanced sample, both
+models. Right: AUC against the companion's true share of the $r$ flux.}
+\label{fig:blend}
+\end{figure}
+
 \clearpage
 %======================================================================
 \section{Limitations and open items}\label{sec:limits}
