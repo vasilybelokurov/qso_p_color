@@ -1,5 +1,11 @@
 # Current project state
 
+**OPEN PI DECISION (4 October 2026): make the calibrated outside-both-models test the default?**
+`ood_calibration=dict(alpha=2/256, draws=256, seed=...)` (qso_pcolor.ood_calibration) replaces the fixed 4-sigma
+cut, whose refusals grow with the number of observed bands. Validated on the test panel: unranked quasars
+2.9-3.2% -> 0.6%, background incidence +0.05 pp (docs/pquasar_diagnostics, Section 2.7;
+docs/method_unified/ood_calibration_validation.json). Implemented as an option; the scorer default is unchanged.
+
 **BLEND MODE (4 October 2026, base version, built on PI request).** `src/qso_pcolor/blend.py` (`BlendModel`):
 spectroscopic QSO at z0 + unresolved companion, combined (best extended) flux; QQ (same-z QSO companion) vs QS
 (star). Validation on 2x1200 synthetic blends of held-out objects (`scripts/validate_blend_mode.py`,
