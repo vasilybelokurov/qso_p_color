@@ -1,7 +1,9 @@
 """Shared helpers for the unified method write-up figures.
 
-Models are the promoted bundles: ``independent`` (``models/multisurvey_psf/current``,
-QSO colours independent of magnitude) and ``dependent`` (``current_magdep``).
+Models are the two candidate bundles of 3 October 2026 (binned, QSO-cleaned stellar model, smooth sky
+gate, faint limit): ``independent`` (QSO colours independent of magnitude) and ``dependent``.
+Set ``NOTE_MODELS=promoted`` to draw from the promoted pointers instead. Scores for the performance
+figures are in ``PERF`` (score_performance.py with --faint-limit 10).
 Data are the prepared, extinction-corrected arrays of the baseline run: native
 luptitudes ``y`` (mag), their variances ``noise`` (mag^2), observed masks, roles,
 redshifts and Galactic coordinates (deg). Only role 3 (test) rows are plotted as data.
@@ -21,7 +23,14 @@ from qso_pcolor.plotting import SERIES, save_figure, use_paper_style  # noqa: F4
 from run_unified_pilot import arrays
 
 ROOT = Path('models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059')
-POINTERS = {'independent': 'models/multisurvey_psf/current', 'dependent': 'models/multisurvey_psf/current_magdep'}
+import os
+CANDIDATE = Path('models/multisurvey_psf/work/stellar_binned/20261003/bundles')
+POINTERS = ({'independent': 'models/multisurvey_psf/current', 'dependent': 'models/multisurvey_psf/current_magdep'}
+            if os.environ.get('NOTE_MODELS') == 'promoted' else
+            {'independent': str(CANDIDATE/'independent'), 'dependent': str(CANDIDATE/'dependent')})
+PERF = Path('models/multisurvey_psf/work/method_unified/performance_stellar_binned')
+QSO_FLAG = ROOT/'stars'/'qso_flag.npy'
+FAINT_BANDS = ('decals_dr9_south:r', 'decals_dr9_north:r')
 COLOURS = {'independent': SERIES['same_z'], 'dependent': SERIES['field_q'], 'background': SERIES['background']}
 LABELS = {'independent': 'QSO model, magnitude-independent', 'dependent': 'QSO model, magnitude-dependent',
           'background': 'background model'}
@@ -52,6 +61,18 @@ def snr(kind, rows, labels):
     f = np.asarray(d['flux_dered'][rows][:, cols]); v = np.asarray(d['variance_dered'][rows][:, cols])
     with np.errstate(invalid='ignore', divide='ignore'):
         return np.where(np.isfinite(f) & (v > 0), f/np.sqrt(v), np.nan)
+
+
+def faint_ok(kind, rows):
+    """Faint limit (Legacy r S/N >= 10, South then North) and, for stellar rows, the likely-QSO flag removed."""
+    d = data(kind); obs = np.asarray(d['observed'][rows]); s, n = idx(FAINT_BANDS[0]), idx(FAINT_BANDS[1])
+    j = np.where(obs[:, s], s, n); has = obs[:, s] | obs[:, n]
+    f = np.asarray(d['flux'])[rows, j]; v = np.asarray(d['variance'])[rows, j]
+    with np.errstate(invalid='ignore', divide='ignore'):
+        ok = has & (f/np.sqrt(v) >= 10)
+    if kind == 'stars':
+        ok &= ~np.load(QSO_FLAG)[rows]
+    return ok
 
 
 def colour_matrix(pairs):

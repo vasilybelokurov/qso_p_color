@@ -15,7 +15,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fig12_14_performance as P
 
-BEFORE, AFTER = P.OUT, Path('models/multisurvey_psf/work/method_unified/performance_faint10')
+BEFORE, AFTER = Path('models/multisurvey_psf/work/method_unified/performance'), Path('models/multisurvey_psf/work/method_unified/performance_faint10')
 
 
 def metrics(q, b):

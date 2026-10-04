@@ -21,7 +21,7 @@ import numpy as np
 from scipy.stats import mannwhitneyu
 from common import COLOURS, LABELS, data, idx, save_figure, use_paper_style
 
-OUT = Path('models/multisurvey_psf/work/method_unified/performance')
+from common import PERF as OUT
 MODELS = ('independent', 'dependent')
 SURVEYS = ('sdss', 'decals_dr9_south', 'decals_dr9_north', 'allwise', 'ps1', 'nsc', 'skymapper', 'vhs')
 SHORT = dict(sdss='SDSS', decals_dr9_south='LS-S', decals_dr9_north='LS-N', allwise='AllWISE', ps1='PS1',
@@ -41,7 +41,7 @@ def load(model, kind, panel, suffix=''):
         d['hemi'] = np.full(len(r['rows']), 'north' if '_north' in p else 'south'); parts.append(d)
     if not parts:
         return None
-    return {k: np.concatenate([q[k] for q in parts]) for k in parts[0] if k not in ('status', 'flags', 'reference')}
+    return {k: np.concatenate([q[k] for q in parts]) for k in parts[0] if k not in ('flags', 'reference')}
 
 
 def rank(d):
@@ -136,6 +136,9 @@ def f14(main, masks, report):
         vals = [summary(*masks[model][m]) for m in names]; report['by_mask'][model] = dict(zip(names, vals))
         y = np.arange(len(names)) + (k - .5)*.35
         ax[1].barh(y, [v['auc'] - .85 for v in vals], left=.85, height=.33, color=COLOURS[model])
+    for i, m in enumerate(names):
+        if not np.isfinite(report['by_mask']['independent'][m]['auc']):
+            ax[1].text(.86, i, 'not scored: no Legacy $r$\n(faint-limit band)', va='center', fontsize=7, color='0.35')
     ax[1].set_yticks(np.arange(len(names))); ax[1].set_yticklabels(names, fontsize=8); ax[1].invert_yaxis()
     ax[1].set(xlabel='AUC', xlim=(.85, 1.), title='same objects, artificial band masks')
     fig.tight_layout(); return fig

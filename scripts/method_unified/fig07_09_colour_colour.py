@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from common import (COLOURS, LABELS, background_weights, colour_matrix, combine, condition_on, contour_levels,
+from common import (faint_ok, COLOURS, LABELS, background_weights, colour_matrix, combine, condition_on, contour_levels,
                     data, density_2d, idx, model, project, save_figure, snr, use_paper_style)
 
 S = 'decals_dr9_south:'
@@ -27,7 +27,10 @@ COVERAGE = []
 
 
 def selection(kind, plane):
+    """Role-3 rows with Legacy South r, the faint limit (and, for background objects, likely QSOs removed),
+    and S/N > 5 in the plane's bands."""
     d = data(kind); rows = np.flatnonzero((d['role'] == 3) & d['observed'][:, idx(S+'r')])
+    rows = rows[faint_ok(kind, rows)]
     s = snr(kind, rows, PLANES[plane][1]); return rows[(s > 5).all(axis=1)]
 
 
@@ -72,7 +75,7 @@ def draw(ax, plane, kind, rows, mixtures, reference=None, title=''):
     if reference is not None:
         name, mix, style = reference; z = density_2d(project(mix, a), xx, yy, noise)
         ax.contour(xx, yy, z, levels=contour_levels(z, (.9,)), colors=COLOURS[name], linewidths=.8, linestyles=style, alpha=.8)
-    ax.set_xlim(xl); ax.set_ylim(yl); ax.set_title(title + f'\nn = {len(rows):,};  in 50%/90%: ' + ', '.join(cover), fontsize=7.5)
+    ax.set_xlim(xl); ax.set_ylim(yl); ax.set_title(title + f'\nn = {len(rows):,}; in 50%/90%:\n' + ', '.join(cover), fontsize=7)
     ax.set_xlabel(AXIS[plane][0])
 
 

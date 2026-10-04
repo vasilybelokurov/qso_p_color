@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from common import COLOURS, LABELS, bands, condition_on, data, idx, model, save_figure, use_paper_style
 
-OUT = Path('models/multisurvey_psf/work/method_unified/performance')
+from common import PERF as OUT
 WAVE = {'sdss': dict(u=355, g=469, r=617, i=748, z=893), 'decals_dr9_south': dict(g=480, r=640, z=920, w1=3400, w2=4600),
         'decals_dr9_north': dict(g=477, r=623, z=918, w1=3400, w2=4600), 'allwise': dict(w1=3400, w2=4600, w3=12000, w4=22000),
         'ps1': dict(g=487, r=622, i=755, z=868, y=963), 'nsc': dict(u=380, g=480, r=640, i=780, z=920, y=990, vr=630),

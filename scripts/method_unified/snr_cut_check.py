@@ -22,10 +22,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from common import COLOURS, LABELS, data, save_figure, use_paper_style
+import fig12_14_performance as _P
 from fig12_14_performance import MODELS, auc, load, sub
 import glob
 
-OUT = Path('models/multisurvey_psf/work/method_unified/performance')
+OUT = Path('models/multisurvey_psf/work/method_unified/performance')   # scores WITHOUT the faint limit (promoted bundles)
+_P.OUT = OUT
 EDGES = [5, 7, 10, 15, 20, 30, 50, 100, np.inf]
 THRESHOLDS = [5, 7, 10, 15, 20]
 

@@ -5,7 +5,7 @@ F1 is illustrative only: synthetic two-dimensional Gaussians, not fitted models.
 F15: 15 x 15 grids in Legacy (g-r, r-z) from -6 to 8 mag at fixed r (18.5, 21), placed at
 (l, b) = (180, 45) deg with 0.03 mag luptitude errors. Colour: total QSO probability
 p_quasar for scorable points; grey: not scorable (outside both models, or rejected by the
-support cut at 99.5% calibration retention). Black outline: the original low-density mask
+support cut, threshold 2/256, recalibrated under the faint limit). Black outline: the original low-density mask
 in which the 30 September candidate placed 72/79 high-QSO points.
 """
 import json
@@ -17,8 +17,8 @@ from matplotlib.patches import Ellipse
 from common import SERIES, save_figure, use_paper_style
 
 OLD = Path(json.loads(Path('docs/FULL_SAMPLE_RELEASE_2026-09-30.json').read_text())['cache'])
-RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059/release'),
-        'magnitude-dependent': Path('models/multisurvey_psf/work/unified_full/20261001/5f4002492dbb849c/release')}
+RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/method_unified/grids_note/independent'),
+        'magnitude-dependent': Path('models/multisurvey_psf/work/method_unified/grids_note/dependent')}   # grid_scores.py
 THRESHOLD = 0.0078125
 
 

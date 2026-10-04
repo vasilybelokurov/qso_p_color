@@ -7,8 +7,9 @@ F10b  Held-out conditional log density per object for six test slices, both upda
       (MAP-update test run, identical rows and warm starts).
 F10c  Updates at which each production fit stopped, against slice redshift, both refits.
 F10d  Held-out gain of the kept checkpoint over the warm start, both refits.
-F11   AUC minus the previous model's AUC (worst of eight panels), test-QSO retention and
-      artificial-grid stray points against the support-cut calibration retention.
+F11   Support-cut sweep for the note's bundles: held-out AUC, test-QSO retention, background
+      p_Q>0.5 incidence and artificial-grid stray points against the support threshold (scores of
+      fig12_14 / grid_scores.py, no rescoring); dotted: the recalibrated threshold.
 """
 import glob
 import json
@@ -57,19 +58,45 @@ def f10():
     fig.tight_layout(); return fig
 
 
+THRESHOLDS = [0., 1/256, 2/256, 4/256, 8/256, 16/256]
+CHOSEN = 2/256
+
+
 def f11():
-    r = json.loads(Path('docs/SUPPORT_CUT_SWEEP_2026-10-01.json').read_text())
-    fig, ax = plt.subplots(1, 3, figsize=(11, 3.3))
-    for key, name in (('baseline_corrected_mag_independent', 'independent'), ('corrected_mag_dependent', 'dependent')):
-        sw = r[key]['sweep']; x = np.arange(len(sw)); ticks = [f"{s['target_retention']:.3f}" if s['target_retention'] < 1 else 'no cut' for s in sw]
-        ax[0].plot(x, [s['min_auc_minus_active'] for s in sw], 'o-', color=COLOURS[name], label=LABELS[name])
-        ax[1].plot(x, [s['min_qso_retention'] for s in sw], 'o-', color=COLOURS[name])
-        ax[2].plot(x, [sum(s['grid'].values()) for s in sw], 'o-', color=COLOURS[name])
-    ax[0].axhline(-.005, color='0.4', lw=.8, ls=':'); ax[0].text(0, -.0055, 'release tolerance', fontsize=7, va='top')
-    titles = ('worst AUC minus previous model', 'lowest test-QSO retention', 'stray points on artificial grids')
+    """Support-cut sweep on the note's held-out main panels and artificial grids (no rescoring)."""
+    import fig12_14_performance as P
+    from fig01_15_schematic_grids import RUNS as GRIDS, low_mask
+    fig, ax = plt.subplots(1, 4, figsize=(12, 3.2)); x = np.arange(len(THRESHOLDS))
+    ticks = ['no cut' if t == 0 else f'{round(t*256)}/256' for t in THRESHOLDS]; report = {}
+    for name, gname in (('independent', 'magnitude-independent'), ('dependent', 'magnitude-dependent')):
+        q, b = P.load(name, 'qso', 'main'), P.load(name, 'stars', 'main')
+        pre = lambda d: d['eligible'] | (d['status'] == 'qso_support_rejected')
+        out = []
+        for t in THRESHOLDS:
+            cut = lambda d: pre(d) & ~(np.isfinite(d['support']) & (d['support'] < t))
+            qq, bb = dict(q, eligible=cut(q)), dict(b, eligible=cut(b))
+            stray = 0
+            for h in ('south', 'north'):
+                for mag in (18.5, 21.0):
+                    raw = np.load(GRIDS[gname]/f'grid_{h}_{mag}_raw.npz'); uni = np.load(GRIDS[gname]/f'grid_{h}_{mag}_unified.npz')
+                    ok = raw['eligible'] & ~(np.isfinite(uni['support']) & (uni['support'] < t))
+                    stray += int((ok & (raw['p_quasar'] > .5) & low_mask(h, mag)).sum())
+            # Rank by p_quasar: the scorer blanks log R for support-rejected rows, so it cannot rank them
+            # at looser thresholds; unranked rows go to the bottom as in fig12_14.
+            rq = np.where(qq['eligible'], np.nan_to_num(q['p_quasar']), -1.); rb = np.where(bb['eligible'], np.nan_to_num(b['p_quasar']), -1.)
+            from scipy.stats import mannwhitneyu
+            out.append(dict(threshold=t, auc=float(mannwhitneyu(rq, rb).statistic/(len(rq)*len(rb))), retention=float(np.mean(~(np.isfinite(q['support']) & (q['support'] < t)))),
+                            incidence=float((bb['eligible'] & (bb['p_quasar'] > .5)).mean()), grid_stray=stray))
+        report[name] = out
+        for k, key in enumerate(('auc', 'retention', 'incidence', 'grid_stray')):
+            ax[k].plot(x, [o[key] for o in out], 'o-', color=COLOURS[name], label=LABELS[name])
+    titles = ('AUC of $p_Q$ (held-out main panel)', 'test-QSO retention', 'background with $p_Q>0.5$', 'stray points on artificial grids')
     for a, t in zip(ax, titles):
-        a.set_xticks(x); a.set_xticklabels(ticks); a.set_xlabel('support-cut calibration retention'); a.set_title(t, fontsize=9)
-    ax[0].legend(frameon=False, fontsize=7); fig.tight_layout(); return fig
+        a.set_xticks(x); a.set_xticklabels(ticks, fontsize=7); a.set_xlabel('support-cut threshold (percentile)'); a.set_title(t, fontsize=9)
+        a.axvline(THRESHOLDS.index(CHOSEN), color='0.6', lw=.8, ls=':')
+    ax[0].legend(frameon=False, fontsize=7); fig.tight_layout()
+    Path('docs/method_unified/support_sweep_note.json').write_text(json.dumps(report, indent=1, default=float))
+    return fig
 
 
 def main():

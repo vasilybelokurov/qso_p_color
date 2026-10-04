@@ -9,160 +9,160 @@
   "scores": {
    "independent": {
     "z": 1.5145216680829034,
-    "logR": 1.4117654023378416,
-    "pq": 0.9999684615367065,
-    "support": 0.921875,
+    "logR": 1.4444598338486982,
+    "pq": 0.9999999999999787,
+    "support": 0.92578125,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_south:r",
     "rejected": false
    },
    "dependent": {
     "z": 1.5145216680829034,
-    "logR": 1.657340127443765,
-    "pq": 0.9999898599003333,
-    "support": 0.73046875,
+    "logR": 1.646519400070784,
+    "pq": 0.9999999999999947,
+    "support": 0.71484375,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_south:r",
     "rejected": false
    }
   }
  },
  {
   "kind": "qso",
-  "prepared_row": 674952,
-  "source_row": 674952,
+  "prepared_row": 675380,
+  "source_row": 675380,
   "title": "QSO at z~3",
-  "ra": 187.52915596736887,
-  "dec": 62.82671948010401,
+  "ra": 183.6248966276139,
+  "dec": 64.19040196555717,
   "scores": {
    "independent": {
-    "z": 3.037484837130654,
-    "logR": -0.5728839448747073,
-    "pq": 0.9122689516054876,
-    "support": 0.1640625,
+    "z": 2.995,
+    "logR": 0.6185675400672603,
+    "pq": 0.9997971215716916,
+    "support": 0.87890625,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_north:r",
     "rejected": false
    },
    "dependent": {
-    "z": 3.037484837130654,
-    "logR": -0.3848886433848111,
-    "pq": 0.9621594077550142,
-    "support": 0.26171875,
+    "z": 2.995,
+    "logR": 0.5381173067886214,
+    "pq": 0.9998056044220948,
+    "support": 0.6796875,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_north:r",
     "rejected": false
    }
   }
  },
  {
   "kind": "qso",
-  "prepared_row": 683744,
-  "source_row": 683744,
+  "prepared_row": 684906,
+  "source_row": 684906,
   "title": "low-redshift QSO",
-  "ra": 237.3401516236328,
-  "dec": 54.198715409114484,
+  "ra": 230.49706004854573,
+  "dec": 53.21062523558853,
   "scores": {
    "independent": {
-    "z": 0.646,
-    "logR": 1.4457431513396601,
-    "pq": 0.9976158693220084,
-    "support": 0.78515625,
+    "z": 0.582,
+    "logR": 1.6163253344556947,
+    "pq": 0.99999968645379,
+    "support": 0.984375,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_north:r",
     "rejected": false
    },
    "dependent": {
-    "z": 0.646,
-    "logR": 1.1895784231234636,
-    "pq": 0.9980422426099348,
-    "support": 0.68359375,
+    "z": 0.582,
+    "logR": 1.5267525669723674,
+    "pq": 0.9999999093037429,
+    "support": 0.98046875,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_north:r",
     "rejected": false
    }
   }
  },
  {
   "kind": "qso",
-  "prepared_row": 710874,
-  "source_row": 710874,
+  "prepared_row": 713830,
+  "source_row": 713830,
   "title": "QSO rejected by support cut",
-  "ra": 318.75040607652295,
-  "dec": 4.701063421437131,
+  "ra": 319.1849028196349,
+  "dec": 7.931938139375474,
   "scores": {
    "independent": {
-    "z": 1.5027126577941556,
+    "z": 2.2620667842891935,
     "logR": NaN,
-    "pq": 0.0371690304265668,
+    "pq": 6.172952104504181e-07,
     "support": 0.00390625,
     "eligible": false,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_south:r",
     "rejected": true
    },
    "dependent": {
-    "z": 1.5027126577941556,
+    "z": 2.2620667842891935,
     "logR": NaN,
-    "pq": 0.23704555395588084,
-    "support": 0.0078125,
+    "pq": 3.590610946714117e-05,
+    "support": 0.00390625,
     "eligible": false,
-    "reference": "sdss:r",
-    "rejected": false
+    "reference": "decals_dr9_south:r",
+    "rejected": true
    }
   }
  },
  {
   "kind": "stars",
-  "prepared_row": 351979,
-  "source_row": 351979,
+  "prepared_row": 311664,
+  "source_row": 311664,
   "title": "background star",
-  "ra": 197.09703655128484,
-  "dec": 25.091598285197144,
+  "ra": 233.13391245070721,
+  "dec": 23.077120178162676,
   "scores": {
    "independent": {
-    "z": 3.094828631625386,
-    "logR": -49.387660234756034,
-    "pq": 6.043948150417531e-21,
+    "z": 2.8259360355812255,
+    "logR": -41.56384935495199,
+    "pq": 1.6971241934178208e-15,
     "support": 0.0078125,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_south:r",
     "rejected": false
    },
    "dependent": {
-    "z": 3.094828631625386,
-    "logR": -41.976851731065715,
-    "pq": 1.9151499159931988e-19,
-    "support": 0.01171875,
-    "eligible": true,
-    "reference": "sdss:r",
-    "rejected": false
+    "z": 2.8259360355812255,
+    "logR": NaN,
+    "pq": 2.524827920354795e-14,
+    "support": 0.00390625,
+    "eligible": false,
+    "reference": "decals_dr9_south:r",
+    "rejected": true
    }
   }
  },
  {
   "kind": "stars",
-  "prepared_row": 537322,
-  "source_row": 537322,
+  "prepared_row": 481007,
+  "source_row": 481007,
   "title": "background object with $p_Q>0.5$",
-  "ra": 186.03905718445822,
-  "dec": 60.026752443918156,
+  "ra": 239.4096476796509,
+  "dec": 75.67849574988382,
   "scores": {
    "independent": {
-    "z": 2.188777436327576,
-    "logR": -1.7580037216736903,
-    "pq": 0.6467780840195823,
-    "support": 0.2578125,
+    "z": 1.6098498936889174,
+    "logR": -5.887845851531559,
+    "pq": 0.987187464984873,
+    "support": 0.1875,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_north:r",
     "rejected": false
    },
    "dependent": {
-    "z": 2.188777436327576,
-    "logR": -2.4537100958687783,
-    "pq": 0.8609085121910929,
-    "support": 0.37109375,
+    "z": 1.6098498936889174,
+    "logR": -6.444488521706329,
+    "pq": 0.9930314472158056,
+    "support": 0.12890625,
     "eligible": true,
-    "reference": "sdss:r",
+    "reference": "decals_dr9_north:r",
     "rejected": false
    }
   }
