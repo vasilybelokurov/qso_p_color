@@ -27,13 +27,9 @@ subset of 41 bands from seven surveys that includes Legacy Surveys $r$ at signal
 One latent model, shared by the northern and southern Legacy Surveys, describes all bands, and
 photometry is corrected for Galactic extinction. Two quasar models are provided: quasar colours
 independent of apparent magnitude (the XDQSO design; the default), or free to depend on it. The
-background is modelled as in XDQSO, by separate fits in eight bins of Legacy $r$, after removing
-likely quasars from its training sample; its component weights vary smoothly with Galactic
-position. On held-out stars this background describes the data better than the joint model it
-replaces in every magnitude bin ($+4.9$\,nat per object at $r<17$, $+0.2$ at $r>23$). On held-out
-quasars and background objects it ranks as well (AUC 0.976 and 0.980), finds more quasars, and
-calls fewer background objects quasars. This note describes the candidate bundles of 3 October 2026;
-it replaces the version of 2 October and the earlier \code{docs/method/method.tex}.
+background is fitted, as in XDQSO, separately in eight bins of Legacy $r$, on a training sample from
+which likely quasars are removed, with component weights that vary smoothly with Galactic position.
+On held-out data the two models separate quasars from background objects with AUC 0.976 and 0.980.
 \end{abstract}
 
 \tableofcontents
@@ -43,12 +39,10 @@ it replaces the version of 2 October and the earlier \code{docs/method/method.te
 \section{Summary of what is delivered}
 %======================================================================
 \begin{itemize}
-\item \textbf{Two candidate bundles} (3 October 2026, not yet promoted):
-  \url{models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent} (quasar colours
-  independent of apparent magnitude; the intended default) and \code{.../dependent} (quasar colours
-  free to depend on it). The promoted pointers \code{current} and \code{current\_magdep} still name the
-  2 October bundles, which differ only in the background model, the faint limit and the support
-  recalibration. Load with \code{UnifiedPSFModel.load(...)}.
+\item \textbf{Two models} (bundles of 3 October 2026): \code{independent} (quasar colours independent of
+  apparent magnitude; the default) and \code{dependent} (quasar colours free to depend on it), in
+  \url{models/multisurvey_psf/work/stellar_binned/20261003/bundles/}. Load with
+  \code{UnifiedPSFModel.load(...)}.
 \item \textbf{Inputs.} Any subset of 41 bands (SDSS $ugriz$; Legacy Surveys DR9 South and
   North $g,r,z,W1,W2$; AllWISE $W1$--$W4$; Pan-STARRS1 $grizy$; NSC $ugrizY{+}VR$; SkyMapper
   $uvgriz$; VHS $YJHK_s$) that contains Legacy $r$ at $S/N\geq10$, as catalogued fluxes or magnitudes
@@ -56,14 +50,11 @@ it replaces the version of 2 October and the earlier \code{docs/method/method.te
   Fainter sources, and sources without Legacy $r$, are flagged and not scored (Section~\ref{sec:faint}).
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
-\item \textbf{Main results.} Section~\ref{sec:validation}. The binned background fits held-out stars far
-  better than the joint background it replaces (Table~\ref{tab:bkgdensity}, Fig.~\ref{fig:stellarcc}).
-  Against the promoted bundles on the same held-out objects, ranking is unchanged ($\Delta$AUC
-  $-0.0006$ and $+0.0003$), recall at $p_{\rm quasar}>0.5$ rises by 2.5 and 2.1 points, and the fraction of
-  background objects with $p_{\rm quasar}>0.5$ falls (Table~\ref{tab:compare}). On artificial colour
-  grids the spurious high-quasar points of earlier models (up to 79) drop to 1 and 0. $p_{\rm quasar}$
-  is consistent with the observed quasar fraction in the mid range and mildly overconfident above
-  0.97 (Section~\ref{sec:calib}).
+\item \textbf{Main results} (Section~\ref{sec:validation}). AUC 0.976 and 0.980 on held-out quasars and
+  background objects; 86\% and 89\% of quasars receive $p_{\rm quasar}>0.5$; 0.3\% of background objects
+  that are not flagged as likely quasars do. No artificial colour-grid point outside the models' dense
+  core receives $p_{\rm quasar}>0.5$. Among ranked objects $p_{\rm quasar}$ agrees with the observed quasar
+  fraction in the mid range and is mildly overconfident above 0.97; about 3\% of quasars are not ranked.
 \end{itemize}
 
 %======================================================================
@@ -194,10 +185,10 @@ Section~\ref{sec:validation}.
 \subsection{The faint limit}\label{sec:faint}
 We train the background on, and score, only sources with Legacy $r$ at $S/N\geq10$
 ($\sigma_r\lesssim0.11$\,mag; $\sigma(g-r)\approx0.2$\,mag). Below this the colour errors are as large
-as the colour difference between quasars and stars, and the model cannot vouch for a quasar: on the
-2 October bundles, the fraction of held-out quasars given $p_{\rm quasar}>0.5$ is 19\% at
-$5\leq S/N<7$ and 30\% at $7\leq S/N<10$, against 51\% at $10\le S/N<15$ and 93\% above $S/N=50$
-(Fig.~\ref{fig:snrcut}). The limit is a signal-to-noise cut rather than a magnitude cut because the
+as the colour difference between quasars and stars, and the model cannot vouch for a quasar. Measured
+before the limit was imposed (same quasar models, joint background), the fraction of held-out quasars
+given $p_{\rm quasar}>0.5$ is 19\% at $5\leq S/N<7$ and 30\% at $7\leq S/N<10$, against 51\% at
+$10\le S/N<15$ and 93\% above $S/N=50$ (Fig.~\ref{fig:snrcut}). The limit is a signal-to-noise cut rather than a magnitude cut because the
 two hemispheres differ in depth: stellar counts peak at $r\approx24.6$ in the South and $r\approx23.6$ in
 the North, and $S/N=10$ falls at $r\approx24.1$ and 22.9 respectively. It removes 2.8\% of test quasars
 and 64\% of test background objects, almost all faint stars. Legacy $r$ is then the reference band of
@@ -207,10 +198,9 @@ not scored; on the training samples that affects 0.01\% of quasars.
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F17_snr_cut_check.png}
-\caption{Held-out performance of the 2 October bundles against signal-to-noise, before the faint limit.
-Top: S/N of the band then used as reference (SDSS $r$ first). Bottom: S/N of Legacy $r$. Left: AUC within
-each S/N bin. Middle and right: fraction of background objects and of quasars given
-$p_{\rm quasar}>0.5$. Dotted lines: $S/N=5$ and 10.}
+\caption{Held-out performance against Legacy $r$ signal-to-noise, measured before the faint limit was
+imposed. Left: AUC within each S/N bin. Middle and right: fraction of background objects and of quasars
+given $p_{\rm quasar}>0.5$. Dotted lines: $S/N=5$ and 10.}
 \label{fig:snrcut}
 \end{figure}
 
@@ -283,9 +273,8 @@ rows (medians 0.035 and 0.033\,mag).}
 \end{figure}
 
 \subsection{One latent model for Legacy North and South}\label{sec:latent}
-Legacy DR9 South (DECam) and North (BASS/MzLS) $g,r,z$ use different filters. Earlier models fitted
-them as separate bands, and the northern fits then borrowed little from the much larger southern
-sample. We now describe every source by latent, noise-free luptitudes $\vect{x}$ in 36 coordinates:
+Legacy DR9 South (DECam) and North (BASS/MzLS) $g,r,z$ use different filters. So that the northern
+fits can borrow from the much larger southern sample, we describe every source by latent, noise-free luptitudes $\vect{x}$ in 36 coordinates:
 five shared Legacy coordinates (\code{legacy:g,r,z,W1,W2}) and 31 coordinates for the other surveys.
 The 41 native bands follow from a linear operator,
 \begin{equation}
@@ -366,23 +355,22 @@ bands do not.}
 %======================================================================
 \section{The background model}\label{sec:background}
 %======================================================================
-\paragraph{Why the design changed.} The 2 October background was one $K=20$ mixture over all
-magnitudes. Faint sources dominate the training counts (69\% of fit/select rows had $r>23.5$), so
-nearly all components described faint objects, and bright stars were covered by about one broad
-component: at $17\le r<19$, half of that model's draws fell in empty colour space, and its contours did
-not follow the stellar locus (Fig.~\ref{fig:stellarfinal}, top rows). Two cheaper fixes failed in light
-tests: decoupling magnitude from colour inside each component, and sharing 20 colour shapes across
-magnitude nodes with only their weights free (worse than the joint model at $r>22$, so the shape of the
-locus itself changes with magnitude). We therefore follow XDQSO \citep{Bovy2011XDQSO}, which fits stars
-in narrow magnitude bins; CondXD \citep{Kang2025} reaches comparable results with a neural network that
-makes all mixture parameters functions of magnitude.
+\paragraph{Design.} Faint sources dominate the background counts (69\% of fit/select rows have
+$r>23.5$). A single mixture over all magnitudes therefore spends almost all its components on faint
+stars and describes bright ones poorly. Following XDQSO \citep{Bovy2011XDQSO}, which fits stars in narrow
+magnitude bins, we fit the background separately in bins of Legacy $r$. On held-out stars this describes
+the data better than one 20-component mixture over all magnitudes in every bin, by 4.9\,nat per object at
+$r<17$ and 0.2 at $r>23$. Sharing one set of colour shapes across magnitude, with only their weights free,
+is worse at $r>22$: the shape of the stellar locus itself changes with magnitude. CondXD
+\citep{Kang2025} reaches comparable results with a neural network that makes all mixture parameters
+functions of magnitude.
 
 \paragraph{Binned fit.} The fit/select background rows above the faint limit are split into eight bins of
 Legacy $r$: 15.5--17, 17--18, \dots, 22--23 and 23--24.5. Each bin is fitted independently by extreme
 deconvolution with $K=20$ components over the 36 latent coordinates (written as $r$ and 35 colours),
 on its own rows plus those within 0.25\,mag of its edges (19,158 to 255,709 rows per bin), with the
 MAP update and predictive early stopping of Section~\ref{sec:fitting} on 1,000 test-role objects per
-bin. The eight mixtures are joined into one 160-component mixture, each bin's weights scaled by its
+bin, starting from equal weights. The eight mixtures are joined into one 160-component mixture, each bin's weights scaled by its
 share of training objects. Conditioning this mixture on $m_{\rm ref}$ weights each component by
 $N(m_{\rm ref};\mu_{r,i},V_{rr,i})$, which selects the bin and blends neighbouring bins smoothly at the
 edges. On 17,937 held-out stars this beats picking the single bin that contains $m_{\rm ref}$ by
@@ -394,8 +382,8 @@ Legacy $r$ for every scored source, routing and conditioning use the same magnit
 background sample when it was built, but it still contains unidentified ones, increasingly at faint
 magnitudes: among background rows detected in $W1$ and $W2$, the fraction with the AGN colour
 $W1-W2>0.8$ (Vega; \citealt{Stern2012}) is 3\% at $19\le r<20$ and 37\% at $22\le r<23$. A binned model
-is flexible enough to learn them as background, which lowered the recall of real quasars in a light
-test (0.83 to 0.74). We therefore remove from training (and from the background test sets) members of
+is flexible enough to learn them as background, which lowers the recall of real quasars (in a test,
+from 0.83 to 0.74 at $p_{\rm quasar}>0.5$). We therefore remove from training (and from the background test sets) members of
 Quaia \citep{StoreyFisher2024} matched by Gaia DR3 \code{source\_id}, and sources with $W1-W2>0.8$ (Vega)
 at $S/N\ge5$ in both bands, except very red optical sources ($r-z>2$, kept as brown-dwarf candidates).
 This removes 0.1\% of training rows at $r<18$ and 3--5\% at $r>20$. A Gaia zero-proper-motion cut was
@@ -413,48 +401,15 @@ fitted by maximum likelihood with fixed component densities and an L2 penalty of
 on 300,000 cleaned training rows. The gate is fitted to the joint density, but it is judged by the
 quantity the scorer uses: on 60,000 held-out rows in the test cones, with the final background, it improves
 the conditional density $\ln p(\vect{y}_{\rm other}\mid r)$ over one all-sky weight vector by
-$0.0260\pm0.0015$\,nat per object, positively in every magnitude and $|b|$ bin, and beats the previous
-HEALPix hierarchy (nside 4, $n_0=1000$: $0.0219\pm0.0011$). The scorer evaluates the gate at nside-16 pixel
+$0.0260\pm0.0015$\,nat per object, positively in every magnitude and $|b|$ bin, and beats a HEALPix
+hierarchy of cell weights (nside 4 pooled to nside 2 and all-sky, $n_0=1000$: $0.0219\pm0.0011$). The scorer evaluates the gate at nside-16 pixel
 centres ($3.7^\circ$; no measurable loss). The effect is small because stellar colours at $|b|\ge25^\circ$ change little with position.
 
 \paragraph{Surface density.} $\Sigma_B(m)$ is measured per reference band from counts in regions of
-measured usable area, pooled with $n_0=100$, as before, but on the cleaned sample, so that counts and
-colour model describe the same population. In Legacy $r$ the density falls by less than 0.5\% at $r<18.5$
-and by 3--6\% at $20\le r\le24.5$; with nothing removed the recount reproduces the earlier densities
-exactly. A candidate-local refit of weights and density
+measured usable area, pooled with $n_0=100$, on the cleaned sample, so that counts and colour model
+describe the same population (removing the flagged sources lowers it by less than 0.5\% at $r<18.5$ and
+by 3--6\% at $20\le r\le24.5$). A candidate-local refit of weights and density
 in a declared cone is available.
-
-\begin{table}[!htbp]\centering\small
-\caption{Held-out conditional density $\ln p(\vect{y}_{\rm other}\mid r)$ of background objects (nat per object)
-under the 2 October joint background and the binned background: 17,937 test-cone objects above the faint
-limit, likely quasars removed, never used in fitting. Last column: fraction of objects better described
-by the binned model.}\label{tab:bkgdensity}
-\begin{tabular}{lrrrrr}
-\toprule
-Legacy $r$ & $N$ & joint & binned & difference & better \\
-\midrule
-15.5--17 & 437 & 30.56 & 35.42 & $+4.86\pm0.13$ & 97\% \\
-17--18 & 2,500 & 25.45 & 28.80 & $+3.36\pm0.05$ & 94\% \\
-18--19 & 2,500 & 21.82 & 24.61 & $+2.79\pm0.05$ & 92\% \\
-19--20 & 2,500 & 17.24 & 19.64 & $+2.40\pm0.05$ & 89\% \\
-20--21 & 2,500 & 11.55 & 13.19 & $+1.64\pm0.04$ & 86\% \\
-21--22 & 2,500 & 5.30 & 6.00 & $+0.70\pm0.03$ & 73\% \\
-22--23 & 2,500 & $-1.68$ & $-1.30$ & $+0.38\pm0.02$ & 66\% \\
-23--24.5 & 2,500 & $-4.63$ & $-4.44$ & $+0.20\pm0.02$ & 59\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[!htbp]\centering
-\includegraphics[width=\textwidth]{F07e_stellar_final.png}
-\caption{Background objects in test cones (grey, log density) at four magnitudes, with the 2 October joint
-background (grey contours) and the binned background (green), both with all-sky weights, conditioned on
-the bin's central $r$ and convolved with the bin's median errors; 50\% and 90\% contours. Titles: data
-fraction inside the 50\%/90\% regions and fraction of model draws in empty colour cells. In the faint
-$z-W1$ panels, the plotted data require $W1$ at $S/N>5$ (46\% of stars at $21.5\le r<22.5$) while the model
-describes all stars, so draws in empty cells are overstated there; Fig.~\ref{fig:stellarcc} corrects for this.}
-\label{fig:stellarfinal}
-\end{figure}
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F19_stellar_colour_colour.png}
@@ -473,16 +428,14 @@ added in flux space and the same $S/N\ge5$ selection). Titles: data inside the 5
 \subsection{The covariance update}
 The extreme-deconvolution E step computes each component's responsibility $q_{ni}$ for object $n$, and
 the posterior moments of $\vect{x}$. The M step updates the weights, the means, and the covariance from
-the scatter $S_i$ about the new mean. A previous implementation used $V_i=S_i+wI$. That step maximises
-no fixed objective, because its penalty is weighted by the changing responsibilities. In 24 of 43
-earlier full-data quasar fits the likelihood therefore declined, by up to 0.078\,nat per object below
-its best value, and a stopping rule that required a non-negative change could never stop such fits. We now use the
-conjugate-prior MAP update of \citet{Bovy2011XD} (their eqs.~19--20):
+the scatter $S_i$ about the new mean. We use the conjugate-prior MAP update of \citet{Bovy2011XD}
+(their eqs.~19--20):
 \begin{equation}
 V_i=\frac{q_iS_i+\nu wI}{q_i+\nu},\qquad q_i=\sum_nq_{ni},\quad \nu=1,\ w=10^{-3}\,{\rm mag}^2,
 \end{equation}
 which maximises the log posterior with prior $-\frac{\nu}{2}\left[\ln|V_i|+w\,{\rm tr}(V_i^{-1})\right]$
-per component. EM therefore cannot decrease the reported objective (Fig.~\ref{fig:fitting}a).
+per component, so EM cannot decrease the reported objective. (A fixed additive floor, $V_i=S_i+wI$,
+maximises no objective, and in practice lets the likelihood decline.)
 
 \subsection{Predictive early stopping}
 Every 20 updates we compute the held-out density on a fixed stopping panel: up to 512 test-role
@@ -491,18 +444,15 @@ gains less than 0.02\,nat per object, when the objective changes by less than $1
 after 300 updates. The best checkpoint, including the warm start, is kept. The 0.02\,nat threshold is
 about twice the sky-bootstrap standard error of late block gains. This is predictive early stopping,
 not convergence. Sparse slices benefit most: where held-out density falls in the first block, as at
-$z=4.05$, the fit keeps its warm start. All 43 quasar fits of each production model stopped this way, with
-no objective decrease (Fig.~\ref{fig:fitting}c,d). The eight background bins use the same rule on 1,000
-test-role objects per bin, warm-started from the 2 October background with the magnitude placed at the bin
-centre and equal weights; they kept checkpoints at 40--92 updates.
+$z=4.05$, the fit keeps its warm start. All 43 quasar fits of each model stopped this way, with no
+objective decrease (Fig.~\ref{fig:fitting}a,b). The eight background bins use the same rule on 1,000
+test-role objects per bin; they kept checkpoints at 40--92 updates (Fig.~\ref{fig:fitting}c).
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F10_fitting.png}
-\caption{(a) Training objective per object minus its starting value, $z=1.75$ slice: additive
-update (log likelihood; 41 decreasing steps) and MAP update (log posterior). (b) Held-out density for
-six slices under both updates (identical rows and warm starts). (c) Update at which each production
-fit's kept checkpoint was taken. (d) Held-out gain of that checkpoint over the model's own warm start.
-The quasar fits shown are those of both bundles; the background bins are described in the text.}
+\caption{(a) Update at which each quasar-slice fit kept its checkpoint, against slice redshift. (b) Held-out
+gain of that checkpoint over the fit's warm start. (c) Held-out density gain over the warm start against
+update for the eight background bins (Legacy $r$); stars mark the kept checkpoints.}
 \label{fig:fitting}
 \end{figure}
 
@@ -510,26 +460,26 @@ The quasar fits shown are those of both bundles; the background bins are describ
 \section{Priors, catch-all and support}\label{sec:priors}
 %======================================================================
 \paragraph{Abundance priors.} $\Sigma_Q(z,m)$ and $\Sigma_B(m)$ are stored per reference band, per unit
-native luptitude. Background densities are recounted from corrected photometry. The quasar abundance
-is inherited from the previous model and moved onto corrected magnitudes by the mean extinction
-shift: 0.080\,mag in Legacy $r$, at mean $E=0.037$. This is an approximation, not a recount.
+native luptitude. Background densities are counted from corrected photometry (Section~\ref{sec:background}).
+The quasar abundance comes from earlier full-sample counts on uncorrected photometry, moved onto corrected
+magnitudes by the mean extinction shift (0.080\,mag in Legacy $r$, at mean $E=0.037$); this is an
+approximation, not a recount.
 
 \paragraph{Catch-all.} $U$ is a Student-$t$ with $\nu=4$ degrees of freedom, centred on the background
 mean, with the binned background mixture's second-moment matrix as its scale. Measurement noise is
 convolved exactly through the $t$'s Gaussian scale-mixture representation. Its share $\eta$ is a
 Beta-MAP fit per reference band and three magnitude bins, on 148,853 calibration background objects
-above the faint limit with likely quasars removed. The global share is 0.14\%, against 0.06\% for the
-joint background, as expected for a tighter background model.
+above the faint limit with likely quasars removed. The global share is 0.14\%.
 
 \paragraph{Support cut.} For a candidate, $z_0$ and the observed bands, the scorer draws 255 simulated
 quasars from the conditional model at $z_0$, adds the candidate's errors, and ranks the candidate's
 conditional density among them. Candidates below a threshold are not ranked; their likelihoods are
 kept as diagnostics. The percentile depends on the reference band, so the threshold was recalibrated
 under the faint limit on 2,000 calibration quasars (all bands and Legacy $g,r,z$ only; 3,890
-evaluations). At the 99.5\% target it is again $2/256=0.0078$, retaining 99.64\% and 99.59\% of
+evaluations). At the 99.5\% target it is $2/256=0.0078$, retaining 99.64\% and 99.59\% of
 calibration evaluations. Fig.~\ref{fig:supportcut} shows the trade-off on held-out rows: the cut at
-$2/256$ removes 11 of 12 (magnitude-independent) and 3 of 3 (magnitude-dependent) high-quasar points on
-artificial grids at a cost of 0.5\% of test quasars, and raises the AUC of $p_{\rm quasar}$; stricter cuts
+$2/256$ removes all 12 (magnitude-independent) and 4 (magnitude-dependent) high-quasar points that the
+artificial grids place outside the models' dense core, at a cost of 0.5\% of test quasars, and raises the AUC of $p_{\rm quasar}$; stricter cuts
 lose quasars faster than they gain.
 
 \begin{figure}[!htbp]\centering
@@ -546,8 +496,6 @@ $p_{\rm quasar}>0.5$, and grid points with $p_{\rm quasar}>0.5$ in the low-densi
 \section{Validation}\label{sec:validation}
 %======================================================================
 Tests use test-role objects above the faint limit and outside every recorded development exclusion.
-``Promoted'' denotes the 2 October bundles scored with the same faint limit; ``previous'' the 28 September
-model.
 
 \subsection{Colour--colour distributions}\label{sec:cc}
 Figures~\ref{fig:ccmag}--\ref{fig:ccz} compare model densities with the data in two colour planes:
@@ -594,42 +542,13 @@ $r$, with the background model's 90\% contour for reference.}
 \end{figure}
 
 \subsection{Held-out density}
-Per slice, the magnitude-dependent model's kept checkpoint has a held-out density higher than the
-magnitude-independent model's by a median 0.666\,nat per object (range 0.381--0.876). Against the
-uncorrected 30 September model, the corrected magnitude-dependent model differs by a median
-$+0.001$\,nat (range $-0.262$ to $+0.057$). The extinction correction therefore costs essentially
-nothing in density, and the density gap between the two quasar models comes from the
-magnitude constraint. The quasar models are the same in the promoted and candidate bundles.
-
-\subsection{Ranking against the background: candidate versus promoted bundles}
-Table~\ref{tab:compare} compares the candidate bundles with the promoted ones on the same held-out objects
-of Section~\ref{sec:perf}, both scored with the faint limit (38,881 quasars; 8,747 background objects
-outside the background design tests). The binned background leaves the ranking unchanged and raises
-the fraction of quasars given $p_{\rm quasar}>0.5$ in every magnitude bin. On all background objects
-the fraction with $p_{\rm quasar}>0.5$ rises slightly, but 400 of these objects are flagged likely quasars;
-without them it falls, from 0.32\% to 0.28\% and from 0.29\% to 0.25\%. The support cut keeps the same
-fraction of quasars.
-
-\begin{table}[!htbp]\centering\footnotesize
-\caption{Promoted (2 October) against candidate bundles on identical held-out rows, faint limit applied.
-AUC as defined in Section~\ref{sec:notation}; recall: fraction of test quasars with $p_{\rm quasar}>0.5$;
-incidence: fraction of background objects with $p_{\rm quasar}>0.5$, on all background objects and with
-the 400 flagged likely quasars removed ($^\ast$; AUC also); kept: support retention.}\label{tab:compare}
-\begin{tabular}{llcccccc}
-\toprule
-QSO model & bundle & AUC & AUC$^\ast$ & recall & incidence & incidence$^\ast$ & kept \\
-\midrule
-independent & promoted & 0.9752 & 0.9771 & 0.834 & 1.22\% & 0.32\% & 99.53\% \\
-            & candidate & 0.9744 & 0.9764 & 0.859 & 1.37\% & 0.28\% & 99.53\% \\
-dependent & promoted & 0.9783 & 0.9801 & 0.870 & 1.26\% & 0.29\% & 99.47\% \\
-          & candidate & 0.9784 & 0.9804 & 0.891 & 1.44\% & 0.25\% & 99.47\% \\
-\bottomrule
-\end{tabular}
-\end{table}
+Per redshift slice, the magnitude-dependent quasar model's held-out density is higher than the
+magnitude-independent model's by a median 0.666\,nat per object (range 0.381--0.876): the cost of the
+magnitude constraint in density (Section~\ref{sec:variants}). The background's fit is shown directly in Fig.~\ref{fig:stellarcc}.
 
 \subsection{Performance across sky, magnitude, redshift and band coverage}\label{sec:perf}
 These tests use 20,000 quasars and 20,000 background objects per hemisphere, drawn before the faint limit
-from test-role rows outside every development exclusion and outside the release rows that chose earlier
+from test-role rows outside every development exclusion and outside the rows used to choose
 support thresholds; 38,881 quasars (97.2\%) and 14,247 background objects (35.6\%) pass the faint limit.
 Background objects are scored at redshifts drawn from the test quasars' redshifts. The four metrics are
 those of Section~\ref{sec:notation}: AUC, held-out density, support retention, and high-QSO incidence,
@@ -640,10 +559,10 @@ unidentified quasars, so incidence is not a contamination rate.
 0.974 and 0.978, North 0.978 and 0.982. The support cut keeps 99.53\% and 99.47\% of test quasars, in
 agreement with the 99.5\% calibration target on rows that did not choose it. In total 3.2\% and 2.9\% of test
 quasars are not ranked: besides the support cut (0.25\% and 0.30\%), 2.9\% and 2.5\% have colours outside
-both the quasar and the background model. The promoted bundles do the same (2.8\% and 2.6\%), so this
-loss is not introduced by the new background. High-QSO incidence is 1.08\%
-and 1.14\% (South 0.50\% and 0.56\%, North 1.76\% and 1.81\%); the faint limit removes faint stars, which
-almost never score high, so these fractions are larger than before the limit.
+both the quasar and the background model. Of the test quasars, 86\% and 89\% receive
+$p_{\rm quasar}>0.5$. High-QSO incidence is 1.08\% and 1.14\% (South 0.50\% and 0.56\%, North 1.76\% and
+1.81\%). Among background objects that are not flagged as likely quasars it is 0.28\% and 0.25\%, and the
+AUC against them is 0.976 and 0.980.
 
 \paragraph{Sky position and magnitude} (Fig.~\ref{fig:perfsky}). Per-cell AUC is uniform across the
 footprint to within a few thousandths. Against $|b|$, AUC is 0.973--0.981 (magnitude-independent) and
@@ -690,24 +609,23 @@ objects have no Legacy $r$ and are not scored.}
 
 \subsection{Artificial colour grids}\label{sec:grids}
 A colour grid places synthetic sources on a $15\times15$ lattice in $(g-r,r-z)$ from $-6$ to $8$\,mag at
-fixed $r$. These are stress tests of extrapolation into empty colour space, not contamination rates.
-In the original low-density region, an unpromoted 30 September candidate gave 72 and 79 high-quasar
-points ($p_{\rm quasar}>0.5$) in the North, and the previous model gave 12 at $r=21$. With the
-support cut at $2/256$, the magnitude-dependent candidate gives none and the magnitude-independent one
-gives one, at South $r=18.5$ (Fig.~\ref{fig:grids}). They abstain from most of the grid: points outside both
-models, or rejected by the support cut, are not ranked. Without the support cut the
-magnitude-independent model would give 12 high-quasar grid points and the magnitude-dependent one 3
-(Fig.~\ref{fig:supportcut}).
+fixed $r$ (18.5 and 21; South and North; $(\ell,b)=(180^\circ,45^\circ)$; 0.03\,mag errors). These are
+stress tests of extrapolation into empty colour space, not contamination rates. Outside the models' dense
+core, where both the quasar and the background intensity are below 1\% of their grid maximum, no grid point
+receives $p_{\rm quasar}>0.5$ with the support cut (Fig.~\ref{fig:grids}); without it, 12
+(magnitude-independent) and 4 (magnitude-dependent) would. Most of the grid is not ranked: points outside
+both models, or rejected by the support cut, are set aside.
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F15_colour_grids.png}
 \caption{Total quasar probability on artificial Legacy colour grids, South and North, $r=18.5$ and 21.
-Grey cells are not ranked. Black outline: the original low-density mask.}
+Grey cells are not ranked. Black outline: the models' dense core; outside it both the quasar and the
+background intensity are below 1\% of their grid maximum.}
 \label{fig:grids}
 \end{figure}
 
 \subsection{Worked examples}
-Figure~\ref{fig:examples} shows six test objects scored by both candidate bundles. For each band the
+Figure~\ref{fig:examples} shows six test objects scored by both models. For each band the
 panels compare the observed corrected luptitude, minus Legacy $r$, with the model's conditional prediction
 at the object's redshift. A bright $z=1.51$ quasar, a $z=3.00$ quasar and a $z=0.58$ quasar match their
 predictions and receive $p_{\rm quasar}=1.00$ ($\log\R=1.4$--1.6, 0.5--0.6 and 1.5--1.6). One test quasar at
@@ -733,7 +651,7 @@ known quasars (magnitude-independent and magnitude-dependent model), 53\% and 63
 support cut (96\%); known quasars mostly because their colours lie outside both models (85\%).
 The second is the reliability of the returned probability, among ranked objects only (Fig.~\ref{fig:calib}): in the
 mid range, $0.1\lesssim p\lesssim0.95$, the observed quasar fraction brackets $p_{\rm quasar}$ in most
-bins (for example 0.30--0.66 at $p\approx0.58$, and 0.48--0.87 at $p\approx0.85$). Ranked objects at $p<0.01$ contain no
+bins (for example 0.30--0.66 at $p\approx0.58$, and 0.48--0.87 at $p\approx0.85$, magnitude-independent). Ranked objects at $p<0.01$ contain no
 known quasars and 2.5\% flagged ones. At the top the probability is too high: $p>0.99$ gives 0.69--0.98
 observed. A two-parameter map of the log-odds, fitted on half the cones, is driven by the large
 $p\approx0$ population and pushes mid-range values below both bounds ($p=0.5\to0.29$), so it is not
@@ -744,8 +662,7 @@ quasar candidate, which loses 3.5--3.8\% of real quasars in this sample.
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F18_probability_calibration.png}
 \caption{Reliability of $p_{\rm quasar}$ among ranked objects in the 49 test cones (natural population,
-weighted), for the promoted (``current'') and candidate (``new'') bundles: observed quasar fraction against
-mean predicted $p_{\rm quasar}$ in bins, counting known quasars only (blue, lower bound) or also flagged
+weighted), for both models: observed quasar fraction against mean predicted $p_{\rm quasar}$ in bins, counting known quasars only (blue, lower bound) or also flagged
 likely quasars (orange, upper bound). Dotted: perfect calibration. Abstention rates are given in the text.}
 \label{fig:calib}
 \end{figure}
@@ -774,16 +691,15 @@ are in \code{docs/method\_unified/examples.json}.}
   measured AUC slightly.
 \item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$, and sources without Legacy $r$, are not scored.
 \item \textbf{Unranked quasars.} About 3\% of test quasars above the faint limit are not ranked because their
-  colours lie outside both models (inherited from the promoted bundles); the cause is not yet investigated.
+  colours lie outside both models; the cause is not yet investigated.
 \item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the
   intended benefit of the magnitude-independent model for quasars outside DESI and SDSS selection.
-\item \textbf{Quasar abundance} is inherited and shifted, not recounted.
+\item \textbf{Quasar abundance} comes from earlier counts shifted for extinction, not a recount.
 \item \textbf{Sparse surveys.} NSC $VR$ and VISTA $Y$ extinction coefficients are approximate, and
   SkyMapper $u,v$ and VHS have little training support.
 \item \textbf{Background in the faintest bins} ($r>21.5$) is broader than the data in $W1-W2$ and slightly
   narrower in $r-z$ against $z-W1$ (Fig.~\ref{fig:stellarcc}); these panels hold few WISE-detected stars.
-\item \textbf{Promotion.} The candidate bundles are not promoted; the release-check panels of earlier
-  notes were not rerun for them (Table~\ref{tab:compare} replaces them).
+
 \item \textbf{Out of scope.} Blends below the separation floor, and a physical-pair clustering prior,
   are deferred.
 \end{itemize}

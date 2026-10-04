@@ -93,9 +93,8 @@ def panel(ax, which, report):
 
 def main():
     use_paper_style(); report = dict(definition=__doc__, edges=[e if np.isfinite(e) else None for e in EDGES], models={})
-    fig, axes = plt.subplots(2, 3, figsize=(11, 6.4))
-    for ax, which in zip(axes, ('reference', 'legacy_r')):
-        panel(ax, which, report)
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.3))
+    panel(axes, 'legacy_r', report)
     fig.tight_layout()
     Path('docs/method_unified/snr_cut_check.json').write_text(json.dumps(report, indent=1, default=float))
     print(save_figure(fig, 'method_unified/F17_snr_cut_check'))

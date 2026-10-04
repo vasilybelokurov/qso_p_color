@@ -19,7 +19,7 @@
    "auc": 0.9723865272790551,
    "retention": 0.9952676114297472,
    "incidence": 0.010809293184530076,
-   "grid_stray": 1
+   "grid_stray": 0
   },
   {
    "threshold": 0.015625,
@@ -49,14 +49,14 @@
    "auc": 0.9694476872735597,
    "retention": 1.0,
    "incidence": 0.0118621464167895,
-   "grid_stray": 3
+   "grid_stray": 4
   },
   {
    "threshold": 0.00390625,
    "auc": 0.9694476872735597,
    "retention": 1.0,
    "incidence": 0.0118621464167895,
-   "grid_stray": 3
+   "grid_stray": 4
   },
   {
    "threshold": 0.0078125,

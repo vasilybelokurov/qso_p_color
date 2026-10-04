@@ -5,8 +5,8 @@ F1 is illustrative only: synthetic two-dimensional Gaussians, not fitted models.
 F15: 15 x 15 grids in Legacy (g-r, r-z) from -6 to 8 mag at fixed r (18.5, 21), placed at
 (l, b) = (180, 45) deg with 0.03 mag luptitude errors. Colour: total QSO probability
 p_quasar for scorable points; grey: not scorable (outside both models, or rejected by the
-support cut, threshold 2/256, recalibrated under the faint limit). Black outline: the original low-density mask
-in which the 30 September candidate placed 72/79 high-QSO points.
+support cut, threshold 2/256). Black outline: low-density region, where both models put both the quasar and
+the background intensity below 1% of their grid maximum.
 """
 import json
 from pathlib import Path
@@ -16,7 +16,6 @@ import numpy as np
 from matplotlib.patches import Ellipse
 from common import SERIES, save_figure, use_paper_style
 
-OLD = Path(json.loads(Path('docs/FULL_SAMPLE_RELEASE_2026-09-30.json').read_text())['cache'])
 RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/method_unified/grids_note/independent'),
         'magnitude-dependent': Path('models/multisurvey_psf/work/method_unified/grids_note/dependent')}   # grid_scores.py
 THRESHOLD = 0.0078125
@@ -46,24 +45,22 @@ SERIES_NEUTRAL = '#5c5c57'
 
 
 def low_mask(h, mag):
+    """Grid cells where both models put both the quasar and the background intensity below 1% of their grid maximum."""
     m = None
-    for lab in ('baseline', 'candidate'):
-        s = np.load(OLD/f'grid_{h}_{mag}_{lab}.npz'); q = np.logaddexp(s['log_lambda_sameq'], s['log_lambda_fieldq']); b = s['log_lambda_bkg']
+    for run in RUNS.values():
+        s = np.load(run/f'grid_{h}_{mag}_raw.npz'); q = np.logaddexp(s['log_lambda_sameq'], s['log_lambda_fieldq']); b = s['log_lambda_bkg']
         k = (q < np.nanmax(q) + np.log(.01)) & (b < np.nanmax(b) + np.log(.01)); m = k if m is None else m & k
     return m
 
 
 def f15():
-    axes_vals = np.linspace(-6, 8, 15); models = ['previous (28 Sep)'] + list(RUNS)
-    fig, axes = plt.subplots(len(models), 4, figsize=(11, 8.4), sharex=True, sharey=True)
+    axes_vals = np.linspace(-6, 8, 15); models = list(RUNS)
+    fig, axes = plt.subplots(len(models), 4, figsize=(11, 5.8), sharex=True, sharey=True)
     for j, (h, mag) in enumerate(((h, m) for h in ('south', 'north') for m in (18.5, 21.0))):
         mask = low_mask(h, mag).reshape(15, 15)
         for i, name in enumerate(models):
-            if i == 0:
-                r = np.load(OLD/f'grid_{h}_{mag}_baseline.npz'); ok = r['eligible']
-            else:
-                raw = np.load(RUNS[name]/f'grid_{h}_{mag}_raw.npz'); uni = np.load(RUNS[name]/f'grid_{h}_{mag}_unified.npz')
-                r = raw; ok = raw['eligible'] & ~(np.isfinite(uni['support']) & (uni['support'] < THRESHOLD))
+            raw = np.load(RUNS[name]/f'grid_{h}_{mag}_raw.npz'); uni = np.load(RUNS[name]/f'grid_{h}_{mag}_unified.npz')
+            r = raw; ok = raw['eligible'] & ~(np.isfinite(uni['support']) & (uni['support'] < THRESHOLD))
             p = np.where(ok, r['p_quasar'], np.nan).reshape(15, 15); ax = axes[i, j]
             ax.pcolormesh(axes_vals, axes_vals, np.where(np.isnan(p), 1, np.nan), cmap='Greys', vmin=0, vmax=4, shading='nearest')
             im = ax.pcolormesh(axes_vals, axes_vals, p, cmap='viridis', vmin=0, vmax=1, shading='nearest')
