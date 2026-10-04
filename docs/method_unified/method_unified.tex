@@ -814,6 +814,93 @@ models. Right: AUC against the companion's true share of the $r$ flux.}
 \label{fig:blend}
 \end{figure}
 
+\subsection{What blends look like, and where the hypotheses separate}\label{sec:blendmaps}
+
+All illustrations use real held-out objects with Legacy $r$ $S/N\ge50$, so each component's colours are well
+measured (\code{scripts/blend\_illustrations.py}; numbers in \code{blend\_illustrations.json}). Background
+objects are split into four strata of dereddened Legacy $g-r$: $<0.45$ (blue), 0.45--0.9 (G--K), 0.9--1.3
+(K--M) and $>1.3$ (M). These are colour strata of the cleaned background sample, not a physical
+classification.
+
+\paragraph{Blend colours.} Figure~\ref{fig:blendcol} sums the fluxes of real component pairs without noise.
+A QQ blend at the same redshift has the colours of a single quasar at all shares: two draws from one
+redshift slice average to another member of the slice. A star moves the blend away from the quasar locus in
+a direction set by its colour. Every star class lowers $z-W1$, because stars lack the quasar's infrared
+excess; this is the main signature of blue and G--K companions. K and M stars also redden $g-r$ and $r-z$
+(M stars raise $r-z$ by 0.4\,mag at a share of 0.3) and lower $W1-W2$. At a share of 0.1 every QS track
+lies inside, or for M stars at the edge of, the quasar's 16--84\% band in every colour. Figure~\ref{fig:blendtrack} shows the same mixing as
+tracks in colour--colour planes: from the median quasar at $z_0$ to the median star of each class. Blue and
+G--K tracks run almost straight down in $z-W1$ and stay inside the quasar cloud until a share of about 0.3;
+the M track leaves the cloud sooner, in $r-z$.
+
+\paragraph{Where QQ and QS separate.} For the maps we rescale both components of each pair, by one factor per
+component in all bands, so that the blend has a chosen Legacy $r$ and the companion a chosen share $\alpha$ of
+the $r$ flux. The noise is sky-limited: the blend variance in each band is the larger of the primary's
+variance (the depth at its position) and the variance of the rescaled sum, with fresh Gaussian noise making
+up the difference. QQ companions are test quasars with $|\Delta z|<0.02$. Each blend is scored at the sky
+position of a random test-cone object, so position carries no class information. The latitude distributions
+of the four strata are similar (median $|b|$ 30--32$^\circ$). Each QS cell is compared with the QQ cell at the
+same minor share $\min(\alpha,1-\alpha)$, since QQ is symmetric. Cells hold 20 blends per class, so a single
+AUC is uncertain by about $\pm0.07$; the trends across neighbouring cells are the robust result. Scores use
+24 points in $\alpha$.
+
+At $r=19.5$ (Fig.~\ref{fig:blendmapz}) the companion's share decides the result:
+\begin{itemize}
+\item share $\ge0.5$: AUC $\ge0.96$ in every class and redshift bin;
+\item share 0.3: median AUC 0.89 (blue), 0.88 (G--K), 0.93 (K--M), 1.00 (M);
+\item share 0.2: median AUC 0.76, 0.76, 0.85, 0.95;
+\item share $\le0.1$: median AUC 0.57--0.71 for blue to K--M companions, close to chance; M stars stay
+  separable down to 0.1 (median 0.87) and partly to 0.05 (0.80).
+\end{itemize}
+The redshift dependence is mostly within the cell noise; M-star companions at a share of 0.1 separate better
+above $z\approx2.3$ (AUC 0.92--0.95) than at $z<0.8$ (0.70).
+QQ blends have a median $\log{\rm BF}$ of 1--4 in favour of QQ in every cell; between 15\% and 80\% of them
+reach $P({\rm QQ})>0.9$; the evidence for QQ is weakest in the lowest redshift bin.
+
+With magnitude (Fig.~\ref{fig:blendmapr}, all redshifts) the separation for shares $\ge0.3$ holds to
+$r=21.5$. At shares 0.1--0.2 the AUC for K--M and M companions falls by up to 0.2 from $r=18.5$ to 21.5; for blue and
+G--K companions it is low at all magnitudes. At $r=21.5$ the QQ blends' median
+$\log{\rm BF}$ is about 0: there QQ blends are no longer recognised, and only the absence of a stellar
+signature argues for QQ.
+
+\paragraph{Caveats.} The maps are controlled experiments, not a census of real blends. The noise is
+diagonal and sky-limited; real deblending and model-flux errors are not modelled. Rescaling keeps each
+component's colours but does not change survey detection or the measurement-error model to the new flux.
+Background objects may include a few unidentified quasars, which lowers the AUC slightly at large shares.
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{F21_blend_colours_vs_z.png}
+\caption{Blend colours (Legacy, dereddened, noiseless) against quasar redshift for companion shares of the
+$r$ flux of 0.1, 0.3 and 0.5. Grey: single quasars (median and 16--84\%). Dashed purple: QQ blends at the same
+redshift. Coloured: QS blends for the four $g-r$ strata of background objects (median, 16--84\% shaded).}
+\label{fig:blendcol}
+\end{figure}
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{F22_blend_colour_tracks.png}
+\caption{Mixing tracks in $g-r$ against $r-z$ (top) and $r-z$ against $z-W1$ (bottom) at four redshifts. Grey:
+quasars at $z_0\pm0.05$; black star: their median. Coloured points: background objects by $g-r$ stratum.
+Lines: blend of the median quasar with the median star of each stratum as the star's share of the $r$ flux
+goes from 0 to 1; dots at shares 0.1, 0.3, 0.5 and 0.7.}
+\label{fig:blendtrack}
+\end{figure}
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{F23_blend_separability_z.png}
+\caption{Where QQ and QS separate, at blend Legacy $r=19.5$. First four panels: AUC of $\log{\rm BF}$ between
+QS blends with a companion of the given $g-r$ stratum and QQ blends at the same minor share, by quasar
+redshift and companion share of the $r$ flux (20 blends per class per cell, \code{current}). Last panel: median
+$\log{\rm BF}$ of the QQ blends (minor shares up to 0.5).}
+\label{fig:blendmapz}
+\end{figure}
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{F24_blend_separability_mag.png}
+\caption{As Fig.~\ref{fig:blendmapz}, against blend Legacy $r$, with quasar redshifts drawn from the whole
+test sample.}
+\label{fig:blendmapr}
+\end{figure}
+
 \clearpage
 %======================================================================
 \section{Limitations and open items}\label{sec:limits}
