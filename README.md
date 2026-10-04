@@ -29,73 +29,45 @@ being called a certain quasar because of how two Gaussian tails fell.
 ## Current status and model choice
 
 **Method write-up:** `docs/method_unified/method_unified.tex` (built with `make -C docs/method_unified`)
-describes the candidate bundles of 3 October below (figures from `scripts/method_unified/`; set
-`NOTE_MODELS=promoted` to draw them from the promoted pointers). The earlier note, `docs/method/method.tex`, is retired: it describes
+describes the two active models (figures from `scripts/method_unified/`). The earlier note, `docs/method/method.tex`, is retired: it describes
 models before 2 October 2026 and is kept unchanged for reference.
 
-**Two models are active (2 October 2026).** Both use one shared North/South latent model over
-all 41 bands, Galactic-extinction-corrected photometry (SFD98; the scorer corrects catalogue
-input from position), a MAP covariance update with predictive early stopping, and a calibrated
-QSO-support cut at 99.5% calibration retention. They differ only in the quasar colour model:
+**Two models are active (promoted 4 October 2026); use both.** They share one North/South latent model
+over 41 bands, extinction-corrected photometry, a binned background cleaned of likely quasars with smooth
+sky-dependent weights, a Student-t catch-all, a calibrated QSO-support cut and the faint limit
+(Legacy r S/N >= 10). They differ only in the quasar colour model:
 
 | Pointer | QSO colours | Bundle |
 |---|---|---|
-| `models/multisurvey_psf/current` | independent of magnitude (XDQSO design) | `13866e45ef794059` |
-| `models/multisurvey_psf/current_magdep` | free to depend on magnitude | `5f4002492dbb849c` |
+| `models/multisurvey_psf/current` (= `current_magdep`) | free to depend on magnitude | `20261003_magdep` |
+| `models/multisurvey_psf/current_magindep` | independent of magnitude (XDQSO assumption) | `20261003_magindep` |
+| `previous_20261002_magindep`, `previous_20261002_magdep` | rollback: the 2 October bundles | `13866e45ef794059`, `5f4002492dbb849c` |
 | `models/multisurvey_psf/previous` | rollback: the 28 September bundle | `630f47f63b6f0694` |
+
+`current` is the magnitude-dependent model because it is better on our (DESI/SDSS-selected) test
+quasars: AUC +0.004 overall, +0.02 at r < 18, +3 points in quasars with p_quasar > 0.5 (paired sky
+bootstrap, all significant). **`current_magindep` can and should be used alongside it**: it cannot learn
+the training selection as quasar physics, a risk our tests cannot measure. Score every candidate with
+both; agreement means robust, a large disagreement means the result depends on that assumption.
 
 ```python
 from qso_pcolor import Photometry, RedshiftMatch, BlendPolicy
 from qso_pcolor.unified import UnifiedPSFModel
 
-model = UnifiedPSFModel.load("models/multisurvey_psf/current")   # or current_magdep
-# Catalogue fluxes as observed; extinction is corrected internally from RA/Dec.
+models = {name: UnifiedPSFModel.load(f"models/multisurvey_psf/{name}") for name in ("current", "current_magindep")}
+# Catalogue fluxes as observed; extinction is corrected internally from RA/Dec. Legacy r must be present (S/N >= 10).
 phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
                   ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
-scores, decision = model.score(phot, ra_deg=180., dec_deg=0., z_primary=1.8, morphology=["PSF"],
-    match=RedshiftMatch(half_width_kms=2000.), blend_policy=BlendPolicy(3., .2),
-    separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
+for name, model in models.items():
+    scores, decision = model.score(phot, ra_deg=180., dec_deg=0., z_primary=1.8, morphology=["PSF"],
+        match=RedshiftMatch(half_width_kms=2000.), blend_policy=BlendPolicy(3., .2),
+        separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
+    print(name, decision["eligible"], model.quasar_probability(scores))
 ```
 
-At 99.5% retention, both pass all eight release ranking panels against the previous bundle.
-The magnitude-dependent model fits held-out quasars about 0.67 nats/object better, but ranks
-quasars against contaminants only about 0.002 AUC better on average. The magnitude-independent model relies
-more on the support cut. The cut threshold was chosen on the reporting rows and still needs
-confirmation on independent rows. Probability calibration is not established. See
-[the comparison](docs/SUPPORT_CUT_SWEEP_2026-10-01.md) and the
-[extinction coefficients](configs/extinction_coefficients.json).
-
-### Candidate bundles (3 October 2026, not yet promoted)
-
-**Two models on an equal footing.** `independent` (quasar colours independent of apparent magnitude,
-the XDQSO assumption) and `dependent` (quasar colours free to depend on it) share everything else.
-Neither is the default. The magnitude-dependent model is better on the (DESI/SDSS-selected) test
-quasars, most clearly for bright ones; the magnitude-independent one makes the weaker assumption for
-quasars outside that selection. Score candidates with both; see the method note, Section 6.2.
-
-`models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}` keep the
-quasar models of the promoted bundles and change the non-quasar side:
-
-- **Background (stars and other non-quasars):** XDQSO-style, eight independent 20-component fits in
-  bins of Legacy r (15.5-24.5), joined into one 160-component mixture; training sample cleaned of likely
-  quasars (Quaia members and WISE W1-W2 > 0.8 Vega; `scripts/clean_stellar_qso_contamination.py`);
-  component weights vary smoothly with Galactic position (softmax gate); catch-all and background counts
-  redone on the cleaned sample.
-- **Faint limit (new behaviour).** Only sources with Legacy DR9 r (South, else North) at S/N >= 10 are
-  scored, and Legacy r is always the reference band. Others are returned with `decision['eligible']`
-  False and `decision['reason']` = `too_faint` (S/N < 10) or `no_faint_limit_band` (no Legacy r, e.g.
-  SDSS-only or PS1-only input). This removes 2.8% of test quasars.
-- **Results** (held-out, same rows as the promoted bundles with the same limit): AUC unchanged
-  (0.976 / 0.980), more quasars with p_quasar > 0.5 (+2.3 / +1.9 points), fewer background objects
-  above 0.5. p_quasar is consistent with observed quasar fractions in the mid range and mildly
-  overconfident above 0.97 (method note, Section 10.7). `qso_pcolor.unified.quasar_probability` computes it
-  from a score record.
-
-```python
-model = UnifiedPSFModel.load("models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent")
-scores, decision = model.score(phot, ra_deg=..., dec_deg=..., z_primary=..., ...)
-p_q = model.quasar_probability(scores)          # NaN for unscored rows
-```
+Objects without Legacy r, or with S/N < 10, are returned unscored with `decision['reason']` =
+`no_faint_limit_band` or `too_faint`. The method note (`docs/method_unified/method_unified.tex`) describes
+both models; Section 6.2 compares them.
 
 ### The previous bundle (28 September 2026)
 

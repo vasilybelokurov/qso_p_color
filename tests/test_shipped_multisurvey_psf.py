@@ -1,7 +1,8 @@
 """Saved bundles must expose the full requirement from a clean clone.
 
-The 28 September bundle is now the rollback target ``previous``; the promoted
-unified bundles are ``current`` (magnitude-independent) and ``current_magdep``.
+The 28 September bundle is the rollback target ``previous``. Since 4 October the promoted bundles are
+``current`` (= ``current_magdep``, magnitude-dependent QSO colours) and ``current_magindep``
+(magnitude-independent), both with the faint limit; the 2 October bundles are ``previous_20261002_*``.
 """
 import json
 from pathlib import Path
@@ -108,7 +109,8 @@ def test_saved_catchalls_repair_the_northern_zero_weight_counterexample():
             assert r.log_r_per_unit_z < scores["previous"].log_r_per_unit_z - 3.
 
 
-@pytest.mark.parametrize("pointer,independent", [("current", True), ("current_magdep", False)])
+@pytest.mark.parametrize("pointer,independent", [("current", False), ("current_magdep", False), ("current_magindep", True),
+                                                 ("previous_20261002_magindep", True), ("previous_20261002_magdep", False)])
 def test_promoted_unified_bundles_declare_extinction_support_and_colour_rule(pointer, independent):
     from qso_pcolor.unified import UnifiedPSFModel
     model = UnifiedPSFModel.load(ROOT / "models/multisurvey_psf" / pointer)
@@ -124,6 +126,14 @@ def test_promoted_unified_bundles_declare_extinction_support_and_colour_rule(poi
         separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
     assert rows[0].status == "ok" and decision["eligible"][0]
     assert '"extinction": "SFD98"' in rows[0].scoring_config_json
+    if pointer.startswith("current"):                       # promoted 4 October: faint limit declared
+        assert meta["faint_limit"]["min_snr"] == 10. and model.base.model.background.n_components == 160
+
+
+def test_current_points_to_the_magnitude_dependent_bundle_and_names_its_companion():
+    current = json.loads((ROOT / "models/multisurvey_psf/current").read_text())
+    assert current["bundle"] == json.loads((ROOT / "models/multisurvey_psf/current_magdep").read_text())["bundle"]
+    assert "current_magindep" in current["companion"]
 
 
 def test_rollback_pointer_keeps_the_previous_active_bundle():

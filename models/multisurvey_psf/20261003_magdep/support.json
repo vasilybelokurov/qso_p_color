@@ -1,0 +1,32 @@
+{
+  "threshold": 0.0078125,
+  "draws": 255,
+  "seed": 20260930,
+  "roles": [
+    "calib"
+  ],
+  "target_retention": 0.995,
+  "calibration_retention": 0.9958868894601542,
+  "calibration_rows": 2000,
+  "calibration_evaluations": 3890,
+  "by_mask": [
+    "all",
+    "legacy_optical"
+  ],
+  "row_indices_sha256": "a6167087af039b48df2793896500cd1e50670e3dcfc194d2df23b06220415b99",
+  "informative_threshold": true,
+  "interpretation": "conditional density percentile at target redshift; not a class probability",
+  "scope": "Recalibrated under the faint limit (Legacy r reference) on role-2 QSOs, all and Legacy-optical masks",
+  "threshold_selection": "Retention chosen from the release-check threshold sweep (docs/SUPPORT_CUT_SWEEP_2026-10-01.md) on the same test rows that report the result; confirm on independent rows before quoting performance.",
+  "previous": {
+    "threshold": 0.0078125,
+    "target_retention": 0.995
+  },
+  "faint_limit": {
+    "bands": [
+      "decals_dr9_south:r",
+      "decals_dr9_north:r"
+    ],
+    "min_snr": 10.0
+  }
+}

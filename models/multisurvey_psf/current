@@ -1,13 +1,12 @@
 {
-  "bundle": "13866e45ef794059",
-  "qso_colours": "magnitude-independent QSO colours (baseline)",
+  "bundle": "20261003_magdep",
+  "qso_colours": "magnitude-dependent QSO colours",
+  "companion": "current_magindep: magnitude-independent QSO colours. Use both; see the method note, Section 6.2.",
   "extinction": "SFD98",
-  "validation": "docs/SUPPORT_CUT_SWEEP_2026-10-01.md",
-  "release_reports": [
-    "docs/UNIFIED_RELEASE_BASELINE_2026-10-01.json",
-    "docs/UNIFIED_RELEASE_MAGDEP_2026-10-02.json"
-  ],
-  "support_retention": 0.995,
-  "scope": "PSF sources; any nonempty subset of 41 bands; extinction-corrected; spatial background; Student-t catch-all; calibrated QSO-support cut. Load with UnifiedPSFModel.load.",
+  "method_note": "docs/method_unified/method_unified.tex",
+  "comparison": "docs/method_unified/stellar_binned_comparison.json",
+  "model_difference": "docs/method_unified/model_difference_bootstrap.json",
+  "faint_limit": "Legacy r (South, else North) S/N >= 10; Legacy r is the reference band",
+  "scope": "PSF sources with Legacy r S/N >= 10; any subset of 41 bands containing it; extinction-corrected; binned QSO-cleaned background with smooth sky gate; Student-t catch-all; calibrated QSO-support cut. Load with UnifiedPSFModel.load.",
   "full_probability_calibration": false
 }

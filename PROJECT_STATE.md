@@ -1,5 +1,11 @@
 # Current project state
 
+**PROMOTED (4 October 2026, PI decision).** `current` = `current_magdep` -> `20261003_magdep`
+(magnitude-dependent QSO colours); `current_magindep` -> `20261003_magindep` (magnitude-independent), to be
+used alongside `current` (score with both). Rollback: `previous_20261002_magindep`/`_magdep`, `previous`
+(28 Sep). Method note regenerated for these models (24 pp). Open: ~3% of test QSOs unranked as
+`outside_both_models` (also in the 2 Oct bundles); top-end p_quasar mildly overconfident.
+
 **PI DECISIONS (3 October).**
 1. Faint limit: train and score only objects with Legacy r S/N >= 10 (South r if observed, else North;
    sigma_r <~ 0.11 mag; about r 24.1 South / 22.9 North). Fainter objects are flagged "too faint to

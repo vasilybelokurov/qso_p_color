@@ -43,7 +43,7 @@ from validate_unified_release import excluded_rows
 
 ROOTS = {'independent': 'models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059',
          'dependent': 'models/multisurvey_psf/work/unified_full/20261001/5f4002492dbb849c'}
-POINTERS = {'independent': 'models/multisurvey_psf/current', 'dependent': 'models/multisurvey_psf/current_magdep'}
+POINTERS = {'independent': 'models/multisurvey_psf/current_magindep', 'dependent': 'models/multisurvey_psf/current'}
 Z_GRID = [0.55, 0.95, 1.45, 1.95, 2.45, 2.95, 3.45, 3.95]
 MASKS = {'legacy_grz': lambda b: b.startswith('decals_') and b.split(':')[1] in ('g', 'r', 'z'),
          'legacy_all': lambda b: b.startswith('decals_'),

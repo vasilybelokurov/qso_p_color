@@ -1,0 +1,17 @@
+{
+  "kind": "multisurvey_psf_bundle",
+  "files": {
+    "model.json": "952fc76cdfe1bc16970f8565751163c68469bd0925d9a199867c4035d682dcac",
+    "priors.json": "e93e08289b97f7098c5d4853b07b6aa9d3e8e416308e725b7a75ef9563b7303c",
+    "outlier.json": "30f6a242094e7cee5b0114726d3a808971607043b538072019c7c435bc3ad31f"
+  },
+  "bundle_id": "20261003_magdep",
+  "min_abs_b_deg": 25.0,
+  "population": "psf",
+  "status": "promoted 4 October 2026: magnitude-dependent QSO colours; binned QSO-cleaned background, faint limit; not full probability calibration",
+  "full_probability_calibration": false,
+  "unified_files": {
+    "latent.json": "195ff14d89e39df27359e4ce8bc0d8d3d8fa51149bb6cadde39b4657dfd73de6",
+    "support.json": "fcc2b275b565bd9c4e7fb63883c56c2cd92b386a21ef236cbe747f0adaabf7cf"
+  }
+}

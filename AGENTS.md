@@ -1,28 +1,24 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
-**Method note:** `docs/method_unified/method_unified.tex` describes the candidate bundles of 3 October (below); figures are made by `scripts/method_unified/fig*.py` into `plots/method_unified/`. The old `docs/method/method.tex` is retired and kept unchanged (user decision, 2 October); do not edit it. Update the new note in the same commit as any method change.
+**Method note:** `docs/method_unified/method_unified.tex` describes the two active models; figures are made by `scripts/method_unified/fig*.py` into `plots/method_unified/`. The old `docs/method/method.tex` is retired and kept unchanged (user decision, 2 October); do not edit it. Update the new note in the same commit as any method change.
 
-**Active models (promoted 2 October 2026, user decision: keep both).** Load with
-`UnifiedPSFModel.load(...)`: `models/multisurvey_psf/current` = magnitude-independent QSO colours
-(on an equal footing with current_magdep since 4 October), `models/multisurvey_psf/current_magdep` = magnitude-dependent;
-`models/multisurvey_psf/previous` = the 28 September bundle (rollback). Both promoted bundles are
-**Galactic-extinction corrected** (SFD98, `configs/extinction_coefficients.json`; the scorer corrects
-catalogue input from position; DESI North->South relation on uncorrected magnitudes), use the MAP
-covariance update with predictive early stopping, and a QSO-support cut at 99.5% calibration
-retention (chosen on reporting rows; confirm on independent rows). Statements below that the
-41-band model uses observed, not dereddened, photometry describe the bundles before this date.
-Never train or promote a non-dereddened model again without an explicit PI decision.
-
-**Candidate bundles (3 October 2026; promotion awaits the PI).**
-`models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}`: TWO MODELS ON AN
-EQUAL FOOTING (PI, 4 October): magnitude-independent and magnitude-dependent QSO colours; neither is the
-default, candidates are scored with both (method note Section 6.2). They keep the promoted QSO
-models with a binned (8 Legacy-r bins x 20), QSO-cleaned background, smooth (l,b) softmax weight gate,
-catch-all and Sigma_B redone on the cleaned sample, support recalibrated, and the PI faint limit
-(model meta `faint_limit`: Legacy r S/N >= 10, Legacy r is the reference; reasons `too_faint`,
-`no_faint_limit_band`). The stellar-sample likely-QSO flag is `<run>/stars/qso_flag.npy`. Role-3 rows used
-by the background design tests (`work/background_designs/test*/rows.npz`) must stay out of final
-assessments. See PROJECT_STATE.md for the decision log.
+**Active models (promoted 4 October 2026, PI decision). USE BOTH.** Load with `UnifiedPSFModel.load(...)`:
+`models/multisurvey_psf/current` (= `current_magdep`) = magnitude-DEPENDENT QSO colours, bundle
+`20261003_magdep`; `models/multisurvey_psf/current_magindep` = magnitude-INDEPENDENT QSO colours (XDQSO
+assumption), bundle `20261003_magindep`. `current` is the magnitude-dependent model because it is better on
+the DESI/SDSS-selected test quasars (paired sky bootstrap: AUC +0.0039 [0.0032, 0.0045], +0.020 at r<18,
+recall +3.2 points; `docs/method_unified/model_difference_bootstrap.json`), but `current_magindep` CAN AND
+SHOULD BE USED alongside it: it cannot learn the training selection as quasar physics, a risk the tests
+cannot measure. Score candidates with both and report disagreements. Both are extinction-corrected (SFD98;
+DESI North->South relation on uncorrected magnitudes), use the MAP update with predictive stopping, a
+binned (8 Legacy-r bins x 20) QSO-cleaned background with a smooth (l,b) softmax weight gate, catch-all
+and Sigma_B on the cleaned sample, a recalibrated support cut (2/256), and the PI faint limit (model meta
+`faint_limit`: Legacy r S/N >= 10, Legacy r is the reference; reasons `too_faint`, `no_faint_limit_band`).
+Rollback: `previous_20261002_magindep`, `previous_20261002_magdep` (2 October), `previous` (28 September).
+Promotion script: `scripts/promote_stellar_binned.py`. The stellar-sample likely-QSO flag is
+`<run>/stars/qso_flag.npy`. Role-3 rows used by the background design tests
+(`work/background_designs/test*/rows.npz`) must stay out of final assessments. Never train or promote a
+non-dereddened model without an explicit PI decision. See PROJECT_STATE.md for the decision log.
 
 **Keep the goal in view (user priority, 30 September).** Deliver a pragmatic,
 working, robust model with the requested functionality. Choose the simplest

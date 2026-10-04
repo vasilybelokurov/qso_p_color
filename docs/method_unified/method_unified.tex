@@ -25,9 +25,10 @@ method compares four populations: quasars at $z_0$, quasars at other redshifts, 
 in the imaging catalogue (the background, mostly stars), and a broad catch-all. It accepts any
 subset of 41 bands from seven surveys that includes Legacy Surveys $r$ at signal-to-noise $\geq10$.
 One latent model, shared by the northern and southern Legacy Surveys, describes all bands, and
-photometry is corrected for Galactic extinction. Two complete models are provided on an equal footing.
-They share everything except the quasar colour model: in one, quasar colours do not depend on apparent
-magnitude (the XDQSO design); in the other, they may. The
+photometry is corrected for Galactic extinction. Two complete models are provided, and both are meant to
+be used. They share everything except the quasar colour model: in one, quasar colours may depend on
+apparent magnitude (\code{current}, better on our tests); in the other they do not, the XDQSO assumption
+that protects against learning the training sample's selection (\code{current\_magindep}). The
 background is fitted, as in XDQSO, separately in eight bins of Legacy $r$, on a training sample from
 which likely quasars are removed, with component weights that vary smoothly with Galactic position.
 On held-out data the two models separate quasars from background objects with AUC 0.976 and 0.980.
@@ -40,12 +41,12 @@ On held-out data the two models separate quasars from background objects with AU
 \section{Summary of what is delivered}
 %======================================================================
 \begin{itemize}\sloppy
-\item \textbf{Two models on an equal footing} (bundles of 3 October 2026): \code{independent} (quasar colours
-  independent of apparent magnitude) and \code{dependent} (quasar colours free to depend on it). Neither
-  is the default; Section~\ref{sec:variants} explains the difference and when to prefer each, and we
-  recommend scoring candidates with both. In
-  \texttt{models/\allowbreak multisurvey\_psf/\allowbreak work/\allowbreak stellar\_binned/\allowbreak 20261003/\allowbreak bundles/}. Load with
-  \code{UnifiedPSFModel.load(...)}.
+\item \textbf{Two models, both for use} (promoted 4 October 2026): \code{models/multisurvey\_psf/current}, with
+  magnitude-dependent quasar colours, and \code{models/multisurvey\_psf/current\_magindep}, with
+  magnitude-independent quasar colours (the XDQSO assumption). \code{current} names the
+  magnitude-dependent model because it performs better on our tests, but the magnitude-independent model
+  can and should be used alongside it: it guards against a risk our tests cannot measure
+  (Section~\ref{sec:variants}). Score every candidate with both. Load with \code{UnifiedPSFModel.load(...)}.
 \item \textbf{Inputs.} Any subset of 41 bands (SDSS $ugriz$; Legacy Surveys DR9 South and
   North $g,r,z,W1,W2$; AllWISE $W1$--$W4$; Pan-STARRS1 $grizy$; NSC $ugrizY{+}VR$; SkyMapper
   $uvgriz$; VHS $YJHK_s$) that contains Legacy $r$ at $S/N\geq10$, as catalogued fluxes or magnitudes
@@ -326,7 +327,10 @@ between neighbouring slices in redshift.
 \subsection{Two quasar models: with and without magnitude dependence}\label{sec:variants}
 We deliver two complete models. They are identical in everything (bands, observation model, extinction,
 background, catch-all, priors, faint limit and support procedure) except one assumption about quasars:
-whether a quasar's colours at fixed redshift may depend on its apparent magnitude. Neither is a default.
+whether a quasar's colours at fixed redshift may depend on its apparent magnitude. The pointer
+\code{current} names the magnitude-dependent model, which performs better on our tests; this is a
+convention, not a verdict that the other model is inferior. The magnitude-independent model,
+\code{current\_magindep}, should be used alongside it.
 
 Conditioning a joint mixture on $m_{\rm ref}$ lets a model's colour distribution depend on apparent
 magnitude: a component's colour mean and width shift with $m_{\rm ref}$ unless its covariance forbids it.
@@ -380,14 +384,19 @@ grid points with $p_{\rm quasar}>0.5$, no support cut & 12 & 4 \\
 \end{center}
 
 On selected quasars the magnitude-dependent model is better on every measure, most clearly for bright
-quasars; the two converge at $r>21$, where most quasars are. The magnitude-independent model also relies
+quasars; the two converge at $r>21$, where most quasars are. The differences are significant: a paired
+bootstrap over sky regions gives $\Delta{\rm AUC}=+0.0039$ (95\% interval 0.0032--0.0045), $+0.020$
+(0.006--0.038) at $r<18$ and $+0.001$ (0.000--0.002) at $r\ge21$, and $+3.2$ (2.9--3.7) points in quasars with
+$p_{\rm quasar}>0.5$, with no difference in background objects above 0.5. The magnitude-independent model also relies
 more on the support cut to avoid extrapolation.
 
 \paragraph{Which to use.} For candidates that resemble the training quasars, the magnitude-dependent model
 gives the better-measured performance. For candidates that may lie outside the DESI and SDSS selection,
 for example quasars with unusual colours for their brightness, the magnitude-independent model makes the
-weaker assumption. We recommend scoring every candidate with both: a candidate ranked highly by both is
-robust to this assumption, and a large disagreement between them marks a case that depends on it.
+weaker assumption, and the tests above cannot reveal that advantage because the test quasars share the
+training selection. Use both: score every candidate with \code{current} and \code{current\_magindep}. A
+candidate ranked highly by both is robust to this assumption; a large disagreement marks a case that
+depends on it and should be reported as such.
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F06_colour_redshift.png}

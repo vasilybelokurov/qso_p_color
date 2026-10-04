@@ -1,8 +1,7 @@
 """Shared helpers for the unified method write-up figures.
 
-Models are the two candidate bundles of 3 October 2026 (binned, QSO-cleaned stellar model, smooth sky
-gate, faint limit): ``independent`` (QSO colours independent of magnitude) and ``dependent``.
-Set ``NOTE_MODELS=promoted`` to draw from the promoted pointers instead. Scores for the performance
+Models are the two promoted bundles of 4 October 2026 (binned, QSO-cleaned background, smooth sky gate,
+faint limit): ``independent`` = ``current_magindep`` and ``dependent`` = ``current``. Scores for the performance
 figures are in ``PERF`` (score_performance.py with --faint-limit 10).
 Data are the prepared, extinction-corrected arrays of the baseline run: native
 luptitudes ``y`` (mag), their variances ``noise`` (mag^2), observed masks, roles,
@@ -23,11 +22,7 @@ from qso_pcolor.plotting import SERIES, save_figure, use_paper_style  # noqa: F4
 from run_unified_pilot import arrays
 
 ROOT = Path('models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059')
-import os
-CANDIDATE = Path('models/multisurvey_psf/work/stellar_binned/20261003/bundles')
-POINTERS = ({'independent': 'models/multisurvey_psf/current', 'dependent': 'models/multisurvey_psf/current_magdep'}
-            if os.environ.get('NOTE_MODELS') == 'promoted' else
-            {'independent': str(CANDIDATE/'independent'), 'dependent': str(CANDIDATE/'dependent')})
+POINTERS = {'independent': 'models/multisurvey_psf/current_magindep', 'dependent': 'models/multisurvey_psf/current'}
 PERF = Path('models/multisurvey_psf/work/method_unified/performance_stellar_binned')
 QSO_FLAG = ROOT/'stars'/'qso_flag.npy'
 FAINT_BANDS = ('decals_dr9_south:r', 'decals_dr9_north:r')
