@@ -1,0 +1,50 @@
+{
+ "definition": "Is the magnitude-dependent QSO model significantly better? Paired sky bootstrap of the differences.\n\nHeld-out main panels of the note (score_performance.py with the faint limit, PERF in common.py): both\nmodels score the same objects, so differences are paired. Resampling is by sky region to respect spatial\ncorrelation: quasars by HEALPix nside-4 cell, background objects by stellar-sample cone (field).\nMetrics: AUC (log R; unranked at the bottom), QSO recall at p_quasar > 0.5, background incidence at\np_quasar > 0.5 (flagged likely QSOs removed), overall and by reference magnitude.\nWrites docs/method_unified/model_difference_bootstrap.json.\n",
+ "n_boot": 300,
+ "n_qso_cells": 25,
+ "n_bkg_cones": 49,
+ "results": {
+  "all": {
+   "point": 0.0038962023389034206,
+   "lo95": 0.0031761629522851246,
+   "hi95": 0.004492443920353672,
+   "frac_positive": 1.0
+  },
+  "15.5-18": {
+   "point": 0.019735289570262604,
+   "lo95": 0.005856508294790361,
+   "hi95": 0.038019074436044666,
+   "frac_positive": 1.0
+  },
+  "18-19": {
+   "point": 0.011638605587806272,
+   "lo95": 0.0047823983548038185,
+   "hi95": 0.016524485321675633,
+   "frac_positive": 1.0
+  },
+  "19-21": {
+   "point": 0.006445578231292548,
+   "lo95": 0.0052677029460988095,
+   "hi95": 0.007753771453274839,
+   "frac_positive": 1.0
+  },
+  "21-24.5": {
+   "point": 0.0012903700603313917,
+   "lo95": 0.00027512161927266133,
+   "hi95": 0.0024196954025000657,
+   "frac_positive": 0.9966666666666667
+  },
+  "recall": {
+   "point": 0.03202078135850417,
+   "lo95": 0.028726709754452146,
+   "hi95": 0.03700997269294817,
+   "frac_positive": 1.0
+  },
+  "incidence_clean": {
+   "point": -7.27431439586819e-05,
+   "lo95": -0.0006651667012489769,
+   "hi95": 0.0005185210181442261,
+   "frac_positive": 0.35333333333333333
+  }
+ }
+}
