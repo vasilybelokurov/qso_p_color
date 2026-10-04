@@ -29,7 +29,8 @@ being called a certain quasar because of how two Gaussian tails fell.
 ## Current status and model choice
 
 **Method write-up:** `docs/method_unified/method_unified.tex` (built with `make -C docs/method_unified`)
-describes the promoted models. The earlier note, `docs/method/method.tex`, is retired: it describes
+describes the candidate bundles of 3 October below (figures from `scripts/method_unified/`; set
+`NOTE_MODELS=promoted` to draw them from the promoted pointers). The earlier note, `docs/method/method.tex`, is retired: it describes
 models before 2 October 2026 and is kept unchanged for reference.
 
 **Two models are active (2 October 2026).** Both use one shared North/South latent model over
@@ -63,6 +64,32 @@ more on the support cut. The cut threshold was chosen on the reporting rows and 
 confirmation on independent rows. Probability calibration is not established. See
 [the comparison](docs/SUPPORT_CUT_SWEEP_2026-10-01.md) and the
 [extinction coefficients](configs/extinction_coefficients.json).
+
+### Candidate bundles (3 October 2026, not yet promoted)
+
+`models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}` keep the
+quasar models of the promoted bundles and change the non-quasar side:
+
+- **Background (stars and other non-quasars):** XDQSO-style, eight independent 20-component fits in
+  bins of Legacy r (15.5-24.5), joined into one 160-component mixture; training sample cleaned of likely
+  quasars (Quaia members and WISE W1-W2 > 0.8 Vega; `scripts/clean_stellar_qso_contamination.py`);
+  component weights vary smoothly with Galactic position (softmax gate); catch-all and background counts
+  redone on the cleaned sample.
+- **Faint limit (new behaviour).** Only sources with Legacy DR9 r (South, else North) at S/N >= 10 are
+  scored, and Legacy r is always the reference band. Others are returned with `decision['eligible']`
+  False and `decision['reason']` = `too_faint` (S/N < 10) or `no_faint_limit_band` (no Legacy r, e.g.
+  SDSS-only or PS1-only input). This removes 2.8% of test quasars.
+- **Results** (held-out, same rows as the promoted bundles with the same limit): AUC unchanged
+  (0.976 / 0.980), more quasars with p_quasar > 0.5 (+2.3 / +1.9 points), fewer background objects
+  above 0.5. p_quasar is consistent with observed quasar fractions in the mid range and mildly
+  overconfident above 0.97 (method note, Section 10.7). `qso_pcolor.unified.quasar_probability` computes it
+  from a score record.
+
+```python
+model = UnifiedPSFModel.load("models/multisurvey_psf/work/stellar_binned/20261003/bundles/independent")
+scores, decision = model.score(phot, ra_deg=..., dec_deg=..., z_primary=..., ...)
+p_q = model.quasar_probability(scores)          # NaN for unscored rows
+```
 
 ### The previous bundle (28 September 2026)
 

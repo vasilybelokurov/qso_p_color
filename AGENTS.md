@@ -1,6 +1,6 @@
 # AGENTS.md — implementation brief for Claude Code / Codex CLI
 
-**Method note:** `docs/method_unified/method_unified.tex` describes the promoted models; figures are made by `scripts/method_unified/fig*.py` into `plots/method_unified/`. The old `docs/method/method.tex` is retired and kept unchanged (user decision, 2 October); do not edit it. Update the new note in the same commit as any method change.
+**Method note:** `docs/method_unified/method_unified.tex` describes the candidate bundles of 3 October (below); figures are made by `scripts/method_unified/fig*.py` into `plots/method_unified/`. The old `docs/method/method.tex` is retired and kept unchanged (user decision, 2 October); do not edit it. Update the new note in the same commit as any method change.
 
 **Active models (promoted 2 October 2026, user decision: keep both).** Load with
 `UnifiedPSFModel.load(...)`: `models/multisurvey_psf/current` = magnitude-independent QSO colours
@@ -12,6 +12,15 @@ covariance update with predictive early stopping, and a QSO-support cut at 99.5%
 retention (chosen on reporting rows; confirm on independent rows). Statements below that the
 41-band model uses observed, not dereddened, photometry describe the bundles before this date.
 Never train or promote a non-dereddened model again without an explicit PI decision.
+
+**Candidate bundles (3 October 2026; promotion awaits the PI).**
+`models/multisurvey_psf/work/stellar_binned/20261003/bundles/{independent,dependent}`: promoted QSO
+models with a binned (8 Legacy-r bins x 20), QSO-cleaned background, smooth (l,b) softmax weight gate,
+catch-all and Sigma_B redone on the cleaned sample, support recalibrated, and the PI faint limit
+(model meta `faint_limit`: Legacy r S/N >= 10, Legacy r is the reference; reasons `too_faint`,
+`no_faint_limit_band`). The stellar-sample likely-QSO flag is `<run>/stars/qso_flag.npy`. Role-3 rows used
+by the background design tests (`work/background_designs/test*/rows.npz`) must stay out of final
+assessments. See PROJECT_STATE.md for the decision log.
 
 **Keep the goal in view (user priority, 30 September).** Deliver a pragmatic,
 working, robust model with the requested functionality. Choose the simplest
