@@ -1,0 +1,328 @@
+{
+ "definition": "Outlier stress tests of 28-30 September, repeated on the models promoted 4 October.\n\nModels: `previous` (28 September, active when the outlier problem was found; guarded base scorer, no\nsupport cut), `current` (magnitude-dependent) and `current_magindep` (magnitude-independent), both\nthrough the full scorer (support cut) and, for reference, without the support cut.\nTests (identical synthetic objects for every model; Galactic (180, 45) deg, 0.03 mag errors, z0 = 1.8):\n  release   15 x 15 Legacy (g-r, r-z) grids from -6 to 8 mag at r = 18.5, 21 (North, South) - the 30 September\n            release audit. Low-density mask: points where the 28 September model AND the 30 September\n            candidate both put total-QSO and stellar intensity below 1% (and 0.01%) of their grid peak,\n            exactly as in docs/FULL_SAMPLE_RELEASE_2026-09-30.md.\n  stress    51 x 51 grids at r = 18.5, 21, 24.3 (North, South) - the 28 September catch-all comparison.\n            Low-density probe per model: that model's own total-QSO and stellar intensities below 1% (0.01%)\n            of their peaks on the plane; also the 28 September model's probe applied to all (same points).\n  example   northern (g, r, z) = (21.5, 18.5, 22.5), the failing point of the 30 September audit.\nCounts are points with p_quasar > 0.5 among scorable (eligible) points.\nWrites docs/OUTLIER_TESTS_2026-10-04.json; caches scores under models/multisurvey_psf/work/outlier_tests/.\nUsage: python scripts/compare_outlier_tests.py\n",
+ "release": {
+  "north_18.5": {
+   "previous_28sep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 0,
+    "raw_0.0001": 0
+   },
+   "current_magdep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 1,
+    "raw_0.0001": 0
+   },
+   "current_magindep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 6,
+    "raw_0.0001": 5
+   },
+   "candidate_30sep": {
+    "raw_0.01": 72,
+    "raw_0.0001": 32
+   },
+   "mask_points": {
+    "0.01": 214,
+    "0.0001": 160
+   }
+  },
+  "north_21.0": {
+   "previous_28sep": {
+    "full_0.01": 12,
+    "full_0.0001": 2,
+    "raw_0.01": 12,
+    "raw_0.0001": 2
+   },
+   "current_magdep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 0,
+    "raw_0.0001": 0
+   },
+   "current_magindep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 0,
+    "raw_0.0001": 0
+   },
+   "candidate_30sep": {
+    "raw_0.01": 79,
+    "raw_0.0001": 37
+   },
+   "mask_points": {
+    "0.01": 209,
+    "0.0001": 156
+   }
+  },
+  "south_18.5": {
+   "previous_28sep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 0,
+    "raw_0.0001": 0
+   },
+   "current_magdep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 1,
+    "raw_0.0001": 0
+   },
+   "current_magindep": {
+    "full_0.01": 1,
+    "full_0.0001": 0,
+    "raw_0.01": 5,
+    "raw_0.0001": 4
+   },
+   "candidate_30sep": {
+    "raw_0.01": 0,
+    "raw_0.0001": 0
+   },
+   "mask_points": {
+    "0.01": 220,
+    "0.0001": 192
+   }
+  },
+  "south_21.0": {
+   "previous_28sep": {
+    "full_0.01": 1,
+    "full_0.0001": 0,
+    "raw_0.01": 1,
+    "raw_0.0001": 0
+   },
+   "current_magdep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 1,
+    "raw_0.0001": 0
+   },
+   "current_magindep": {
+    "full_0.01": 0,
+    "full_0.0001": 0,
+    "raw_0.01": 1,
+    "raw_0.0001": 0
+   },
+   "candidate_30sep": {
+    "raw_0.01": 0,
+    "raw_0.0001": 0
+   },
+   "mask_points": {
+    "0.01": 217,
+    "0.0001": 184
+   }
+  }
+ },
+ "stress": {
+  "north_18.5": {
+   "previous_28sep": {
+    "scorable": 935,
+    "high_anywhere": 9,
+    "own_0.01": 5,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 5,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 5,
+    "nocut_own_0.0001": 0
+   },
+   "current_magdep": {
+    "scorable": 25,
+    "high_anywhere": 6,
+    "own_0.01": 2,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 1,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 14,
+    "nocut_own_0.0001": 7
+   },
+   "current_magindep": {
+    "scorable": 34,
+    "high_anywhere": 17,
+    "own_0.01": 6,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 8,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 72,
+    "nocut_own_0.0001": 57
+   }
+  },
+  "north_21.0": {
+   "previous_28sep": {
+    "scorable": 1034,
+    "high_anywhere": 216,
+    "own_0.01": 208,
+    "own_0.0001": 144,
+    "ref28sep_0.01": 208,
+    "ref28sep_0.0001": 144,
+    "nocut_own_0.01": 208,
+    "nocut_own_0.0001": 144
+   },
+   "current_magdep": {
+    "scorable": 27,
+    "high_anywhere": 13,
+    "own_0.01": 2,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 1,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 17,
+    "nocut_own_0.0001": 1
+   },
+   "current_magindep": {
+    "scorable": 31,
+    "high_anywhere": 17,
+    "own_0.01": 4,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 3,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 24,
+    "nocut_own_0.0001": 7
+   }
+  },
+  "north_24.3": {
+   "previous_28sep": {
+    "scorable": 0,
+    "high_anywhere": 0,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 0,
+    "nocut_own_0.0001": 0
+   },
+   "current_magdep": {
+    "scorable": 0,
+    "high_anywhere": 0,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 0,
+    "nocut_own_0.0001": 0
+   },
+   "current_magindep": {
+    "scorable": 0,
+    "high_anywhere": 0,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 0,
+    "nocut_own_0.0001": 0
+   }
+  },
+  "south_18.5": {
+   "previous_28sep": {
+    "scorable": 872,
+    "high_anywhere": 6,
+    "own_0.01": 2,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 2,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 2,
+    "nocut_own_0.0001": 0
+   },
+   "current_magdep": {
+    "scorable": 19,
+    "high_anywhere": 5,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 11,
+    "nocut_own_0.0001": 7
+   },
+   "current_magindep": {
+    "scorable": 31,
+    "high_anywhere": 15,
+    "own_0.01": 5,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 6,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 45,
+    "nocut_own_0.0001": 35
+   }
+  },
+  "south_21.0": {
+   "previous_28sep": {
+    "scorable": 944,
+    "high_anywhere": 23,
+    "own_0.01": 15,
+    "own_0.0001": 1,
+    "ref28sep_0.01": 15,
+    "ref28sep_0.0001": 1,
+    "nocut_own_0.01": 15,
+    "nocut_own_0.0001": 1
+   },
+   "current_magdep": {
+    "scorable": 26,
+    "high_anywhere": 11,
+    "own_0.01": 2,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 14,
+    "nocut_own_0.0001": 2
+   },
+   "current_magindep": {
+    "scorable": 28,
+    "high_anywhere": 13,
+    "own_0.01": 4,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 2,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 23,
+    "nocut_own_0.0001": 4
+   }
+  },
+  "south_24.3": {
+   "previous_28sep": {
+    "scorable": 740,
+    "high_anywhere": 0,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 0,
+    "nocut_own_0.0001": 0
+   },
+   "current_magdep": {
+    "scorable": 63,
+    "high_anywhere": 0,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 0,
+    "nocut_own_0.0001": 0
+   },
+   "current_magindep": {
+    "scorable": 25,
+    "high_anywhere": 0,
+    "own_0.01": 0,
+    "own_0.0001": 0,
+    "ref28sep_0.01": 0,
+    "ref28sep_0.0001": 0,
+    "nocut_own_0.01": 0,
+    "nocut_own_0.0001": 0
+   }
+  }
+ },
+ "example": {
+  "previous_28sep": {
+   "eligible": true,
+   "status": "ok",
+   "p_quasar": 0.021120641217649984
+  },
+  "current_magdep": {
+   "eligible": false,
+   "status": "qso_support_rejected",
+   "p_quasar": 0.0026695850115835283
+  },
+  "current_magindep": {
+   "eligible": false,
+   "status": "qso_support_rejected",
+   "p_quasar": 0.0025443797908801143
+  }
+ }
+}
