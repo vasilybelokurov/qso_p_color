@@ -427,13 +427,14 @@ def test_local_background_rejects_wrong_or_mixed_release():
 def test_readme_matches_the_shipped_model():
     """An earlier README described 1.24 M DESI quasars; a third were SDSS.
 
-    The README's training numbers must be the shipped model's own.
+    The description of that (earlier multi-survey) model moved from the README to
+    docs/EARLIER_MODELS.md on 4 October 2026; its training numbers must be the model's own.
     """
     import json
     import pathlib
 
     meta = json.loads(pathlib.Path("models/multisurvey.json").read_text())["qso"]["meta"]
-    readme = pathlib.Path("README.md").read_text()
+    readme = pathlib.Path("docs/EARLIER_MODELS.md").read_text()
     for key in ("n_fit", "n_holdout"):
         assert f"{meta[key]:,}" in readme, f"README does not state {key}"
     assert "1.24 M DESI" not in readme

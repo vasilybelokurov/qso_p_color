@@ -1,273 +1,48 @@
 # qso_pcolor
 
-Is the photometric companion of a known quasar itself a quasar at the same
-redshift?
+Photometric classification of the companion of a spectroscopic quasar. The primary has a known
+redshift *z*₀; for the companion we have only broadband photometry.
 
-Given a quasar with a spectroscopic redshift *z*₀ and a companion a few
-arcseconds away with broadband photometry only, this package weighs four
-competing explanations and reports how strongly the photometry supports the
-first:
+- **Resolved companion** (detected and measured as its own source): is it a quasar, and is it a quasar
+  at the primary's redshift?
+- **Unresolved blend** (primary and companion measured as one source): is the companion a second quasar
+  at *z*₀ (QQ), or a star (QS)?
 
-| hypothesis | meaning |
-|---|---|
-| `same_z` | a quasar whose redshift matches *z*₀ |
-| `field_q` | a quasar at some other redshift |
-| `bkg` | anything else in the imaging, as the field model describes it |
-| `out` | a broad, fitted share of the field that neither model describes |
-
-The second row is why the package has this shape. A quasar-versus-star
-calculation cannot tell a genuine companion from a foreground quasar at
-*z* = 2.6, and for a binary-quasar search that is the failure mode that matters.
-The fourth stops an object unlike anything either model was fitted to from
-being called a certain quasar because of how two Gaussian tails fell.
-
-**The method is written up in [docs/method/method.pdf](docs/method/method.pdf).**
-`AGENTS.md` is the working contract for changing the code.
+The method is written up in [docs/method_unified/method_unified.pdf](docs/method_unified/method_unified.pdf)
+(built with `make -C docs/method_unified`). `AGENTS.md` is the working contract for changing the code.
 
 ---
 
-## Current status and model choice
+## Which model to use
 
-**Method write-up:** `docs/method_unified/method_unified.tex` (built with `make -C docs/method_unified`)
-describes the two active models (figures from `scripts/method_unified/`). The earlier note, `docs/method/method.tex`, is retired: it describes
-models before 2 October 2026 and is kept unchanged for reference.
+There are three current models. Two are for resolved companions and share one interface; the third is
+for blends and is built on top of either of them.
 
-**Two models are active (promoted 4 October 2026); use both.** They share one North/South latent model
-over 41 bands, extinction-corrected photometry, a binned background cleaned of likely quasars with smooth
-sky-dependent weights, a Student-t catch-all, a calibrated QSO-support cut and the faint limit
-(Legacy r S/N >= 10). They differ only in the quasar colour model:
-
-| Pointer | QSO colours | Bundle |
+| Situation | Model | Load with |
 |---|---|---|
-| `models/multisurvey_psf/current` (= `current_magdep`) | free to depend on magnitude | `20261003_magdep` |
-| `models/multisurvey_psf/current_magindep` | independent of magnitude (XDQSO assumption) | `20261003_magindep` |
-| `previous_20261002_magindep`, `previous_20261002_magdep` | rollback: the 2 October bundles | `13866e45ef794059`, `5f4002492dbb849c` |
-| `models/multisurvey_psf/previous` | rollback: the 28 September bundle | `630f47f63b6f0694` |
+| Resolved companion, PSF photometry | **A**: magnitude-dependent quasar colours | `UnifiedPSFModel.load("models/multisurvey_psf/current")` |
+| Resolved companion, PSF photometry | **B**: magnitude-independent quasar colours (XDQSO assumption) | `UnifiedPSFModel.load("models/multisurvey_psf/current_magindep")` |
+| Unresolved blend of the quasar and one companion | **C**: blend mode, QQ (same *z*) vs QS | `BlendModel.load(...)` on the `current` or `current_magindep` pointer |
 
-`current` is the magnitude-dependent model because it is better on our (DESI/SDSS-selected) test
-quasars: AUC +0.004 overall, +0.02 at r < 18, +3 points in quasars with p_quasar > 0.5 (paired sky
-bootstrap, all significant). **`current_magindep` can and should be used alongside it**: it cannot learn
-the training selection as quasar physics, a risk our tests cannot measure. Score every candidate with
-both; agreement means robust, a large disagreement means the result depends on that assumption.
+**Score every object with both A and B** (for C, load it on both pointers). A and B share the
+background model, the 41 bands, extinction correction, catch-all, support cut and faint limit; they
+differ only in the quasar colour model.
 
-```python
-from qso_pcolor import Photometry, RedshiftMatch, BlendPolicy
-from qso_pcolor.unified import UnifiedPSFModel
+- A is better on our DESI/SDSS-selected test quasars: AUC 0.980 against 0.976, and 0.975 against 0.955 at
+  *r* < 18 (method note, Section 6.2, paired sky bootstrap).
+- B cannot absorb the spectroscopic selection of the training quasars into its colour model. That risk
+  is real for quasars unlike the DESI/SDSS targets, and our tests cannot measure it.
+- If A and B agree, the result does not depend on that assumption. If they disagree strongly, the
+  object needs a closer look, not a choice of whichever number is more convenient.
 
-models = {name: UnifiedPSFModel.load(f"models/multisurvey_psf/{name}") for name in ("current", "current_magindep")}
-# Catalogue fluxes as observed; extinction is corrected internally from RA/Dec. Legacy r must be present (S/N >= 10).
-phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
-                  ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
-for name, model in models.items():
-    scores, decision = model.score(phot, ra_deg=180., dec_deg=0., z_primary=1.8, morphology=["PSF"],
-        match=RedshiftMatch(half_width_kms=2000.), blend_policy=BlendPolicy(3., .2),
-        separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
-    print(name, decision["eligible"], model.quasar_probability(scores))
-```
+Pointers in `models/multisurvey_psf/` (small JSON files naming a bundle directory):
 
-Objects without Legacy r, or with S/N < 10, are returned unscored with `decision['reason']` =
-`no_faint_limit_band` or `too_faint`. The method note (`docs/method_unified/method_unified.tex`) describes
-both models; Section 6.2 compares them.
-
-### Blend mode: known quasar + unresolved companion (4 October 2026)
-
-For a blended source made of a spectroscopic quasar at known redshift and an unresolved companion, with only
-the combined flux measured (best extended photometry: Legacy model flux, SDSS cModel, PS1 Kron; any
-morphology), `qso_pcolor.blend.BlendModel` compares QQ (companion = quasar at the same redshift) with QS
-(companion = star) using the same quasar and background models. Score with both promoted models:
-
-```python
-from qso_pcolor import Photometry
-from qso_pcolor.blend import BlendModel
-
-phot = Photometry([[4.0, 5.2, 6.1]], [[1/400, 1/600, 1/250]],          # whole-blend fluxes, nanomaggies
-                  ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
-for name in ("current", "current_magindep"):
-    blend = BlendModel.load(f"models/multisurvey_psf/{name}")
-    r = blend.score(phot, ra_deg=150.1, dec_deg=2.2, z_qso=1.5, prior_odds_qq=1.0)[0]
-    print(name, r.status, r.log_bf_qq_qs, r.p_qq, r.alpha_mean_qs)
-```
-
-Base rules: Legacy r must be present with S/N >= 20 (each component >= 10 sigma); the companion is assumed
-detectable and `prior_odds_qq` is the prior odds that a detectable companion is a quasar rather than a star.
-On synthetic blends of held-out objects: AUC 0.950 (`current`) / 0.936 (`current_magindep`), near 1 when the
-companion carries a quarter or more of the light, ~0.7-0.8 below a tenth; P(QQ) close to calibrated.
-See the method note, Section 11, and `docs/method_unified/blend_validation.json`.
-
-### The previous bundle (28 September 2026)
-
-The description below is the previous PSF model, `PSFMultiSurveyBaseline`, now loaded from
-`models/multisurvey_psf/previous`. It accepts **any nonempty subset of all 41
-bands**, including optical-only and infrared-only input. Missing bands are
-marginalised from one joint model. No band is compulsory. A single band has
-no colour information and is flagged accordingly.
-
-The stellar/background component depends on colour, magnitude and Galactic
-position, using shared Gaussian shapes with HEALPix weights (`nside=4`, parent
-`nside=2`). Both Legacy hemispheres are active. Population priors cover all 41
-reference bands; sparse priors are flagged. `baseline.fit_local(...)` refits
-the same weights and counts in a declared cone with measured usable areas.
-
-The active catch-all is a Student-t with pooled, strictly positive magnitude-bin
-weights and Gaussian measurement-noise convolution. A fitted broad Gaussian is
-retained for comparison. Both use the same joint 41-band marginalisation;
-neither changes the stellar model's continuous magnitude dependence. See the
-[catch-all comparison](docs/CATCHALL_COMPARISON_2026-09-28.md) for the held-out
-results and colour-plane stress tests. The outside-both-models exclusion remains
-required: a catch-all alone is not a certificate of reliable colour-space support.
-
-The [recovery validation](docs/VALIDATION_multisurvey_psf_2026-09-28.json)
-checks all 41 single bands, 820 pairs, larger subsets and 127 survey selections.
-On reserved PSF sources, mean predictive log density improved by 0.069 nats
-for 12,072 quasars and 1.161 nats for 14,511 field objects against the earlier
-joint model. These checks establish functionality and predictive improvement;
-they do not establish probability calibration.
-
-```python
-from qso_pcolor import PSFMultiSurveyBaseline, Photometry, RedshiftMatch, BlendPolicy
-
-baseline = PSFMultiSurveyBaseline.load("models/multisurvey_psf/previous")
-# Native observed fluxes, in each band's original photometric system.
-phot = Photometry([[1.9, 2.6, 3.1]], [[1/120, 1/150, 1/60]],
-                  ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z"))
-scores, decision = baseline.score(
-    phot, morphology=["PSF"], z_primary=1.8, l_deg=276.337, b_deg=60.189,
-    match=RedshiftMatch(half_width_kms=2000.),
-    blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2),
-    separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.,
-)
-# To choose a different subset, pass a shorter Photometry or use keep_bands().
-print(scores[0].bands_used, scores[0].status, decision["eligible"])
-```
-
-Morphology is supplied separately from the chosen photometry. Unknown or
-extended morphology is excluded, as are missing blend measurements and
-unsupported scores. Rank only `decision['eligible']` rows by
-`log_r_per_unit_z`; quote `p_sameq` together with `dz_match_eff`.
-
-### Earlier models retained for comparison
-
-The Legacy DR9 PSF baseline has returned to dereddened relative fluxes and
-improves broad candidate ranking. **Its full release validation fails:** the
-observable-field tail prediction and quasar score-stability checks do not pass.
-Its science interface now excludes missing blend information and objects
-outside both fitted populations. Use it for exploratory ranking with these
-limits; do not treat the earlier validation PASS as a complete certification.
-See the [recovery report](docs/RECOVERY_2026-09-28.md).
-
-The earlier Legacy-only PSF model includes a spatial background: Gaussian component
-weights and source surface densities vary with magnitude and Galactic HEALPix
-cell. Both hemispheres use `nside=4`, parent `nside=2`, with cell-to-parent-to-global
-pooling. Component means and covariances remain shared. The
-[spatial validation report](docs/SPATIAL_BACKGROUND_2026-09-28.md) records the
-field-only tests, configuration and remaining limits.
-
-| Input and scope | Interface | Saved files |
+| Pointer | Bundle | Notes |
 |---|---|---|
-| Legacy DR9 PSF companions, 17 <= dereddened r < 22.5, Galactic \|b\| >= 25 degrees | `XDQSOBaseline` | `models/legacy_psf_xdqso/current` (base `8e2a27c013ed` + spatial background); north provisional |
-| Other survey combinations, earlier multi-survey release | `MultiSurveyModel` | `models/multisurvey*.json`; native observed fluxes, separate field-model limitations |
-
-### Legacy PSF scoring
-
-Supply native catalogue rows, including `mw_transmission_*`; the adapter
-dereddens flux and variance internally. Declare both policies. Missing separation
-or `fracflux` excludes the companion; outside both populations the diagnostic
-row remains, but its ranking and posterior fields are NaN.
-
-```python
-import numpy as np
-from qso_pcolor import BlendPolicy, RedshiftMatch
-from qso_pcolor.baseline import XDQSOBaseline
-
-baseline = XDQSOBaseline.load("models/legacy_psf_xdqso/current")
-# Synthetic catalogue row; unit transmissions mean zero Galactic extinction.
-rows = dict(ra=np.array([180.]), dec=np.array([0.]), release=np.array([9010]),
-            type=np.array(["PSF"]), maskbits=np.array([0]))
-for band, flux in zip(("g", "r", "z", "w1", "w2"), (8., 10., 12., 40., 60.)):
-    rows[f"flux_{band}"] = np.array([flux])
-    rows[f"flux_ivar_{band}"] = np.array([100.])
-    rows[f"nobs_{band}"] = np.array([3])
-    rows[f"mw_transmission_{band}"] = np.array([1.])
-scores, decision = baseline.score_rows(
-    rows, z_primary=1.8, match=RedshiftMatch(half_width_kms=2000.),
-    blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2),
-    separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.,
-)
-print(decision["eligible"], scores[0].status, scores[0].model_manifest_id)
-# Rank only eligible rows. A posterior always travels with its window width.
-print(scores[0].log_r_per_unit_z, scores[0].p_sameq, scores[0].dz_match_eff)
-```
-
-The support threshold is a declared selection policy, not a calibrated outlier
-fraction. Quasar densities and Gaussian component shapes retain their original
-fits; the active background uses the fitted sky-dependent weights and counts.
-Scores record the composite model ID, background mode, nside and scoring policy.
-Load `models/legacy_psf_xdqso/8e2a27c013ed` explicitly to reproduce the earlier
-spatially pooled baseline.
-
-## Multi-survey model (earlier release)
-
-This model accepts **any combination of 41 bands** from seven
-surveys, including infrared-only input:
-
-The evaluator marginalises the same joint distribution for every subset;
-there is no compulsory band. Use `phot.keep_bands(("sdss:u", "allwise:w2"))`
-to choose individual measurements. The default `min_bands=1` accepts a single
-band and flags `no_colour_information`: its colour Bayes factor is one, and
-only population priors can supply a posterior. Separate fitted subset models
-are used only with `MultiSurveyModel.load(..., legacy_field_fits=True)` for
-historical reproduction. The earlier population fits and calibration below
-have not thereby become a validated PSF/spatial multi-survey release.
-
-| survey | bands |
-|---|---|
-| SDSS | *u g r i z* |
-| Legacy Surveys DR9, south and north separately | *g r z* and the forced unWISE *W1 W2* |
-| AllWISE | *W1 W2 W3 W4* |
-| Pan-STARRS1 | *g r i z y* |
-| NSC | *u g r i z y* VR |
-| SkyMapper | *u v g r i z* |
-| VHS | *Y J H K*s |
-
-Filters from different surveys are never treated as the same filter. The
-Legacy forced *W1, W2* and the AllWISE *W1, W2* are different measurements and
-different bands; the Legacy ones are the single strongest quasar/star
-discriminant available.
-
-Three files, all in `models/`, are the model:
-
-| file | contents |
-|---|---|
-| [multisurvey.json](models/multisurvey.json) | quasar and field densities over native band luptitudes, the luptitude transform, the band schema, dedicated Legacy-only field fits, training manifest |
-| [multisurvey_priors.json](models/multisurvey_priors.json) | surface densities Σ_Q(z, u_a) and Σ_B(u_a) for 37 of the 41 possible reference bands |
-| [multisurvey_outlier.json](models/multisurvey_outlier.json) | the unmodelled hypothesis: a heavy-tailed Student-t (ν = 2) at the field's own scale, and its fitted share of the field |
-
-Without the priors you get the colour evidence and the quasar-only redshift
-probability; with them, the posterior and the ranking statistic *R*.
-
-The quasar densities are 43 redshift slices (support 0.15 < *z* < 4.35) fitted
-to **67,574** DESI DR1 and SDSS DR16Q quasars drawn flat in redshift, with
-**14,766** more reserved in sixteen sky blocks before fitting. The field density
-is fitted to every source, of every type, in 24 cones at |*b*| ≥ 25°, with known
-quasars removed and six whole cones reserved.
-
-**Historical release results** (including dedicated subset field fits), measured on 50,746 companions of DESI DR1 quasars that
-have their own DESI spectra, scored from Legacy *g, r, z, W1, W2*, in sky
-blocks the model never saw (method note §10):
-
-| question | held-out AUC |
-|---|---|
-| same-*z* vs wrong-*z* quasar, ranked by `log_r_per_unit_z` | **0.828** |
-| same, by `p_zmatch_given_qso` alone | 0.865 |
-| quasar vs spectroscopic star, by Bayes factor | **0.982**; 0.04 % of stars above the median same-*z* quasar |
-| quasar vs spectroscopic galaxy | **0.961**; 0.18 % above |
-| same-*z* vs quasars just outside the window (3,000–6,000 km/s) | 0.472 — chance |
-
-Across all 127 survey combinations, reserved quasars are separated from
-reserved field sources with median AUC 0.996 (VHS alone is the weakest, 0.662;
-[report](docs/MULTISURVEY_VALIDATION.md)). The predicted same-redshift
-probability is low by a factor that falls from 9.8 at 3–5″ to 3.3 at 20–30″:
-that is quasar clustering, which the scorer deliberately leaves out.
+| `current` (= `current_magdep`) | `20261003_magdep` | model A, promoted 4 October 2026 |
+| `current_magindep` | `20261003_magindep` | model B |
+| `previous_20261002_magdep`, `previous_20261002_magindep` | `5f4002492dbb849c`, `13866e45ef794059` | rollback |
+| `previous` | `630f47f63b6f0694` | 28 September 2026 model, see [docs/EARLIER_MODELS.md](docs/EARLIER_MODELS.md) |
 
 ---
 
@@ -276,192 +51,278 @@ that is quasar clustering, which the scorer deliberately leaves out.
 ```bash
 git clone https://github.com/vasilybelokurov/qso_p_color.git
 cd qso_p_color
-python3 -m venv .venv                        # Python 3.11 or newer
-source .venv/bin/activate
-pip install -e ".[dev]"                      # package plus pytest
-python -m pytest -q                          # run the regression suite
+python3 -m venv .venv && source .venv/bin/activate      # Python 3.11 or newer
+pip install -e ".[dev]"
+python -m pytest -q
+pip install -e ".[dev,wsdb]"                              # only to query WSDB (sqlutilpy)
 ```
 
-The `wsdb` extra (`sqlutilpy`) is needed only to query the database and
-rebuild samples; the `figures` extra only for the example atlas PDF. Scoring
-with the saved model needs neither. Run from the repository root so the
-`models/` paths resolve; the model files are in Git, not in the wheel.
-
-## Scoring with the earlier multi-survey release
-
-Offline, straight from a clone:
-
-```python
-import numpy as np
-from qso_pcolor import (BlendPolicy, MultiSurveyModel, MultiSurveyOutlier,
-                        Photometry, RedshiftMatch, load_priors)
-
-model  = MultiSurveyModel.load("models/multisurvey.json")
-priors = load_priors("models/multisurvey_priors.json", model)
-out    = MultiSurveyOutlier.load("models/multisurvey_outlier.json")
-
-# Legacy DR9 south fluxes as observed (nanomaggies, not dereddened) and their variances
-phot = Photometry(
-    flux=np.array([[1.9, 2.6, 3.1, 11.0, 14.0]]),
-    variance=1.0 / np.array([[120.0, 150.0, 60.0, 8.0, 3.0]]),
-    bands=("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z",
-           "decals_dr9_south:w1", "decals_dr9_south:w2"),
-)
-s = model.score(
-    phot, z_primary=np.array([1.8]),
-    l_deg=np.array([276.337]), b_deg=np.array([60.189]),     # (RA,Dec) = (180,0)
-    match=RedshiftMatch(half_width_kms=2000.0), min_bands=2,
-    priors=priors, outlier=out, ood_flag_sigma=4.0,
-    blend_policy=BlendPolicy(min_separation_arcsec=3.0, max_fracflux=0.2),
-    separation_arcsec=np.array([6.0]), fracflux=np.array([0.05]),
-)[0]
-print(s.log_bayes_factor_qz_bkg)   # +6.68    evidence: quasar at z0 vs the field
-print(s.log_r_per_unit_z)          # -1.24    the ranking statistic
-print(s.p_sameq, s.dz_match_eff)   # 1.077e-02 posterior for the ±2000 km/s window, and its width
-print(s.p_outlier)                 # 2.3e-03  share taken by "unmodelled"
-print(s.qso_ood_sigma_any_z, s.bkg_ood_sigma)   # 0.43 2.33  distance to each model, in sigma
-print(s.reference_band, s.status)  # decals_dr9_south:r ok
-```
-
-`tests/test_shipped_models.py` is this example, executed; if the numbers drift,
-the suite fails.
-
-**Any other survey**: change `bands` and the matching columns; the model and
-the call stay the same. `model.transform.bands` lists every accepted label.
-Infrared only:
-
-```python
-phot = Photometry(flux=np.array([[400.0, 830.0]]),
-                  variance=np.array([[40.0**2, 100.0**2]]),
-                  bands=("allwise:w1", "allwise:w2"))
-row = model.score(phot, z_primary=np.array([1.8]), l_deg=np.array([180.0]),
-                  b_deg=np.array([45.0]), match=RedshiftMatch(half_width_kms=2000.0),
-                  min_bands=2, priors=priors, outlier=out)[0]
-print(row.log_bayes_factor_qz_bkg, row.log_r_per_unit_z)   # +0.98 -3.84
-print(row.reference_band, row.bands_used, row.status)      # allwise:w1 ('allwise:w1', 'allwise:w2') ok
-```
-
-### Input conventions
-
-- **Native calibrated fluxes**, magnitude 22.5 = flux 1: Legacy and SDSS in
-  nanomaggies (AB); AllWISE and VHS keep their Vega zero points (AllWISE DN
-  fluxes use zero points 20.5, 19.5, 18.0, 13.0 for *W1–W4*).
-  `qso_pcolor.multisurvey_data.catalogue_photometry` converts the WSDB columns
-  and applies each survey's quality cuts; use it, or the same cuts, for
-  candidates.
-- **Observed, not dereddened.** The training and field samples are at
-  |*b*| ≥ 25°, and the model's metadata records the convention.
-- **Keep negative fluxes.** They are measurements. Mark a band unusable only
-  when the survey says so: `flux=np.nan`, `variance=np.inf`.
-- **Legacy north and south are different bands** (`decals_dr9_north:*` for
-  release 9011, `decals_dr9_south:*` for 9010 and 9012).
-- **A real companion needs a `BlendPolicy`** with its separation and
-  reference-band `fracflux`; without them it is refused as blended. Mark
-  contaminated bands — AllWISE beside a bright primary, typically — unusable
-  rather than scoring them.
-
-### How to read the output
-
-- **Rank on `log_r_per_unit_z`.** It is the window-free evidence: two people can
-  compare candidates without agreeing on a window. `p_sameq = exp(log_r_per_unit_z) * dz_match_eff`
-  exactly; never quote `p_sameq` without `dz_match_eff`.
-- **`p_sameq` is small even for a perfect candidate.** A ±2000 km/s window at
-  *z* = 1.8 is Δ*z* = 0.037; the photometric redshift width is ~0.6. It is also
-  not the probability of a physical pair: multiply the odds by the clustering
-  factor for the separation (9.8 at 3–5″, 7.4, 4.9, 3.3 at 20–30″) if you want
-  one.
-- **The Bayes factor is not an alternative ranking statistic.** It has no
-  field-quasar term: AUC 0.720 against 0.828 for same- vs wrong-*z*. Use it to
-  reject stars.
-- **`outside_both_models`** (set when both distances exceed your
-  `ood_flag_sigma`) means every density is an extrapolation. With the outlier
-  model such an object goes to `p_outlier` instead of being called a quasar;
-  either way it needs a spectrum or a second look, not a number.
-- **Without a prior for the reference band** (NSC *u*, SkyMapper *u*, *v*,
-  VHS *Y*), `status='no_prior_posterior_unavailable'`: evidence and
-  `p_zmatch_given_qso` are returned, `p_sameq` and `log_r_per_unit_z` are NaN —
-  by design.
-
-The full output contract is in the method note, §9, and `AGENTS.md` §6.
+Run from the repository root: the model files are in Git under `models/`, not in the wheel.
 
 ---
 
-## Reproducing the model
+## Quick start
 
-The saved model needs no database. Rebuilding it needs WSDB (`sqlutilpy`,
-credentials via `PGUSER` / `PGHOST` / `~/.pgpass`) and the DESI/SDSS parent
-caches named in the configuration:
+### Resolved companion (models A and B)
 
-```bash
-pip install -e ".[dev,wsdb]"
-```
- Queries cache to `data/` (gitignored),
-keyed by a hash of the query text, so a rerun reuses the same selection.
+```python
+import numpy as np
+from qso_pcolor import Photometry, RedshiftMatch, BlendPolicy
+from qso_pcolor.unified import UnifiedPSFModel
 
-```bash
-C=configs/multisurvey_lsw.json                      # the training config recorded in the model
-python scripts/build_multisurvey_sample.py --config $C          # quasars and 24 field cones
-python scripts/build_multisurvey_sample.py --config $C --part validation   # reserved overlap field
-python scripts/train_multisurvey_model.py  --config $C          # -> models/multisurvey_lsw.json, ~1 h
-python scripts/fit_background_marginal.py  --config configs/background_marginal_lsw_grz.json
-python scripts/fit_background_marginal.py  --config configs/background_marginal_lsw_grzw.json
-python scripts/build_multisurvey_priors.py --config configs/multisurvey_priors.json
-python scripts/fit_multisurvey_outlier.py  --config $C --model models/multisurvey_lsw.json \
-       --out models/multisurvey_lsw_outlier.json
-python scripts/validate_multisurvey.py     --model models/multisurvey_lsw.json   # 127 subsets
-python scripts/validate_pairs_multisurvey.py --max-fracflux 0.2 \
-       --ms-model models/multisurvey_lsw.json --ms-outlier models/multisurvey_lsw_outlier.json
-```
+bands = ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z",
+         "decals_dr9_south:w1", "decals_dr9_south:w2")
+# Catalogue fluxes as published (nanomaggies, NOT extinction-corrected) and their variances.
+flux = np.array([[2.6, 3.0, 3.6, 9.0, 11.0],          # a quasar-like companion
+                 [1.2, 3.0, 4.6, 2.2, 1.3]])          # a star-like companion
+ivar = np.array([[300., 200., 60., 3., 0.6]] * 2)
+phot = Photometry(flux, 1 / ivar, bands)
 
-Training writes a candidate; it becomes `models/multisurvey.json` only after it
-passes the validation. Figures and reports, all offline once the samples exist:
-
-```bash
-python scripts/make_validation_figures.py       # pair validation and outlier figures
-python scripts/plot_colour_redshift.py          # quasar colour density vs redshift
-python scripts/make_multisurvey_examples.py     # twelve survey-combination examples + atlas
-make -C docs/method                              # the method note
+for name in ("current", "current_magindep"):
+    model = UnifiedPSFModel.load(f"models/multisurvey_psf/{name}")
+    scores, decision = model.score(
+        phot, ra_deg=[180., 180.], dec_deg=[30., 30.],    # companion ICRS position
+        z_primary=1.8, morphology=["PSF", "PSF"],          # Legacy TYPE of the companion
+        match=RedshiftMatch(half_width_kms=2000.),
+        blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2),
+        separation_arcsec=[6., 6.], fracflux=[.05, .05],   # from the catalogue
+        ood_flag_sigma=4.)
+    p = model.quasar_probability(scores)
+    for i, s in enumerate(scores):
+        print(name, decision["eligible"][i], decision["reason"][i] or s.status,
+              round(p[i], 3), s.log_r_per_unit_z, s.p_sameq, s.dz_match_eff)
 ```
 
-## What is in here
+Output: the first object is eligible with `p_quasar` 0.894 (A) and 0.857 (B); the second is refused
+with `qso_support_rejected` (its colours are not quasar-like at *z* = 1.8).
 
-| path | what |
+### Unresolved blend (model C)
+
+```python
+import numpy as np
+from qso_pcolor import Photometry
+from qso_pcolor.blend import BlendModel
+
+bands = ("decals_dr9_south:g", "decals_dr9_south:r", "decals_dr9_south:z",
+         "decals_dr9_south:w1", "decals_dr9_south:w2")
+# Whole-blend fluxes as published (nanomaggies, NOT extinction-corrected): the best total flux of the
+# combined source (see "Inputs" below), and their variances.
+phot = Photometry([[4.1, 5.5, 6.9, 13.0, 14.5]], [[1/300, 1/200, 1/60, 1/3, 1/0.6]], bands)
+
+for name in ("current", "current_magindep"):
+    blend = BlendModel.load(f"models/multisurvey_psf/{name}")
+    r = blend.score(phot, ra_deg=150.1, dec_deg=2.2, z_qso=1.5, prior_odds_qq=1.0)[0]
+    print(name, r.status, r.log_bf_qq_qs, r.p_qq, r.alpha_mean_qq, r.alpha_mean_qs)
+```
+
+Output: `ok`, log BF −0.87 (A) and −0.79 (B), P(QQ) 0.30 and 0.31; under QS the star carries about 28% of
+the r flux.
+
+---
+
+## Inputs
+
+### Photometry contract (all three models)
+
+- **A `Photometry(flux, variance, bands)`**, arrays of shape (objects, bands). Band labels are
+  `survey:band`; `model.base.model.transform.bands` lists all 41. Any subset may be given, but
+  **Legacy r must be present** (`decals_dr9_south:r` or `decals_dr9_north:r`): it is the reference band
+  and sets the faint limit.
+- **Native units**: in every band, magnitude 22.5 corresponds to flux 1, in that survey's own
+  photometric system. Legacy, SDSS, PS1, NSC and SkyMapper are AB (Legacy and SDSS fluxes are already
+  nanomaggies); AllWISE and VHS are Vega. Surveys are never converted into each other's systems.
+- **Not extinction-corrected.** Pass catalogue photometry as published. The models correct Galactic
+  extinction internally (SFD98 with each band's coefficient), from the position you give. Do not
+  deredden first. (`BlendModel.score` has `dereddened=True` for already-corrected input.)
+- **Legacy north and south are different bands.** `decals_dr9_south:*` for `release` 9010 and 9012,
+  `decals_dr9_north:*` for 9011. Legacy W1/W2 (forced unWISE photometry at the optical position) and
+  AllWISE W1/W2 are also different bands.
+- **Keep negative and low-S/N fluxes**: they are measurements. A missing or unusable band is
+  `flux = NaN`, `variance = inf`.
+- **Magnitudes** can be passed through
+  `qso_pcolor.unified.catalogue_photometry(values, errors, bands, ra_deg=, dec_deg=, measurement="abmag")`.
+  It converts with flux = 10^((22.5 − m)/2.5), so give magnitudes in each band's native system. For AllWISE
+  and VHS pass the Vega magnitudes unchanged: the model's native flux in those bands is on the Vega scale,
+  so no Vega-to-AB conversion is wanted (for AllWISE this equals the DN conversion in the table below). The label `legacy:g` (r, z, w1, w2) is assigned north or south from the position
+  unless you pass `legacy_hemisphere`. `UnifiedPSFModel.score_catalogue(...)` does the conversion and the
+  scoring in one call.
+
+### Which catalogue columns: resolved companions (models A and B)
+
+The models were trained on **PSF photometry** of point sources, so use the PSF columns below. All surveys
+are matched to the Legacy DR9 position within 1″ (AllWISE 2″). The training applied the cleaning listed
+in the last column; apply the same to candidates. `qso_pcolor.multisurvey_data.catalogue_photometry(name,
+rows, clean=True, vhs_bad_bits=2147483392)` converts WSDB rows exactly as in training.
+
+| Survey (WSDB table) | Labels | Flux / error columns | Units | Cleaning (training) |
+|---|---|---|---|---|
+| Legacy DR9 (`decals_dr9.main`) | `decals_dr9_{south,north}:g r z w1 w2` | `flux_*`, `flux_ivar_*` | nanomaggies (AB) | `maskbits` = 0, `nobs_*` > 0; `type` = PSF for the resolved models |
+| SDSS DR14 (`sdssdr14.photoobjall`) | `sdss:u g r i z` | `psfflux_*`, `psffluxivar_*` | nanomaggies | `mode` = 1, `clean` = 1 |
+| AllWISE (`allwise.main`) | `allwise:w1 w2 w3 w4` | `w?flux`, `w?sigflux` (DN) | flux = DN × 10^(0.4(22.5 − ZP)), ZP = 20.5, 19.5, 18.0, 13.0 (Vega) | `cc_flags` character for the band = '0' |
+| Pan-STARRS1 (`panstarrs_dr1.stackobjectthin`) | `ps1:g r i z y` | `?psfmag`, `?psfmagerr` | AB mag | `primarydetection` = 1, `?nframes` > 0 |
+| NSC DR2 (`nsc_dr2.object`) | `nsc:u g r i z y vr` | `?mag`, `?err` | AB mag | `flags` = 0 |
+| SkyMapper DR4 (`skymapper_dr4.main`) | `skymapper:u v g r i z` | `?_psf`, `e_?_psf` | AB mag | `?_ngood` > 0, `?_flags` = 0 |
+| VHS DR5 (`vhs_dr5.main`) | `vhs:y j h ks` | `?apermag3`, `?apermag3err` | Vega mag | `?pperrbits` ≥ 0 with none of bits 8–30 set |
+
+Magnitudes outside (−50, 90) or with errors ≥ 90 are treated as missing. AllWISE photometry next to a
+bright primary is often contaminated: mark such bands unusable rather than scoring them.
+
+### Which catalogue columns: unresolved blends (model C)
+
+Use the **best total flux of the whole blended source**, from any morphology: Legacy DR9 `flux_*`
+(Tractor model flux, whatever `type`, including the forced `flux_w1`, `flux_w2`), SDSS `cmodelflux_*`,
+PS1 `?kronmag`, and AllWISE `w?flux` (the WISE beam contains both components). This choice is advice,
+not enforced by the code: `BlendModel` adds the two components' fluxes in every band it is given, so
+each band must measure the total light of both components. **Do not use PSF fluxes of an extended
+blend**: they miss part of the light, by an amount that depends on the separation and the seeing.
+
+Caveat: the component models were fitted to PSF photometry of single sources. For a blend smaller than
+the seeing, the total flux and the sum of the components' PSF fluxes should agree, but this is untested
+on real blends.
+
+---
+
+## Resolved companions: arguments and output
+
+`UnifiedPSFModel.score(photometry, *, ra_deg, dec_deg, z_primary, morphology, match, blend_policy,
+ood_flag_sigma, separation_arcsec, fracflux, ...)` returns `(scores, decision)`. Arrays broadcast over
+objects.
+
+| Argument | Meaning |
 |---|---|
-| `src/qso_pcolor/` | the package: mixtures, extreme deconvolution, the multi-survey model and priors, the unmodelled term, the scorer |
-| `scripts/build_multisurvey_sample.py` | quasar training sample and field cones, seven surveys |
-| `scripts/train_multisurvey_model.py` | quasar slices and joint field fit, with spatial component selection |
-| `scripts/fit_background_marginal.py` | dedicated field fits for Legacy-only input |
-| `scripts/build_multisurvey_priors.py` | surface densities per reference band |
-| `scripts/fit_multisurvey_outlier.py` | the unmodelled term: breadth and share, on unused field sources |
-| `scripts/validate_pairs_multisurvey.py` | the labelled-pair validation, against the predecessor on the same rows |
-| `scripts/validate_multisurvey.py` | all 127 survey subsets on reserved objects |
-| `scripts/build_pair_validation.py` | the labelled close-pair sample from DESI DR1 |
-| `docs/method/method.pdf` | **the method note** |
-| `docs/MULTISURVEY_VALIDATION.md` | the survey-subset results |
-| `docs/examples/` | the twelve worked examples, atlas, fixed sample and scores |
-| `models/archive/` | retired models (below) |
-| `tools/journal.py` | JOURNAL.md updater; `hook-install` journals every commit |
+| `ra_deg`, `dec_deg` | companion position (ICRS, degrees); used for extinction, Galactic latitude and sky-dependent background |
+| `z_primary` | spectroscopic redshift of the primary quasar (support 0.15–4.35) |
+| `morphology` | Legacy `type` of the companion. Only `PSF` is scored; `REX`, `EXP`, `DEV`, `SER` and unknown are refused |
+| `match` | `RedshiftMatch(half_width_kms=...)`: the window that counts as "the same redshift" |
+| `blend_policy`, `separation_arcsec`, `fracflux` | `BlendPolicy(min_separation_arcsec, max_fracflux)`: companions closer than the separation limit, or with a reference-band Legacy `fracflux` above the limit, are refused. Both limits are required; no defaults. For blends, use model C |
+| `ood_flag_sigma` | distance (in σ) from both models beyond which the object is flagged as outside both |
+
+**`decision`**: `eligible` (bool) and `reason` per object; `qso_support` (the QSO-support percentile).
+Only eligible rows are science-grade. Rows refused before scoring have `scores[i] = None`.
+
+| `reason` / `status` | Meaning |
+|---|---|
+| `non_psf_not_scored` | morphology is not PSF |
+| `outside_latitude` | Galactic \|*b*\| < 25° (outside the training footprint) |
+| `no_faint_limit_band` | no Legacy r |
+| `too_faint` | Legacy r S/N < 10 |
+| `blended_not_scored` | fails the `BlendPolicy` |
+| `insufficient_photometry` | too few usable bands |
+| `primary_z_outside_model_support` | *z*₀ outside the quasar model's range (0.15–4.35) |
+| `outside_both_models` | colours unlike both quasars and background; densities would be extrapolations |
+| `background_out_of_mag_range` | reference magnitude outside the background model's magnitude range |
+| `qso_support_rejected` | colours far outside the quasar distribution at *z*₀ (support percentile below the calibrated 2/256) |
+| `no_prior_posterior_unavailable` | no population prior for the reference band: evidence is returned, `p_sameq` and `log_r_per_unit_z` are NaN |
+
+**Score fields** (eligible rows):
+
+- `model.quasar_probability(scores)` gives *p*(quasar), the companion's probability of being a quasar at
+  any redshift against the background and catch-all, at the population priors for its position and
+  magnitude. Neither promoted bundle carries a calibration file, so this is the uncalibrated value.
+- `log_r_per_unit_z` is the ranking statistic for "a quasar at *z*₀", per unit redshift, averaged over the
+  window. For velocity windows it is independent of the window width to well under 1%, so scores made
+  with different velocity windows can be compared. Rank candidates on it.
+- `p_sameq` is the posterior probability of a quasar inside the `match` window, with
+  `p_sameq = exp(log_r_per_unit_z) × dz_match_eff`. Always quote it together with `dz_match_eff`: it is
+  small even for an ideal candidate, because the window (Δ*z* = 0.037 for ±2000 km/s at *z* = 1.8) is
+  much narrower than the photometric redshift width.
+- `p_sameq` is not the probability of a physical pair. Quasar clustering is deliberately left out of the
+  model.
+- `log_bayes_factor_qz_bkg` (quasar at *z*₀ against the background)
+  is not an alternative ranking statistic: it has no term for quasars at other redshifts, so it cannot order same-*z* against wrong-*z*
+  quasars. Use it to reject stars.
+- Diagnostics: `p_zmatch_given_qso`, `qso_ood_sigma_any_z`, `bkg_ood_sigma`,
+  `reference_band`, `bands_used`, `quality_flags`, and `config_hash` with `model_manifest_id` for
+  provenance.
+
+---
+
+## Unresolved blends: arguments and output
+
+`BlendModel.load(pointer, faint_snr=10, n_alpha=48)` builds the blend scorer on a bundle.
+`score(photometry, *, ra_deg, dec_deg, z_qso, prior_odds_qq=1.0, dereddened=False)` returns one
+`BlendScore` per object. It does **not** take morphology, separation, `fracflux`, `BlendPolicy`,
+`RedshiftMatch` or `ood_flag_sigma`: the source is assumed to be a blend, and nothing is known about
+the components separately.
+
+**Hypotheses.**
+- QQ: the companion is a quasar at the same redshift *z*₀.
+- QS: the companion is a star (the background population at that sky position).
+- Not yet implemented: a quasar companion at a different redshift, a negligible companion, and
+  companions below the detection limit.
+
+**Base rules.**
+- Each component must carry at least `faint_snr` (10) times the blend's Legacy r flux error, so the blend
+  needs Legacy r S/N ≥ 20.
+- The likelihoods integrate over the companion's share α of the r flux.
+- There is no catch-all and no support cut.
+
+**`prior_odds_qq`** is the prior odds P(QQ)/P(QS) that a *detectable* companion of such a quasar is a
+quasar rather than a star. It is one scalar per call; for per-object odds, call once per object.
+`p_qq` depends on it directly. `log_bf_qq_qs` does not, so report the Bayes factor when the odds are
+uncertain.
+
+| `BlendScore` field | Meaning |
+|---|---|
+| `status` | `ok`, `too_faint_for_two_components` (Legacy r S/N < 20), `no_reference_band`, `redshift_outside_support`, `no_prior_for_reference_band`, `empty_magnitude_prior`, `empty_hypotheses` |
+| `log_like_qq`, `log_like_qs`, `log_bf_qq_qs` | log likelihoods and Bayes factor QQ:QS (natural log) |
+| `p_qq` | posterior P(QQ) at `prior_odds_qq` |
+| `alpha_mean_qq` | posterior mean share of the r flux in the *fainter* quasar under QQ (the hypothesis is symmetric) |
+| `alpha_mean_qs` | posterior mean share of the r flux in the star under QS |
+| `alpha_range` | the range of shares integrated (set by the detection limit) |
+| `reference_band`, `bands_used`, `notes` | provenance; `no_colour_information` if only Legacy r is given |
+
+---
+
+## When not to trust the numbers
+
+Sources: method note Sections 9 and 11.
+
+- **`p_quasar` is approximate.** In the mid range it lies between the label bounds; above 0.97 it is
+  mildly overconfident. The scorer declines to rank 3.5% (B) and 3.8% (A) of real test quasars:
+  treat an unranked object as "not a candidate", not as "not a quasar".
+- **`p_sameq` in narrow windows** has not been tested for reliability on the current models.
+- **Selection.** Test quasars share the training selection (DESI, SDSS), so the risk that A has learned
+  the selection is untested. This is why B is kept.
+- **Blends: share of the light.** The two hypotheses separate when the companion carries ≥ 30% of the
+  r flux (AUC 0.88–1.00 by star colour), weakly at 20%, and close to chance at ≤ 10% unless the star is an
+  M dwarf (method note Section 11.1, Figs. 21–24).
+- **Blends: magnitude.** At blend r ≳ 21.5, true QQ blends no longer favour QQ (median log BF ≈ 0).
+- **Blends: validation.** All blend validation uses synthetic blends of real point sources, not real
+  blends.
+- **Sparse bands.** NSC VR and VHS Y extinction coefficients are approximate, and SkyMapper u, v and VHS
+  have little training support.
+
+## Validation in brief
+
+| Test (held out) | A | B |
+|---|---|---|
+| Quasars vs background objects, `p_quasar` AUC, all magnitudes | 0.980 | 0.976 |
+| same, *r* < 18 | 0.975 | 0.955 |
+| Blend mode, QQ vs QS, AUC (synthetic blends of test objects) | 0.950 | 0.936 |
+| Blend mode: fraction of true QQ / true QS blends given P(QQ) > 0.9 (prior odds 1) | 71% / 5.9% | 59% / 5.3% |
+
+Details: method note; `docs/method_unified/*.json` (`model_difference_bootstrap.json`,
+`blend_validation.json`, `blend_illustrations.json`).
+
+---
+
+## Repository map (current models)
+
+| Path | What |
+|---|---|
+| `src/qso_pcolor/unified.py` | `UnifiedPSFModel` (models A, B), `catalogue_photometry`, `quasar_probability` |
+| `src/qso_pcolor/blend.py` | `BlendModel` (model C) |
+| `src/qso_pcolor/multisurvey_baseline.py`, `multisurvey.py`, `score.py` | the scorer underneath |
+| `src/qso_pcolor/multisurvey_data.py` | band schema, WSDB catalogue columns and cleaning |
+| `models/multisurvey_psf/` | bundles and pointers; each bundle's `build.json` records how it was built |
+| `docs/method_unified/` | method note, validation JSON |
+| `scripts/method_unified/` | figures and checks for the note |
+| `scripts/validate_blend_mode.py`, `scripts/blend_illustrations.py` | blend validation and maps (the maps take ~25 CPU-min) |
+| `docs/EARLIER_MODELS.md` | earlier models, their interfaces and reproduction |
+| `tools/journal.py` | JOURNAL.md updater |
 
 `python scripts/<name>.py --help` for options.
-
-### The archive
-
-`models/archive/` keeps what the model replaced, because its provenance and
-some reports depend on it:
-
-- `original_legacy_south/` — the Legacy-only relative-flux model, its field
-  model, both surface densities and its outlier term. The model's reserved sky
-  blocks and its prior normalisation come from here. Its validated numbers are
-  the benchmark in the method note's appendix, pinned by
-  `tests/test_archived_original.py`. The scripts that built and studied it
-  (`train_qso_model.py`, `build_global_background.py`, `validate_pairs.py`,
-  `compare_background_modes.py`, `make_method_figures.py`, …) still run against
-  these paths.
-- `multisurvey_37band_20260921.json` and its priors — the multi-survey model
-  before the Legacy forced *W1, W2* were added.
-- `multisurvey_joint_20260921.json` — its initial joint-only version.
-
-Old training configs are in `configs/archive/`.
 
 ## Conventions
 
