@@ -30,10 +30,12 @@
   PS1, AllWISE or the Legacy WISE bands) rescues 56--85\%. No single survey or band is responsible.
   A secondary contribution is disagreement between surveys observed at different epochs (quasar variability):
   $|r_{\rm SDSS}-r_{\rm Legacy}|>0.5$\,mag for 33\% of unranked quasars and 11\% of ranked ones.
-\item \textbf{Fix (proposed, not implemented):} make the outside-both-models threshold depend on $k$, calibrated
-  empirically on calibration-role quasars and background objects. The $\chi^2_k$ conversion appropriate for a
-  single Gaussian over-corrects (2 of 38,881 quasars would remain flagged), because the distance is to the
-  nearest of many mixture components.
+\item \textbf{Fix (implemented, validated, not yet the default):} calibrate the same distance statistic per object
+  by simulating members of each class model in the object's own bands with its own noise
+  (Section~\ref{sec:fix}). On the test panel, quasars outside both models fall from 2.5--2.9\% to 0.14--0.17\% and
+  unranked quasars from 2.9--3.2\% to 0.6\%, with no dependence on the number of bands; background incidence at
+  $\pq>0.5$ changes by $+0.05$ percentage points. (A plain $\chi^2_k$ conversion over-corrects: 2 of 38,881 quasars
+  would remain flagged, because the distance is to the nearest of many mixture components.)
 \item \textbf{Top-end overconfidence is mostly a labelling effect.} In the natural test-cone population, objects
   with $\pq>0.97$ are known quasars in 58--72\% of cases (lower bound), but 171 of the 188 background objects
   there are already flagged as likely quasars (WISE AGN colours or Quaia). Counting those as quasars gives
@@ -212,6 +214,62 @@ that survey's bands removed.}
   bands only is a valid check; 93--94\% of the unranked test quasars are ranked that way.
 \end{enumerate}
 
+\subsection{The fix: a calibrated outside-both-models test}\label{sec:fix}
+Implemented in \code{qso\_pcolor.ood\_calibration} and available in the scorer as
+\code{ood\_calibration=dict(alpha, draws, seed)} (not yet the default). The statistic is unchanged: the
+squared nearest-component distance $T_c$ of the non-reference bands given Legacy $r$, with the object's noise
+added, for the quasar model (all redshift slices, equal weight) and for the background model (weights at the
+object's sky position). For each object we draw 256 members of each class model conditioned on the object's own
+$r$, in its own observed bands and with its own noise, compute the same statistic, and form
+\[
+p_c=\frac{1+\#\{T_c^{\rm fake}\ge T_c^{\rm obs}\}}{257}.
+\]
+The object is outside both models when $p_Q<\alpha$ and $p_B<\alpha$, with $\alpha=2/256$ set in advance (as for
+the support cut). This is a parametric-bootstrap tail probability of the existing statistic, so it handles the
+number and the identity of the observed bands, the noise and the nearest-of-many-components effect at once. It costs
+13\,ms per object for both models. Unit tests check that $p$ is uniform for members of a known mixture in 4, 12 and
+25 dimensions (where the raw distance of a typical member exceeds $3\sigma$), and that the scorer path reproduces
+the offline values and is independent of batch order.
+
+\paragraph{Calibration role (a-priori check of $\alpha$).} On 4,000 calibration-role quasars and 4,000 background
+objects, the new test flags 0.23--0.25\% of quasars and 0.48--0.60\% of background objects; a class member falls
+below $\alpha$ in its own model in 0.4\% (quasars) and 0.75\% (background) of cases, against the nominal 0.78\%.
+
+\paragraph{Test panel.} Figure~\ref{fig:fix} and the table compare the two rules on the held-out panel
+(38,881 quasars, 14,247 background objects). The objects whose flag clears were rescored through the scorer.
+\begin{center}\small
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{A (magnitude-dependent)} & \multicolumn{2}{c}{B (magnitude-independent)} \\
+& fixed $4\sigma$ & calibrated & fixed $4\sigma$ & calibrated \\
+\midrule
+Quasars outside both models & 2.54\% & 0.14\% & 2.91\% & 0.17\% \\
+Quasars unranked (all reasons) & 2.86\% & 0.61\% & 3.18\% & 0.57\% \\
+Background outside both models & 2.09\% & 0.51\% & 2.14\% & 0.53\% \\
+Background unranked (all reasons) & 69.2\% & 69.1\% & 59.9\% & 59.7\% \\
+Quasar recall ($\pq>0.5$) & 0.891 & 0.913 & 0.859 & 0.883 \\
+Background incidence ($\pq>0.5$) & 1.14\% & 1.19\% & 1.08\% & 1.14\% \\
+AUC ($\log\mathcal{R}$, unranked at the bottom) & 0.980 & 0.994 & 0.976 & 0.994 \\
+\bottomrule
+\end{tabular}
+\end{center}
+The refusal rate no longer depends on the number of bands, for quasars or background objects. Of the 947 (A) and
+1,079 (B) quasars whose flag clears, 93--95\% are then ranked; the rest fail the support cut. Only 7 (A) and 9 (B)
+quasars are newly flagged. Almost all background objects whose flag clears (245 of 263, A) are still not ranked,
+because the support cut catches them, so background incidence rises by only 0.05--0.06 percentage points (7--8 of 14,247
+objects). The AUC rises by 0.014--0.018 because the AUC as defined counts an unranked quasar as ranked
+below every ranked background object and tied with the unranked ones: moving 2.3--2.6\% of quasars from the bottom
+to their scores accounts for the change. The real quasars' $p_Q$ values lie below the uniform line
+(Fig.~\ref{fig:fix}, right): the quasar model is, if anything, slightly broad, so the test is conservative.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{P9_calibrated_ood.png}
+\caption{Outside-both-models fraction against the number of observed bands for the fixed $4\sigma$ cut (dotted) and
+the calibrated test with $\alpha=2/256$ (solid), for test quasars (left) and background objects (middle), models A
+and B. Right: cumulative distribution of $p_Q$ for the test quasars (dotted: uniform; dashed: $\alpha$).}
+\label{fig:fix}
+\end{figure}
+
 %======================================================================
 \section{Part 2: overconfidence at the top}
 %======================================================================
@@ -282,8 +340,8 @@ high-$\pq$ flagged objects in the test cones, a few dozen spectra would already 
 \begin{itemize}
 \item The 2.9--3.2\% of real quasars left unranked are mainly an artefact of a fixed $4\sigma$ cut on a distance
   that grows with the number of observed bands. They are ordinary quasars with many bands, plus a smaller
-  contribution from variability between surveys. A $k$-dependent, empirically calibrated threshold should recover
-  most of them; it must be validated for background objects too.
+  contribution from variability between surveys. The calibrated test (Section~\ref{sec:fix}) recovers 80\% of
+  them without raising background incidence; making it the default is a decision for the PI.
 \item The top-end overconfidence is mostly unlabelled quasars in the background sample. The model's highest
   probabilities are consistent with the upper label bound; unflagged background objects make up 1.7--2.9\% of
   the objects at $\pq>0.97$.

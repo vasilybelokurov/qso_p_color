@@ -198,6 +198,11 @@ class PairScore:
     # Large values of BOTH mean every density here is a tail extrapolation.
     qso_ood_sigma_any_z: float = float("nan")
     bkg_ood_sigma: float = float("nan")
+    # With ``ood_calibration``: probability that a member of each class model, observed in the same bands
+    # with the same noise and reference value, lies at least as far from every component
+    # (qso_pcolor.ood_calibration). NaN when the calibrated test is not requested.
+    qso_ood_p: float = float("nan")
+    bkg_ood_p: float = float("nan")
     # log p(c | U) and the U share of the field; NaN without an outlier model.
     # With one, loglike_bkg is the whole field, log[(1-eta) p_B + eta p_U].
     loglike_outlier: float = float("nan")
@@ -242,6 +247,7 @@ def score_candidates(
     fracflux: np.ndarray | None = None,
     outlier_model: OutlierModel | None = None,
     ood_flag_sigma: float | None = None,
+    ood_calibration: dict | None = None,
 ) -> list[PairScore]:
     """Score a batch of companions against a batch of primary redshifts.
 
@@ -289,6 +295,13 @@ def score_candidates(
         If given, ``outside_both_models`` is added to ``quality_flags`` when both
         ``qso_ood_sigma_any_z`` and ``bkg_ood_sigma`` exceed it.  No default:
         the threshold is a choice, and the distances are reported regardless.
+    ood_calibration : dict, optional
+        ``dict(alpha=, draws=, seed=)``. Replaces the fixed cut: ``outside_both_models`` is set when the
+        calibrated tail probabilities ``qso_ood_p`` and ``bkg_ood_p`` are both below ``alpha``. The
+        distance in sigma grows with the number of observed bands, so a fixed cut refuses ordinary objects
+        with many bands; the calibration compares each object with simulated members of each class model
+        observed in its own bands with its own noise (qso_pcolor.ood_calibration). ``ood_flag_sigma`` is
+        then ignored for the flag.
 
     Returns
     -------
@@ -379,15 +392,23 @@ def score_candidates(
     else:
         log_pu, eta, log_field = nan_n, nan_n, log_pb
     out: list[PairScore] = []
+    p_q, p_b = np.full(n, np.nan), np.full(n, np.nan)
+    if ood_calibration is not None:
+        p_q, p_b = _calibrated_ood(qso_model, background_model, features, l_deg, b_deg, d_q, d_b, ood_calibration)
     for i in range(n):
         flags = [k for k, v in features.flags.items() if bool(np.atleast_1d(v)[i])]
         status = "ok"
         if out_of_mag[i]:
             flags.append("background_out_of_mag_range")
-        if (ood_flag_sigma is not None and np.isfinite(d_q[i]) and np.isfinite(d_b[i])
+        if ood_calibration is not None:
+            if (np.isfinite(p_q[i]) and np.isfinite(p_b[i])
+                    and max(p_q[i], p_b[i]) < float(ood_calibration['alpha'])):
+                flags.append("outside_both_models")
+        elif (ood_flag_sigma is not None and np.isfinite(d_q[i]) and np.isfinite(d_b[i])
                 and min(d_q[i], d_b[i]) > ood_flag_sigma):
             flags.append("outside_both_models")
         tail = dict(qso_ood_sigma_any_z=float(d_q[i]), bkg_ood_sigma=float(d_b[i]),
+                    qso_ood_p=float(p_q[i]), bkg_ood_p=float(p_b[i]),
                     loglike_outlier=float(log_pu[i]), outlier_fraction=float(eta[i]))
 
         if blended[i]:
@@ -695,3 +716,28 @@ def _null_score(cid, pid, zp, features, sysname, i, status, flags, manifest, nb)
         quality_flags=tuple(flags),
         model_manifest_id=manifest,
     )
+
+
+def _calibrated_ood(qso_model, background_model, features, l_deg, b_deg, d_q, d_b, cfg):
+    """Per-object calibrated tail probabilities of the nearest-component distances (see score_candidates)."""
+    from .gaussmix import GaussianMixture
+    from .ood_calibration import _components, row_seed, tail_pvalue
+    n = len(features.x); p_q, p_b = np.full(n, np.nan), np.full(n, np.nan)
+    draws, seed = int(cfg['draws']), int(cfg['seed'])
+    mixtures = getattr(qso_model, 'mixtures', None)
+    bg = getattr(background_model, 'model', None)
+    if mixtures is None or bg is None or not hasattr(qso_model, 'anchor'):
+        return p_q, p_b
+    cq = _components(mixtures)                       # every redshift slice, equal weight
+    spatial = getattr(background_model, 'spatial', None)
+    w_bg = spatial.evaluate(np.asarray(l_deg, float), np.asarray(b_deg, float))[0] if spatial is not None else None
+    anchor = int(qso_model.anchor)
+    for i in range(n):
+        if not (np.isfinite(d_q[i]) and np.isfinite(d_b[i])):
+            continue
+        x, s, o = features.x[i], features.cov[i], features.observed[i]
+        rs = row_seed(seed, x, s, o)
+        p_q[i] = tail_pvalue(cq, x, s, o, anchor, draws=draws, seed=rs)[0]
+        cb = _components([bg if w_bg is None else GaussianMixture(w_bg[i], bg.means, bg.covs)], [1.])
+        p_b[i] = tail_pvalue(cb, x, s, o, anchor, draws=draws, seed=rs + 1)[0]
+    return p_q, p_b

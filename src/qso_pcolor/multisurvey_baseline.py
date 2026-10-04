@@ -111,7 +111,8 @@ class PSFMultiSurveyBaseline:
         local.setdefault("candidate_id", np.array([f"cand{i}" for i in indices]))
         local.setdefault("primary_id", np.array([f"prim{i}" for i in indices]))
         config = json.dumps(dict(match=match.__dict__, blend=blend_policy.describe(),
-            ood_flag_sigma=float(ood_flag_sigma), band_policy="any nonempty subset; exact marginalisation",
+            ood_flag_sigma=float(ood_flag_sigma), ood_calibration=kwargs.get("ood_calibration"),
+            band_policy="any nonempty subset; exact marginalisation",
             extinction=self.model.meta["extinction"]["map"] if "extinction" in self.model.meta else "none"),
             sort_keys=True)
         config_hash = hashlib.sha256(config.encode()).hexdigest()[:16]
