@@ -110,7 +110,8 @@ def test_saved_catchalls_repair_the_northern_zero_weight_counterexample():
 
 
 @pytest.mark.parametrize("pointer,independent", [("current", False), ("current_magdep", False), ("current_magindep", True),
-                                                 ("previous_20261002_magindep", True), ("previous_20261002_magdep", False)])
+                                                 ("previous_20261002_magindep", True), ("previous_20261002_magdep", False),
+                                                 ("previous_20261003_magindep", True), ("previous_20261003_magdep", False)])
 def test_promoted_unified_bundles_declare_extinction_support_and_colour_rule(pointer, independent):
     from qso_pcolor.unified import UnifiedPSFModel
     model = UnifiedPSFModel.load(ROOT / "models/multisurvey_psf" / pointer)

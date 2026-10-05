@@ -1,0 +1,21 @@
+{
+  "source": "models/multisurvey_psf/13866e45ef794059",
+  "designs": "models/multisurvey_psf/work/stellar_binned/20261003",
+  "components": 160,
+  "catchall_rows": 148853,
+  "faint_limit": {
+    "bands": [
+      "decals_dr9_south:r",
+      "decals_dr9_north:r"
+    ],
+    "min_snr": 10.0
+  },
+  "spatial": "gate",
+  "gate": {
+    "rows": 300000,
+    "n_iter": 670,
+    "converged": true,
+    "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH"
+  },
+  "qso_flag_removed": true
+}

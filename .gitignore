@@ -45,6 +45,10 @@ models/multisurvey_psf/*
 !models/multisurvey_psf/current_magindep
 !models/multisurvey_psf/previous_20261002_magindep
 !models/multisurvey_psf/previous_20261002_magdep
+!models/multisurvey_psf/20261005_magdep_qlf/
+!models/multisurvey_psf/20261005_magindep_qlf/
+!models/multisurvey_psf/previous_20261003_magdep
+!models/multisurvey_psf/previous_20261003_magindep
 docs/method_unified/*.aux
 docs/method_unified/*.fdb_latexmk
 docs/method_unified/*.fls
