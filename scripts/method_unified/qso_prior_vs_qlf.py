@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Compare the current quasar abundance prior Sigma_Q(z, r) with the eBOSS quasar luminosity function.
 
-Current prior: the promoted bundle's GridQSOPrior for Legacy r (South), spectroscopic DESI DR1 + DR16Q counts
-with completeness 1, on extinction-corrected magnitudes (deg^-2 mag^-1 per unit z).
+Current prior: the promoted bundle's GridQSOPrior for Legacy r (South): spectroscopic DESI DR1 + DR16Q counts
+times ONE completeness constant C = 2.37 (scripts/build_multisurvey_priors.py, kept by complete_multisurvey_psf.py),
+on extinction-corrected magnitudes (deg^-2 mag^-1 per unit z).
 Reference: Palanque-Delabrouille et al. 2016, A&A 587, A41 (arXiv:1509.05607), Table 7: predicted differential
 quasar counts in r for 10,000 deg^2, bins of 0.5 mag and Delta z = 1 (centres 0.5 ... 5.5), for the best-fit
 PLE and PLE+LEDE models (fitted on 0.68 < z < 4, g_dered < 22.5; brighter/fainter and z < 0.68 are
@@ -58,7 +59,7 @@ def main():
     k = int(np.flatnonzero(R == 18.25)[0]); eu = tot_l[k]*10**(.6*(R - R[k]))
     fig, ax = plt.subplots(2, 3, figsize=(15, 8.5)); ax = ax.ravel()
     x = ax[0]
-    x.semilogy(R, tot_o, 'o-', color='#e8663d', label='current prior (spectroscopic counts, completeness 1)')
+    x.semilogy(R, tot_o, 'o-', color='#e8663d', label='current prior (spectroscopic counts x one constant C = 2.37)')
     x.fill_between(R, np.minimum(tot_l, tot_p), np.maximum(tot_l, tot_p), color='#2a78d6', alpha=.2, lw=0)
     x.semilogy(R, tot_l, 's-', color='#2a78d6', label='eBOSS QLF (PLE+LEDE; band: PLE)')
     x.semilogy(R, eu, ':', color='0.4', label='$10^{0.6m}$, normalised at r = 18.25')

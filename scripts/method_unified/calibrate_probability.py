@@ -135,7 +135,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--bundle', action='append', required=True, help='name=bundle_dir')
     ap.add_argument('--n-stars', type=int, default=40000); ap.add_argument('--max-qso', type=int); ap.add_argument('--workers', type=int, default=8)
-    ap.add_argument('--work', type=Path, default=Path('models/multisurvey_psf/work/probability_calibration')); a = ap.parse_args()
+    ap.add_argument('--work', type=Path, default=Path('models/multisurvey_psf/work/probability_calibration'))
+    ap.add_argument('--report', default='docs/method_unified/probability_calibration.json')
+    ap.add_argument('--figure', default='plots/method_unified/F18_probability_calibration.png'); a = ap.parse_args()
     a.work.mkdir(parents=True, exist_ok=True); s = sample(a.n_stars, max_qso=a.max_qso)
     print('sample: QSOs', len(s['qso']), 'stars', len(s['stars']), 'star weight', round(s['weight_star'], 2),
           'flagged stars', int(s['sflag'].sum()), flush=True)
@@ -184,8 +186,8 @@ def main():
         ax.plot([0, 1], [0, 1], ':', color='0.5'); ax.set(xlabel='predicted $p_Q$', ylabel='observed QSO fraction', title=name)
         ax.legend(frameon=False, fontsize=7)
     fig.tight_layout(); Path('plots/method_unified').mkdir(parents=True, exist_ok=True)
-    fig.savefig('plots/method_unified/F18_probability_calibration.png', dpi=150)
-    Path('docs/method_unified/probability_calibration.json').write_text(json.dumps(report, indent=1, default=float))
+    fig.savefig(a.figure, dpi=150)
+    Path(a.report).write_text(json.dumps(report, indent=1, default=float))
 
 
 if __name__ == '__main__':
