@@ -91,6 +91,18 @@ def main():
         x.legend(frameon=False, fontsize=7)
     fig.suptitle('Q2. Redshift distribution of quasars at fixed Legacy r: current prior against the QLF', fontsize=10)
     fig.tight_layout(); fig.savefig('plots/qso_prior/Q2_redshift_distribution.png', dpi=140); plt.close(fig)
+    # Q3: one panel, the three counts
+    fig, x = plt.subplots(figsize=(6.4, 4.8)); meas = R <= 22.3          # eBOSS fit range g_dered < 22.5 ~ r < 22.3
+    x.semilogy(R, tot_o, 'o-', color='#e8663d', label='our prior (both models): spectroscopic counts')
+    x.fill_between(R, np.minimum(tot_l, tot_p), np.maximum(tot_l, tot_p), color='#2a78d6', alpha=.2, lw=0)
+    x.semilogy(R[meas], tot_l[meas], 's-', color='#2a78d6', label='eBOSS QLF, completeness-corrected (PLE+LEDE; band: PLE)')
+    x.semilogy(R[R >= 22.25], tot_l[R >= 22.25], 's--', color='#2a78d6', mfc='white', label='eBOSS QLF, extrapolated beyond its fit range')
+    x.semilogy(R, eu, ':', color='0.3', lw=1.5, label='constant density: $\\propto 10^{0.6m}$ (normalised to the QLF at r = 18.25)')
+    x.axvline(22.3, color='0.7', lw=.8)
+    x.set(xlabel='Legacy r (extinction-corrected)', ylabel='quasars deg$^{-2}$ mag$^{-1}$ (all redshifts)', ylim=(.05, 3e3), xlim=(15.5, 24))
+    x.legend(frameon=False, fontsize=7, loc='upper left')
+    x.set_title('Quasar counts against magnitude', fontsize=10)
+    fig.tight_layout(); fig.savefig('plots/qso_prior/Q3_counts_three_models.png', dpi=150); plt.close(fig)
     cum = lambda a, rmax: float(a[R < rmax].sum()*.5)
     rep = dict(definition=__doc__, r_bins=R.tolist(), z_bins=ZC.tolist(), current=ours.tolist(), qlf_ple_lede=led.tolist(), qlf_ple=ple.tolist(),
                ratio_total=(tot_o/tot_l).tolist(),
