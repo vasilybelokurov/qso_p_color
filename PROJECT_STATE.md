@@ -1,10 +1,11 @@
 # Current project state
 
-**OPEN PI DECISION (4 October 2026): make the calibrated outside-both-models test the default?**
-`ood_calibration=dict(alpha=2/256, draws=256, seed=...)` (qso_pcolor.ood_calibration) replaces the fixed 4-sigma
-cut, whose refusals grow with the number of observed bands. Validated on the test panel: unranked quasars
-2.9-3.2% -> 0.6%, background incidence +0.05 pp (docs/pquasar_diagnostics, Section 2.7;
-docs/method_unified/ood_calibration_validation.json). Implemented as an option; the scorer default is unchanged.
+**CALIBRATED OUTSIDE-BOTH-MODELS TEST IS THE DEFAULT (PI decision, 5 October 2026).** `UnifiedPSFModel.score` uses
+`DEFAULT_OOD_CALIBRATION = dict(alpha=2/256, draws=256, seed=20261005)` (qso_pcolor.ood_calibration); `ood_calibration=None`
+restores the fixed 4-sigma cut. Method note Section 9.1 and all performance/calibration numbers redone
+(scores: work/method_unified/performance_ood, work/probability_calibration_ood, work/method_unified/grids_note_ood):
+AUC 0.9938/0.9942 (B/A), unranked test quasars 0.58/0.62%, recall 88.3/91.3%. A-B AUC difference no longer
+significant (+0.0004); A still +2.9 pp recall. F17 (S/N-cut check) kept from the earlier rule, captioned.
 
 **BLEND MODE (4 October 2026, base version, built on PI request).** `src/qso_pcolor/blend.py` (`BlendModel`):
 spectroscopic QSO at z0 + unresolved companion, combined (best extended) flux; QQ (same-z QSO companion) vs QS

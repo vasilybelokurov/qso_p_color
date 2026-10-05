@@ -1,82 +1,82 @@
 [
  {
   "kind": "qso",
-  "prepared_row": 863521,
-  "source_row": 863521,
+  "prepared_row": 852829,
+  "source_row": 852829,
   "title": "bright QSO",
-  "ra": 25.915967865256043,
-  "dec": 2.9218489458070924,
+  "ra": 10.93006709344047,
+  "dec": 1.5802120361087184,
   "scores": {
    "independent": {
-    "z": 1.5145216680829034,
-    "logR": 1.4444598338486985,
-    "pq": 0.9999999999999787,
-    "support": 0.92578125,
+    "z": 1.4800753593444824,
+    "logR": 1.5980978781611126,
+    "pq": 1.0,
+    "support": 1.0,
     "eligible": true,
     "reference": "decals_dr9_south:r",
     "rejected": false
    },
    "dependent": {
-    "z": 1.5145216680829034,
-    "logR": 1.646519400070784,
-    "pq": 0.9999999999999947,
-    "support": 0.71484375,
-    "eligible": true,
-    "reference": "decals_dr9_south:r",
-    "rejected": false
-   }
-  }
- },
- {
-  "kind": "qso",
-  "prepared_row": 675380,
-  "source_row": 675380,
-  "title": "QSO at z~3",
-  "ra": 183.6248966276139,
-  "dec": 64.19040196555717,
-  "scores": {
-   "independent": {
-    "z": 2.995,
-    "logR": 0.6185725423358663,
-    "pq": 0.9998021228379544,
-    "support": 0.87890625,
-    "eligible": true,
-    "reference": "decals_dr9_north:r",
-    "rejected": false
-   },
-   "dependent": {
-    "z": 2.995,
-    "logR": 0.5381220998994658,
-    "pq": 0.9998103966126632,
-    "support": 0.6796875,
-    "eligible": true,
-    "reference": "decals_dr9_north:r",
-    "rejected": false
-   }
-  }
- },
- {
-  "kind": "qso",
-  "prepared_row": 684906,
-  "source_row": 684906,
-  "title": "low-redshift QSO",
-  "ra": 230.49706004854573,
-  "dec": 53.21062523558853,
-  "scores": {
-   "independent": {
-    "z": 0.582,
-    "logR": 1.616325341077097,
-    "pq": 0.99999969307519,
-    "support": 0.984375,
-    "eligible": true,
-    "reference": "decals_dr9_north:r",
-    "rejected": false
-   },
-   "dependent": {
-    "z": 0.582,
-    "logR": 1.5267525688876715,
-    "pq": 0.9999999112190462,
+    "z": 1.4800753593444824,
+    "logR": 1.6807457313620964,
+    "pq": 1.0,
     "support": 0.98046875,
+    "eligible": true,
+    "reference": "decals_dr9_south:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 674525,
+  "source_row": 674525,
+  "title": "QSO at z~3",
+  "ra": 189.18155196486794,
+  "dec": 62.02482467638207,
+  "scores": {
+   "independent": {
+    "z": 2.9642741954516887,
+    "logR": -2.952265545774313,
+    "pq": 0.28856641428327795,
+    "support": 0.79296875,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 2.9642741954516887,
+    "logR": -1.7340491426253113,
+    "pq": 0.18788345577672017,
+    "support": 0.9375,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 683221,
+  "source_row": 683221,
+  "title": "low-redshift QSO",
+  "ra": 235.87894122985165,
+  "dec": 51.71647294381618,
+  "scores": {
+   "independent": {
+    "z": 0.6270244717597961,
+    "logR": 1.1376939079212498,
+    "pq": 0.9903712975570889,
+    "support": 0.91796875,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 0.6270244717597961,
+    "logR": 1.202182303512653,
+    "pq": 0.9943030822747573,
+    "support": 0.9375,
     "eligible": true,
     "reference": "decals_dr9_north:r",
     "rejected": false
@@ -113,54 +113,54 @@
  },
  {
   "kind": "stars",
-  "prepared_row": 311664,
-  "source_row": 311664,
+  "prepared_row": 351979,
+  "source_row": 351979,
   "title": "background star",
-  "ra": 233.13391245070721,
-  "dec": 23.077120178162676,
+  "ra": 197.09703655128484,
+  "dec": 25.091598285197144,
   "scores": {
    "independent": {
-    "z": 2.8259360355812255,
-    "logR": -41.562601137327555,
-    "pq": 1.699243896396994e-15,
+    "z": 3.094828631625386,
+    "logR": -51.04309810488917,
+    "pq": 1.108161533680153e-21,
     "support": 0.0078125,
     "eligible": true,
     "reference": "decals_dr9_south:r",
     "rejected": false
    },
    "dependent": {
-    "z": 2.8259360355812255,
-    "logR": NaN,
-    "pq": 2.5279814227828627e-14,
-    "support": 0.00390625,
-    "eligible": false,
+    "z": 3.094828631625386,
+    "logR": -43.44273902777317,
+    "pq": 4.343194294981058e-20,
+    "support": 0.01171875,
+    "eligible": true,
     "reference": "decals_dr9_south:r",
-    "rejected": true
+    "rejected": false
    }
   }
  },
  {
   "kind": "stars",
-  "prepared_row": 481007,
-  "source_row": 481007,
+  "prepared_row": 536564,
+  "source_row": 536564,
   "title": "background object with $p_Q>0.5$",
-  "ra": 239.4096476796509,
-  "dec": 75.67849574988382,
+  "ra": 185.9634015820731,
+  "dec": 60.232443044143714,
   "scores": {
    "independent": {
-    "z": 1.6098498936889174,
-    "logR": -5.88710039645188,
-    "pq": 0.9879236432550655,
-    "support": 0.1875,
+    "z": 1.8798429324235286,
+    "logR": 0.6997814809751104,
+    "pq": 0.9984071242088527,
+    "support": 0.85546875,
     "eligible": true,
     "reference": "decals_dr9_north:r",
     "rejected": false
    },
    "dependent": {
-    "z": 1.6098498936889174,
-    "logR": -6.444083148382004,
-    "pq": 0.9934340772769515,
-    "support": 0.12890625,
+    "z": 1.8798429324235286,
+    "logR": 1.0702205590951765,
+    "pq": 0.9993684113314494,
+    "support": 0.95703125,
     "eligible": true,
     "reference": "decals_dr9_north:r",
     "rejected": false

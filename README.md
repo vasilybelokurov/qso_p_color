@@ -28,8 +28,10 @@ for blends and is built on top of either of them.
 background model, the 41 bands, extinction correction, catch-all, support cut and faint limit; they
 differ only in the quasar colour model.
 
-- A is better on our DESI/SDSS-selected test quasars: AUC 0.980 against 0.976, and 0.975 against 0.955 at
-  *r* < 18 (method note, Section 6.2, paired sky bootstrap).
+- On our DESI/SDSS-selected test quasars the two rank equally well (AUC 0.9942 for A, 0.9938 for B; the
+  difference is not significant in a paired sky bootstrap). A gives `p_quasar` > 0.5 to 2.9 percentage points
+  more test quasars (91.3% against 88.3%), at the same background rate. B ranks slightly better at
+  18 ≤ *r* < 21 and A at *r* ≥ 21 (method note, Section 6.2).
 - B cannot absorb the spectroscopic selection of the training quasars into its colour model. That risk
   is real for quasars unlike the DESI/SDSS targets, and our tests cannot measure it.
 - If A and B agree, the result does not depend on that assumption. If they disagree strongly, the
@@ -195,7 +197,8 @@ objects.
 | `morphology` | Legacy `type` of the companion. Only `PSF` is scored; `REX`, `EXP`, `DEV`, `SER` and unknown are refused |
 | `match` | `RedshiftMatch(half_width_kms=...)`: the window that counts as "the same redshift" |
 | `blend_policy`, `separation_arcsec`, `fracflux` | `BlendPolicy(min_separation_arcsec, max_fracflux)`: companions closer than the separation limit, or with a reference-band Legacy `fracflux` above the limit, are refused. Both limits are required; no defaults. For blends, use model C |
-| `ood_flag_sigma` | distance (in σ) from both models beyond which the object is flagged as outside both |
+| `ood_calibration` | optional; default `DEFAULT_OOD_CALIBRATION` = `dict(alpha=2/256, draws=256, seed=20261005)`: the calibrated outside-both-models test (below). `None` switches back to the fixed `ood_flag_sigma` cut |
+| `ood_flag_sigma` | required by the interface; used for the outside-both-models decision only when `ood_calibration=None` (earlier rule, 4 recommended) |
 
 **`decision`**: `eligible` (bool) and `reason` per object; `qso_support` (the QSO-support percentile).
 Only eligible rows are science-grade. Rows refused before scoring have `scores[i] = None`.
@@ -209,7 +212,7 @@ Only eligible rows are science-grade. Rows refused before scoring have `scores[i
 | `blended_not_scored` | fails the `BlendPolicy` |
 | `insufficient_photometry` | too few usable bands |
 | `primary_z_outside_model_support` | *z*₀ outside the quasar model's range (0.15–4.35) |
-| `outside_both_models` | colours unlike both quasars and background; densities would be extrapolations |
+| `outside_both_models` | colours unlike both quasars and background: calibrated tail probabilities `qso_ood_p` and `bkg_ood_p` both below 2/256 (see below) |
 | `background_out_of_mag_range` | reference magnitude outside the background model's magnitude range |
 | `qso_support_rejected` | colours far outside the quasar distribution at *z*₀ (support percentile below the calibrated 2/256) |
 | `no_prior_posterior_unavailable` | no population prior for the reference band: evidence is returned, `p_sameq` and `log_r_per_unit_z` are NaN |
@@ -231,9 +234,30 @@ Only eligible rows are science-grade. Rows refused before scoring have `scores[i
 - `log_bayes_factor_qz_bkg` (quasar at *z*₀ against the background)
   is not an alternative ranking statistic: it has no term for quasars at other redshifts, so it cannot order same-*z* against wrong-*z*
   quasars. Use it to reject stars.
-- Diagnostics: `p_zmatch_given_qso`, `qso_ood_sigma_any_z`, `bkg_ood_sigma`,
+- Diagnostics: `p_zmatch_given_qso`, `qso_ood_sigma_any_z`, `bkg_ood_sigma`, `qso_ood_p`, `bkg_ood_p`,
   `reference_band`, `bands_used`, `quality_flags`, and `config_hash` with `model_manifest_id` for
   provenance.
+
+### The outside-both-models test (default since 5 October 2026)
+
+Before ranking, the scorer asks whether the colours resemble *anything* in either model. For each population
+(quasars at any redshift; background at the object's sky position) it computes the nearest-component
+distance of the object's colours given its Legacy r, with its measurement noise: `qso_ood_sigma_any_z`
+and `bkg_ood_sigma`, in σ.
+
+That distance grows with the number of observed bands: a typical member observed in 20 bands lies at
+about 4.5σ. The earlier rule (refuse if both distances exceed 4σ) therefore refused ordinary objects with
+many bands: 2.5–2.9% of held-out test quasars, rising from 0% at fewer than 12 bands to 7–15% at 20 or
+more.
+
+The default test calibrates the same distance for each object. It draws 256 members of each population in
+the object's own bands, with its own noise and Legacy r, and computes the same distance for them. The tail
+fractions are reported as `qso_ood_p` and `bkg_ood_p`: the probability that a real member lies at least as
+far away. The object is outside both models when both are below 2/256. Refusals then no longer depend on the
+number of bands, and about 0.15% of test quasars and 0.5% of background objects are refused. It adds about
+13 ms per object. The method note (Section 9.1) and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`
+give the derivation and validation. Pass `ood_calibration=None` to reproduce scores made before
+5 October 2026.
 
 ---
 
@@ -276,11 +300,16 @@ uncertain.
 
 ## When not to trust the numbers
 
-Sources: method note Sections 9 and 11.
+Sources: method note Sections 9--11 and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`.
 
-- **`p_quasar` is approximate.** In the mid range it lies between the label bounds; above 0.97 it is
-  mildly overconfident. The scorer declines to rank 3.5% (B) and 3.8% (A) of real test quasars:
-  treat an unranked object as "not a candidate", not as "not a quasar".
+- **`p_quasar` is approximate.** In the mid range it lies between the label bounds. Above 0.97 it exceeds
+  the fraction of *known* quasars (0.68–0.97 observed at p > 0.99), but most of the excess objects are
+  flagged likely quasars without spectra, so the true overconfidence is small. The scorer declines to
+  rank 1.0% (B) and 1.2% (A) of known quasars in a natural sample, mostly at the QSO-support cut: treat an
+  unranked object as "not a candidate", not as "not a quasar".
+- **Variability between surveys** observed years apart is not modelled. A quasar whose SDSS or PS1
+  magnitudes disagree with Legacy can look unusual; if it is refused, rescoring with Legacy bands only is a
+  valid check.
 - **`p_sameq` in narrow windows** has not been tested for reliability on the current models.
 - **Selection.** Test quasars share the training selection (DESI, SDSS), so the risk that A has learned
   the selection is untested. This is why B is kept.
@@ -297,8 +326,11 @@ Sources: method note Sections 9 and 11.
 
 | Test (held out) | A | B |
 |---|---|---|
-| Quasars vs background objects, `p_quasar` AUC, all magnitudes | 0.980 | 0.976 |
-| same, *r* < 18 | 0.975 | 0.955 |
+| Quasars vs background objects, AUC (log R; unranked at the bottom) | 0.9942 | 0.9938 |
+| same, *r* < 18 | 0.978 | 0.982 |
+| Test quasars with `p_quasar` > 0.5 | 91.3% | 88.3% |
+| Background objects not flagged as likely quasars, with `p_quasar` > 0.5 | 0.23% | 0.23% |
+| Test quasars not ranked | 0.62% | 0.58% |
 | Blend mode, QQ vs QS, AUC (synthetic blends of test objects) | 0.950 | 0.936 |
 | Blend mode: fraction of true QQ / true QS blends given P(QQ) > 0.9 (prior odds 1) | 71% / 5.9% | 59% / 5.3% |
 

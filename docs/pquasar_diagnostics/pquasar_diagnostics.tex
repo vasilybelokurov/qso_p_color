@@ -30,7 +30,7 @@
   PS1, AllWISE or the Legacy WISE bands) rescues 56--85\%. No single survey or band is responsible.
   A secondary contribution is disagreement between surveys observed at different epochs (quasar variability):
   $|r_{\rm SDSS}-r_{\rm Legacy}|>0.5$\,mag for 33\% of unranked quasars and 11\% of ranked ones.
-\item \textbf{Fix (implemented, validated, not yet the default):} calibrate the same distance statistic per object
+\item \textbf{Fix (implemented, validated, the default since 5 October 2026):} calibrate the same distance statistic per object
   by simulating members of each class model in the object's own bands with its own noise
   (Section~\ref{sec:fix}). On the test panel, quasars outside both models fall from 2.5--2.9\% to 0.14--0.17\% and
   unranked quasars from 2.9--3.2\% to 0.6\%, with no dependence on the number of bands; background incidence at
@@ -58,7 +58,7 @@ bands. Unranked objects get no $\pq$ and no ranking statistic.
   (role 3) quasars per hemisphere with their actual band coverage, of which 38,881 pass the faint limit. They
   were scored by both promoted bundles (the bundle files are identical to the promoted ones). That run used
   support threshold $6/256$; we re-apply the promoted $2/256$ from the stored percentiles.
-\item \emph{Natural population} (Part~2): the calibration test of the method note (Section~9.4): all 1,640
+\item \emph{Natural population} (Part~2): the calibration test of the method note (Section~10.6): all 1,640
   known spectroscopic quasars in the 49 held-out test cones above the faint limit, and 40,000 of the cones'
   background objects weighted by 2.75 to restore their natural share. The background sample still holds
   unidentified quasars; 1,443 of the 40,000 are flagged as likely quasars (Quaia membership, or Legacy
@@ -216,7 +216,7 @@ that survey's bands removed.}
 
 \subsection{The fix: a calibrated outside-both-models test}\label{sec:fix}
 Implemented in \code{qso\_pcolor.ood\_calibration} and available in the scorer as
-\code{ood\_calibration=dict(alpha, draws, seed)} (not yet the default). The statistic is unchanged: the
+\code{ood\_calibration=dict(alpha, draws, seed)}; the default of \code{UnifiedPSFModel.score} since 5 October 2026. The statistic is unchanged: the
 squared nearest-component distance $T_c$ of the non-reference bands given Legacy $r$, with the object's noise
 added, for the quasar model (all redshift slices, equal weight) and for the background model (weights at the
 object's sky position). For each object we draw 256 members of each class model conditioned on the object's own
@@ -341,7 +341,7 @@ high-$\pq$ flagged objects in the test cones, a few dozen spectra would already 
 \item The 2.9--3.2\% of real quasars left unranked are mainly an artefact of a fixed $4\sigma$ cut on a distance
   that grows with the number of observed bands. They are ordinary quasars with many bands, plus a smaller
   contribution from variability between surveys. The calibrated test (Section~\ref{sec:fix}) recovers 80\% of
-  them without raising background incidence; making it the default is a decision for the PI.
+  them without raising background incidence, and is now the default.
 \item The top-end overconfidence is mostly unlabelled quasars in the background sample. The model's highest
   probabilities are consistent with the upper label bound; unflagged background objects make up 1.7--2.9\% of
   the objects at $\pq>0.97$.

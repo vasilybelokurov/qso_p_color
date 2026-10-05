@@ -20,6 +20,12 @@ from .multisurvey_data import Photometry
 from .projected_xd import native_mixture
 
 
+# Default outside-both-models test (5 October 2026): the nearest-component distance is calibrated per object
+# (qso_pcolor.ood_calibration) instead of being cut at a fixed number of sigma, which refused ordinary objects
+# with many bands. ``ood_calibration=None`` in UnifiedPSFModel.score restores the fixed ``ood_flag_sigma`` cut.
+DEFAULT_OOD_CALIBRATION = dict(alpha=2/256, draws=256, seed=20261005)
+
+
 def catalogue_photometry(values, errors, bands, *, ra_deg, dec_deg,
                          measurement: str = 'flux', legacy_hemisphere=None) -> Photometry:
     """Convert catalogue arrays to labelled native photometry.
@@ -220,8 +226,11 @@ class UnifiedPSFModel:
                    json.loads(cal.read_text()) if cal.exists() else None)
 
     def score(self, photometry: Photometry, *, ra_deg, dec_deg, z_primary,
-              apply_support: bool = True, flux_covariance=None, **kwargs):
+              apply_support: bool = True, flux_covariance=None, ood_calibration=DEFAULT_OOD_CALIBRATION, **kwargs):
         """Use candidate ICRS degrees and primary-QSO redshift; return support separately.
+
+        ``ood_calibration`` (default DEFAULT_OOD_CALIBRATION) decides 'outside both models' from calibrated
+        tail probabilities (scores' ``qso_ood_p``, ``bkg_ood_p``); ``None`` uses the fixed ``ood_flag_sigma``.
 
         Explicit survey-labelled bands identify actual native provenance even
         in overlap fields. The coordinate hemisphere is an informational default.
@@ -233,7 +242,7 @@ class UnifiedPSFModel:
             raise ValueError('finite ICRS coordinates with valid declination required')
         l, b = galactic_from_equatorial(ra, dec)
         scores, decision = self.base.score(photometry, z_primary=z_primary,
-            l_deg=l, b_deg=b, flux_covariance=flux_covariance, **kwargs)
+            l_deg=l, b_deg=b, flux_covariance=flux_covariance, ood_calibration=ood_calibration, **kwargs)
         support = qso_support(self.base.model, photometry, z_primary,
             draws=self.support['draws'], seed=self.support['seed'], flux_covariance=flux_covariance,
             l_deg=l, b_deg=b)

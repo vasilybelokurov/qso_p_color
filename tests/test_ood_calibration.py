@@ -54,8 +54,10 @@ def test_scorer_reports_calibrated_p_and_uses_it_for_the_flag():
     phot = Photometry(flux, 1/np.array([[300., 200., 60., 3., .6]]*2), bands)
     kw = dict(ra_deg=180., dec_deg=30., z_primary=1.8, morphology=['PSF']*2, match=RedshiftMatch(half_width_kms=2000.),
               blend_policy=BlendPolicy(3., .2), separation_arcsec=6., fracflux=.05, ood_flag_sigma=4.)
-    old, _ = m.score(phot, **kw)
+    old, _ = m.score(phot, ood_calibration=None, **kw)                 # the earlier fixed 4-sigma rule
     new, _ = m.score(phot, ood_calibration=dict(alpha=2/256, draws=256, seed=7), **kw)
+    default, _ = m.score(phot, **kw)                                   # calibrated by default
+    assert np.isfinite(default[0].qso_ood_p) and 'outside_both_models' in default[1].quality_flags
     assert np.isnan(old[0].qso_ood_p) and 0 < new[0].qso_ood_p <= 1 and 0 < new[0].bkg_ood_p <= 1
     assert new[0].qso_ood_sigma_any_z == pytest.approx(old[0].qso_ood_sigma_any_z)
     assert 'outside_both_models' not in new[0].quality_flags

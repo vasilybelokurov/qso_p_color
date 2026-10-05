@@ -23,7 +23,7 @@ from validate_psf_catchalls import grid_data
 from validate_unified_pilot import run_unified
 from common import POINTERS
 
-OUT = Path('models/multisurvey_psf/work/method_unified/grids_note')
+OUT = Path('models/multisurvey_psf/work/method_unified/grids_note_ood')   # promoted scorer with the calibrated outside-both test
 
 
 def main():

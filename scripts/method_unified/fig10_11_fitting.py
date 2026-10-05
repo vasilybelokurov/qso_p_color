@@ -70,7 +70,7 @@ def f11():
             for h in ('south', 'north'):
                 for mag in (18.5, 21.0):
                     raw = np.load(GRIDS[gname]/f'grid_{h}_{mag}_raw.npz'); uni = np.load(GRIDS[gname]/f'grid_{h}_{mag}_unified.npz')
-                    ok = raw['eligible'] & ~(np.isfinite(uni['support']) & (uni['support'] < t))
+                    ok = (uni['eligible'] | (uni['status'] == 'qso_support_rejected')) & ~(np.isfinite(uni['support']) & (uni['support'] < t))
                     stray += int((ok & (raw['p_quasar'] > .5) & low_mask(h, mag)).sum())
             # Rank by p_quasar: the scorer blanks log R for support-rejected rows, so it cannot rank them
             # at looser thresholds; unranked rows go to the bottom as in fig12_14.

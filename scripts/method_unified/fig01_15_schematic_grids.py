@@ -16,8 +16,8 @@ import numpy as np
 from matplotlib.patches import Ellipse
 from common import SERIES, save_figure, use_paper_style
 
-RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/method_unified/grids_note/independent'),
-        'magnitude-dependent': Path('models/multisurvey_psf/work/method_unified/grids_note/dependent')}   # grid_scores.py
+RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/method_unified/grids_note_ood/independent'),
+        'magnitude-dependent': Path('models/multisurvey_psf/work/method_unified/grids_note_ood/dependent')}   # grid_scores.py
 THRESHOLD = 0.0078125
 
 
@@ -60,7 +60,8 @@ def f15():
         mask = low_mask(h, mag).reshape(15, 15)
         for i, name in enumerate(models):
             raw = np.load(RUNS[name]/f'grid_{h}_{mag}_raw.npz'); uni = np.load(RUNS[name]/f'grid_{h}_{mag}_unified.npz')
-            r = raw; ok = raw['eligible'] & ~(np.isfinite(uni['support']) & (uni['support'] < THRESHOLD))
+            # eligibility of the promoted scorer (calibrated outside-both test), before the support cut
+            r = raw; ok = (uni['eligible'] | (uni['status'] == 'qso_support_rejected')) & ~(np.isfinite(uni['support']) & (uni['support'] < THRESHOLD))
             p = np.where(ok, r['p_quasar'], np.nan).reshape(15, 15); ax = axes[i, j]
             ax.pcolormesh(axes_vals, axes_vals, np.where(np.isnan(p), 1, np.nan), cmap='Greys', vmin=0, vmax=4, shading='nearest')
             im = ax.pcolormesh(axes_vals, axes_vals, p, cmap='viridis', vmin=0, vmax=1, shading='nearest')

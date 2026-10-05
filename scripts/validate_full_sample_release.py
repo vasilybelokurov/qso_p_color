@@ -14,7 +14,7 @@ from validate_psf_catchalls import grid_data
 
 FIELDS=('log_r_per_unit_z','p_sameq','p_outlier','dz_match_eff','log_lambda_sameq','log_lambda_fieldq',
         'log_lambda_bkg','log_lambda_out','log_bayes_factor_qz_bkg','loglike_qso_zprimary','loglike_bkg',
-        'qso_ood_sigma_any_z','bkg_ood_sigma','outlier_fraction','background_local_weight','background_density_level','ref_mag')
+        'qso_ood_sigma_any_z','bkg_ood_sigma','qso_ood_p','bkg_ood_p','outlier_fraction','background_local_weight','background_density_level','ref_mag')
 
 
 def run_scores(base,data,cfg,path):
