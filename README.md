@@ -28,10 +28,10 @@ for blends and is built on top of either of them.
 background model, the 41 bands, extinction correction, catch-all, support cut and faint limit; they
 differ only in the quasar colour model.
 
-- On our DESI/SDSS-selected test quasars the two rank equally well (AUC 0.9942 for A, 0.9938 for B; the
-  difference is not significant in a paired sky bootstrap). A gives `p_quasar` > 0.5 to 2.9 percentage points
-  more test quasars (91.3% against 88.3%), at the same background rate. B ranks slightly better at
-  18 ≤ *r* < 21 and A at *r* ≥ 21 (method note, Section 6.2).
+- On our DESI/SDSS-selected test quasars the two rank almost equally well: AUC 0.9939 for A and 0.9934 for B,
+  a marginal difference in a paired sky bootstrap. A gives `p_quasar` > 0.5 to 2.7 percentage points more test
+  quasars (94.0% against 91.2%), and to 0.11 points more unflagged background objects. B ranks slightly better
+  at 18 ≤ *r* < 21 and A at *r* ≥ 21 (method note, Section 6.2).
 - B cannot absorb the spectroscopic selection of the training quasars into its colour model. That risk
   is real for quasars unlike the DESI/SDSS targets, and our tests cannot measure it.
 - If A and B agree, the result does not depend on that assumption. If they disagree strongly, the
@@ -41,8 +41,9 @@ Pointers in `models/multisurvey_psf/` (small JSON files naming a bundle director
 
 | Pointer | Bundle | Notes |
 |---|---|---|
-| `current` (= `current_magdep`) | `20261003_magdep` | model A, promoted 4 October 2026 |
-| `current_magindep` | `20261003_magindep` | model B |
+| `current` (= `current_magdep`) | `20261005_magdep_qlf` | model A, promoted 5 October 2026 (eBOSS luminosity-function quasar abundance) |
+| `current_magindep` | `20261005_magindep_qlf` | model B, same date |
+| `previous_20261003_magdep`, `previous_20261003_magindep` | `20261003_magdep`, `20261003_magindep` | rollback: the 3 October bundles (spectroscopic-count abundance) |
 | `previous_20261002_magdep`, `previous_20261002_magindep` | `5f4002492dbb849c`, `13866e45ef794059` | rollback |
 | `previous` | `630f47f63b6f0694` | 28 September 2026 model, see [docs/EARLIER_MODELS.md](docs/EARLIER_MODELS.md) |
 
@@ -95,7 +96,7 @@ for name in ("current", "current_magindep"):
               round(p[i], 3), s.log_r_per_unit_z, s.p_sameq, s.dz_match_eff)
 ```
 
-Output: the first object is eligible with `p_quasar` 0.894 (A) and 0.857 (B); the second is refused
+Output: the first object is eligible with `p_quasar` 0.866 (A) and 0.832 (B); the second is refused
 with `qso_support_rejected` (its colours are not quasar-like at *z* = 1.8).
 
 ### Unresolved blend (model C)
@@ -117,7 +118,7 @@ for name in ("current", "current_magindep"):
     print(name, r.status, r.log_bf_qq_qs, r.p_qq, r.alpha_mean_qq, r.alpha_mean_qs)
 ```
 
-Output: `ok`, log BF −0.87 (A) and −0.79 (B), P(QQ) 0.30 and 0.31; under QS the star carries about 28% of
+Output: `ok`, log BF −0.59 (A) and −0.49 (B), P(QQ) 0.36 and 0.38; under QS the star carries about 30% of
 the r flux.
 
 ---
@@ -238,6 +239,20 @@ Only eligible rows are science-grade. Rows refused before scoring have `scores[i
   `reference_band`, `bands_used`, `quality_flags`, and `config_hash` with `model_manifest_id` for
   provenance.
 
+### How many quasars there are: the abundance prior (since 5 October 2026)
+
+`p_quasar` and `log_r_per_unit_z` weigh each hypothesis by how common it is at the object's magnitude:
+Σ_Q(z, r), quasars per deg² per mag per unit redshift, against Σ_B, the background objects counted directly from
+the imaging catalogue at the object's sky position. Both models share the same Σ_Q.
+
+Σ_Q is the eBOSS quasar luminosity function (Palanque-Delabrouille et al. 2016, A&A 587, A41, Table 7, PLE+LEDE
+fit), smoothed onto our redshift and magnitude grid (`scripts/method_unified/build_qlf_prior.py`). It replaced
+spectroscopic DESI + SDSS counts multiplied by one completeness constant. Those counts were 1.4–3 times too high
+for bright quasars (r < 20), because SDSS is nearly complete there and the constant over-corrected. They were 2
+to 50 times too low beyond r ≈ 22.3, where spectroscopic targeting ends. The luminosity function is fitted to
+r ≈ 22.3 and 0.68 < z < 4; beyond that it is the published model extrapolated. The method note (Section 9.1)
+compares the two (figure `plots/qso_prior/Q3_counts_three_models.png`).
+
 ### The outside-both-models test (default since 5 October 2026)
 
 Before ranking, the scorer asks whether the colours resemble *anything* in either model. For each population
@@ -255,7 +270,7 @@ the object's own bands, with its own noise and Legacy r, and computes the same d
 fractions are reported as `qso_ood_p` and `bkg_ood_p`: the probability that a real member lies at least as
 far away. The object is outside both models when both are below 2/256. Refusals then no longer depend on the
 number of bands, and about 0.15% of test quasars and 0.5% of background objects are refused. It adds about
-13 ms per object. The method note (Section 9.1) and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`
+13 ms per object. The method note (Section 9.2) and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`
 give the derivation and validation. Pass `ood_calibration=None` to reproduce scores made before
 5 October 2026.
 
@@ -302,9 +317,13 @@ uncertain.
 
 Sources: method note Sections 9--11 and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`.
 
-- **`p_quasar` is approximate.** In the mid range it lies between the label bounds. Above 0.97 it exceeds
-  the fraction of *known* quasars (0.68–0.97 observed at p > 0.99), but most of the excess objects are
-  flagged likely quasars without spectra, so the true overconfidence is small. The scorer declines to
+- **`p_quasar` is approximate, and untested at faint magnitudes.** In the mid range it lies between the
+  label bounds or slightly above the upper one. Above 0.97 it exceeds the fraction of *known* quasars
+  (0.67–0.97 observed at p > 0.99), but most of the excess objects are flagged likely quasars without
+  spectra. At r ≳ 22.5 the labels miss most real quasars (no spectrum, no WISE detection), so the
+  calibration of faint `p_quasar` cannot be measured.
+- **Quasar abundance beyond r ≈ 22.3 and below z = 0.68** is the eBOSS luminosity function extrapolated,
+  and its redshift shape inside each Δz = 1 bin is interpolated. The scorer declines to
   rank 1.0% (B) and 1.2% (A) of known quasars in a natural sample, mostly at the QSO-support cut: treat an
   unranked object as "not a candidate", not as "not a quasar".
 - **Variability between surveys** observed years apart is not modelled. A quasar whose SDSS or PS1
@@ -315,8 +334,9 @@ Sources: method note Sections 9--11 and `docs/pquasar_diagnostics/pquasar_diagno
   the selection is untested. This is why B is kept.
 - **Blends: share of the light.** The two hypotheses separate when the companion carries ≥ 30% of the
   r flux (AUC 0.88–1.00 by star colour), weakly at 20%, and close to chance at ≤ 10% unless the star is an
-  M dwarf (method note Section 11.1, Figs. 21–24).
-- **Blends: magnitude.** At blend r ≳ 21.5, true QQ blends no longer favour QQ (median log BF ≈ 0).
+  M dwarf (method note Section 11.1).
+- **Blends: magnitude.** Separation weakens towards blend r ≈ 21.5 for companions carrying 10–20% of the
+  light; true QQ blends still favour QQ there (median log BF 0.7–2.1).
 - **Blends: validation.** All blend validation uses synthetic blends of real point sources, not real
   blends.
 - **Sparse bands.** NSC VR and VHS Y extinction coefficients are approximate, and SkyMapper u, v and VHS
@@ -326,13 +346,14 @@ Sources: method note Sections 9--11 and `docs/pquasar_diagnostics/pquasar_diagno
 
 | Test (held out) | A | B |
 |---|---|---|
-| Quasars vs background objects, AUC (log R; unranked at the bottom) | 0.9942 | 0.9938 |
-| same, *r* < 18 | 0.978 | 0.982 |
-| Test quasars with `p_quasar` > 0.5 | 91.3% | 88.3% |
-| Background objects not flagged as likely quasars, with `p_quasar` > 0.5 | 0.23% | 0.23% |
-| Test quasars not ranked | 0.62% | 0.58% |
-| Blend mode, QQ vs QS, AUC (synthetic blends of test objects) | 0.950 | 0.936 |
-| Blend mode: fraction of true QQ / true QS blends given P(QQ) > 0.9 (prior odds 1) | 71% / 5.9% | 59% / 5.3% |
+| Quasars vs background objects, AUC (log R; unranked at the bottom) | 0.9939 | 0.9934 |
+| same, *r* < 18 | 0.982 | 0.986 |
+| Test quasars with `p_quasar` > 0.5 | 94.0% | 91.2% |
+| same, 23 < *r* < 24 | 54% | 30% |
+| Background objects not flagged as likely quasars, with `p_quasar` > 0.5 | 0.44% | 0.33% |
+| Test quasars not ranked | 0.61% | 0.57% |
+| Blend mode, QQ vs QS, AUC (synthetic blends of test objects) | 0.947 | 0.927 |
+| Blend mode: fraction of true QQ / true QS blends given P(QQ) > 0.9 (prior odds 1) | 75% / 7.2% | 63% / 6.9% |
 
 Details: method note; `docs/method_unified/*.json` (`model_difference_bootstrap.json`,
 `blend_validation.json`, `blend_illustrations.json`).

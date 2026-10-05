@@ -9,7 +9,7 @@
   "scores": {
    "independent": {
     "z": 1.4800753593444824,
-    "logR": 1.5980978781611126,
+    "logR": 1.568783450051051,
     "pq": 1.0,
     "support": 1.0,
     "eligible": true,
@@ -18,7 +18,7 @@
    },
    "dependent": {
     "z": 1.4800753593444824,
-    "logR": 1.6807457313620964,
+    "logR": 1.6553966391681854,
     "pq": 1.0,
     "support": 0.98046875,
     "eligible": true,
@@ -37,8 +37,8 @@
   "scores": {
    "independent": {
     "z": 2.9642741954516887,
-    "logR": -2.952265545774313,
-    "pq": 0.28856641428327795,
+    "logR": -2.689026509204837,
+    "pq": 0.4379796906403222,
     "support": 0.79296875,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -46,8 +46,8 @@
    },
    "dependent": {
     "z": 2.9642741954516887,
-    "logR": -1.7340491426253113,
-    "pq": 0.18788345577672017,
+    "logR": -1.422701419769837,
+    "pq": 0.32592623369379947,
     "support": 0.9375,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -65,8 +65,8 @@
   "scores": {
    "independent": {
     "z": 0.6270244717597961,
-    "logR": 1.1376939079212498,
-    "pq": 0.9903712975570889,
+    "logR": 1.1667199728619535,
+    "pq": 0.9933844385541202,
     "support": 0.91796875,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -74,8 +74,8 @@
    },
    "dependent": {
     "z": 0.6270244717597961,
-    "logR": 1.202182303512653,
-    "pq": 0.9943030822747573,
+    "logR": 1.158614488280375,
+    "pq": 0.9963614435612681,
     "support": 0.9375,
     "eligible": true,
     "reference": "decals_dr9_north:r",
@@ -94,7 +94,7 @@
    "independent": {
     "z": 2.2620667842891935,
     "logR": NaN,
-    "pq": 6.380408742426446e-07,
+    "pq": 8.746428247000153e-07,
     "support": 0.00390625,
     "eligible": false,
     "reference": "decals_dr9_south:r",
@@ -103,7 +103,7 @@
    "dependent": {
     "z": 2.2620667842891935,
     "logR": NaN,
-    "pq": 3.711277508284402e-05,
+    "pq": 5.194038556321014e-05,
     "support": 0.00390625,
     "eligible": false,
     "reference": "decals_dr9_south:r",
@@ -113,26 +113,26 @@
  },
  {
   "kind": "stars",
-  "prepared_row": 351979,
-  "source_row": 351979,
+  "prepared_row": 312383,
+  "source_row": 312383,
   "title": "background star",
-  "ra": 197.09703655128484,
-  "dec": 25.091598285197144,
+  "ra": 233.30748569100248,
+  "dec": 23.13440456328287,
   "scores": {
    "independent": {
-    "z": 3.094828631625386,
-    "logR": -51.04309810488917,
-    "pq": 1.108161533680153e-21,
+    "z": 1.7572541231639232,
+    "logR": -23.658375165003974,
+    "pq": 5.312174358756663e-07,
     "support": 0.0078125,
     "eligible": true,
     "reference": "decals_dr9_south:r",
     "rejected": false
    },
    "dependent": {
-    "z": 3.094828631625386,
-    "logR": -43.44273902777317,
-    "pq": 4.343194294981058e-20,
-    "support": 0.01171875,
+    "z": 1.7572541231639232,
+    "logR": -20.023832508308814,
+    "pq": 8.524258543118161e-08,
+    "support": 0.015625,
     "eligible": true,
     "reference": "decals_dr9_south:r",
     "rejected": false
@@ -141,26 +141,26 @@
  },
  {
   "kind": "stars",
-  "prepared_row": 536564,
-  "source_row": 536564,
+  "prepared_row": 537254,
+  "source_row": 537254,
   "title": "background object with $p_Q>0.5$",
-  "ra": 185.9634015820731,
-  "dec": 60.232443044143714,
+  "ra": 186.07632757932888,
+  "dec": 60.05552315747681,
   "scores": {
    "independent": {
-    "z": 1.8798429324235286,
-    "logR": 0.6997814809751104,
-    "pq": 0.9984071242088527,
-    "support": 0.85546875,
+    "z": 1.539395945210683,
+    "logR": 0.4813759811790095,
+    "pq": 0.9685082687473894,
+    "support": 0.11328125,
     "eligible": true,
     "reference": "decals_dr9_north:r",
     "rejected": false
    },
    "dependent": {
-    "z": 1.8798429324235286,
-    "logR": 1.0702205590951765,
-    "pq": 0.9993684113314494,
-    "support": 0.95703125,
+    "z": 1.539395945210683,
+    "logR": 0.49751548098609977,
+    "pq": 0.9929889217571384,
+    "support": 0.2734375,
     "eligible": true,
     "reference": "decals_dr9_north:r",
     "rejected": false

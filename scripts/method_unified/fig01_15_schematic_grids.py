@@ -16,8 +16,8 @@ import numpy as np
 from matplotlib.patches import Ellipse
 from common import SERIES, save_figure, use_paper_style
 
-RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/method_unified/grids_note_ood/independent'),
-        'magnitude-dependent': Path('models/multisurvey_psf/work/method_unified/grids_note_ood/dependent')}   # grid_scores.py
+RUNS = {'magnitude-independent': Path('models/multisurvey_psf/work/method_unified/grids_note_qlf/independent'),
+        'magnitude-dependent': Path('models/multisurvey_psf/work/method_unified/grids_note_qlf/dependent')}   # grid_scores.py
 THRESHOLD = 0.0078125
 
 

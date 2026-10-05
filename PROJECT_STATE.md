@@ -1,5 +1,13 @@
 # Current project state
 
+**QSO ABUNDANCE PRIOR = eBOSS QLF (PI decision, promoted 5 October 2026).** `current` -> `20261005_magdep_qlf`,
+`current_magindep` -> `20261005_magindep_qlf` (rollback `previous_20261003_*`). Sigma_Q(z, r) for the Legacy r
+reference bands is Palanque-Delabrouille et al. 2016 Table 7 (PLE+LEDE), PCHIP in z, log-linear in magnitude
+(scripts/method_unified/build_qlf_prior.py). Replaced spectroscopic counts x one constant (1.4-3x too high at r<20,
+2-50x too low at r>22.3). Results (B/A): AUC 0.9934/0.9939, recall 91.2/94.0% (23<r<24: 30/54%), unflagged
+background p>0.5 0.33/0.44% (faint rise below the QLF-implied unlabelled-QSO fraction), blend AUC 0.927/0.947.
+Calibration of faint p_quasar untestable with current labels. Note Section 9.1; all note numbers redone.
+
 **CALIBRATED OUTSIDE-BOTH-MODELS TEST IS THE DEFAULT (PI decision, 5 October 2026).** `UnifiedPSFModel.score` uses
 `DEFAULT_OOD_CALIBRATION = dict(alpha=2/256, draws=256, seed=20261005)` (qso_pcolor.ood_calibration); `ood_calibration=None`
 restores the fixed 4-sigma cut. Method note Section 9.1 and all performance/calibration numbers redone

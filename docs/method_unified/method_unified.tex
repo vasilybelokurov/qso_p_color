@@ -31,9 +31,10 @@ apparent magnitude (\code{current}); in the other they do not, the XDQSO assumpt
 that protects against learning the training sample's selection (\code{current\_magindep}). The
 background is fitted, as in XDQSO, separately in eight bins of Legacy $r$, on a training sample from
 which likely quasars are removed, with component weights that vary smoothly with Galactic position.
-Objects whose colours are unlike both models are set aside by a test calibrated per object for its own
-bands and noise. On held-out data both models separate quasars from background objects with AUC 0.994,
-and 0.6\% of quasars are left unranked.
+The abundance of quasars at each magnitude and redshift is the completeness-corrected eBOSS quasar
+luminosity function. Objects whose colours are unlike both models are set aside by a test calibrated per
+object for its own bands and noise. On held-out data both models separate quasars from background objects
+with AUC 0.993--0.994, and 0.6\% of quasars are left unranked.
 \end{abstract}
 
 \tableofcontents
@@ -57,13 +58,15 @@ and 0.6\% of quasars are left unranked.
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
 \item \textbf{Main results} (Section~\ref{sec:validation}; first number for the magnitude-independent model,
-  second for the magnitude-dependent one). AUC 0.994 for both on held-out quasars and
-  background objects; 88\% and 91\% of quasars receive $p_{\rm quasar}>0.5$; 0.2\% of background objects
-  that are not flagged as likely quasars do. 0.6\% of quasars are not ranked, with no dependence on the number
+  second for the magnitude-dependent one). AUC 0.993 and 0.994 on held-out quasars and
+  background objects; 91\% and 94\% of quasars receive $p_{\rm quasar}>0.5$ (at $23<r<24$, 30\% and 54\%);
+  0.33\% and 0.44\% of background objects that are not flagged as likely quasars do, most plausibly
+  unlabelled faint quasars (Section~\ref{sec:qsoprior}). 0.6\% of quasars are not ranked, with no dependence on the number
   of observed bands (Section~\ref{sec:ood}). No artificial colour-grid point outside the models' dense
   core receives $p_{\rm quasar}>0.5$. Among ranked objects $p_{\rm quasar}$ agrees with the observed quasar
-  fraction in the mid range; above 0.97 it exceeds the known-quasar fraction, mostly because the background
-  sample holds unlabelled quasars. 1.0--1.2\% of known quasars in a natural sample are not ranked.
+  fraction where the labels are complete; its faint end cannot be tested with the available labels, and above 0.97
+  it exceeds the known-quasar fraction mostly because the background sample holds unlabelled quasars.
+  1.0--1.2\% of known quasars in a natural sample are not ranked.
 \end{itemize}
 
 %======================================================================
@@ -379,26 +382,26 @@ quantity & mag.-independent & mag.-dependent \\
 held-out quasar density, per slice & --- & $+0.67$\,nat (0.38--0.88) \\
 quasars inside the 50\%/90\% contours, $17\le r<19$ & 0.62/0.94 & 0.51/0.90 \\
 quasars inside the 50\%/90\% contours, $21.5\le r<22.5$ & 0.41/0.86 & 0.49/0.89 \\
-AUC, all magnitudes & 0.9938 & 0.9942 \\
-AUC, $r<18$ & 0.982 & 0.978 \\
+AUC, all magnitudes & 0.9934 & 0.9939 \\
+AUC, $r<18$ & 0.986 & 0.982 \\
 AUC, $18\le r<19$ & 0.998 & 0.995 \\
-AUC, $r>21$ & 0.980--0.994 & 0.989--0.994 \\
-AUC at $z_0=3.45$ & 0.998 & 0.998 \\
-quasars with $p_{\rm quasar}>0.5$ & 88.3\% & 91.3\% \\
-unflagged background with $p_{\rm quasar}>0.5$ & 0.23\% & 0.23\% \\
-quasars not ranked & 0.58\% & 0.62\% \\
-grid points with $p_{\rm quasar}>0.5$, no support cut & 3 & 3 \\
+AUC, $r>21$ & 0.977--0.994 & 0.987--0.994 \\
+AUC at $z_0=3.45$ & 0.996 & 0.998 \\
+quasars with $p_{\rm quasar}>0.5$ & 91.2\% & 94.0\% \\
+unflagged background with $p_{\rm quasar}>0.5$ & 0.33\% & 0.44\% \\
+quasars not ranked & 0.57\% & 0.61\% \\
+grid points with $p_{\rm quasar}>0.5$, no support cut & 2 & 1 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 With the calibrated outside-both-models test (Section~\ref{sec:ood}) the two models rank quasars against
 background objects equally well overall. A paired bootstrap over sky regions gives
-$\Delta{\rm AUC}=+0.0004$ (95\% interval $-0.0001$ to $+0.0012$, not significant); the magnitude-independent model
+$\Delta{\rm AUC}=+0.0005$ (95\% interval $0.0000$ to $+0.0015$, marginal); the magnitude-independent model
 is slightly better at $18\le r<21$ ($-0.003$, interval $-0.005$ to $-0.001$, at $18\le r<19$; $-0.001$ at
-$19\le r<21$) and the magnitude-dependent one at $r\ge21$ ($+0.002$, $+0.002$ to $+0.003$). The magnitude-dependent
-model gives $p_{\rm quasar}>0.5$ to $+2.9$ (2.5--3.6) percentage points more test quasars, with no difference in
-background objects above 0.5. Under the earlier fixed $4\sigma$ test the magnitude-dependent model appeared much
+$19\le r<21$) and the magnitude-dependent one at $r\ge21$ ($+0.003$, $+0.002$ to $+0.004$). The magnitude-dependent
+model gives $p_{\rm quasar}>0.5$ to $+2.7$ (2.3--3.5) percentage points more test quasars, and to $+0.11$
+(0.01--0.21) percentage points more unflagged background objects. Under the earlier fixed $4\sigma$ test the magnitude-dependent model appeared much
 better for bright quasars ($\Delta{\rm AUC}=+0.020$ at $r<18$); most of that difference came from the
 magnitude-independent model refusing more bright quasars under that test, not from its ranking.
 
@@ -527,11 +530,78 @@ update for the eight background bins (Legacy $r$); stars mark the kept checkpoin
 %======================================================================
 \section{Priors, catch-all, support and the outside-both-models test}\label{sec:priors}
 %======================================================================
-\paragraph{Abundance priors.} $\Sigma_Q(z,m)$ and $\Sigma_B(m)$ are stored per reference band, per unit
-native luptitude. Background densities are counted from corrected photometry (Section~\ref{sec:background}).
-The quasar abundance comes from earlier full-sample counts on uncorrected photometry, moved onto corrected
-magnitudes by the mean extinction shift (0.080\,mag in Legacy $r$, at mean $E=0.037$); this is an
-approximation, not a recount.
+\paragraph{Abundance priors.} $\Sigma_Q(z,m)$ and $\Sigma_B(m,\ell,b)$ are stored per reference band, per unit
+native luptitude; Legacy $r$ is the reference band of every scored object, so only its two priors (South and
+North) enter. Background densities are counted from corrected photometry (Section~\ref{sec:background}). The
+quasar abundance is described in Section~\ref{sec:qsoprior}.
+
+\subsection{Quasar abundance prior}\label{sec:qsoprior}
+$\Sigma_Q(z,m)$ is the number of quasars per deg$^2$, per unit redshift and per magnitude. It multiplies every
+quasar likelihood (Eq.~\ref{eq:R}), so it sets $p_{\rm quasar}$, $\log\R$ and the blend-mode magnitude priors.
+Since 5 October 2026 it is the eBOSS quasar luminosity function, not spectroscopic counts.
+
+\paragraph{Earlier construction and its problem.} Until 5 October 2026 the prior was built from spectroscopic
+quasars: a flat-in-redshift draw of the de-duplicated DESI DR1 and DR16Q parent at $|b|\ge25^\circ$, weighted
+back to the parent's redshift distribution, counted in each band's footprint and divided by its area, then
+multiplied by one completeness constant $C=2.37$. $C$ was chosen so that the Legacy South $r$ prior integrated,
+over $17<r<22.5$, to an earlier DESI-only prior normalised to DESI's density in fully covered sky
+(240\,deg$^{-2}$); the point-source recount kept the same $C$, and the corrected-magnitude version shifted it by
+the mean extinction (0.094\,mag in $r$). Figure~\ref{fig:qsoprior} compares this prior with the
+completeness-corrected eBOSS quasar luminosity function \citep{PalanqueDelabrouille2016}. The spectroscopic
+counts themselves (the prior divided by $C$) are below the luminosity function at every magnitude, by a factor
+that depends strongly on magnitude: 0.8--1 at $r<18.5$, where SDSS is nearly complete, 0.6 at $19<r<21$, 0.26 at
+$r=22.25$ and 0.03 at $r=23.25$, where spectroscopic targeting ends. One constant cannot correct that: the prior
+was 1.4--3 times too high at $r<20$ (4--9 times for $z>2$), within $\pm50\%$ at $19.5<r<22$, and 0.6, 0.3, 0.08 and
+0.02 of the luminosity function at $r=22.25$, 22.75, 23.25 and 23.75. Under the faint limit we score sources to
+$r\approx23.5$, so faint quasars were given probabilities far too low.
+
+\paragraph{Construction.} The luminosity function of \citet{PalanqueDelabrouille2016} is measured from 13,876
+quasars selected by variability (not colour) over 94.5\,deg$^2$ of Stripe~82, with completeness corrections for
+selection, fibre assignment and redshift failures derived from an independent colour-selected control sample. We
+use its best-fit PLE+LEDE model through the paper's Table~7: predicted quasar counts in (extinction-corrected)
+$r$ per 10,000\,deg$^2$, in bins of 0.5\,mag and $\Delta z=1$. For each magnitude row, the cumulative counts at
+$z=0,1,\dots,5$ are interpolated with a monotone cubic (PCHIP), and each cell of our redshift grid ($\Delta z=0.1$,
+$0.1<z<4.4$) receives the difference across its edges, so every published bin total is preserved and the density
+is smooth and positive. Between rows the log density is interpolated linearly in magnitude, and the last slope is
+continued beyond $r=23.75$. SDSS $r$ and Legacy $r$ differ by a few hundredths of a magnitude for quasars; this is
+ignored. Colour models, background densities and all other inputs are unchanged
+(\code{scripts/method\_unified/build\_qlf\_prior.py}).
+
+\paragraph{Checks.} The prior reproduces the published counts within 3\% per magnitude at $17<r<23.75$, and within
+0--10\% per redshift bin; it is lower only for $z>4.4$, outside our grid. Inside each $\Delta z=1$ bin the
+interpolated redshift shape follows the shape of the spectroscopic counts where those are reasonably complete
+($19.5<r<21.5$) to 10--25\%; the largest differences, 40--65\%, are near $z\approx3.3$--3.6, where the spectroscopic
+counts dip because quasar colours cross the stellar locus and colour selection loses them. For $0.15<z<1$, where the
+luminosity function is extrapolated below its fitted $z=0.68$ and many quasars look extended, it agrees with the
+spectroscopic point-source counts to 10\% at $18<r<21$. On the faint end, the background test sample (catalogue
+objects minus known quasars) must contain the quasars without spectra: at $22<r<24$ the luminosity function minus
+the known quasars implies that 1.7--3.0\% of it are quasars. With this prior, 1.3--1.8\% of those background objects
+receive $p_{\rm quasar}>0.5$; with the earlier prior 0.0--1.4\%. The extra faint objects called quasars are therefore
+fewer than the quasars known to be hiding in the background sample (Section~\ref{sec:perf}).
+
+\paragraph{Caveats.} The luminosity function is fitted for $0.68<z<4$ and $g<22.5$ ($r\approx22.3$); fainter and
+at lower redshift it is the published model extrapolated, and its two fits (PLE and PLE+LEDE) differ by up to 16\%
+at $r=23.75$. The shape within each $\Delta z=1$ bin is an interpolation, not a measurement. It counts all quasars,
+while we score point sources; the agreement at $0.15<z<1$ suggests this matters little above our faint limit. The
+background density $\Sigma_B$ is counted from the catalogue with known quasars removed, so at $r>22.5$ it still holds
+the 2--3\% unlabelled quasars; their intensity is counted twice, once in $\Sigma_Q$ and once in $\Sigma_B$, which
+lowers faint $p_{\rm quasar}$ by up to about 3\%.
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=0.75\textwidth]{../qso_prior/Q3_counts_three_models.png}
+\caption{Quasar counts per deg$^2$ per magnitude (all redshifts) against extinction-corrected Legacy $r$: the
+earlier prior (spectroscopic counts times one constant), the eBOSS luminosity function now used (solid where fitted,
+dashed where extrapolated; band: PLE against PLE+LEDE), and constant comoving density in Euclidean space
+($\propto10^{0.6m}$, normalised at $r=18.25$).}
+\label{fig:qsoprior}
+\end{figure}
+
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{../qso_prior/Q1_qso_prior_vs_qlf.png}
+\caption{The earlier prior against the eBOSS luminosity function in redshift bins, and their ratio (bottom right),
+which is the completeness the single constant was meant to correct.}
+\label{fig:qsopriorz}
+\end{figure}
 
 \paragraph{Catch-all.} $U$ is a Student-$t$ with $\nu=4$ degrees of freedom, centred on the background
 mean, with the binned background mixture's second-moment matrix as its scale. Measurement noise is
@@ -546,8 +616,9 @@ kept as diagnostics. The percentile depends on the reference band, so the thresh
 under the faint limit on 2,000 calibration quasars (all bands and Legacy $g,r,z$ only; 3,890
 evaluations). At the 99.5\% target it is $2/256=0.0078$, retaining 99.64\% and 99.59\% of
 calibration evaluations. Fig.~\ref{fig:supportcut} shows the trade-off on held-out rows: the cut at
-$2/256$ removes the 3 high-quasar points (each model) that the artificial grids place outside the models'
-dense core, at a cost of 0.5\% of test quasars and of 0.002 in the AUC of $p_{\rm quasar}$ (0.992 to 0.990);
+$2/256$ removes the 2 (magnitude-independent) and 1 (magnitude-dependent) high-quasar points that the artificial
+grids place outside the models' dense core, at a cost of 0.5\% of test quasars and of 0.002 in the AUC of
+$p_{\rm quasar}$ (0.992 to 0.990);
 stricter cuts lose quasars faster. (Under the earlier fixed $4\sigma$ outside-both test the same cut removed 12
 and 4 stray points and raised the AUC, because that test let more extrapolated objects through at few bands.)
 
@@ -682,34 +753,40 @@ those of Section~\ref{sec:notation}: AUC, held-out density, support retention, a
 the fraction of background objects ranked with $p_{\rm quasar}>0.5$. The background test objects include
 unidentified quasars, so incidence is not a contamination rate.
 
-\paragraph{Overall.} The AUC is 0.9938 (magnitude-independent) and 0.9942 (magnitude-dependent); South
-0.993 and 0.994, North 0.995 for both. The support cut keeps 99.53\% and 99.47\% of test quasars, in
-agreement with the 99.5\% calibration target on rows that did not choose it. In total 0.58\% and 0.62\% of test
+\paragraph{Overall.} The AUC is 0.9934 (magnitude-independent) and 0.9939 (magnitude-dependent); South
+0.992 and 0.993, North 0.995 for both. The support cut keeps 99.53\% and 99.47\% of test quasars, in
+agreement with the 99.5\% calibration target on rows that did not choose it. In total 0.57\% and 0.61\% of test
 quasars are not ranked: 0.38\% and 0.45\% at the support cut, 0.17\% and 0.14\% outside both models
-(Section~\ref{sec:ood}), and 0.02\% with no quasar prior at their magnitude. Of the test quasars, 88.3\% and
-91.3\% receive $p_{\rm quasar}>0.5$. High-QSO incidence is 1.14\% and 1.19\% (South 0.56\% and 0.59\%, North
-1.81\% and 1.90\%). Among background objects that are not flagged as likely quasars it is 0.23\% for both,
-and the AUC against them is 0.995 and 0.996. With the earlier fixed $4\sigma$ outside-both test the AUC was
+(Section~\ref{sec:ood}), and 0.02\% with no quasar prior at their magnitude. Of the test quasars, 91.2\% and
+94.0\% receive $p_{\rm quasar}>0.5$. High-QSO incidence is 1.35\% and 1.52\% (South 0.76\% and 0.90\%, North
+2.04\% and 2.24\%). Among background objects that are not flagged as likely quasars it is 0.33\% and 0.44\%,
+and the AUC against them is 0.995 for both. Compared with the earlier abundance prior (spectroscopic counts),
+the luminosity-function prior leaves everything at $r<21.5$ unchanged and raises the recall at $22.5\le r<23$
+from 0.42 to 0.65 (magnitude-independent) and from 0.58 to 0.77 (magnitude-dependent), and at $23\le r<24$ from
+0.10 to 0.30 and from 0.25 to 0.54. The faint background objects it calls quasars (1.3--1.8\% at $22<r<24$) are
+fewer than the unlabelled quasars the luminosity function implies for that sample (1.7--3.0\%;
+Section~\ref{sec:qsoprior}); the AUC changes by $-0.0004$. With the earlier fixed $4\sigma$ outside-both test the AUC was
 0.976 and 0.980 and 3.2\% and 2.9\% of test quasars were not ranked: an unranked quasar counts as ranked below
 every ranked background object, so recovering 2.3--2.6\% of quasars raises the AUC by 0.014--0.018.
 
 \paragraph{Sky position and magnitude} (Fig.~\ref{fig:perfsky}). Per-cell AUC is uniform across the
-footprint to within a few thousandths. Against $|b|$, AUC is 0.991--0.996 (magnitude-independent) and
-0.992--0.996 (magnitude-dependent). Against reference magnitude it is 0.995--0.998 at $18\le r<21$ and falls
-towards the faint end, to 0.980 (magnitude-independent) and 0.989 (magnitude-dependent) at $22.5\le r<23.5$;
-at $r<18$ (274 quasars) it is 0.982 and 0.978.
+footprint to within a few thousandths. Against $|b|$, AUC is 0.990--0.995 (magnitude-independent) and
+0.991--0.995 (magnitude-dependent). Against reference magnitude it is 0.995--0.998 at $18\le r<21$ and falls
+towards the faint end, to 0.977 (magnitude-independent) and 0.987 (magnitude-dependent) at $22.5\le r<23.5$;
+at $r<18$ (274 quasars) it is 0.986 and 0.982.
 
-\paragraph{Redshift} (Fig.~\ref{fig:perfz}). AUC is 0.992--0.995 for both models for $0.5\le z_0\le3$ and
-0.998 at $z_0=3.45$. (Under the earlier fixed test it fell to 0.948 and 0.956 at $z_0=3.45$, where 8--15\% of
+\paragraph{Redshift} (Fig.~\ref{fig:perfz}). AUC is 0.992--0.994 for both models for $0.5\le z_0\le3$ and
+0.996--0.998 at $z_0=3.45$. (Under the earlier fixed test it fell to 0.948 and 0.956 at $z_0=3.45$, where 8--15\% of
 quasars were refused.) Held-out density falls with redshift as quasars become fainter, and the
 magnitude-dependent model stays higher at every redshift. Support retention is above 99\% everywhere.
 
 \paragraph{Band coverage} (Fig.~\ref{fig:perfcov}). Grouping objects by the surveys that observed them mixes
 coverage with brightness and redshift, and several groups have fewer than 150 background objects. The
-artificial masks score the same objects with fewer bands: Legacy $g,r,z$ only gives AUC 0.978 and 0.979,
-all Legacy bands 0.993 and 0.994, all optical bands 0.990 for both. SDSS-only and PS1-only photometry
+artificial masks score the same objects with fewer bands: Legacy $g,r,z$ only gives AUC 0.974 and 0.975,
+all Legacy bands 0.993 and 0.994, all optical bands 0.989 for both. SDSS-only and PS1-only photometry
 has no Legacy $r$ and is not scored. The weakest coverage group with at least 100 quasars and 30 background
-objects is Legacy North+AllWISE+PS1 (AUC 0.984 and 0.985, 1,641 quasars).
+objects is Legacy North+AllWISE+PS1 for the magnitude-independent model (AUC 0.985, 1,641 quasars) and Legacy
+South+AllWISE+PS1 for the magnitude-dependent one (0.982, 2,451 quasars).
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F12_performance_sky_magnitude.png}
@@ -740,7 +817,8 @@ A colour grid places synthetic sources on a $15\times15$ lattice in $(g-r,r-z)$ 
 fixed $r$ (18.5 and 21; South and North; $(\ell,b)=(180^\circ,45^\circ)$; 0.03\,mag errors). These are
 stress tests of extrapolation into empty colour space, not contamination rates. Outside the models' dense
 core, where both the quasar and the background intensity are below 1\% of their grid maximum, no grid point
-receives $p_{\rm quasar}>0.5$ with the support cut (Fig.~\ref{fig:grids}); without it, 3 would for each model. Most of the grid is not ranked: points outside
+receives $p_{\rm quasar}>0.5$ with the support cut (Fig.~\ref{fig:grids}); without it, 2 (magnitude-independent) and
+1 (magnitude-dependent) would. Most of the grid is not ranked: points outside
 both models, or rejected by the support cut, are set aside.
 
 \begin{figure}[!htbp]\centering
@@ -755,15 +833,15 @@ background intensity are below 1\% of their grid maximum.}
 Figure~\ref{fig:examples} shows six test objects scored by both models. For each band the
 panels compare the observed corrected luptitude, minus Legacy $r$, with the model's conditional prediction
 at the object's redshift. A bright $z=1.48$ quasar and a $z=0.63$ quasar match their predictions and receive
-$p_{\rm quasar}=1.00$ and 0.99 ($\log\R=1.6$--1.7 and 1.1--1.2). A $z=2.96$ quasar lies within the predicted ranges
-but where quasars at that redshift overlap the stellar locus; it is ranked with $p_{\rm quasar}=0.29$ and 0.19
-($\log\R=-3.0$ and $-1.7$). One test quasar at
+$p_{\rm quasar}=1.00$ and 0.99--1.00 ($\log\R=1.6$--1.7 and 1.2). A $z=2.96$ quasar lies within the predicted ranges
+but where quasars at that redshift overlap the stellar locus; it is ranked with $p_{\rm quasar}=0.44$ and 0.33
+($\log\R=-2.7$ and $-1.4$). One test quasar at
 $z=2.26$ has a Legacy $r$ 2--3\,mag fainter than all its other optical bands, a faulty or variable reference
 measurement; relative to it the colours are impossible for a quasar, and both models decline to rank it
-(support percentile 0.004). A background star has $\log\R=-51$ and $-43$ and $p_{\rm quasar}=0.00$; its
-infrared colours are far below the quasar prediction. The last panel is a background object that both models
-call a quasar ($p_{\rm quasar}=1.00$, $\log\R=0.7$ and 1.1 at $z_0=1.88$): its colours follow the quasar
-prediction in every band, and it is probably an unidentified quasar. Legacy and AllWISE $W1,W2$
+(support percentile 0.004). A background star has $\log\R=-24$ and $-20$ and $p_{\rm quasar}=0.00$; its
+ultraviolet and infrared colours are far from the quasar prediction. The last panel is a background object that
+both models call a quasar ($p_{\rm quasar}=0.97$ and 0.99, $\log\R=0.5$ at $z_0=1.54$): its colours follow the quasar
+prediction in every band but one, and it is probably an unidentified quasar. Legacy and AllWISE $W1,W2$
 appear as separate points because Legacy fluxes are AB and AllWISE Vega; the zero points differ by
 about 2.7 and 3.3\,mag.
 
@@ -780,16 +858,21 @@ known quasars (magnitude-independent and magnitude-dependent model), 53\% and 62
 support cut (99\%); of the 17 and 20 unranked known quasars, 11 and 15 fail the support cut and 6 and 5 lie
 outside both models. (With the earlier fixed $4\sigma$ outside-both test, 3.5\% and 3.8\% of the known quasars
 were not ranked, 85\% of them outside both models.)
-The second is the reliability of the returned probability, among ranked objects only (Fig.~\ref{fig:calib}): in the
-mid range, $0.1\lesssim p\lesssim0.95$, the observed quasar fraction brackets $p_{\rm quasar}$ in most
-bins (for example 0.29--0.67 at $p\approx0.58$, and 0.48--0.87 at $p\approx0.85$, magnitude-independent). Ranked objects at $p<0.01$ contain no
-known quasars and 2.4--2.5\% flagged ones. At the top the lower bound is well below the prediction: $p>0.99$
-gives 0.68--0.97 observed. Most of that gap is labelling: 171 of the 188 background objects with $p>0.97$
-(magnitude-dependent model, earlier test) are flagged as likely quasars, and the upper bound lies close to the
-prediction (\code{docs/pquasar\_diagnostics}). A two-parameter map of the log-odds, fitted on half the cones,
-is driven by the large $p\approx0$ population and pushes mid-range values below both bounds
-($p=0.5\to0.29$--0.31), so it is not applied. $p_{\rm quasar}$ is therefore an approximately calibrated probability for ranked objects whose
-largest values are at most mildly overconfident; an object the scorer declines to rank should be treated as
+The second is the reliability of the returned probability, among ranked objects only (Fig.~\ref{fig:calib}).
+Ranked objects at $p<0.01$ contain no known quasars and 1.9--2.2\% flagged ones. In the mid range the prediction
+now lies between the bounds or slightly above the upper one: for example 0.19--0.48 observed at $p\approx0.57$ and
+0.41--0.75 at $p\approx0.85$ (magnitude-independent; 0.20--0.54 and 0.29--0.74 magnitude-dependent). At the top,
+$p>0.99$ gives 0.67--0.97 observed; most of the gap to the lower bound is labelling: 171 of the 188 background
+objects with $p>0.97$ (magnitude-dependent model, earlier prior and test) are flagged as likely quasars, and the
+upper bound lies close to the prediction (\code{docs/pquasar\_diagnostics}). Compared with the earlier abundance prior
+the mid-range points have moved below the diagonal, because the luminosity-function prior raises $p_{\rm quasar}$ for
+faint objects. That is the regime where these labels fail: the upper bound counts a background object as a quasar
+only if it is a Quaia member (Gaia $G<20$) or has WISE AGN colours, and a quasar at $r\gtrsim22.5$ usually has
+neither. The test therefore cannot measure the calibration of faint $p_{\rm quasar}$, and the excess over the upper
+bound in the mid range is an upper limit on the overconfidence, not a measurement of it. A two-parameter map of the
+log-odds, fitted on half the cones, is driven by the large $p\approx0$ population and pushes mid-range values far below
+both bounds ($p=0.5\to0.21$--0.23), so it is not applied. $p_{\rm quasar}$ is approximately calibrated for ranked
+objects at the magnitudes where the labels are complete; an object the scorer declines to rank should be treated as
 not a quasar candidate, which loses 1.0--1.2\% of real quasars in this sample.
 
 \begin{figure}[!htbp]\centering
@@ -848,13 +931,15 @@ $P({\rm QQ}\mid\text{blend},\ \text{detectable companion})$, and how often a det
 quasar rather than a star belongs to the prior odds. (Without this conditioning, the much larger share of
 stars below the limit penalises QS for companions the mode excludes; in the validation that produced
 false quasar pairs for faint stars.) No catch-all or support cut is applied, and the known quasar's
-magnitude prior is the spectroscopic-sample $\Sigma_Q$, an assumption about the selection of the primary.
+magnitude prior is $\Sigma_Q$, the whole quasar population (Section~\ref{sec:qsoprior}); a spectroscopic
+primary is in practice drawn from the brighter, targeted part, which is an assumption of the mode.
 
 \paragraph{Accuracy of the linearisation.} On 79 synthetic blends restricted to Legacy $g,r,z,W1,W2$, the
 Bayes factor agrees with a brute-force Monte Carlo of the same integral (20,000 flux-space draws per
-$\alpha$) in sign for 98.7\% of blends, with median $|\Delta\log{\rm BF}|=0.31$ where $|\log{\rm BF}|<10$; a
-few blends differ by 1--5\,nat. Large differences occur only where QS is strongly preferred, and there the
-linearisation is the more conservative (for example $-8$ against $-78$).
+$\alpha$) in sign for all 79 blends, with median $|\Delta\log{\rm BF}|=0.27$ where $|\log{\rm BF}|<10$. Large
+differences (15 blends above 5\,nat) occur only where QS is clearly preferred: there the Monte Carlo cannot
+sample the very small QQ likelihood and returns far lower values (for example $-99$ against $-8.8$), and the
+linearisation is the more conservative.
 
 \paragraph{Validation on synthetic blends of held-out objects.} We sum the extinction-corrected fluxes (and
 variances) of real test objects: 1,200 QQ blends of two test quasars in the same redshift slice and 1,200
@@ -865,20 +950,23 @@ Legacy $r$ $S/N\ge10$, both classes placed at random test-cone positions. 99\% a
 \toprule
 & \code{current} & \code{current\_magindep} \\
 \midrule
-AUC (QQ against QS, $\log{\rm BF}$) & 0.950 & 0.936 \\
-AUC, companion share $<10\%$ & 0.79 & 0.69 \\
-AUC, companion share 10--25\% & 0.90 & 0.89 \\
-AUC, companion share 25--50\% & 0.97 & 0.95 \\
+AUC (QQ against QS, $\log{\rm BF}$) & 0.947 & 0.927 \\
+AUC, companion share $<10\%$ & 0.77 & 0.67 \\
+AUC, companion share 10--25\% & 0.88 & 0.85 \\
+AUC, companion share 25--50\% & 0.96 & 0.94 \\
 AUC, companion share $>50\%$ & $\ge0.995$ & $\ge0.994$ \\
-QQ blends with $P({\rm QQ})>0.9$ / $<0.1$ & 71\% / 0.7\% & 59\% / 1.1\% \\
-QS blends with $P({\rm QQ})<0.1$ / $>0.9$ & 69\% / 5.9\% & 66\% / 5.3\% \\
+QQ blends with $P({\rm QQ})>0.9$ / $<0.1$ & 75\% / 0.6\% & 63\% / 0.6\% \\
+QS blends with $P({\rm QQ})<0.1$ / $>0.9$ & 67\% / 7.2\% & 63\% / 6.9\% \\
 median error of companion share, QQ / QS & 0.09 / 0.06 & 0.09 / 0.07 \\
 \bottomrule
 \end{tabular}
 \end{center}
 At prior odds 1 on this balanced sample, $P({\rm QQ})$ is close to calibrated (Fig.~\ref{fig:blend}); it is
-mildly overconfident towards QQ at the top (blends given 0.8--0.95 are QQ in 78\%), part of which is
-unidentified quasars among the ``stars''. The mode separates the hypotheses well whenever the companion
+mildly overconfident towards QQ at the top (blends given 0.8--0.95 are QQ in 73--78\%), part of which is
+unidentified quasars among the ``stars''. With the luminosity-function abundance prior (Section~\ref{sec:qsoprior})
+the AUC is 0.003--0.009 lower than with the earlier prior, more true QQ blends reach $P({\rm QQ})>0.9$ (75\% against
+71\%, and 63\% against 60\%), and more QS blends do (7.2\% against 5.9\%, and 6.9\% against 5.3\%): the prior now
+makes faint quasar companions more plausible, for real and for star companions alike. The mode separates the hypotheses well whenever the companion
 contributes a quarter or more of the light, and poorly when it contributes less than a tenth, where the blend
 looks like the known quasar alone. The magnitude-dependent model separates slightly better, mostly for faint
 companions. Scoring takes about 0.5\,s per blend.
@@ -924,21 +1012,21 @@ AUC is uncertain by about $\pm0.07$; the trends across neighbouring cells are th
 At $r=19.5$ (Fig.~\ref{fig:blendmapz}) the companion's share decides the result:
 \begin{itemize}
 \item share $\ge0.5$: AUC $\ge0.96$ in every class and redshift bin;
-\item share 0.3: median AUC 0.89 (blue), 0.88 (G--K), 0.93 (K--M), 1.00 (M);
-\item share 0.2: median AUC 0.76, 0.76, 0.85, 0.95;
-\item share $\le0.1$: median AUC 0.57--0.71 for blue to K--M companions, close to chance; M stars stay
-  separable down to 0.1 (median 0.87) and partly to 0.05 (0.80).
+\item share 0.3: median AUC 0.89 (blue), 0.91 (G--K), 0.94 (K--M), 1.00 (M);
+\item share 0.2: median AUC 0.78, 0.78, 0.88, 0.96;
+\item share $\le0.1$: median AUC 0.57--0.74 for blue to K--M companions, close to chance; M stars stay
+  separable down to 0.1 (median 0.87) and partly to 0.05 (0.82).
 \end{itemize}
 The redshift dependence is mostly within the cell noise; M-star companions at a share of 0.1 separate better
 above $z\approx2.3$ (AUC 0.92--0.95) than at $z<0.8$ (0.70).
-QQ blends have a median $\log{\rm BF}$ of 1--4 in favour of QQ in every cell; between 15\% and 80\% of them
+QQ blends have a median $\log{\rm BF}$ of 1.5--4 in favour of QQ in every cell; between 15\% and 80\% of them
 reach $P({\rm QQ})>0.9$; the evidence for QQ is weakest in the lowest redshift bin.
 
 With magnitude (Fig.~\ref{fig:blendmapr}, all redshifts) the separation for shares $\ge0.3$ holds to
 $r=21.5$. At shares 0.1--0.2 the AUC for K--M and M companions falls by up to 0.2 from $r=18.5$ to 21.5; for blue and
-G--K companions it is low at all magnitudes. At $r=21.5$ the QQ blends' median
-$\log{\rm BF}$ is about 0: there QQ blends are no longer recognised, and only the absence of a stellar
-signature argues for QQ.
+G--K companions it is low at all magnitudes. At $r=21.5$ the QQ blends' median $\log{\rm BF}$ is 0.7--2.1, still in
+favour of QQ; with the earlier spectroscopic-count prior it was about 0, because that prior had too few faint
+quasar companions.
 
 \paragraph{Caveats.} The maps are controlled experiments, not a census of real blends. The noise is
 diagonal and sky-limited; real deblending and model-flux errors are not modelled. Rescaling keeps each
@@ -983,9 +1071,9 @@ test sample.}
 \section{Limitations and open items}\label{sec:limits}
 %======================================================================
 \begin{itemize}
-\item \textbf{Probability calibration} is approximate: among ranked objects $p_{\rm quasar}$ is bracketed by
-  the label bounds in the mid range and above the lower bound at the top, where most of the excess is
-  unlabelled quasars; 1.0--1.2\% of real quasars are not ranked (Section~\ref{sec:calib}); the reliability of $p_{\rm same}$
+\item \textbf{Probability calibration} is approximate and untested at faint magnitudes: among ranked objects
+  $p_{\rm quasar}$ lies between or slightly above the label bounds in the mid range, and the labels miss most
+  quasars at $r\gtrsim22.5$; 1.0--1.2\% of real quasars are not ranked (Section~\ref{sec:calib}); the reliability of $p_{\rm same}$
   for a narrow redshift window is not tested.
 \item \textbf{Background purity.} Faint unidentified quasars not detected by WISE remain in the background
   training sample and counts. The test background sets carry the same contamination, which lowers the
@@ -998,7 +1086,8 @@ test sample.}
 \item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the benefit
   of the magnitude-independent model for quasars outside the DESI and SDSS selection, so the choice between
   the two models (Section~\ref{sec:variants}) rests partly on that untested risk.
-\item \textbf{Quasar abundance} comes from earlier counts shifted for extinction, not a recount.
+\item \textbf{Quasar abundance} is the eBOSS luminosity function, extrapolated beyond $r\approx22.3$ and below
+  $z=0.68$, with an interpolated redshift shape inside its $\Delta z=1$ bins (Section~\ref{sec:qsoprior}).
 \item \textbf{Sparse surveys.} NSC $VR$ and VISTA $Y$ extinction coefficients are approximate, and
   SkyMapper $u,v$ and VHS have little training support.
 \item \textbf{Background in the faintest bins} ($r>21.5$) is broader than the data in $W1-W2$ and slightly
@@ -1032,7 +1121,7 @@ magnitude term, constant in the free parameters, and a colour term. Maximising t
 the MAP prior on $V_c$ gives the usual updates applied to the colour block alone. The prior on the full
 covariance differs from the prior on $V_c$ by a constant. The constrained update is therefore exact.
 
-\begin{thebibliography}{12}\small
+\begin{thebibliography}{13}\small
 \bibitem[Bovy et al.(2011a)]{Bovy2011XD} Bovy J., Hogg D.~W., Roweis S.~T., 2011, Ann. Appl. Stat., 5, 1657,
   ``Extreme deconvolution'', \href{https://arxiv.org/abs/0905.2979}{arXiv:0905.2979}.
 \bibitem[Bovy et al.(2011b)]{Bovy2011XDQSO} Bovy J. et al., 2011, ApJ, 729, 141, ``Think outside the color box'' (XDQSO),
@@ -1044,6 +1133,10 @@ covariance differs from the prior on $V_c$ by a constant. The constrained update
   \href{https://arxiv.org/abs/astro-ph/9903081}{arXiv:astro-ph/9903081}.
 \bibitem[Lyke et al.(2020)]{Lyke2020} Lyke B.~W. et al., 2020, ApJS, 250, 8, SDSS DR16Q,
   \href{https://arxiv.org/abs/2007.09001}{arXiv:2007.09001}.
+\bibitem[Palanque-Delabrouille et al.(2016)]{PalanqueDelabrouille2016} Palanque-Delabrouille N. et al., 2016, A\&A, 587, A41,
+  ``The extended Baryon Oscillation Spectroscopic Survey: variability selection and quasar luminosity function'',
+  \href{https://doi.org/10.1051/0004-6361/201527392}{doi:10.1051/0004-6361/201527392},
+  \href{https://arxiv.org/abs/1509.05607}{arXiv:1509.05607}.
 \bibitem[Schlegel et al.(1998)]{SFD98} Schlegel D.~J., Finkbeiner D.~P., Davis M., 1998, ApJ, 500, 525,
   \href{https://doi.org/10.1086/305772}{doi:10.1086/305772}.
 \bibitem[Schlafly \& Finkbeiner(2011)]{SF11} Schlafly E.~F., Finkbeiner D.~P., 2011, ApJ, 737, 103,
