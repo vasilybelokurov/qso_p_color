@@ -51,3 +51,10 @@ docs/method_unified/*.fls
 docs/method_unified/*.log
 docs/method_unified/*.out
 docs/method_unified/*.toc
+
+# LaTeX build files of the p_quasar diagnostics note
+docs/pquasar_diagnostics/*.aux
+docs/pquasar_diagnostics/*.fdb_latexmk
+docs/pquasar_diagnostics/*.fls
+docs/pquasar_diagnostics/*.log
+docs/pquasar_diagnostics/*.out
