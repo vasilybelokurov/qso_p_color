@@ -88,3 +88,23 @@ def test_blend_fallback_is_opt_in():
     assert off.score(phot, **args)[0].status == 'no_reference_band'
     r = on.score(phot, **args)[0]
     assert r.status == 'ok' and 'legacy_r_marginalised:ps1:r' in r.notes and np.isfinite(r.log_bf_qq_qs)
+
+
+@pytest.mark.skipif(not BUNDLE.exists(), reason='shipped bundle required')
+def test_bright_source_near_prior_edge_is_scored_or_refused_with_a_reason():
+    """Grid points beyond the tabulated priors (r < ~16.4) must not poison the integral with NaN."""
+    from qso_pcolor.multisurvey_baseline import BlendPolicy
+    from qso_pcolor.score import RedshiftMatch
+    from qso_pcolor.unified import UnifiedPSFModel
+    model = UnifiedPSFModel.load(BUNDLE)
+    bands = ('ps1:g', 'ps1:r', 'ps1:i', 'ps1:z', 'allwise:w1', 'allwise:w2')
+    soft = np.asarray(model.base.model.transform.softening)[[model.base.model.transform.bands.index(b) for b in bands]]
+    for r in (16.8, 17.3):
+        f = flux_of(np.array([r + .5, r, r - .15, r - .2, r - .6, r - .4]), soft)
+        s, d = model.score(Photometry(f[None], ((f/100.)**2)[None], bands), ra_deg=30., dec_deg=-50., z_primary=1.5,
+                           morphology=['PSF'], match=RedshiftMatch(half_width_kms=2000.),
+                           blend_policy=BlendPolicy(min_separation_arcsec=3., max_fracflux=.2), ood_flag_sigma=4.,
+                           separation_arcsec=6., fracflux=.05, legacy_r_fallback=True)
+        assert d['eligible'][0] or d['reason'][0] != ''
+        if d['eligible'][0]:
+            assert np.isfinite(model.quasar_probability(s)[0])

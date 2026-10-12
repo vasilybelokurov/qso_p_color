@@ -37,6 +37,8 @@ LATENT_BAND = 'decals_dr9_south:r'           # native band that is the latent le
 FALLBACK_BANDS = ('ps1:r', 'skymapper:r')
 A = 2.5/np.log(10.)
 SYNTHETIC_REL_ERROR = 1e-6                   # noise-free synthetic Legacy r (relative flux error)
+GRID_HALFWIDTH = 1.2                         # mag, plus 5 sigma of the fallback band (legacy_r_grid)
+N_GRID = 41                                  # grid points (trapezoid)
 
 
 def luptitude(f, s):
@@ -63,13 +65,19 @@ def fallback_status(photometry: Photometry, bands, min_snr: float):
     return need, need & has & (snr >= min_snr), band, snr
 
 
-def legacy_r_grid(centre, sigma_mag, n: int, halfwidth: float = 1.2, n_sigma: float = 5.):
+def legacy_r_grid(centre, sigma_mag, n: int, halfwidth: float | None = None, n_sigma: float = 5.):
     """Uniform grid of Legacy r luptitudes around ``centre``.
 
-    The half-width covers the models' scatter of the fallback band about Legacy r (QSOs: ~0.2 mag in PS1 r,
-    mostly variability between epochs; stars ~0.1 mag) plus ``n_sigma`` times the measurement error.
+    The window is a support restriction, not only numerics. Measured on the training samples (both bands S/N > 10),
+    |PS1 r - Legacy r| exceeds 1.0 mag for 0.4% of quasars and 1.5 mag for 0.03% (QSO NMAD 0.21 mag, mostly
+    variability between epochs; stars 0.085). Beyond that the models' p(fallback band | m) is an extrapolation:
+    at faint m their components were never constrained by fallback-band detections, and the steeply rising
+    Sigma_B(m) turns those tails into spurious mass (p changed by up to 0.2 between half-widths 1.6 and 3 mag on
+    the hardest test objects, but by a median 0.003, 90th percentile <= 0.014, between 0.8, 1.2 and 1.6 mag).
+    Half-width ``GRID_HALFWIDTH`` (1.2 mag) plus ``n_sigma`` times the measurement error; ``legacy_r_grid_truncated``
+    flags objects whose integrand still carries > 1e-3 of its mass at the window edges.
     """
-    w = halfwidth + n_sigma*sigma_mag
+    w = (GRID_HALFWIDTH if halfwidth is None else halfwidth) + n_sigma*sigma_mag
     return np.linspace(centre - w, centre + w, n)
 
 
@@ -91,7 +99,7 @@ def _posteriors(ls, lf, lb, lo, dz_eff):
 
 
 def score_with_fallback(model, photometry: Photometry, scores: list, decision: dict, *, ra_deg, dec_deg,
-                        z_primary, morphology, min_snr: float = 10., n_grid: int = 41, flux_covariance=None,
+                        z_primary, morphology, min_snr: float = 10., n_grid: int | None = None, flux_covariance=None,
                         **kwargs):
     """Rescore rows flagged ``no_faint_limit_band`` by integrating over Legacy r (see module docstring).
 
@@ -100,6 +108,7 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
     ``no_fallback_band`` or ``fallback_too_faint``.
     """
     from .unified import galactic_from_equatorial
+    n_grid = N_GRID if n_grid is None else int(n_grid)
     bands = tuple(model.base.model.transform.bands)
     p = photometry.align(bands)
     n = len(p.flux)
@@ -139,7 +148,11 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
                              b_deg=rep(b), ood_calibration=None, **grid_kw)
     get = lambda k: np.array([np.nan if s is None else getattr(s, k) for s in gs], float).reshape(len(rows), n_grid)
     lam = {k: get('log_lambda_'+k) for k in ('sameq', 'fieldq', 'bkg', 'out')}
-    lam['out'] = np.where(np.isfinite(lam['out']), lam['out'], -np.inf)
+    # Grid values outside the tabulated priors (scorer status e.g. qso_prior_empty_at_this_magnitude) carry no
+    # intensity: the integral is taken over the priors' range. A mode outside it keeps the scorer's refusal.
+    no_prior = np.isnan(lam['sameq']) | np.isnan(lam['bkg'])
+    for k in lam:
+        lam[k] = np.where(no_prior | ~np.isfinite(lam[k]), -np.inf, lam[k])
     h = grids[:, 1] - grids[:, 0]
     with np.errstate(invalid='ignore'):
         total = logsumexp(np.stack([lam[k] for k in lam]), axis=0)                         # (R, K)
@@ -163,7 +176,8 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
         integ = {k: float(_integrate(lam[k][j], h[j])) for k in lam}
         edge = float(post[j, 0] + post[j, -1])
         flags = tuple(rec.quality_flags) + (f'legacy_r_marginalised:{bands[band[i]]}',) + \
-            (('legacy_r_grid_truncated',) if edge > 1e-3 else ())
+            (('legacy_r_grid_truncated',) if edge > 1e-3 else ()) + \
+            (('legacy_r_grid_outside_prior',) if no_prior[j].any() else ())
         new = replace(rec, ref_mag=float((post[j]*grids[j]).sum()), quality_flags=flags,
                       log_lambda_sameq=integ['sameq'], log_lambda_fieldq=integ['fieldq'],
                       log_lambda_bkg=integ['bkg'], log_lambda_out=integ['out'] if np.isfinite(integ['out']) else np.nan)

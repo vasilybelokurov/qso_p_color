@@ -314,10 +314,13 @@ class BlendModel:
         for M in grid:
             T = float(flux_of(M, self.soft[ref]))
             res.append(self._hypotheses(T, T*sig_s/Ts, ref, LATENT_BAND, y, noise, others, z0, l, b))
-        if any(r is None for r in res):
+        # grid values outside the tabulated priors carry no intensity (integral over the priors' range)
+        if all(r is None for r in res):
             return BlendScore('empty_magnitude_prior', label_fb)
+        outside = any(r is None for r in res)
+        res = [r if r is not None else {'qq': (-np.inf, np.nan), 'qs': (-np.inf, np.nan)} for r in res]
         w = np.full(len(grid), np.log(h)); w[[0, -1]] -= np.log(2.)
-        out = {'alpha_range': res[len(res)//2]['alpha_range']}
+        out = {'alpha_range': next(r for r in res if 'alpha_range' in r)['alpha_range']}
         edge = 0.
         for hyp in ('qq', 'qs'):
             lg = np.array([r[hyp][0] for r in res]) + w
@@ -327,5 +330,6 @@ class BlendModel:
             post = np.exp(lg - tot)
             out[hyp] = (tot, float(np.nansum(post*np.array([r[hyp][1] for r in res]))))
             edge = max(edge, float(post[0] + post[-1]))
-        notes = (f'legacy_r_marginalised:{label_fb}',) + (('legacy_r_grid_truncated',) if edge > 1e-3 else ())
+        notes = (f'legacy_r_marginalised:{label_fb}',) + (('legacy_r_grid_truncated',) if edge > 1e-3 else ()) + \
+            (('legacy_r_grid_outside_prior',) if outside else ())
         return self._result(out, LATENT_BAND, tuple(others), others, prior_odds, notes)
