@@ -1,5 +1,19 @@
 # Current project state
 
+**SCORING WITHOUT LEGACY r (IN PROGRESS, PI request 12-13 October 2026).** Trigger: a student's 322 blend candidates,
+242 without Legacy r (outside DR9; 241 Quaia redshifts); no valid model scored them. PI chose (after Codex review,
+docs/reviews/, local): keep Legacy r as the population reference and INTEGRATE OVER the unobserved Legacy r given
+PS1 r (else SkyMapper r) at S/N >= 10; both single-object and blend modes; no colour-model refit.
+Code (opt-in, defaults unchanged): `src/qso_pcolor/fallback_reference.py`, `UnifiedPSFModel.score(legacy_r_fallback=True)`,
+`BlendModel(legacy_r_fallback=True)`; blend Legacy-r path refactored, verified bit-identical (40 blends, both bundles).
+Measured: fallback-band minus Legacy South r (both S/N>30): QSOs PS1 r +0.03 / NMAD 0.21 mag (variability; NSC r
+0.04), stars 0.085; the models reproduce PS1 (QSO 0.22-0.25, stars 0.10) but NOT SkyMapper for QSOs (model
+conditional scatter 0.85-1.0 mag vs data 0.13; only 2,349 training QSOs with both) -> SkyMapper fallback suspect.
+Running: `scripts/fallback_reference/quaia_no_legacy_r.py` (Quaia G<20 |b|>=25 vs DR9 + other surveys) and
+`scripts/fallback_reference/validate_fallback.py` (criteria declared in its docstring). OPEN PI DECISIONS: (a) make
+the fallback a default? (b) SkyMapper fallback: accept / refit / drop, after its validation; (c) point-source criterion
+for single-object scoring outside Legacy (caller supplies `morphology`); (d) blend mode has no |b| check.
+
 **QSO ABUNDANCE PRIOR = eBOSS QLF (PI decision, promoted 5 October 2026).** `current` -> `20261005_magdep_qlf`,
 `current_magindep` -> `20261005_magindep_qlf` (rollback `previous_20261003_*`). Sigma_Q(z, r) for the Legacy r
 reference bands is Palanque-Delabrouille et al. 2016 Table 7 (PLE+LEDE), PCHIP in z, log-linear in magnitude

@@ -34,6 +34,9 @@ Base rules: any morphology; extinction corrected on the blend (both components l
 both components must carry at least ``faint_snr`` (10) times the blend's Legacy r flux error, so the
 blend itself needs Legacy r at S/N >= 2 * faint_snr. Likelihoods therefore describe companions above that
 limit. No catch-all and no support cut are applied (two hypotheses only).
+
+``legacy_r_fallback=True`` (off by default) scores blends without Legacy r by integrating over the blend's
+unobserved Legacy r, given PS1 r or SkyMapper r at S/N >= 2 * faint_snr (``_score_fallback``).
 """
 from __future__ import annotations
 
@@ -125,12 +128,14 @@ class BlendScore:
 class BlendModel:
     """Blend-mode scorer built on a loaded :class:`UnifiedPSFModel` (any promoted bundle)."""
 
-    def __init__(self, unified, *, faint_snr: float = 10., n_alpha: int = 48, mag_step: float = .01, extra_covariance=None):
+    def __init__(self, unified, *, faint_snr: float = 10., n_alpha: int = 48, mag_step: float = .01, extra_covariance=None,
+                 legacy_r_fallback: bool = False, n_fallback_grid: int = 41):
         self.unified = unified; self.base = unified.base; self.model = unified.base.model
         d = len(self.model.transform.bands)
         self.extra = np.zeros((d, d)) if extra_covariance is None else np.asarray(extra_covariance, float)
         self.faint_snr, self.n_alpha, self.mag_step = float(faint_snr), int(n_alpha), float(mag_step)
         self.bands = tuple(self.model.transform.bands); self.soft = np.asarray(self.model.transform.softening, float)
+        self.legacy_r_fallback, self.n_fallback_grid = bool(legacy_r_fallback), int(n_fallback_grid)
 
     @classmethod
     def load(cls, path, **kwargs):
@@ -205,6 +210,8 @@ class BlendModel:
         obs = p.observed[0]; flux = np.where(obs, p.flux[0], 0.); var = np.where(obs, p.variance[0], np.inf)
         ref = next((self.bands.index(r) for r in REFERENCE if obs[self.bands.index(r)]), None)
         if ref is None:
+            if self.legacy_r_fallback:
+                return self._score_fallback(p, obs, flux, var, z0, l, b, prior_odds)
             return BlendScore('no_reference_band')
         label = self.bands[ref]
         if not self.model.qso.in_support(np.array([z0]))[0]:
@@ -214,6 +221,30 @@ class BlendModel:
             return BlendScore('too_faint_for_two_components', label)
         if label not in self.base.priors:
             return BlendScore('no_prior_for_reference_band', label)
+        others = np.flatnonzero(obs & (np.arange(len(obs)) != ref))
+        f = self.model.transform(Photometry(flux[None], np.where(obs, var, np.inf)[None], self.bands))
+        y = f.x[0, others]; noise = f.cov[0][np.ix_(others, others)]
+        out = self._hypotheses(T, sig, ref, label, y, noise, others, z0, l, b)
+        if out is None:
+            return BlendScore('empty_magnitude_prior', label)
+        return self._result(out, label, (ref, *others), others, prior_odds)
+
+    def _result(self, out, label, used, others, prior_odds, notes=()):
+        lqq, lqs = out['qq'][0], out['qs'][0]
+        if not (np.isfinite(lqq) or np.isfinite(lqs)):
+            return BlendScore('empty_hypotheses', label)
+        bf = lqq - lqs
+        pqq = 1/(1 + np.exp(-(bf + np.log(prior_odds)))) if np.isfinite(bf) else float(np.isfinite(lqq))
+        notes = tuple(notes) + (() if len(others) else ('no_colour_information',))
+        return BlendScore('ok', label, tuple(self.bands[j] for j in used), lqq, lqs, bf, float(pqq), prior_odds,
+                          out['qq'][1], out['qs'][1], out['alpha_range'], notes)
+
+    def _hypotheses(self, T, sig, ref, label, y, noise, others, z0, l, b):
+        """{'qq'|'qs': (log L per unit reference luptitude, posterior mean share)} at blend reference flux T.
+
+        ``sig`` sets detectability: each component must carry at least ``faint_snr * sig`` of the reference
+        flux. None when a magnitude prior is empty.
+        """
         qprior, bdens = self.base.priors[label]
         # The known quasar's magnitude prior is the full Sigma_Q(z0, m) shape. The companion's prior is
         # conditioned on the companion being detectable (above the faint limit, F2 >= faint_snr * sigma):
@@ -225,16 +256,13 @@ class BlendModel:
         lpq2 = self._log_mag_density(lambda m: qprior(np.array([z0]), m)[0], qprior.mag_edges, upper=m_lim)
         lpb = self._log_mag_density(lambda m: bdens(np.array([m]), l, b)[0], bdens.mag_edges, upper=m_lim)
         if lpq is None or lpq2 is None or lpb is None:
-            return BlendScore('empty_magnitude_prior', label)
-        others = np.flatnonzero(obs & (np.arange(len(obs)) != ref))
-        f = self.model.transform(Photometry(flux[None], np.where(obs, var, np.inf)[None], self.bands))
-        y = f.x[0, others]; noise = f.cov[0][np.ix_(others, others)]
+            return None
         s_o, s_r = self.soft[others], self.soft[ref]
         amin = self.faint_snr*sig/T
         t = np.linspace(np.log(amin/(1 - amin)), np.log((1 - amin)/amin), self.n_alpha)
         alpha = 1/(1 + np.exp(-t))
         q_mix = self._qso_mixture(z0); b_mix = self._background_mixture(l, b)
-        out = {}
+        out = {'alpha_range': (float(alpha[0]), float(alpha[-1]))}
         for hyp, comp_mix, lp2 in (('qq', q_mix, lpq2), ('qs', b_mix, lpb)):
             lg = np.full(len(alpha), -np.inf)
             for i, a in enumerate(alpha):
@@ -254,11 +282,50 @@ class BlendModel:
             # QQ is symmetric in the two quasars, so report the minor component's share; QS: the star's share.
             share = np.minimum(alpha, 1 - alpha) if hyp == 'qq' else alpha
             out[hyp] = (float(total), float((post*share).sum()))
-        lqq, lqs = out['qq'][0], out['qs'][0]
-        if not (np.isfinite(lqq) or np.isfinite(lqs)):
-            return BlendScore('empty_hypotheses', label)
-        bf = lqq - lqs
-        pqq = 1/(1 + np.exp(-(bf + np.log(prior_odds)))) if np.isfinite(bf) else float(np.isfinite(lqq))
-        notes = () if len(others) else ('no_colour_information',)
-        return BlendScore('ok', label, tuple(self.bands[j] for j in [ref, *others]), lqq, lqs, bf, float(pqq), prior_odds,
-                          out['qq'][1], out['qs'][1], (float(alpha[0]), float(alpha[-1])), notes)
+        return out
+
+    def _score_fallback(self, p, obs, flux, var, z0, l, b, prior_odds):
+        """No Legacy r: integrate the blend's unobserved Legacy r out (see qso_pcolor.fallback_reference).
+
+        The blend's Legacy South r luptitude M is placed on a grid around the fallback band's luptitude; at
+        each M the Legacy-r likelihood is evaluated with every observed band (the fallback band included) as
+        colour information, and L_H = \\int L_H(M) dM by the trapezoid rule. Detectability uses the fallback
+        band: each component must carry at least ``faint_snr`` times its flux error, as a share of the flux.
+        """
+        from .fallback_reference import FALLBACK_BANDS, LATENT_BAND, legacy_r_grid
+        fb = next((self.bands.index(r) for r in FALLBACK_BANDS if obs[self.bands.index(r)]), None)
+        if fb is None:
+            return BlendScore('no_reference_band')
+        label_fb = self.bands[fb]
+        if not self.model.qso.in_support(np.array([z0]))[0]:
+            return BlendScore('redshift_outside_support', label_fb)
+        Ts, sig_s = flux[fb], np.sqrt(var[fb])
+        if not (np.isfinite(sig_s) and Ts > 0) or Ts/sig_s < 2*self.faint_snr:
+            return BlendScore('too_faint_for_two_components', label_fb)
+        ref = self.bands.index(LATENT_BAND)
+        if LATENT_BAND not in self.base.priors:
+            return BlendScore('no_prior_for_reference_band', label_fb)
+        others = np.flatnonzero(obs)
+        f = self.model.transform(Photometry(flux[None], np.where(obs, var, np.inf)[None], self.bands))
+        y = f.x[0, others]; noise = f.cov[0][np.ix_(others, others)]
+        centre = float(luptitude(Ts, self.soft[fb])); smag = float(A*sig_s/np.hypot(Ts, 2*self.soft[fb]))
+        grid = legacy_r_grid(centre, smag, self.n_fallback_grid); h = grid[1] - grid[0]
+        res = []
+        for M in grid:
+            T = float(flux_of(M, self.soft[ref]))
+            res.append(self._hypotheses(T, T*sig_s/Ts, ref, LATENT_BAND, y, noise, others, z0, l, b))
+        if any(r is None for r in res):
+            return BlendScore('empty_magnitude_prior', label_fb)
+        w = np.full(len(grid), np.log(h)); w[[0, -1]] -= np.log(2.)
+        out = {'alpha_range': res[len(res)//2]['alpha_range']}
+        edge = 0.
+        for hyp in ('qq', 'qs'):
+            lg = np.array([r[hyp][0] for r in res]) + w
+            tot = float(logsumexp(lg)) if np.isfinite(lg).any() else -np.inf
+            if not np.isfinite(tot):
+                out[hyp] = (-np.inf, np.nan); continue
+            post = np.exp(lg - tot)
+            out[hyp] = (tot, float(np.nansum(post*np.array([r[hyp][1] for r in res]))))
+            edge = max(edge, float(post[0] + post[-1]))
+        notes = (f'legacy_r_marginalised:{label_fb}',) + (('legacy_r_grid_truncated',) if edge > 1e-3 else ())
+        return self._result(out, LATENT_BAND, tuple(others), others, prior_odds, notes)

@@ -226,11 +226,14 @@ class UnifiedPSFModel:
                    json.loads(cal.read_text()) if cal.exists() else None)
 
     def score(self, photometry: Photometry, *, ra_deg, dec_deg, z_primary,
-              apply_support: bool = True, flux_covariance=None, ood_calibration=DEFAULT_OOD_CALIBRATION, **kwargs):
+              apply_support: bool = True, flux_covariance=None, ood_calibration=DEFAULT_OOD_CALIBRATION,
+              legacy_r_fallback: bool = False, **kwargs):
         """Use candidate ICRS degrees and primary-QSO redshift; return support separately.
 
         ``ood_calibration`` (default DEFAULT_OOD_CALIBRATION) decides 'outside both models' from calibrated
         tail probabilities (scores' ``qso_ood_p``, ``bkg_ood_p``); ``None`` uses the fixed ``ood_flag_sigma``.
+        ``legacy_r_fallback=True`` scores sources without Legacy r by integrating over it, given PS1 r or
+        SkyMapper r at S/N >= 10 (qso_pcolor.fallback_reference); off by default.
 
         Explicit survey-labelled bands identify actual native provenance even
         in overlap fields. The coordinate hemisphere is an informational default.
@@ -256,6 +259,11 @@ class UnifiedPSFModel:
                 decision['eligible'][i] = False; decision['reason'][i] = 'qso_support_rejected'
         decision.update(qso_support=support, support_rejected=rejected,
                         coordinate_hemisphere=hemisphere_of(ra, dec, b))
+        if legacy_r_fallback:
+            from .fallback_reference import score_with_fallback
+            scores, decision = score_with_fallback(self, photometry, scores, decision, ra_deg=ra, dec_deg=dec,
+                z_primary=z_primary, flux_covariance=flux_covariance, ood_calibration=ood_calibration,
+                apply_support=apply_support, **kwargs)
         return scores, decision
 
     def score_catalogue(self, values, errors, bands, *, ra_deg, dec_deg,
