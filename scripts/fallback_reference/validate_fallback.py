@@ -9,16 +9,17 @@ Each is scored three ways with the same model:
   fallback  non-Legacy bands only (Legacy r unobserved), Legacy r integrated out (``legacy_r_fallback=True``).
 The fallback-vs-legacy_r difference is the cost of not knowing Legacy r. Modes:
   ps1        drop all Legacy bands; PS1 r is the fallback band;
-  skymapper  drop Legacy, PS1, SDSS and NSC; SkyMapper r is the fallback band (deep-south case).
-Single-object part: QSOs at their own z, background objects at z drawn from the QSO test redshifts.
-Blend part: synthetic QQ/QS blends of held-out objects (scripts/validate_blend_mode.py construction) whose
+  skymapper  drop Legacy, PS1, SDSS and NSC; SkyMapper r is the fallback band (deep-south case);
+  nsc        drop Legacy, PS1 and SDSS; NSC r is the fallback band, SkyMapper kept as colour information.
+Resolved mode: QSOs at their own z, background objects at z drawn from the QSO test redshifts.
+Blend mode: synthetic QQ/QS blends of held-out objects (scripts/validate_blend_mode.py construction) whose
 components have the fallback band at S/N >= 10, scored with the Legacy r and the fallback blend scorers.
 
-Acceptance (declared before running, 13 October 2026): single objects - AUC(fallback) >= AUC(legacy_r) - 0.01
+Acceptance (declared before running, 13 October 2026): resolved mode - AUC(fallback) >= AUC(legacy_r) - 0.01
 with the 95% paired sky-bootstrap upper bound on the loss < 0.02, background p>0.5 rate up by < 0.5 pp, QSO
-recall at p>0.5 down by < 5 pp; blends - AUC loss <= 0.02. Log score and unranked fractions are reported.
+recall at p>0.5 down by < 5 pp; blend mode - AUC loss <= 0.02. Log score and unranked fractions are reported.
 
-Usage: python scripts/fallback_reference/validate_fallback.py --part single --mode ps1 --model current --n 3000
+Usage: python scripts/fallback_reference/validate_fallback.py --part resolved --mode ps1 --model current --n 3000
 """
 import os
 for _k in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
@@ -42,7 +43,9 @@ RUN = ROOT/'models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059'
 OUT = ROOT/'models/multisurvey_psf/work/fallback_reference/validation'
 DOC = ROOT/'docs/fallback_reference'
 MODES = {'ps1': dict(band='ps1:r', drop=('decals_',)),
-         'skymapper': dict(band='skymapper:r', drop=('decals_', 'ps1:', 'sdss:', 'nsc:'))}
+         'skymapper': dict(band='skymapper:r', drop=('decals_', 'ps1:', 'sdss:', 'nsc:')),
+         # deep south with DECam: NSC r preferred over SkyMapper r (both kept), PS1 and SDSS absent
+         'nsc': dict(band='nsc:r', drop=('decals_', 'ps1:', 'sdss:'), order=('nsc:r', 'skymapper:r'))}
 SCHEMES = ('full', 'legacy_r', 'fallback')
 _s = {}
 
@@ -85,13 +88,20 @@ def select(kind, mode, n, seed, ex):
     return np.sort(rng.choice(idx, min(n, len(idx)), replace=False)), int(len(idx))
 
 
-# ---- single objects ---------------------------------------------------------------------------------
-def _init(path):
+# ---- resolved mode ----------------------------------------------------------------------------------
+def _fallback_order(order):
+    if order is not None:
+        import qso_pcolor.fallback_reference as FR
+        FR.FALLBACK_BANDS = tuple(order)
+
+
+def _init(path, order=None):
     from qso_pcolor.unified import UnifiedPSFModel
+    _fallback_order(order)
     _s['m'] = UnifiedPSFModel.load(path)
 
 
-def _score_single(a):
+def _score_resolved(a):
     from qso_pcolor.multisurvey_data import Photometry
     from qso_pcolor.score import RedshiftMatch
     from qso_pcolor.multisurvey_baseline import BlendPolicy
@@ -106,7 +116,7 @@ def _score_single(a):
              '' if s[i] is None else ','.join(f for f in s[i].quality_flags if f.startswith('legacy_r'))) for i in range(n)]
 
 
-def run_single(args):
+def run_resolved(args):
     lab = json.loads((RUN/'layout.json').read_text())['native_labels']; ex = excluded()
     rows = {k: select(k, args.mode, args.n, 20261013 + i, ex) for i, k in enumerate(('qso', 'stars'))}
     q = arrays(RUN, 'qso'); zq = np.asarray(q['zspec'])[rows['qso'][0]]
@@ -121,14 +131,14 @@ def run_single(args):
         for scheme in SCHEMES:
             V = masked_variance(V0, lab, scheme, args.mode); B = 16
             jobs = [(F[i:i+B], V[i:i+B], ra[i:i+B], dec[i:i+B], zs[kind][i:i+B], scheme == 'fallback') for i in range(0, len(r), B)]
-            with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context('spawn'), initializer=_init, initargs=(str(path),)) as pool:
-                out = [x for chunk in pool.map(_score_single, jobs) for x in chunk]
+            with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context('spawn'), initializer=_init, initargs=(str(path), MODES[args.mode].get('order'))) as pool:
+                out = [x for chunk in pool.map(_score_resolved, jobs) for x in chunk]
             res[(kind, scheme)] = dict(p=np.array([o[0] for o in out]), eligible=np.array([o[1] for o in out]),
                                        reason=np.array([o[2] for o in out]), ref_mag=np.array([o[3] for o in out]),
                                        flags=np.array([o[4] for o in out]))
             print(kind, scheme, 'eligible %.4f' % res[(kind, scheme)]['eligible'].mean(), flush=True)
     cells = {k: np.asarray(arrays(RUN, k)['cell'])[rows[k][0]] for k in ('qso', 'stars')}
-    tag = f'single_{args.mode}_{args.model}'
+    tag = f'resolved_{args.mode}_{args.model}'
     OUT.mkdir(parents=True, exist_ok=True)
     np.savez(OUT/f'{tag}.npz', **{f'{k}_{s}_{f}': v for (k, s), dd in res.items() for f, v in dd.items()},
              qso_rows=rows['qso'][0], stars_rows=rows['stars'][0], qso_cell=cells['qso'], stars_cell=cells['stars'],
@@ -173,9 +183,10 @@ def run_single(args):
     print(json.dumps(rep, indent=1))
 
 
-# ---- blends -----------------------------------------------------------------------------------------
-def _init_blend(path):
+# ---- blend mode --------------------------------------------------------------------------------------
+def _init_blend(path, order=None):
     from qso_pcolor.blend import BlendModel
+    _fallback_order(order)
     _s['b'] = BlendModel.load(path, legacy_r_fallback=True)
 
 
@@ -207,7 +218,7 @@ def run_blend(args):
     for scheme in ('legacy_r', 'fallback'):
         Vs = masked_variance(V, lab, scheme, args.mode); Fs = np.where(np.isfinite(Vs), F, 0.)
         jobs = [(Fs[i:i+1], Vs[i:i+1], tuple(lab), info[i]['z'], info[i]['l'], info[i]['b']) for i in range(len(info))]
-        with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context('spawn'), initializer=_init_blend, initargs=(path,)) as pool:
+        with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context('spawn'), initializer=_init_blend, initargs=(path, MODES[args.mode].get('order'))) as pool:
             out = list(pool.map(_score_blend, jobs, chunksize=2))
         res[scheme] = dict(status=np.array([o[0] for o in out]), bf=np.array([o[1] for o in out], float),
                            p=np.array([o[2] for o in out], float), notes=np.array([o[3] for o in out]))
@@ -238,13 +249,13 @@ def run_blend(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--part', choices=('single', 'blend'), required=True)
+    ap.add_argument('--part', choices=('resolved', 'blend'), required=True)
     ap.add_argument('--mode', choices=tuple(MODES), required=True)
     ap.add_argument('--model', default='current', choices=('current', 'current_magindep'))
-    ap.add_argument('--n', type=int, default=3000, help='objects per class (single) or blends per class (blend)')
+    ap.add_argument('--n', type=int, default=3000, help='objects per class (resolved) or blends per class (blend)')
     ap.add_argument('--workers', type=int, default=12)
     args = ap.parse_args()
-    (run_single if args.part == 'single' else run_blend)(args)
+    (run_resolved if args.part == 'resolved' else run_blend)(args)
 
 
 if __name__ == '__main__':

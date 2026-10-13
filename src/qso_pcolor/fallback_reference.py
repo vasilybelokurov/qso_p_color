@@ -16,7 +16,8 @@ objects observed in Legacy and the other surveys at once, so p_H(observed | m) c
 between Legacy r and the observed bands (e.g. PS1 r - Legacy r); the integral is narrow when a fallback band is
 measured well.
 
-Eligibility mirrors the faint limit: the source must have a fallback band (PS1 r, else SkyMapper r) at
+This is ON BY DEFAULT (``legacy_r_fallback=True``) and announced with a :class:`LegacyRFallbackWarning`.
+Eligibility mirrors the faint limit: the source must have a fallback band (PS1 r, else NSC r, else SkyMapper r) at
 S/N >= ``min_snr`` (10, as for Legacy r). The calibrated outside-both-models test and the QSO-support cut are
 evaluated at the posterior-mode grid value of m. Prior-independent evidences in the returned record
 (loglike_*, p_zmatch_given_qso, z_phot_mode) are also those at the mode; the intensities and posteriors
@@ -26,6 +27,7 @@ the posterior mean of Legacy r.
 from __future__ import annotations
 
 from dataclasses import replace
+import warnings
 
 import numpy as np
 from scipy.special import logsumexp
@@ -34,11 +36,24 @@ from .multisurvey_data import Photometry
 
 LEGACY_R = ('decals_dr9_south:r', 'decals_dr9_north:r')
 LATENT_BAND = 'decals_dr9_south:r'           # native band that is the latent legacy:r with an identity operator
-FALLBACK_BANDS = ('ps1:r', 'skymapper:r')
+FALLBACK_BANDS = ('ps1:r', 'nsc:r', 'skymapper:r')   # priority; NSC r (DECam) before SkyMapper r (validated 13 Oct)
 A = 2.5/np.log(10.)
 SYNTHETIC_REL_ERROR = 1e-6                   # noise-free synthetic Legacy r (relative flux error)
 GRID_HALFWIDTH = 1.2                         # mag, plus 5 sigma of the fallback band (legacy_r_grid)
 N_GRID = 41                                  # grid points (trapezoid)
+
+
+class LegacyRFallbackWarning(UserWarning):
+    """Some sources were scored without Legacy r, by integrating over it (on by default)."""
+
+
+def alert(n: int, bands, mode: str):
+    """Tell the caller that ``n`` sources were scored by the Legacy r fallback."""
+    used = ', '.join(sorted(set(bands)))
+    warnings.warn(f'{n} source(s) without Legacy r were scored in {mode} by integrating over Legacy r given {used} '
+                  f'(quality flag / note "legacy_r_marginalised:<band>"). These scores are less certain than with Legacy r; '
+                  f'see README "Sources without Legacy r". Pass legacy_r_fallback=False to refuse them instead.',
+                  LegacyRFallbackWarning, stacklevel=4)
 
 
 def luptitude(f, s):
@@ -193,4 +208,5 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
         decision['support_rejected'][i] = md['support_rejected'][j]
     decision.setdefault('fallback_reference', np.full(n, '', dtype='<U16'))
     decision['fallback_reference'][rows] = np.array([bands[k] for k in band[rows]])
+    alert(len(rows), [bands[k] for k in band[rows]], 'resolved mode')
     return scores, decision

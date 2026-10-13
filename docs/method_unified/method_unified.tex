@@ -23,7 +23,8 @@ This note describes how \code{qso\_pcolor} measures, from broad-band photometry 
 strongly the companion's colours support the hypothesis that it is itself a quasar at $z_0$. The
 method compares four populations: quasars at $z_0$, quasars at other redshifts, everything else
 in the imaging catalogue (the background, mostly stars), and a broad catch-all. It accepts any
-subset of 41 bands from seven surveys that includes Legacy Surveys $r$ at signal-to-noise $\geq10$.
+subset of 41 bands from seven surveys that includes Legacy Surveys $r$ at signal-to-noise $\geq10$; without
+Legacy $r$, a fallback band stands in and Legacy $r$ is integrated over (Section~\ref{sec:nolegacy}).
 One latent model, shared by the northern and southern Legacy Surveys, describes all bands, and
 photometry is corrected for Galactic extinction. Two complete models are provided, and both are meant to
 be used. They share everything except the quasar colour model: in one, quasar colours may depend on
@@ -44,6 +45,10 @@ with AUC 0.993--0.994, and 0.6\% of quasars are left unranked.
 \section{Summary of what is delivered}
 %======================================================================
 \begin{itemize}\sloppy
+\item \textbf{Two modes.} \emph{Resolved mode} (\code{UnifiedPSFModel}): the companion is measured as its own
+  source, and the question is whether it is a quasar at $z_0$ (Sections~\ref{sec:question}--\ref{sec:validation}).
+  \emph{Blend mode} (\code{BlendModel}): the quasar and companion are measured as one source, and the question is
+  whether the hidden companion is a second quasar at $z_0$ or a star (Section~\ref{sec:blend}).
 \item \textbf{Two models, both for use} (promoted 4 October 2026): \code{models/multisurvey\_psf/current}, with
   magnitude-dependent quasar colours, and \code{models/multisurvey\_psf/current\_magindep}, with
   magnitude-independent quasar colours (the XDQSO assumption). \code{current} names the
@@ -54,7 +59,8 @@ with AUC 0.993--0.994, and 0.6\% of quasars are left unranked.
   North $g,r,z,W1,W2$; AllWISE $W1$--$W4$; Pan-STARRS1 $grizy$; NSC $ugrizY{+}VR$; SkyMapper
   $uvgriz$; VHS $YJHK_s$) that contains Legacy $r$ at $S/N\geq10$, as catalogued fluxes or magnitudes
   with errors; candidate RA and Dec; the primary's redshift $z_0$; morphology and blend information.
-  Fainter sources, and sources without Legacy $r$, are flagged and not scored (Section~\ref{sec:faint}).
+  Fainter sources are flagged and not scored (Section~\ref{sec:faint}); sources without Legacy $r$ are scored,
+  by default and with a warning, by integrating over Legacy $r$ given a fallback band (Section~\ref{sec:nolegacy}).
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
 \item \textbf{Main results} (Section~\ref{sec:validation}; first number for the magnitude-independent model,
@@ -109,8 +115,13 @@ $w,\ \nu$ & covariance-prior scale ($10^{-3}$\,mag$^2$) and strength ($1$) \\
 \item[Native system.] A band's own catalogue calibration. No band is converted into another survey's system.
 \item[Slice.] The quasar model for redshifts within $\pm0.1$ of a centre $z_k$, for $z_k=0.15,0.25,\dots,4.35$ (43 slices; neighbouring slices overlap).
 \item[Reference band.] Legacy DR9 $r$: the southern band where observed, otherwise the northern one.
-  Colour likelihoods are conditioned on it, and the background bins are defined in it. Every scored
-  source has it at $S/N\geq10$ (Section~\ref{sec:faint}).
+  Colour likelihoods are conditioned on it, and the background bins are defined in it. A scored source
+  has it at $S/N\geq10$ (Section~\ref{sec:faint}), or has it integrated over (Section~\ref{sec:nolegacy}).
+\item[Resolved mode, blend mode.] The two ways the package is used. Resolved mode scores a companion measured
+  as its own source (quasar at $z_0$, quasar at another redshift, background, catch-all). Blend mode scores a
+  single source that is the quasar plus an unresolved companion (QQ against QS; Section~\ref{sec:blend}).
+\item[Fallback band.] For a source without Legacy $r$: the band (PS1 $r$, NSC $r$ or SkyMapper $r$) that sets
+  eligibility and centres the integral over the unknown Legacy $r$ (Section~\ref{sec:nolegacy}).
 \item[Role.] Every training object belongs to one sky-based role: \emph{fit} and \emph{select} (training),
   \emph{calibration} (catch-all shares and support threshold), or \emph{test} (validation). Roles are fixed
   in advance and never reassigned.
@@ -209,8 +220,8 @@ two hemispheres differ in depth: stellar counts peak at $r\approx24.6$ in the So
 the North, and $S/N=10$ falls at $r\approx24.1$ and 22.9 respectively. It removes 2.8\% of test quasars
 and 64\% of test background objects, almost all faint stars. Legacy $r$ is then the reference band of
 every scored source, so the quasar and background densities are conditioned on the same magnitude
-that defines the background bins. A source without Legacy $r$ (for example SDSS-only photometry) is
-not scored; on the training samples that affects 0.01\% of quasars.
+that defines the background bins. A source without Legacy $r$ (for example outside the Legacy footprint)
+is scored by integrating over its unknown Legacy $r$ given a fallback band (Section~\ref{sec:nolegacy}).
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F17_snr_cut_check.png}
@@ -784,7 +795,7 @@ magnitude-dependent model stays higher at every redshift. Support retention is a
 coverage with brightness and redshift, and several groups have fewer than 150 background objects. The
 artificial masks score the same objects with fewer bands: Legacy $g,r,z$ only gives AUC 0.974 and 0.975,
 all Legacy bands 0.993 and 0.994, all optical bands 0.989 for both. SDSS-only and PS1-only photometry
-has no Legacy $r$ and is not scored. The weakest coverage group with at least 100 quasars and 30 background
+has no Legacy $r$ and was not scored here; Section~\ref{sec:nolegacy} tests sources without Legacy $r$. The weakest coverage group with at least 100 quasars and 30 background
 objects is Legacy North+AllWISE+PS1 for the magnitude-independent model (AUC 0.985, 1,641 quasars) and Legacy
 South+AllWISE+PS1 for the magnitude-dependent one (0.982, 2,451 quasars).
 
@@ -808,7 +819,7 @@ support retention.}
 \includegraphics[width=\textwidth]{F14_performance_coverage.png}
 \caption{AUC by band coverage. Left: objects grouped by the surveys that observed them (groups with at
 least 300 test quasars). Right: the same objects scored with artificial band masks; SDSS-only and PS1-only
-objects have no Legacy $r$ and are not scored.}
+objects have no Legacy $r$ and were not scored in this test (see Section~\ref{sec:nolegacy}).}
 \label{fig:perfcov}
 \end{figure}
 
@@ -899,7 +910,7 @@ are in \code{docs/method\_unified/examples.json}.}
 \paragraph{Question.} A spectroscopic quasar at known redshift $z_0$ is blended with an unresolved
 companion, and only the combined flux is measured. Is the companion a second quasar at $z_0$ (QQ) or a
 star (QS)? Nothing is known about the components separately. The mode uses the same quasar and
-background models as the single-object scorer (either promoted bundle), accepts any morphology, and takes
+background models as resolved mode (either promoted bundle), accepts any morphology, and takes
 the best extended photometry of the whole blend (Legacy model flux, SDSS cModel, PS1 Kron). Quasar pairs
 at different redshifts, and a negligible companion, are further hypotheses to be added later.
 
@@ -1068,6 +1079,76 @@ test sample.}
 
 \clearpage
 %======================================================================
+\section{Sources without Legacy $r$}\label{sec:nolegacy}
+%======================================================================
+\paragraph{Why.} Every population prior is defined in Legacy $r$: the quasar abundance $\Sigma_Q(z,r)$, the
+background abundance $\Sigma_B(r,\ell,b)$ and the magnitude bins of the background colour model. A source
+without usable Legacy $r$ therefore had no score. Such sources are common outside the Legacy footprint: of
+597,964 Quaia quasars \citep[$G<20$;][]{StoreyFisher2024} at $|b|\geq25^\circ$, 115,979 have no Legacy DR9 source within
+1$^{\prime\prime}$ (mostly at ${\rm Dec}<0^\circ$, 42k below $-30^\circ$) and 37,267 have one with masked $r$
+(\code{docs/fallback\_reference/quaia\_no\_legacy\_r.json}).
+
+\paragraph{Method.} Legacy $r$ stays the population reference and is treated as unknown. With $m$ the
+noise-free Legacy South $r$ luptitude (the latent \code{legacy:r}), each scorer intensity $H$ is
+\begin{equation}
+\Lambda_H=\int \lambda_H(m)\,dm,\qquad \lambda_H(m)=\Sigma_H(m)\,p_H(\vect{y}\mid m),
+\label{eq:nolegacy}
+\end{equation}
+where $\vect{y}$ are all observed bands. $\lambda_H(m)$ is exactly what the scorer returns for the same source
+with a noise-free Legacy $r$ measurement equal to $m$, so the integral reuses the scorer: the source is
+replicated on 41 values of $m$ and the intensities are integrated by the trapezoid rule. In blend mode $m$ is
+the blend's Legacy $r$, and the blend likelihood is integrated in the same way. No model is refitted: the
+joint colour models were fitted to objects observed in Legacy and the other surveys at once, so
+$p_H(\vect{y}\mid m)$ carries the learned relation between Legacy $r$ and the other bands. A \emph{fallback band}
+(PS1 $r$, else NSC $r$, else SkyMapper $r$) at $S/N\geq10$ ($\geq20$ for blends, with the detectability rule
+applied to it) makes a source eligible and centres the integral. The outside-both-models test and the
+support cut are evaluated at the posterior mode of $m$. This is the default; each call that uses it raises a
+warning, and affected sources carry the flag \code{legacy\_r\_marginalised:<band>}.
+
+\paragraph{The integration window} is $\pm(1.2\,{\rm mag}+5\sigma)$ about the fallback magnitude, $\sigma$ its
+error. It is a support restriction. Measured on the training samples (both bands $S/N>30$), the
+fallback-minus-Legacy-South $r$ scatter (NMAD) is 0.21\,mag for quasars in PS1 (mostly variability between the
+two epochs; 0.04 in NSC, which uses the same DECam imaging, and 0.13 in SkyMapper) and 0.03--0.09\,mag for
+stars; offsets beyond 1\,mag occur for 0.4\% of quasars in PS1, beyond 1.5\,mag for 0.03\%. Far outside this
+range the models' $p_H(\vect{y}\mid m)$ is an extrapolation: at faint $m$ the components were never constrained by
+fallback-band detections, and the steeply rising $\Sigma_B(m)$ turns their tails into spurious mass. On the
+hardest test objects $p_{\rm quasar}$ changed by a median 0.003 between half-widths of 0.8, 1.2 and 1.6\,mag,
+but by up to 0.2 between 1.6 and 3\,mag. The models reproduce the PS1 and NSC relations for stars, but give
+quasars a conditional scatter of 0.25\,mag in PS1, 0.14--0.28 in NSC and 0.7--1.0 in SkyMapper; only 2,349
+training quasars have both SkyMapper and Legacy $r$.
+
+\paragraph{Validation.} Held-out objects that do have Legacy $r$ (test roles, outside every development
+exclusion, fallback band at $S/N\geq10$) are scored twice with the same remaining bands: with their true
+Legacy $r$, and with Legacy $r$ removed and integrated over. The PS1 test removes all Legacy bands; the NSC test
+also removes PS1 and SDSS (the deep south); the SkyMapper test also removes NSC. Table~\ref{tab:nolegacy}
+gives the results; 3,000 quasars and 3,000 background objects per resolved-mode test (all 1,061 qualifying
+quasars for SkyMapper), and 400 QQ and 400 QS synthetic blends per blend-mode test.
+
+\begin{table}[!htbp]\centering\small
+\resizebox{\textwidth}{!}{\input{fallback_table.tex}}
+\caption{Scoring without Legacy $r$, against the same objects scored with their true Legacy $r$ and the same
+remaining bands (first number magnitude-independent model, second magnitude-dependent). AUC$_{\rm true\,r}$:
+with the true Legacy $r$. Recall loss: drop in the fraction of quasars with $p_{\rm quasar}>0.5$. $\Delta$bkg:
+change in the fraction of background objects with $p_{\rm quasar}>0.5$. $\Delta r$: posterior-mean minus true
+Legacy $r$ of quasars, median (NMAD). Blend mode: AUC loss of $\log{\rm BF}$, median shift of $\log{\rm BF}$, and
+the fraction of blends whose $\log{\rm BF}$ has the same sign as with the true Legacy $r$.}
+\label{tab:nolegacy}
+\end{table}
+
+\paragraph{Findings.} Ranking is nearly unchanged with PS1 and NSC $r$: AUC losses are 0.002 or less in resolved
+mode, and there is no loss in blend mode. Without Legacy $r$, $p_{\rm quasar}$ is lower: 3--6 percentage points
+fewer quasars reach 0.5, while the fraction of background objects doing so changes by at most 0.05 points, so the
+fallback is conservative rather than noisier. Blend Bayes factors shift towards QQ by 0.4--0.5\,nat, and keep
+their sign for 94--98\% of blends. NSC $r$ recovers Legacy $r$ best (NMAD 0.08\,mag), as expected from the shared
+imaging. SkyMapper $r$ is weak: Legacy $r$ is recovered with a bias of
+0.15--0.21\,mag, and in blend mode the sign of $\log{\rm BF}$ changes for a fifth of blends. SkyMapper-only sources
+should be treated as indicative.
+
+\paragraph{Limits.} In resolved mode a source outside the Legacy footprint has no Legacy morphology; the
+caller must supply a point-source classification, and the background model describes Legacy \code{type=PSF}
+sources. Blend mode does not check Galactic latitude.
+
+%======================================================================
 \section{Limitations and open items}\label{sec:limits}
 %======================================================================
 \begin{itemize}
@@ -1078,7 +1159,11 @@ test sample.}
 \item \textbf{Background purity.} Faint unidentified quasars not detected by WISE remain in the background
   training sample and counts. The test background sets carry the same contamination, which lowers the
   measured AUC slightly.
-\item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$, and sources without Legacy $r$, are not scored.
+\item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$ are not scored. Sources without Legacy $r$ are
+  scored through a fallback band, less precisely, and weakly where only SkyMapper $r$ is available
+  (Section~\ref{sec:nolegacy}).
+\item \textbf{Galactic latitude.} All training samples are at $|b|\geq25^\circ$; resolved mode refuses sources
+  below it, blend mode does not check (the user must).
 \item \textbf{Unranked quasars.} 0.6\% of test quasars above the faint limit are not ranked, mostly at the support
   cut. The earlier 3\% came from the fixed $4\sigma$ outside-both test, now replaced (Section~\ref{sec:ood}).
   Variability between surveys observed years apart is not modelled; it makes some quasars' photometry

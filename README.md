@@ -3,10 +3,12 @@
 Photometric classification of the companion of a spectroscopic quasar. The primary has a known
 redshift *z*₀; for the companion we have only broadband photometry.
 
-- **Resolved companion** (detected and measured as its own source): is it a quasar, and is it a quasar
-  at the primary's redshift?
-- **Unresolved blend** (primary and companion measured as one source): is the companion a second quasar
-  at *z*₀ (QQ), or a star (QS)?
+The package has two modes:
+
+- **Resolved mode** (`UnifiedPSFModel`, models A and B): the companion is detected and measured as its own
+  source. Is it a quasar, and is it a quasar at the primary's redshift?
+- **Blend mode** (`BlendModel`, model C): the primary and companion are measured as one source. Is the
+  companion a second quasar at *z*₀ (QQ), or a star (QS)?
 
 The method is written up in [docs/method_unified/method_unified.pdf](docs/method_unified/method_unified.pdf)
 (built with `make -C docs/method_unified`). `AGENTS.md` is the working contract for changing the code.
@@ -15,14 +17,14 @@ The method is written up in [docs/method_unified/method_unified.pdf](docs/method
 
 ## Which model to use
 
-There are three current models. Two are for resolved companions and share one interface; the third is
-for blends and is built on top of either of them.
+There are three current models. Two are for resolved mode and share one interface; the third is
+blend mode, built on top of either of them.
 
 | Situation | Model | Load with |
 |---|---|---|
-| Resolved companion, PSF photometry | **A**: magnitude-dependent quasar colours | `UnifiedPSFModel.load("models/multisurvey_psf/current")` |
-| Resolved companion, PSF photometry | **B**: magnitude-independent quasar colours (XDQSO assumption) | `UnifiedPSFModel.load("models/multisurvey_psf/current_magindep")` |
-| Unresolved blend of the quasar and one companion | **C**: blend mode, QQ (same *z*) vs QS | `BlendModel.load(...)` on the `current` or `current_magindep` pointer |
+| Resolved mode (companion measured separately, PSF) | **A**: magnitude-dependent quasar colours | `UnifiedPSFModel.load("models/multisurvey_psf/current")` |
+| Resolved mode (companion measured separately, PSF) | **B**: magnitude-independent quasar colours (XDQSO assumption) | `UnifiedPSFModel.load("models/multisurvey_psf/current_magindep")` |
+| Blend mode (quasar and one companion measured as one source) | **C**: QQ (same *z*) vs QS | `BlendModel.load(...)` on the `current` or `current_magindep` pointer |
 
 **Score every object with both A and B** (for C, load it on both pointers). A and B share the
 background model, the 41 bands, extinction correction, catch-all, support cut and faint limit; they
@@ -66,7 +68,7 @@ Run from the repository root: the model files are in Git under `models/`, not in
 
 ## Quick start
 
-### Resolved companion (models A and B)
+### Resolved mode (models A and B)
 
 ```python
 import numpy as np
@@ -99,7 +101,7 @@ for name in ("current", "current_magindep"):
 Output: the first object is eligible with `p_quasar` 0.866 (A) and 0.832 (B); the second is refused
 with `qso_support_rejected` (its colours are not quasar-like at *z* = 1.8).
 
-### Unresolved blend (model C)
+### Blend mode (model C)
 
 ```python
 import numpy as np
@@ -128,9 +130,11 @@ the r flux.
 ### Photometry contract (all three models)
 
 - **A `Photometry(flux, variance, bands)`**, arrays of shape (objects, bands). Band labels are
-  `survey:band`; `model.base.model.transform.bands` lists all 41. Any subset may be given, but
-  **Legacy r must be present** (`decals_dr9_south:r` or `decals_dr9_north:r`): it is the reference band
-  and sets the faint limit.
+  `survey:band`; `model.base.model.transform.bands` lists all 41. Any subset may be given.
+  **Legacy r** (`decals_dr9_south:r` or `decals_dr9_north:r`) is the reference band and sets the faint
+  limit. **Without Legacy r** a source is still scored, by default, by integrating over its unknown Legacy r
+  given a fallback band; you are warned when this happens (see
+  [Sources without Legacy r](#sources-without-legacy-r)).
 - **Native units**: in every band, magnitude 22.5 corresponds to flux 1, in that survey's own
   photometric system. Legacy, SDSS, PS1, NSC and SkyMapper are AB (Legacy and SDSS fluxes are already
   nanomaggies); AllWISE and VHS are Vega. Surveys are never converted into each other's systems.
@@ -150,7 +154,7 @@ the r flux.
   unless you pass `legacy_hemisphere`. `UnifiedPSFModel.score_catalogue(...)` does the conversion and the
   scoring in one call.
 
-### Which catalogue columns: resolved companions (models A and B)
+### Which catalogue columns: resolved mode (models A and B)
 
 The models were trained on **PSF photometry** of point sources, so use the PSF columns below. All surveys
 are matched to the Legacy DR9 position within 1″ (AllWISE 2″). The training applied the cleaning listed
@@ -170,7 +174,7 @@ rows, clean=True, vhs_bad_bits=2147483392)` converts WSDB rows exactly as in tra
 Magnitudes outside (−50, 90) or with errors ≥ 90 are treated as missing. AllWISE photometry next to a
 bright primary is often contaminated: mark such bands unusable rather than scoring them.
 
-### Which catalogue columns: unresolved blends (model C)
+### Which catalogue columns: blend mode (model C)
 
 Use the **best total flux of the whole blended source**, from any morphology: Legacy DR9 `flux_*`
 (Tractor model flux, whatever `type`, including the forced `flux_w1`, `flux_w2`), SDSS `cmodelflux_*`,
@@ -185,7 +189,7 @@ on real blends.
 
 ---
 
-## Resolved companions: arguments and output
+## Resolved mode: arguments and output
 
 `UnifiedPSFModel.score(photometry, *, ra_deg, dec_deg, z_primary, morphology, match, blend_policy,
 ood_flag_sigma, separation_arcsec, fracflux, ...)` returns `(scores, decision)`. Arrays broadcast over
@@ -208,7 +212,9 @@ Only eligible rows are science-grade. Rows refused before scoring have `scores[i
 |---|---|
 | `non_psf_not_scored` | morphology is not PSF |
 | `outside_latitude` | Galactic \|*b*\| < 25° (outside the training footprint) |
-| `no_faint_limit_band` | no Legacy r |
+| `no_faint_limit_band` | no Legacy r, with `legacy_r_fallback=False` |
+| `no_fallback_band` | no Legacy r and no fallback band (PS1 r, NSC r, SkyMapper r) |
+| `fallback_too_faint` | no Legacy r, and the fallback band has S/N < 10 |
 | `too_faint` | Legacy r S/N < 10 |
 | `blended_not_scored` | fails the `BlendPolicy` |
 | `insufficient_photometry` | too few usable bands |
@@ -276,7 +282,7 @@ give the derivation and validation. Pass `ood_calibration=None` to reproduce sco
 
 ---
 
-## Unresolved blends: arguments and output
+## Blend mode: arguments and output
 
 `BlendModel.load(pointer, faint_snr=10, n_alpha=48)` builds the blend scorer on a bundle.
 `score(photometry, *, ra_deg, dec_deg, z_qso, prior_odds_qq=1.0, dereddened=False)` returns one
@@ -292,7 +298,9 @@ the components separately.
 
 **Base rules.**
 - Each component must carry at least `faint_snr` (10) times the blend's Legacy r flux error, so the blend
-  needs Legacy r S/N ≥ 20.
+  needs Legacy r S/N ≥ 20. Without Legacy r the same rule applies to the fallback band, and Legacy r is
+  integrated over (on by default, with a warning; see [Sources without Legacy r](#sources-without-legacy-r)).
+- Blend mode does not check Galactic latitude: the models were trained at \|*b*\| ≥ 25°; check it yourself.
 - The likelihoods integrate over the companion's share α of the r flux.
 - There is no catch-all and no support cut.
 
@@ -303,13 +311,52 @@ uncertain.
 
 | `BlendScore` field | Meaning |
 |---|---|
-| `status` | `ok`, `too_faint_for_two_components` (Legacy r S/N < 20), `no_reference_band`, `redshift_outside_support`, `no_prior_for_reference_band`, `empty_magnitude_prior`, `empty_hypotheses` |
+| `status` | `ok`, `too_faint_for_two_components` (Legacy r, or fallback band, S/N < 20), `no_reference_band` (no Legacy r and no fallback band, or `legacy_r_fallback=False`), `redshift_outside_support`, `no_prior_for_reference_band`, `empty_magnitude_prior`, `empty_hypotheses` |
 | `log_like_qq`, `log_like_qs`, `log_bf_qq_qs` | log likelihoods and Bayes factor QQ:QS (natural log) |
 | `p_qq` | posterior P(QQ) at `prior_odds_qq` |
 | `alpha_mean_qq` | posterior mean share of the r flux in the *fainter* quasar under QQ (the hypothesis is symmetric) |
 | `alpha_mean_qs` | posterior mean share of the r flux in the star under QS |
 | `alpha_range` | the range of shares integrated (set by the detection limit) |
-| `reference_band`, `bands_used`, `notes` | provenance; `no_colour_information` if only Legacy r is given |
+| `reference_band`, `bands_used`, `notes` | provenance; `no_colour_information` if only Legacy r is given; `legacy_r_marginalised:<band>` if Legacy r was integrated over |
+
+
+## Sources without Legacy r
+
+About a quarter of Quaia quasars at \|*b*\| ≥ 25° have no usable Legacy r: 115,979 of 597,964 have no
+Legacy DR9 source within 1″ (mostly at Dec < 0°, 42k at Dec < −30°) and 37,267 have a masked one
+(`docs/fallback_reference/quaia_no_legacy_r.json`). Every population prior is defined in Legacy r, so for
+these sources Legacy r is treated as unknown and **integrated over**, given a **fallback band**: PS1 r,
+else NSC r, else SkyMapper r, at S/N ≥ 10 (S/N ≥ 20 for blends). No model is refitted.
+
+**This is on by default** in `UnifiedPSFModel.score` and `BlendModel`, and every call that uses it raises
+a `LegacyRFallbackWarning` with the number of sources. Affected rows carry `legacy_r_marginalised:<band>`
+in `quality_flags` (resolved mode; also `decision["fallback_reference"]`) or `notes` (blend mode). Pass
+`legacy_r_fallback=False` to refuse such sources instead. In resolved mode, `ref_mag` is then the
+posterior mean Legacy r. To silence the warning deliberately:
+`warnings.filterwarnings("ignore", category=qso_pcolor.fallback_reference.LegacyRFallbackWarning)`.
+
+**How good it is** (held-out objects that do have Legacy r, scored with the true Legacy r and with Legacy r
+removed; same remaining bands; `current` / `current_magindep`; `docs/fallback_reference/validation_*.json`):
+
+| Fallback | Resolved mode | Blend mode |
+|---|---|---|
+| PS1 r | AUC loss 0.002; recall at *p* > 0.5 lower by 5–5.5 pp; false-QSO rate not higher | no AUC loss; log BF +0.4 towards QQ; sign as with Legacy r for 97–98% |
+| NSC r (PS1, SDSS absent) | AUC loss 0.001; recall lower by 3–4 pp; Legacy r recovered to 0.08 mag | no AUC loss; log BF +0.5; sign kept for 94% |
+| SkyMapper r (PS1, SDSS, NSC absent) | AUC loss 0.005; Legacy r recovered with a +0.15–0.21 mag bias | AUC loss 0.013; sign kept for only 79–81% |
+
+- With PS1 r the ranking is essentially unchanged; `p_quasar` is lower (more conservative) because a
+  quasar's PS1 r predicts its Legacy r only to ≈0.2 mag (variability between the two epochs).
+- NSC r (DECam, the same imaging as Legacy South) is the best fallback where it exists: of Quaia quasars
+  with no Legacy source and no PS1 r, about two thirds have NSC r.
+- **SkyMapper-only sources (deep south, Dec < −30°, no NSC) are weak**: the models relate SkyMapper r to
+  Legacy r poorly for quasars (0.85–1.0 mag scatter, against 0.13 in the data). Treat their scores as indicative.
+- The integral is limited to ±(1.2 mag + 5σ) about the fallback magnitude: real PS1 − Legacy offsets
+  exceed 1 mag for only 0.4% of quasars, and beyond that the models' tails are extrapolations.
+  `legacy_r_grid_truncated` flags sources with non-negligible mass at the window edges.
+- In resolved mode a source outside Legacy has no Legacy `type`: you must supply `morphology` from another
+  point-source criterion, and the background model was trained on Legacy `type=PSF` sources.
+
+Method: `src/qso_pcolor/fallback_reference.py`; method note, Section "Sources without Legacy r".
 
 ---
 
@@ -364,8 +411,8 @@ Details: method note; `docs/method_unified/*.json` (`model_difference_bootstrap.
 
 | Path | What |
 |---|---|
-| `src/qso_pcolor/unified.py` | `UnifiedPSFModel` (models A, B), `catalogue_photometry`, `quasar_probability` |
-| `src/qso_pcolor/blend.py` | `BlendModel` (model C) |
+| `src/qso_pcolor/unified.py` | `UnifiedPSFModel` (resolved mode: models A, B), `catalogue_photometry`, `quasar_probability` |
+| `src/qso_pcolor/blend.py` | `BlendModel` (blend mode: model C) |
 | `src/qso_pcolor/multisurvey_baseline.py`, `multisurvey.py`, `score.py` | the scorer underneath |
 | `src/qso_pcolor/multisurvey_data.py` | band schema, WSDB catalogue columns and cleaning |
 | `models/multisurvey_psf/` | bundles and pointers; each bundle's `build.json` records how it was built |

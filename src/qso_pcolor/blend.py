@@ -18,8 +18,8 @@ where :math:`m_i` are the components' reference-band luptitudes and the magnitud
 bundle's surface densities normalised over their tabulated range (:math:`\\Sigma_Q(z_0, m)` for quasars,
 :math:`\\Sigma_B(m, \\ell, b)` for the background), both per unit reference luptitude.
 
-The reference band is Legacy r (South where observed, else North), as for the faint limit of the single
-object scorer. Fluxes add, so the integral is taken over the companion's share ``alpha`` of the
+The reference band is Legacy r (South where observed, else North), as for the faint limit of the resolved
+mode. Fluxes add, so the integral is taken over the companion's share ``alpha`` of the
 reference-band flux ``T`` (``F1 = (1-alpha) T``, ``F2 = alpha T``) with ``T`` fixed at the measured blend
 flux (the reference noise is not integrated; the faint limit keeps it below 0.1 mag), and with the
 Jacobian of ``(m1, m2) -> (u, alpha)``. At each ``alpha`` each component's native mixture is conditioned on
@@ -35,8 +35,9 @@ both components must carry at least ``faint_snr`` (10) times the blend's Legacy 
 blend itself needs Legacy r at S/N >= 2 * faint_snr. Likelihoods therefore describe companions above that
 limit. No catch-all and no support cut are applied (two hypotheses only).
 
-``legacy_r_fallback=True`` (off by default) scores blends without Legacy r by integrating over the blend's
-unobserved Legacy r, given PS1 r or SkyMapper r at S/N >= 2 * faint_snr (``_score_fallback``).
+``legacy_r_fallback`` (default True) scores blends without Legacy r by integrating over the blend's unobserved
+Legacy r, given a fallback band at S/N >= 2 * faint_snr (``_score_fallback``), and warns (LegacyRFallbackWarning)
+when it does; ``False`` returns ``no_reference_band`` for them.
 """
 from __future__ import annotations
 
@@ -129,7 +130,7 @@ class BlendModel:
     """Blend-mode scorer built on a loaded :class:`UnifiedPSFModel` (any promoted bundle)."""
 
     def __init__(self, unified, *, faint_snr: float = 10., n_alpha: int = 48, mag_step: float = .01, extra_covariance=None,
-                 legacy_r_fallback: bool = False, n_fallback_grid: int = 41):
+                 legacy_r_fallback: bool = True, n_fallback_grid: int = 41):
         self.unified = unified; self.base = unified.base; self.model = unified.base.model
         d = len(self.model.transform.bands)
         self.extra = np.zeros((d, d)) if extra_covariance is None else np.asarray(extra_covariance, float)
@@ -204,7 +205,12 @@ class BlendModel:
         if not dereddened and 'extinction' in self.model.meta:
             from .extinction import deredden
             p, _, _ = deredden(p, l_deg, b_deg, self.model.meta['extinction'])
-        return [self._score_one(p.subset([i]), z[i], l_deg[i], b_deg[i], float(prior_odds_qq)) for i in range(n)]
+        out = [self._score_one(p.subset([i]), z[i], l_deg[i], b_deg[i], float(prior_odds_qq)) for i in range(n)]
+        used = [nt.split(':', 1)[1] for o in out for nt in o.notes if nt.startswith('legacy_r_marginalised:')]
+        if used:
+            from .fallback_reference import alert
+            alert(len(used), used, 'blend mode')
+        return out
 
     def _score_one(self, p, z0, l, b, prior_odds):
         obs = p.observed[0]; flux = np.where(obs, p.flux[0], 0.); var = np.where(obs, p.variance[0], np.inf)

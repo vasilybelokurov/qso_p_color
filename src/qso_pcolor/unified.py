@@ -227,13 +227,14 @@ class UnifiedPSFModel:
 
     def score(self, photometry: Photometry, *, ra_deg, dec_deg, z_primary,
               apply_support: bool = True, flux_covariance=None, ood_calibration=DEFAULT_OOD_CALIBRATION,
-              legacy_r_fallback: bool = False, **kwargs):
+              legacy_r_fallback: bool = True, **kwargs):
         """Use candidate ICRS degrees and primary-QSO redshift; return support separately.
 
         ``ood_calibration`` (default DEFAULT_OOD_CALIBRATION) decides 'outside both models' from calibrated
         tail probabilities (scores' ``qso_ood_p``, ``bkg_ood_p``); ``None`` uses the fixed ``ood_flag_sigma``.
-        ``legacy_r_fallback=True`` scores sources without Legacy r by integrating over it, given PS1 r or
-        SkyMapper r at S/N >= 10 (qso_pcolor.fallback_reference); off by default.
+        ``legacy_r_fallback`` (default True) scores sources without Legacy r by integrating over it, given a
+        fallback band at S/N >= 10 (qso_pcolor.fallback_reference), and warns (LegacyRFallbackWarning) when it
+        does; ``False`` flags them ``no_faint_limit_band`` and does not score them.
 
         Explicit survey-labelled bands identify actual native provenance even
         in overlap fields. The coordinate hemisphere is an informational default.
