@@ -1,11 +1,12 @@
 {
   "bundle": "20261005_magdep_qlf",
   "qso_colours": "magnitude-dependent QSO colours (same bundle as current)",
+  "modes": "resolved mode: UnifiedPSFModel.load(pointer) (companion measured as its own source); blend mode: BlendModel.load(pointer) (quasar and companion measured as one source)",
   "extinction": "SFD98",
   "method_note": "docs/method_unified/method_unified.tex",
   "model_difference": "docs/method_unified/model_difference_bootstrap.json",
   "qso_abundance": "eBOSS QLF (Palanque-Delabrouille et al. 2016, Table 7, PLE+LEDE) for the Legacy r reference band; scripts/method_unified/build_qlf_prior.py",
-  "faint_limit": "Legacy r (South, else North) S/N >= 10; Legacy r is the reference band",
-  "scope": "PSF sources with Legacy r S/N >= 10; any subset of 41 bands containing it; extinction-corrected; binned QSO-cleaned background with smooth sky gate; Student-t catch-all; calibrated QSO-support cut; calibrated outside-both-models test (scorer default). Load with UnifiedPSFModel.load.",
+  "faint_limit": "Legacy r (South, else North) S/N >= 10, or >= 20 for blends; Legacy r is the reference band. Without Legacy r: the same limit on the fallback band (PS1 r, else NSC r, else SkyMapper r), and Legacy r is integrated over (on by default, with a LegacyRFallbackWarning; legacy_r_fallback=False refuses such sources). Method note Section 12, README \"Sources without Legacy r\"",
+  "scope": "Galactic |b| >= 25 deg (README \"Why |b| >= 25\"); point sources in resolved mode (Legacy type=PSF, or outside Legacy qso_pcolor.point_source.point_source_morphology); any subset of 41 bands containing Legacy r or a fallback band; extinction-corrected (SFD98); binned QSO-cleaned background with smooth sky gate; Student-t catch-all; calibrated QSO-support cut; calibrated outside-both-models test (scorer default)",
   "full_probability_calibration": false
 }
