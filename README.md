@@ -178,7 +178,9 @@ bright primary is often contaminated: mark such bands unusable rather than scori
 
 Use the **best total flux of the whole blended source**, from any morphology: Legacy DR9 `flux_*`
 (Tractor model flux, whatever `type`, including the forced `flux_w1`, `flux_w2`), SDSS `cmodelflux_*`,
-PS1 `?kronmag`, and AllWISE `w?flux` (the WISE beam contains both components). This choice is advice,
+PS1 `?kronmag`, NSC DR2 `?mag` as catalogued (already SExtractor MAG_AUTO, a Kron-like total magnitude:
+Nidever et al. 2018, §3.2), SkyMapper DR4 `?_petro` with `e_?_petro` (Petrosian; noisier than `?_psf`, which
+the model was trained on: Onken et al. 2024), and AllWISE `w?flux` (the WISE beam contains both components). This choice is advice,
 not enforced by the code: `BlendModel` adds the two components' fluxes in every band it is given, so
 each band must measure the total light of both components. **Do not use PSF fluxes of an extended
 blend**: they miss part of the light, by an amount that depends on the separation and the seeing.
