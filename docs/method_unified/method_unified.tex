@@ -196,7 +196,13 @@ as native fluxes and variances.
 (Legacy \code{type=PSF}, mask-clean, known quasars removed), with seven-survey photometry. Of these,
 1,975,894 are fit or select rows and 502,251 calibration rows.
 
-\paragraph{Selection.} All samples satisfy $|b|\geq25^\circ$. A band is used only when its survey marks
+\paragraph{Selection.} All samples satisfy $|b|\geq25^\circ$, and both modes refuse sources below it. The limit
+marks where the models were trained and checked, not a physical boundary: nearer the plane the stellar density
+rises (companions are more often stars, crowding and blending more common), the stellar mix changes (thin disc,
+and bulge towards the centre), and extinction becomes large and patchy, where the SFD98 correction is least
+reliable; the spectroscopic quasar samples also barely cover the plane. A locally refitted background model
+was compared with the global one in 30 cones at $|b|=20$--$78^\circ$: at 20--45$^\circ$ it fitted the field better by
+0.1--0.2\,nat per object, with unchanged false-positive rates. Nothing below $20^\circ$ has been tested. A band is used only when its survey marks
 it usable (finite flux, positive variance, a positive exposure count where reported, and the survey's
 cleanliness flag); weak and negative fluxes are kept. The quasar models were trained without a
 signal-to-noise cut (0.7\% of their fit/select rows lie below the faint limit). The background is
@@ -1144,9 +1150,20 @@ imaging. SkyMapper $r$ is weak: Legacy $r$ is recovered with a bias of
 0.15--0.21\,mag, and in blend mode the sign of $\log{\rm BF}$ changes for a fifth of blends. SkyMapper-only sources
 should be treated as indicative.
 
-\paragraph{Limits.} In resolved mode a source outside the Legacy footprint has no Legacy morphology; the
-caller must supply a point-source classification, and the background model describes Legacy \code{type=PSF}
-sources. Blend mode does not check Galactic latitude.
+\subsection{Point sources outside Legacy}\label{sec:pointsource}
+Resolved mode scores only point sources, and outside the Legacy footprint there is no Legacy \code{type}.
+\code{qso\_pcolor.point\_source} supplies a replacement: where a source has a PS1 detection, its PS1-PSC
+random-forest score \citep{Tachibana2018} with the authors' figure-of-merit threshold \code{ps\_score}$\,\geq0.83$;
+otherwise the Gaia DR3 corrected BP/RP flux excess $C^*$, a point source if $|C^*|<3\,\sigma_{C^*}(G)$
+\citep[Table~2 and Eq.~18 of][]{Riello2021}; otherwise no test, and the source is not scored. Against Legacy
+\code{type} inside the footprint (106,519 field sources in 40 cones of $0.15^\circ$; 20,000 Quaia quasars), the
+combined test calls 97--99\% of Legacy point sources at $r<20$ point, 88--95\% at $20<r<21$ and 57--75\% at
+$21<r<22$, and fewer than 1\% of extended sources at any magnitude; it calls 95--97\% of Legacy-point quasars at
+$18<r<20.5$ point, but only 80--91\% at $r<18$. Gaia alone, which is all there is south of ${\rm Dec}=-30^\circ$, is
+weaker: it calls 60\% ($r<17$) to 83\% ($17<r<18$) of Legacy-point quasars point --- a $C^*$ cut also removes
+variable sources, as \citet{Riello2021} note --- and passes 10--15\% of extended sources at $r=20$--21. PS1-PSC
+is therefore used first. The background model still describes Legacy \code{type=PSF} sources; the small
+mismatch between the two definitions of a point source is not modelled (\code{docs/point\_source/validation.json}).
 
 %======================================================================
 \section{Limitations and open items}\label{sec:limits}
@@ -1162,8 +1179,8 @@ sources. Blend mode does not check Galactic latitude.
 \item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$ are not scored. Sources without Legacy $r$ are
   scored through a fallback band, less precisely, and weakly where only SkyMapper $r$ is available
   (Section~\ref{sec:nolegacy}).
-\item \textbf{Galactic latitude.} All training samples are at $|b|\geq25^\circ$; resolved mode refuses sources
-  below it, blend mode does not check (the user must).
+\item \textbf{Galactic latitude.} All training samples are at $|b|\geq25^\circ$, and both modes refuse sources below
+  it (Section~\ref{sec:data}); lowering the limit needs training cones at lower latitude.
 \item \textbf{Unranked quasars.} 0.6\% of test quasars above the faint limit are not ranked, mostly at the support
   cut. The earlier 3\% came from the fixed $4\sigma$ outside-both test, now replaced (Section~\ref{sec:ood}).
   Variability between surveys observed years apart is not modelled; it makes some quasars' photometry
@@ -1206,7 +1223,7 @@ magnitude term, constant in the free parameters, and a colour term. Maximising t
 the MAP prior on $V_c$ gives the usual updates applied to the colour block alone. The prior on the full
 covariance differs from the prior on $V_c$ by a constant. The constrained update is therefore exact.
 
-\begin{thebibliography}{13}\small
+\begin{thebibliography}{15}\small
 \bibitem[Bovy et al.(2011a)]{Bovy2011XD} Bovy J., Hogg D.~W., Roweis S.~T., 2011, Ann. Appl. Stat., 5, 1657,
   ``Extreme deconvolution'', \href{https://arxiv.org/abs/0905.2979}{arXiv:0905.2979}.
 \bibitem[Bovy et al.(2011b)]{Bovy2011XDQSO} Bovy J. et al., 2011, ApJ, 729, 141, ``Think outside the color box'' (XDQSO),
@@ -1222,6 +1239,8 @@ covariance differs from the prior on $V_c$ by a constant. The constrained update
   ``The extended Baryon Oscillation Spectroscopic Survey: variability selection and quasar luminosity function'',
   \href{https://doi.org/10.1051/0004-6361/201527392}{doi:10.1051/0004-6361/201527392},
   \href{https://arxiv.org/abs/1509.05607}{arXiv:1509.05607}.
+\bibitem[Riello et al.(2021)]{Riello2021} Riello M. et al., 2021, A\&A, 649, A3, Gaia EDR3 photometric content and validation,
+  \url{https://doi.org/10.1051/0004-6361/202039587}
 \bibitem[Schlegel et al.(1998)]{SFD98} Schlegel D.~J., Finkbeiner D.~P., Davis M., 1998, ApJ, 500, 525,
   \href{https://doi.org/10.1086/305772}{doi:10.1086/305772}.
 \bibitem[Schlafly \& Finkbeiner(2011)]{SF11} Schlafly E.~F., Finkbeiner D.~P., 2011, ApJ, 737, 103,
@@ -1230,6 +1249,8 @@ covariance differs from the prior on $V_c$ by a constant. The constrained update
   \href{https://doi.org/10.1088/0004-637X/753/1/30}{doi:10.1088/0004-637X/753/1/30}.
 \bibitem[Storey-Fisher et al.(2024)]{StoreyFisher2024} Storey-Fisher K. et al., 2024, ApJ, 964, 69, Quaia,
   \href{https://doi.org/10.3847/1538-4357/ad1328}{doi:10.3847/1538-4357/ad1328}.
+\bibitem[Tachibana \& Miller(2018)]{Tachibana2018} Tachibana Y., Miller A.~A., 2018, PASP, 130, 128001, PS1-PSC,
+  \url{https://doi.org/10.1088/1538-3873/aae3d9}
 \bibitem[Wolf et al.(2018)]{Wolf2018} Wolf C. et al., 2018, PASA, 35, e010, SkyMapper DR1,
   \href{https://doi.org/10.1017/pasa.2018.5}{doi:10.1017/pasa.2018.5}.
 \bibitem[Legacy Surveys(2020)]{LSDR9} Legacy Surveys DR9 catalogue documentation, Galactic extinction coefficients,

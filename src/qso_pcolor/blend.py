@@ -30,7 +30,7 @@ first-order derivative of the blend luptitude with respect to each component's l
 conditioned with their intrinsic covariance (the bundle's instrumental covariance removed), which is added
 back once for the single blend measurement.
 
-Base rules: any morphology; extinction corrected on the blend (both components lie behind the same dust);
+Base rules: Galactic |b| >= 25 deg as in resolved mode (else ``outside_latitude``); any morphology; extinction corrected on the blend (both components lie behind the same dust);
 both components must carry at least ``faint_snr`` (10) times the blend's Legacy r flux error, so the
 blend itself needs Legacy r at S/N >= 2 * faint_snr. Likelihoods therefore describe companions above that
 limit. No catch-all and no support cut are applied (two hypotheses only).
@@ -205,7 +205,12 @@ class BlendModel:
         if not dereddened and 'extinction' in self.model.meta:
             from .extinction import deredden
             p, _, _ = deredden(p, l_deg, b_deg, self.model.meta['extinction'])
-        out = [self._score_one(p.subset([i]), z[i], l_deg[i], b_deg[i], float(prior_odds_qq)) for i in range(n)]
+        # Same latitude limit as resolved mode: every training sample (background cones, quasars) is at
+        # |b| >= min_abs_b_deg (25); nearer the plane the stellar density and mix, and the dust, differ from
+        # anything the models learned, and the SFD98 correction is least reliable.
+        bmin = float(self.base.manifest['min_abs_b_deg'])
+        out = [BlendScore('outside_latitude') if abs(b_deg[i]) < bmin else
+               self._score_one(p.subset([i]), z[i], l_deg[i], b_deg[i], float(prior_odds_qq)) for i in range(n)]
         used = [nt.split(':', 1)[1] for o in out for nt in o.notes if nt.startswith('legacy_r_marginalised:')]
         if used:
             from .fallback_reference import alert

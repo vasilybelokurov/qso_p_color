@@ -11,10 +11,14 @@ Validation (method note Section "Sources without Legacy r", Table tab:nolegacy, 
   Legacy r to 0.08 mag. SkyMapper (1061 QSOs): 0.0049/0.0054, Legacy r bias +0.21/+0.15 mag.
   blend PS1: no AUC loss, dlogBF +0.4, sign 97/98%. NSC: no loss, +0.5, 94%. SkyMapper: loss 0.012/0.014, 81/79%.
 Quaia G<20 |b|>=25: 115,979 no DR9 source, 37,267 masked r (docs/fallback_reference/quaia_no_legacy_r.json).
-OPEN PI DECISIONS: (a) point-source criterion for resolved mode outside Legacy - recommended Gaia DR3 C*
-(Riello+2021) else PS1 iPSF-iKron < 0.05 (Farrow+2014), validated against Legacy type=PSF first; (b) blend mode
-|b| >= 25 check - recommended to refuse like resolved mode; (c) |b| cut itself: a design choice of the
-background cones, tested only down to 20 deg.
+DECIDED 13 Oct (PI): (a) point-source test outside Legacy = `qso_pcolor.point_source.point_source_morphology`:
+PS1-PSC ps_score >= 0.83 (Tachibana & Miller 2018) first, else Gaia DR3 |C*| < 3 sigma (Riello+2021), else
+unknown (not scored). PS1-PSC first because Gaia C* calls only 60-83% of bright (r<18) Legacy-PSF quasars point.
+Combined vs Legacy type (docs/point_source/validation.json): Legacy-PSF called PSF 97-99% at r<20, 88-95% at 20-21,
+57-75% at 21-22; extended called PSF < 1.4%; quasars 80-91% at r<18, 95-97% at 18-20.5. Note: my earlier
+attribution of iPSF-iKron<0.05 to Farrow+2014 was wrong (it is MAST PS1 documentation); not used.
+(b) blend mode now refuses |b| < 25 (`outside_latitude`); why the limit exists is in README "Why |b| >= 25" and
+the note's Section "Data and roles". (c) The 25 deg value is a design choice, tested only down to 20 deg.
 
 **QSO ABUNDANCE PRIOR = eBOSS QLF (PI decision, promoted 5 October 2026).** `current` -> `20261005_magdep_qlf`,
 `current_magindep` -> `20261005_magindep_qlf` (rollback `previous_20261003_*`). Sigma_Q(z, r) for the Legacy r

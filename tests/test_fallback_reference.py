@@ -112,3 +112,15 @@ def test_bright_source_near_prior_edge_is_scored_or_refused_with_a_reason():
         assert d['eligible'][0] or d['reason'][0] != ''
         if d['eligible'][0]:
             assert np.isfinite(model.quasar_probability(s)[0])
+
+
+@pytest.mark.skipif(not BUNDLE.exists(), reason='shipped bundle required')
+def test_blend_mode_refuses_low_latitude():
+    from qso_pcolor.blend import BlendModel
+    bands = ('decals_dr9_south:g', 'decals_dr9_south:r', 'decals_dr9_south:z')
+    m = BlendModel.load(BUNDLE, n_alpha=12)
+    soft = m.soft[[m.bands.index(b) for b in bands]]
+    f = flux_of(np.array([20.2, 20.0, 19.9]), soft); phot = Photometry(f[None], ((f/80.)**2)[None], bands)
+    low = m.score(phot, ra_deg=0., dec_deg=0., z_qso=1.5, dereddened=True, l_deg=30., b_deg=10.)[0]
+    assert low.status == 'outside_latitude'
+    assert m.score(phot, ra_deg=0., dec_deg=0., z_qso=1.5, dereddened=True, l_deg=30., b_deg=40.)[0].status != 'outside_latitude'

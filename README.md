@@ -211,7 +211,7 @@ Only eligible rows are science-grade. Rows refused before scoring have `scores[i
 | `reason` / `status` | Meaning |
 |---|---|
 | `non_psf_not_scored` | morphology is not PSF |
-| `outside_latitude` | Galactic \|*b*\| < 25° (outside the training footprint) |
+| `outside_latitude` | Galactic \|*b*\| < 25° (outside the training footprint; see [Why |b| ≥ 25°](#why-b--25)) |
 | `no_faint_limit_band` | no Legacy r, with `legacy_r_fallback=False` |
 | `no_fallback_band` | no Legacy r and no fallback band (PS1 r, NSC r, SkyMapper r) |
 | `fallback_too_faint` | no Legacy r, and the fallback band has S/N < 10 |
@@ -300,7 +300,8 @@ the components separately.
 - Each component must carry at least `faint_snr` (10) times the blend's Legacy r flux error, so the blend
   needs Legacy r S/N ≥ 20. Without Legacy r the same rule applies to the fallback band, and Legacy r is
   integrated over (on by default, with a warning; see [Sources without Legacy r](#sources-without-legacy-r)).
-- Blend mode does not check Galactic latitude: the models were trained at \|*b*\| ≥ 25°; check it yourself.
+- Galactic \|*b*\| ≥ 25°, as in resolved mode; lower-latitude blends get `outside_latitude` (see
+  [Why |b| ≥ 25°](#why-b--25)).
 - The likelihoods integrate over the companion's share α of the r flux.
 - There is no catch-all and no support cut.
 
@@ -311,7 +312,7 @@ uncertain.
 
 | `BlendScore` field | Meaning |
 |---|---|
-| `status` | `ok`, `too_faint_for_two_components` (Legacy r, or fallback band, S/N < 20), `no_reference_band` (no Legacy r and no fallback band, or `legacy_r_fallback=False`), `redshift_outside_support`, `no_prior_for_reference_band`, `empty_magnitude_prior`, `empty_hypotheses` |
+| `status` | `ok`, `outside_latitude` (\|*b*\| < 25°), `too_faint_for_two_components` (Legacy r, or fallback band, S/N < 20), `no_reference_band` (no Legacy r and no fallback band, or `legacy_r_fallback=False`), `redshift_outside_support`, `no_prior_for_reference_band`, `empty_magnitude_prior`, `empty_hypotheses` |
 | `log_like_qq`, `log_like_qs`, `log_bf_qq_qs` | log likelihoods and Bayes factor QQ:QS (natural log) |
 | `p_qq` | posterior P(QQ) at `prior_odds_qq` |
 | `alpha_mean_qq` | posterior mean share of the r flux in the *fainter* quasar under QQ (the hypothesis is symmetric) |
@@ -319,6 +320,24 @@ uncertain.
 | `alpha_range` | the range of shares integrated (set by the detection limit) |
 | `reference_band`, `bands_used`, `notes` | provenance; `no_colour_information` if only Legacy r is given; `legacy_r_marginalised:<band>` if Legacy r was integrated over |
 
+
+## Why |b| ≥ 25°
+
+Both modes refuse sources at Galactic \|*b*\| < 25° (`outside_latitude`). The limit is where the models were
+trained and checked, not a physical boundary:
+
+- **Everything the models know about the contaminating population** comes from 274 sky cones at
+  \|*b*\| ≥ 25°, chosen when the training samples were designed. The quasar training samples have the same cut,
+  and the spectroscopic surveys behind them (SDSS, DESI) barely cover the plane.
+- **Nearer the plane three things change.** Stars become far more numerous, so a companion is more often a
+  star and crowding and blending become common. The stellar mix changes: more thin-disc stars, and bulge stars
+  towards the Galactic centre, with colour distributions the background model has not seen. Dust becomes large
+  and patchy, and the SFD98 map behind the extinction correction is least reliable there.
+- **What has been measured:** in 30 cones between \|*b*\| = 20° and 78°, a background model refitted locally
+  described the field better than the global one by 0.1–0.2 nat per object at 20–45°, with unchanged false-QSO
+  rates. Nothing has been tested below 20°.
+
+Lowering the limit needs background training cones (and checks) at lower latitude.
 
 ## Sources without Legacy r
 
@@ -353,8 +372,40 @@ removed; same remaining bands; `current` / `current_magindep`; `docs/fallback_re
 - The integral is limited to ±(1.2 mag + 5σ) about the fallback magnitude: real PS1 − Legacy offsets
   exceed 1 mag for only 0.4% of quasars, and beyond that the models' tails are extrapolations.
   `legacy_r_grid_truncated` flags sources with non-negligible mass at the window edges.
-- In resolved mode a source outside Legacy has no Legacy `type`: you must supply `morphology` from another
-  point-source criterion, and the background model was trained on Legacy `type=PSF` sources.
+- In resolved mode a source outside Legacy has no Legacy `type`. Use `qso_pcolor.point_source.point_source_morphology`
+  (below) to make the `morphology` argument; the background model was trained on Legacy `type=PSF` sources.
+
+### Point-source test outside Legacy (resolved mode)
+
+```python
+from qso_pcolor.point_source import point_source_morphology
+morphology, test = point_source_morphology(ps_score=ps1_psc_score,            # PS1-PSC, NaN where absent
+                                           gaia_g=g, gaia_bp_rp=bp_rp,          # Gaia DR3, NaN where absent
+                                           gaia_excess_factor=phot_bp_rp_excess_factor)
+```
+
+Returns `'PSF'`, `'EXT'` or `'unknown'` per source (only `'PSF'` is scored) and the test used:
+
+1. **PS1-PSC** where the source has a PS1 detection: point source if `ps_score ≥ 0.83` (Tachibana & Miller 2018,
+   [arXiv:1902.01935](https://arxiv.org/abs/1902.01935); WSDB `panstarrs_dr1.hlsp`, joined on the
+   StackObjectThin `objid`);
+2. else **Gaia DR3**: point source if the corrected BP/RP flux excess satisfies \|C\*\| < 3 σ_C\*(G)
+   (Riello et al. 2021, [arXiv:2012.01916](https://arxiv.org/abs/2012.01916), Table 2 and Eq. 18);
+3. else `'unknown'`.
+
+Measured against Legacy `type` inside the footprint (`scripts/point_source/validate_point_source.py`,
+`docs/point_source/validation.json`; 106,519 field sources in 40 cones, 20,000 Quaia quasars):
+
+| Legacy r | Legacy-PSF sources called PSF | extended sources called PSF | Legacy-PSF quasars called PSF |
+|---|---|---|---|
+| < 18 | 98–99% | 0% | 80–91% |
+| 18–20 | 97–99% | < 1% | 95–97% |
+| 20–21 | 88–95% | < 1% | 95% |
+| 21–22 | 57–75% | < 1% | — |
+| > 22 | ≤ 34%, mostly untested | ≈ 1% | — |
+
+Gaia alone (Dec < −30°, no PS1) is weaker: it calls only 60% (r < 17) to 83% (r = 17–18) of Legacy-PSF quasars
+point, as Riello et al. warn for variable sources, and lets 10–15% of extended sources through at r = 20–21.
 
 Method: `src/qso_pcolor/fallback_reference.py`; method note, Section "Sources without Legacy r".
 
