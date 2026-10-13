@@ -1,0 +1,98 @@
+{
+ "mode": "skymapper",
+ "model": "current",
+ "available": {
+  "qso": 1061,
+  "stars": 16524
+ },
+ "n": {
+  "qso": 1061,
+  "stars": 3000
+ },
+ "schemes": {
+  "full": {
+   "unranked_qso": 0.009425070688030113,
+   "unranked_bkg": 0.8116666666666666,
+   "auc_own": 0.9993348096629422,
+   "auc_common": 0.9993284250323351,
+   "recall_p05": 0.9669187145557656,
+   "bkg_p05": 0.0008488964346349745,
+   "log_score_qso": -0.10244875850954081,
+   "log_score_bkg": -0.008677885184263861,
+   "reasons_qso": {
+    "outside_both_models": 5,
+    "qso_support_rejected": 5
+   },
+   "reasons_bkg": {
+    "background_out_of_mag_range": 1,
+    "outside_both_models": 15,
+    "qso_prior_empty_at_this_magnitude": 195,
+    "qso_support_rejected": 2224
+   }
+  },
+  "legacy_r": {
+   "unranked_qso": 0.002827521206409056,
+   "unranked_bkg": 0.5836666666666667,
+   "auc_own": 0.9900177230631386,
+   "auc_common": 0.9894168771523296,
+   "recall_p05": 0.7126654064272212,
+   "bkg_p05": 0.0008488964346349745,
+   "log_score_qso": -0.8029724108264282,
+   "log_score_bkg": -0.005738601294094189,
+   "reasons_qso": {
+    "outside_both_models": 1,
+    "qso_support_rejected": 2
+   },
+   "reasons_bkg": {
+    "background_out_of_mag_range": 1,
+    "outside_both_models": 6,
+    "qso_prior_empty_at_this_magnitude": 195,
+    "qso_support_rejected": 1549
+   }
+  },
+  "fallback": {
+   "unranked_qso": 0.0018850141376060003,
+   "unranked_bkg": 0.5846666666666667,
+   "auc_own": 0.9848497249744982,
+   "auc_common": 0.9839720650488958,
+   "recall_p05": 0.7003780718336484,
+   "bkg_p05": 0.003395585738539898,
+   "log_score_qso": -0.8011472783774223,
+   "log_score_bkg": -0.011479241599497248,
+   "reasons_qso": {
+    "outside_both_models": 2
+   },
+   "reasons_bkg": {
+    "outside_both_models": 8,
+    "qso_support_rejected": 1746
+   }
+  }
+ },
+ "auc_loss": {
+  "value": 0.005444812103433838,
+  "ci95": [
+   0.002566843150905249,
+   0.010457487082509468
+  ]
+ },
+ "bkg_p05_increase": {
+  "value": 0.0025466893039049233,
+  "ci95": [
+   0.0,
+   0.007548460170900958
+  ]
+ },
+ "recall_loss": {
+  "value": 0.012287334593572785,
+  "ci95": [
+   0.0,
+   0.024133002583238607
+  ]
+ },
+ "grid_truncated_fraction": 0.29943363703521303,
+ "legacy_r_recovery": {
+  "qso_median": 0.15086817769186567,
+  "qso_nmad": 0.2799196013180295
+ },
+ "accept": true
+}

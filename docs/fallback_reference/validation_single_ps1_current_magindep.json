@@ -1,0 +1,97 @@
+{
+ "mode": "ps1",
+ "model": "current_magindep",
+ "available": {
+  "qso": 283074,
+  "stars": 107678
+ },
+ "n": {
+  "qso": 3000,
+  "stars": 3000
+ },
+ "schemes": {
+  "full": {
+   "unranked_qso": 0.004666666666666708,
+   "unranked_bkg": 0.6123333333333334,
+   "auc_own": 0.9985685563872448,
+   "auc_common": 0.9989688874497009,
+   "recall_p05": 0.9307460689193711,
+   "bkg_p05": 0.005733944954128441,
+   "log_score_qso": -0.1555063847806203,
+   "log_score_bkg": -0.010315381210837464,
+   "reasons_qso": {
+    "outside_both_models": 5,
+    "qso_support_rejected": 9
+   },
+   "reasons_bkg": {
+    "outside_both_models": 17,
+    "qso_prior_empty_at_this_magnitude": 45,
+    "qso_support_rejected": 1775
+   }
+  },
+  "legacy_r": {
+   "unranked_qso": 0.0020000000000000018,
+   "unranked_bkg": 0.3906666666666667,
+   "auc_own": 0.9940669084339357,
+   "auc_common": 0.9940345103299253,
+   "recall_p05": 0.8159919705587153,
+   "bkg_p05": 0.006880733944954129,
+   "log_score_qso": -0.43706673280777064,
+   "log_score_bkg": -0.018389896168374158,
+   "reasons_qso": {
+    "outside_both_models": 2,
+    "qso_support_rejected": 4
+   },
+   "reasons_bkg": {
+    "outside_both_models": 11,
+    "qso_prior_empty_at_this_magnitude": 45,
+    "qso_support_rejected": 1116
+   }
+  },
+  "fallback": {
+   "unranked_qso": 0.0033333333333332993,
+   "unranked_bkg": 0.3913333333333333,
+   "auc_own": 0.9923031133350673,
+   "auc_common": 0.992035207074257,
+   "recall_p05": 0.761458681833389,
+   "bkg_p05": 0.0045871559633027525,
+   "log_score_qso": -0.5530087515705265,
+   "log_score_bkg": -0.01779784917050926,
+   "reasons_qso": {
+    "outside_both_models": 2,
+    "qso_support_rejected": 8
+   },
+   "reasons_bkg": {
+    "outside_both_models": 11,
+    "qso_support_rejected": 1163
+   }
+  }
+ },
+ "auc_loss": {
+  "value": 0.0019993032556683277,
+  "ci95": [
+   0.0010282934799995204,
+   0.0032942522166431844
+  ]
+ },
+ "bkg_p05_increase": {
+  "value": -0.0022935779816513763,
+  "ci95": [
+   -0.004786095283474625,
+   0.0
+  ]
+ },
+ "recall_loss": {
+  "value": 0.05453328872532626,
+  "ci95": [
+   0.03834988694965627,
+   0.06907076190967285
+  ]
+ },
+ "grid_truncated_fraction": 0.059666666666666666,
+ "legacy_r_recovery": {
+  "qso_median": 0.030174433240357956,
+  "qso_nmad": 0.21598748203485849
+ },
+ "accept": false
+}

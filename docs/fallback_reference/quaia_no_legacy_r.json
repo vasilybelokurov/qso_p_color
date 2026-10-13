@@ -1,0 +1,114 @@
+{
+ "input": "/Users/vasilybelokurov/data/catalogues/quaia_G20.0.fits",
+ "n_quaia": 755850,
+ "n_abs_b_ge_25": 597964,
+ "classes": {
+  "has_r": 444718,
+  "masked_r": 37267,
+  "no_legacy": 115979
+ },
+ "masked_r": {
+  "ps1_r": {
+   "observed": 29374,
+   "snr_ge_10": 29365,
+   "snr_ge_20": 29337,
+   "median_snr_observed": 138.1168129122985
+  },
+  "skymapper_r": {
+   "observed": 12651,
+   "snr_ge_10": 12076,
+   "snr_ge_20": 10069,
+   "median_snr_observed": 35.83287723772778
+  },
+  "sdss_r": {
+   "observed": 15747,
+   "snr_ge_10": 15103,
+   "snr_ge_20": 14907,
+   "median_snr_observed": 51.58231200950333
+  },
+  "nsc_r": {
+   "observed": 19297,
+   "snr_ge_10": 19288,
+   "snr_ge_20": 18819,
+   "median_snr_observed": 142.41031306375163
+  },
+  "ps1_or_skymapper_r_snr_ge_10": 34158,
+  "neither": 3109,
+  "any_survey_observed": {
+   "sdss": 15747,
+   "allwise": 30583,
+   "ps1": 29463,
+   "nsc": 21181,
+   "skymapper": 17357,
+   "vhs": 12753
+  },
+  "dec_quantiles_5_25_50_75_95": [
+   -61.5,
+   -22.5,
+   4.3,
+   31.9,
+   68.0
+  ],
+  "dec_bins": {
+   "-90..-65": 1312,
+   "-65..-30": 6638,
+   "-30..-20": 1840,
+   "-20..0": 6860,
+   "0..32": 11379,
+   "32..40": 2211,
+   "40..90": 7027
+  }
+ },
+ "no_legacy": {
+  "ps1_r": {
+   "observed": 76352,
+   "snr_ge_10": 76336,
+   "snr_ge_20": 76227,
+   "median_snr_observed": 121.00036201285579
+  },
+  "skymapper_r": {
+   "observed": 84398,
+   "snr_ge_10": 80164,
+   "snr_ge_20": 65758,
+   "median_snr_observed": 33.92925478713842
+  },
+  "sdss_r": {
+   "observed": 9158,
+   "snr_ge_10": 9055,
+   "snr_ge_20": 8939,
+   "median_snr_observed": 51.44037568788623
+  },
+  "nsc_r": {
+   "observed": 49122,
+   "snr_ge_10": 48889,
+   "snr_ge_20": 48457,
+   "median_snr_observed": 156.4348667719276
+  },
+  "ps1_or_skymapper_r_snr_ge_10": 105839,
+  "neither": 10140,
+  "any_survey_observed": {
+   "sdss": 9158,
+   "allwise": 109007,
+   "ps1": 78032,
+   "nsc": 77087,
+   "skymapper": 103138,
+   "vhs": 80984
+  },
+  "dec_quantiles_5_25_50_75_95": [
+   -76.6,
+   -35.6,
+   -24.2,
+   -15.7,
+   17.9
+  ],
+  "dec_bins": {
+   "-90..-65": 19599,
+   "-65..-30": 22490,
+   "-30..-20": 29470,
+   "-20..0": 34411,
+   "0..32": 6183,
+   "32..40": 2190,
+   "40..90": 1636
+  }
+ }
+}
