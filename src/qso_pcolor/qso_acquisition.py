@@ -87,7 +87,7 @@ def fetch_sdss_by_id(ra: np.ndarray, dec: np.ndarray, objid: np.ndarray,
         sqlutil.upload('mytmptable', (np.arange(len(ra)), ra, dec, objid),
                        ('idx', 'ra', 'dec', 'objid'), conn=conn,
                        noCommit=True, temp=True, analyze=True)
-        plan = sqlutil.get('EXPLAIN '+query, conn=conn, notNamed=True, asDict=True,
+        plan = sqlutil.get('EXPLAIN '+query, conn=conn, batched=False, asDict=True,
                           strLength=20000, preamb="SET jit=off; SET cursor_tuple_fraction=1; SET statement_timeout='7200s'")
         lines = next(iter(plan.values())).tolist()
         if any('Seq Scan on photoobjall' in line for line in lines):
@@ -246,7 +246,7 @@ def fetch_sdss_positions(ra: np.ndarray, dec: np.ndarray, cache: Path, *,
         try:
             sqlutil.upload('mytmptable', (np.arange(len(inputs['ra'])), inputs['ra'], inputs['dec']),
                 ('idx', 'ra', 'dec'), conn=conn, noCommit=True, temp=True, analyze=True)
-            plan = sqlutil.get('EXPLAIN '+query, conn=conn, notNamed=True, asDict=True,
+            plan = sqlutil.get('EXPLAIN '+query, conn=conn, batched=False, asDict=True,
                 strLength=30000, preamb="SET jit=off; SET cursor_tuple_fraction=1; SET statement_timeout='7200s'")
             lines = next(iter(plan.values())).tolist()
             (out/'plan.txt').write_text('\n'.join(lines)+'\n')

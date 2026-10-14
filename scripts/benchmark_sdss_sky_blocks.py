@@ -111,11 +111,11 @@ def main():
         conn = sqlutil.getConnection(db='wsdb', driver='psycopg')
         started = time.monotonic()
         try:
-            active = sqlutil.get("SELECT pid,state,wait_event_type,wait_event FROM pg_stat_activity WHERE usename=current_user AND state='active' AND pid<>pg_backend_pid()", conn=conn, asDict=True, notNamed=True)
+            active = sqlutil.get("SELECT pid,state,wait_event_type,wait_event FROM pg_stat_activity WHERE usename=current_user AND state='active' AND pid<>pg_backend_pid()", conn=conn, asDict=True, batched=False)
             write_record(out/'load_before.json', {k:v.tolist() for k,v in active.items()})
             sqlutil.upload('mytmptable', (np.arange(n), inputs['ra'], inputs['dec']),
                 ('idx','ra','dec'), conn=conn, noCommit=True, temp=True, analyze=True)
-            plan = sqlutil.get('EXPLAIN '+query, conn=conn, asDict=True, notNamed=True,
+            plan = sqlutil.get('EXPLAIN '+query, conn=conn, asDict=True, batched=False,
                 strLength=30000, preamb="SET jit=off; SET cursor_tuple_fraction=1; SET statement_timeout='1200s'")
             lines = next(iter(plan.values())).tolist()
             if (any('Seq Scan on photoobjall' in l for l in lines) or
@@ -124,7 +124,7 @@ def main():
             preparation = time.monotonic()-started
             print(f'{n:,}: first server execution, backend {conn.info.backend_pid}', flush=True)
             plan = sqlutil.get('EXPLAIN (ANALYZE,BUFFERS,TIMING OFF) '+query, conn=conn,
-                asDict=True, notNamed=True, strLength=50000)
+                asDict=True, batched=False, strLength=50000)
             text = '\n'.join(next(iter(plan.values())).tolist())
             (out/'first_execution.plan').write_text(text+'\n')
             server_s = float(re.search(r'Execution Time: ([\d.]+)', text).group(1))/1000

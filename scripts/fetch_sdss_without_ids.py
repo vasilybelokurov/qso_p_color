@@ -92,7 +92,7 @@ def main() -> None:
         sqlutil.upload('mytmptable', (np.arange(n),selection['ra'],selection['dec']),
                        ('idx','ra','dec'), conn=conn, noCommit=True, temp=True, analyze=True)
         status('checking full-list query plan')
-        plan = sqlutil.get('EXPLAIN '+sql, conn=conn, notNamed=True, asDict=True,
+        plan = sqlutil.get('EXPLAIN '+sql, conn=conn, batched=False, asDict=True,
                           strLength=30000, preamb="SET jit=off; SET statement_timeout='7200s'")
         lines = next(iter(plan.values())).tolist()
         (out/'plan.txt').write_text('\n'.join(lines)+'\n')

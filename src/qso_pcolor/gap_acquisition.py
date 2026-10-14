@@ -76,7 +76,7 @@ def fetch_native(survey: str, inputs: dict, cache: Path, *, radius: float,
     try:
         names=['idx',*inputs];arrays=[np.arange(len(inputs['ra'])),*inputs.values()]
         sqlutil.upload('mytmptable',arrays,names,conn=conn,noCommit=True,temp=True,analyze=True)
-        plan=sqlutil.get('EXPLAIN '+sql,conn=conn,notNamed=True,asDict=True,strLength=30000,
+        plan=sqlutil.get('EXPLAIN '+sql,conn=conn,batched=False,asDict=True,strLength=30000,
             preamb="SET jit=off; SET cursor_tuple_fraction=1; SET statement_timeout='7200s'")
         lines=next(iter(plan.values())).tolist();record['plan']=lines
         write_record(meta,record)
