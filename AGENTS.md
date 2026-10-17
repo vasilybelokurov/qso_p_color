@@ -2,30 +2,39 @@
 
 **Method note:** `docs/method_unified/method_unified.tex` describes the two active models; figures are made by `scripts/method_unified/fig*.py` into `plots/method_unified/`. The old `docs/method/method.tex` is retired and kept unchanged (user decision, 2 October); do not edit it. Update the new note in the same commit as any method change.
 
-**Active models (promoted 4 October 2026, PI decision). USE BOTH.** Load with `UnifiedPSFModel.load(...)`:
-`models/multisurvey_psf/current` (= `current_magdep`) = magnitude-DEPENDENT QSO colours, bundle
-`20261003_magdep`; `models/multisurvey_psf/current_magindep` = magnitude-INDEPENDENT QSO colours (XDQSO
-assumption), bundle `20261003_magindep`. `current` is the magnitude-dependent model because it is better on
-the DESI/SDSS-selected test quasars (paired sky bootstrap: AUC +0.0039 [0.0032, 0.0045], +0.020 at r<18,
-recall +3.2 points; `docs/method_unified/model_difference_bootstrap.json`), but `current_magindep` CAN AND
-SHOULD BE USED alongside it: it cannot learn the training selection as quasar physics, a risk the tests
-cannot measure. Score candidates with both and report disagreements. Both are extinction-corrected (SFD98;
-DESI North->South relation on uncorrected magnitudes), use the MAP update with predictive stopping, a
-binned (8 Legacy-r bins x 20) QSO-cleaned background with a smooth (l,b) softmax weight gate, catch-all
-and Sigma_B on the cleaned sample, a recalibrated support cut (2/256), and the PI faint limit (model meta
-`faint_limit`: Legacy r S/N >= 10, Legacy r is the reference; reasons `too_faint`, `no_faint_limit_band`).
-Rollback: `previous_20261002_magindep`, `previous_20261002_magdep` (2 October), `previous` (28 September).
-Promotion script: `scripts/promote_stellar_binned.py`. The stellar-sample likely-QSO flag is
-`<run>/stars/qso_flag.npy`. Role-3 rows used by the background design tests
-(`work/background_designs/test*/rows.npz`) must stay out of final assessments. Never train or promote a
-non-dereddened model without an explicit PI decision. See PROJECT_STATE.md for the decision log.
+**Two modes (terminology, PI 13 October 2026).** Use these names in code, docs and reports:
+- **resolved mode** — `UnifiedPSFModel` (`src/qso_pcolor/unified.py`): the companion is measured as its own
+  source; output `p_quasar`, `log_r_per_unit_z`, eligibility and flags.
+- **blend mode** — `BlendModel` (`src/qso_pcolor/blend.py`): the quasar and companion are measured as one
+  source; QQ (same-z quasar companion) vs QS (star), `log_bf_qq_qs`, `p_qq`.
+Do not call resolved mode "single-object" anything.
 
-**Blend mode (4 October 2026).** `src/qso_pcolor/blend.py` (`BlendModel`): spectroscopic QSO at z0 + unresolved
-companion, combined flux only; hypotheses QQ (same-z QSO companion) vs QS (star). Linearised flux addition over
-component pairs, companion r-flux share integrated on a logit grid, companion magnitude prior conditioned on the
-detectable range (each component >= 10 sigma of the blend Legacy r error). Validation:
-`scripts/validate_blend_mode.py` -> `docs/method_unified/blend_validation.json`, F20. Later hypotheses (QSO pairs at
-different z, negligible companion, sub-limit companions) are planned, not implemented.
+**Active models. USE BOTH.** The pointers `models/multisurvey_psf/current` (= `current_magdep`,
+magnitude-DEPENDENT QSO colours, bundle `20261005_magdep_qlf`) and `models/multisurvey_psf/current_magindep`
+(magnitude-INDEPENDENT, XDQSO assumption, bundle `20261005_magindep_qlf`), promoted 5 October 2026 (eBOSS QLF
+quasar abundance prior). Both modes load either pointer. `current_magindep` CAN AND SHOULD BE USED alongside
+`current`: it cannot learn the training selection as quasar physics, a risk the tests cannot measure. Score with
+both and report disagreements. Both are extinction-corrected (SFD98); binned (8 Legacy-r bins) QSO-cleaned
+background with a smooth (l,b) weight gate; Student-t catch-all; calibrated support cut; calibrated
+outside-both-models test (scorer default). Bundles and pointers are tracked in git (`git ls-files
+models/multisurvey_psf`); never change a pointer without a PI decision. Rollback pointers `previous_*`.
+Never train or promote a non-dereddened model without an explicit PI decision. Decision log: PROJECT_STATE.md.
+
+**Rules added 13-15 October 2026 (PI decisions; do not undo without one):**
+- **Faint limit and reference band.** Legacy r (South, else North) at S/N >= 10 (>= 20 for blends) is the
+  reference band; all population priors (Sigma_Q from the eBOSS QLF, Sigma_B, the background bins) are in Legacy r.
+- **Sources without Legacy r are scored, by default.** Legacy r is integrated over given a fallback band
+  (PS1 r, else NSC r, else SkyMapper r) at the same S/N limit (`src/qso_pcolor/fallback_reference.py`;
+  `legacy_r_fallback=True` in both modes; each use raises `LegacyRFallbackWarning`; flag/note
+  `legacy_r_marginalised:<band>`). `legacy_r_fallback=False` restores the refusal (`no_faint_limit_band`,
+  `no_reference_band`). Validated in `docs/fallback_reference/` and method note Section 12; SkyMapper-only is weak.
+- **Galactic latitude.** Both modes refuse |b| < 25 deg (`outside_latitude`): every training sample is there.
+  README "Why |b| >= 25" gives the reason; nothing below 20 deg has been tested.
+- **Point sources outside Legacy (resolved mode).** Without a Legacy `type`, the caller's `morphology` comes from
+  `qso_pcolor.point_source.point_source_morphology`: PS1-PSC `ps_score >= 0.83` first, else Gaia DR3 |C*| < 3 sigma,
+  else `unknown` (not scored). Validated against Legacy type in `docs/point_source/validation.json`.
+- **Blend photometry** is the total light of the whole blend (Legacy model flux, SDSS cModel, PS1 Kron, NSC `?mag`
+  = MAG_AUTO, SkyMapper `?_petro`, AllWISE): README, blend-mode column section.
 
 **Keep the goal in view (user priority, 30 September).** Deliver a pragmatic,
 working, robust model with the requested functionality. Choose the simplest
@@ -67,18 +76,18 @@ previous serial, QSO-parallel and stellar-only launch commands are historical;
 do not relaunch them. Preserve the parent and the active model pointer.
 
 Read this before touching the repository. It is the working contract for
-`qso_pcolor`. `docs/method/method.tex` is the scientific write-up — the
+`qso_pcolor`. `docs/method_unified/method_unified.tex` is the scientific write-up — the
 formalism, the derivations and the figures — and is the place to look for *why
 the method is what it is*. `docs/REVIEW_OF_PLAN.md` explains why the design
 departs from `qso_binary_color_probability_plan.md` where it does. This file
 says *what to do*.
 
-**If you change the method, update `docs/method/method.tex` in the same
+**If you change the method, update `docs/method_unified/method_unified.tex` (and the README) in the same
 commit.** A write-up that describes a previous version of the code is worse
-than none.
+than none. (`docs/method/method.tex` is retired; do not edit it.)
 
-**Active 41-band recovery (2026-09-28).** Use `PSFMultiSurveyBaseline` and
-`models/multisurvey_psf/current`: one PSF-selected joint model, arbitrary
+**History — 41-band recovery (2026-09-28; superseded by the active models at the top).** It used
+`PSFMultiSurveyBaseline` and the then `models/multisurvey_psf/current`: one PSF-selected joint model, arbitrary
 nonempty band subsets, HEALPix-dependent weights and surface densities,
 41 reference-band priors, and optional candidate-local refits. Both Legacy
 hemispheres are active. See `docs/VALIDATION_multisurvey_psf_2026-09-28.json`.
@@ -92,8 +101,8 @@ Student-t. The fitted Gaussian alternative and comparison are recorded in
 Magnitude bins for the catch-all share do not discretise the stellar colour
 model, which conditions continuously on the reference magnitude.
 
-**Full-sample preparation (2026-09-28).** The active artifacts still use the
-capped input/shape samples. Do not describe them as full-sample retraining.
+**History — full-sample preparation (2026-09-28; since completed, see PROJECT_STATE.md).** The then-active
+artifacts used the capped input/shape samples. Do not describe them as full-sample retraining.
 `docs/FULL_SAMPLE_TRAINING_PLAN_2026-09-28.md` records the uncapped QSO and
 stellar selection policy and the remaining preflight work. A lossless positional
 SDSS+DESI master is saved under `~/data/qso_p_color/catalogues/qso_sdss_desi/`;
@@ -291,52 +300,19 @@ Consequences, all enforced by tests:
 
 ## 2. Current state
 
-Working and tested (`pytest -q` → all green; run it before and after any change):
+**PROJECT_STATE.md is the current state** (objective, active models, open PI decisions, recent results); the
+active models and rules are summarised at the top of this file. This section no longer keeps its own listing,
+which went stale. Orientation:
 
-```
-models/
-  multisurvey_psf/current   ACTIVE joint 41-band PSF model, spatial priors and outlier
-  multisurvey.json          earlier 41-band quasar slices, joint field fit,
-                            Legacy-south grz and grzW1W2 field fits, transform
-  multisurvey_priors.json   Sigma_Q(z, u_a), Sigma_B(u_a) for 37 reference bands
-  multisurvey_outlier.json  the unmodelled term (envelope, eta per band and bin)
-  archive/                  retired models; provenance and regression only
-src/qso_pcolor/
-  gaussmix.py    batched log-densities, missing-dimension marginalisation,
-                 per-object noise convolution, joint conditioning,
-                 nearest-component distances
-  xd.py          extreme deconvolution (Bovy, Hogg & Roweis) in numpy
-  multisurvey_data.py  41 survey-labelled bands, native photometry, catalogue
-                 adapters and quality cuts, same_training_config
-  multisurvey.py MultiSurveyModel (joint mixtures conditioned on a reference
-                 band), load_priors, MultiSurveyOutlier
-  score.py       the scorer shared by every model, PairScore output record
-  outlier.py     envelope covariance, dominance check, ML outlier fraction
-  qso_model.py   sliced redshift-conditional mixtures; RedshiftMatch
-  priors.py      GridQSOPrior, BackgroundSurfaceDensity
-  background.py, features.py   the retired model's field model and flux ratios
-  data.py        WSDB queries, cached to .npz
-  plotting.py    save_figure: every figure a PNG under plots/
-scripts/ (the model)
-  build_multisurvey_sample.py   quasar training sample, 24 field cones, overlap field
-  train_multisurvey_model.py    slices and joint field fit, spatial K selection
-  fit_background_marginal.py    dedicated Legacy-only field fits (append)
-  build_multisurvey_priors.py   surface densities per reference band
-  fit_multisurvey_outlier.py    kappa and eta on field sources the fit never used
-  validate_pairs_multisurvey.py labelled pairs, against the predecessor on the same rows
-  validate_multisurvey.py       all 127 survey subsets on reserved objects
-  make_validation_figures.py, plot_colour_redshift.py, make_multisurvey_examples.py
-scripts/ (the retired model; run against models/archive/)
-  train_qso_model.py, build_global_background.py, validate_pairs.py,
-  compare_background_modes.py, fit_outlier_model.py, outlier_analysis.py,
-  make_method_figures.py, score_examples.py, compare_old_new_models.py, ...
-scripts/build_pair_validation.py   labelled close-pair sample from DESI DR1
-tools/journal.py          JOURNAL.md updater
-docs/method/              method.tex + Makefile -> method.pdf
-tests/                    276 tests; see section 7
-```
+- `src/qso_pcolor/unified.py` (resolved mode), `blend.py` (blend mode), `fallback_reference.py` (scoring without
+  Legacy r), `point_source.py` (point-source test outside Legacy), `multisurvey*.py`, `score.py` (shared scorer),
+  `xd.py`, `gaussmix.py` (mixtures and extreme deconvolution).
+- `scripts/method_unified/` (method note figures and analyses), `scripts/fallback_reference/`,
+  `scripts/point_source/`, `scripts/validate_blend_mode.py`.
+- `docs/method_unified/method_unified.tex` (the method note; `make -C docs/method_unified`), README (user guide).
+- `models/archive/` and the older `models/multisurvey*.json`: retired models, kept for provenance and regression.
 
-A general CLI and the remaining calibration work are not yet complete.
+Run `pytest -q` before and after any change; it must be all green.
 
 ---
 
