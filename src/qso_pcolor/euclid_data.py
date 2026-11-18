@@ -117,31 +117,29 @@ ISOLATION_RADIUS_ARCSEC = 1.5
 ISOLATION_DMAG = 2.5
 
 
-def isolation_neighbours(table_code, object_id, ra, dec, *, radius_arcsec: float = ISOLATION_RADIUS_ARCSEC,
-                         dmag: float = ISOLATION_DMAG) -> np.ndarray:
+def isolation_neighbours(object_id, ra, dec, vis_flux, *, radius_arcsec: float = ISOLATION_RADIUS_ARCSEC,
+                         dmag: float = ISOLATION_DMAG, chunk: int = 100_000) -> np.ndarray:
     """Number of isolation neighbours of each MER object (docs/euclid/PLAN.md 2.1).
 
-    A neighbour is another MER source (either table) within ``radius_arcsec`` with vis_det = 1, spurious_flag = 0
-    and a VIS template-fit flux brighter than the object's divided by 10**(0.4 dmag). Chance faint or spurious
-    detections are not neighbours (they removed 15% of quasars under a plain count; review D2.1).
+    A neighbour is another MER source (either table) within ``radius_arcsec`` of the object's MER position with
+    vis_det = 1, spurious_flag = 0 and a VIS template-fit flux brighter than the object's divided by 10**(0.4 dmag)
+    (a NaN object flux counts every such source). Chance faint or spurious detections are not neighbours (they
+    removed 15% of quasars under a plain count; review D2.1). Positions and fluxes come from the cached match, so
+    the server only runs indexed cone counts (a join on object_id was ~1 h for 17k rows).
     """
     import sqlutilpy as sqlutil
-    code = np.asarray(table_code, int); oid = np.asarray(object_id, np.int64)
-    out = np.zeros(len(oid), int)
-    r = radius_arcsec/3600.; ratio = 10**(-0.4*dmag)
-    for c, table in enumerate(TABLES):
-        sel = np.flatnonzero(code == c)
-        if not len(sel):
-            continue
-        parts = [f"""(SELECT count(*) FROM {t} n
-                 WHERE q3c_join(e.right_ascension, e.declination, n.right_ascension, n.declination, {r})
-                   AND n.object_id <> e.object_id AND n.vis_det = 1 AND n.spurious_flag = 0
-                   AND n.flux_vis_to_y_templfit > {ratio}*e.flux_vis_to_y_templfit)""" for t in TABLES]
-        res = sqlutil.local_join(f"""SELECT m.i, {' + '.join(parts)} AS n
-            FROM mytab m JOIN {table} e ON e.object_id = m.oid""", 'mytab',
-            (np.arange(len(sel)), oid[sel]), ('i', 'oid'), asDict=True,
-            preamb="SET statement_timeout = '1800s'")
-        out[sel[np.asarray(res['i'], int)]] = np.asarray(res['n'], int)
+    oid = np.asarray(object_id, np.int64); ra = np.asarray(ra, float); dec = np.asarray(dec, float)
+    f = np.nan_to_num(np.asarray(vis_flux, float), nan=0.)*10**(-0.4*dmag)
+    out = np.zeros(len(oid), int); order = _order(ra, dec); r = radius_arcsec/3600.
+    for lo in range(0, len(order), chunk):
+        ii = order[lo:lo + chunk]
+        parts = [f"""(SELECT count(*) FROM {t} n WHERE q3c_radial_query(n.right_ascension, n.declination, m.ra, m.dec, {r})
+                 AND n.object_id <> m.oid AND n.vis_det = 1 AND n.spurious_flag = 0
+                 AND n.flux_vis_to_y_templfit > m.fmin)""" for t in TABLES]
+        res = sqlutil.local_join(f"SELECT m.i, {' + '.join(parts)} AS n FROM mytab m", 'mytab',
+                                 (ii, oid[ii], ra[ii], dec[ii], f[ii]), ('i', 'oid', 'ra', 'dec', 'fmin'), asDict=True,
+                                 preamb="SET statement_timeout = '3600s'")
+        out[np.asarray(res['i'], int)] = np.asarray(res['n'], int)
     return out
 
 

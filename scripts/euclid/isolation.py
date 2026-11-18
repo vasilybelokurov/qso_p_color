@@ -19,6 +19,6 @@ if __name__ == '__main__':
             continue
         m = np.load(path); ok = m['matched']; t = time.monotonic()
         n = np.full(len(ok), -1)
-        n[ok] = isolation_neighbours(m['table'][ok], m['object_id'][ok], None, None)
+        n[ok] = isolation_neighbours(m['object_id'][ok], m['e_ra'][ok], m['e_dec'][ok], m['flux_vis_to_y_templfit'][ok])
         np.savez_compressed(out, neighbours=n, radius_arcsec=1.5, dmag=2.5)
         print(path, int(ok.sum()), 'isolated', int((n[ok] == 0).sum()), f'{time.monotonic()-t:.0f} s', flush=True)

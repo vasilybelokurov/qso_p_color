@@ -101,8 +101,9 @@ def colour_window(config: dict, photometry: Photometry, bands, soft, rows, band_
 
     ``config = dict(colour=[b1, b2], coef=[c0, c1, ...], lo, hi, r_max, nisp=dict(bands, min_bands, min_snr))``:
     centre = m_fallback + sum_j c_j (m_b1 - m_b2)^j (dereddened luptitudes; c_0 the zero point); window
-    [centre - lo - 5 sigma, centre + hi + 5 sigma]. Rows whose window top exceeds ``r_max`` (the training range)
-    or that fail the NISP requirement are not eligible. Returns (lo_edge, hi_edge, eligible, reason).
+    [centre - lo - 5 sigma, centre + hi + 5 sigma]. Rows whose centre exceeds ``centre_max`` or that fail the NISP
+    requirement are not eligible; the posterior-mass rule (``r_max``, ``post_mass_max``) is applied after the
+    integral in :func:`score_with_fallback`. Returns (lo_edge, hi_edge, eligible, reason).
     """
     i1, i2 = bands.index(config['colour'][0]), bands.index(config['colour'][1])
     f, v = photometry.flux[rows], photometry.variance[rows]
@@ -120,7 +121,7 @@ def colour_window(config: dict, photometry: Photometry, bands, soft, rows, band_
             good = (obs[:, idx] & (f[:, idx]/np.sqrt(v[:, idx]) >= nisp['min_snr'])).sum(1)
         reason[good < nisp['min_bands']] = 'insufficient_nisp'
     reason[(reason == '') & ~np.isfinite(centre)] = 'no_fallback_colour'
-    reason[(reason == '') & (hi > config['r_max'])] = 'legacy_r_outside_training'
+    reason[(reason == '') & (centre > config['centre_max'])] = 'legacy_r_outside_training'
     return lo, hi, reason == '', reason
 
 
@@ -229,6 +230,11 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
             decision['reason'][i] = md['reason'][j]; continue
         if not usable[j]:
             scores[i] = rec; decision['reason'][i] = md['reason'][j] or rec.status; continue
+        wcfg = windows.get(bands[band[i]])
+        if wcfg is not None and post[j, grids[j] > wcfg['r_max']].sum() > wcfg['post_mass_max']:
+            # posterior mass beyond the training range in Legacy r: the models there are extrapolations
+            scores[i] = rec; decision['eligible'][i] = False; decision['reason'][i] = 'legacy_r_outside_training'
+            continue
         integ = {k: float(_integrate(lam[k][j], h[j])) for k in lam}
         edge = float(post[j, 0] + post[j, -1])
         flags = tuple(rec.quality_flags) + (f'legacy_r_marginalised:{bands[band[i]]}',) + \

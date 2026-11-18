@@ -75,7 +75,7 @@ def euclid_marginal_logp(mix_ext: GaussianMixture, h, b, t, y, noise, obs, log_w
     return out
 
 
-def run_qso(latent, z_centres, layout_ext, d, train, *, t_d, r_index, h_z, kappa_a, b_zero, n_iter, init=None):
+def run_qso(latent, z_centres, layout_ext, d, train, *, t_d, r_index, h_z, kappa_a, b_zero, n_iter, init=None, kappa_w=np.inf):
     mixes = [GaussianMixture.from_dict(m) for m in latent['qso']]
     sizes = [m.n_components for m in mixes]; starts = np.cumsum([0] + sizes)
     big = GaussianMixture(np.concatenate([m.weights for m in mixes])/len(mixes), np.concatenate([m.means for m in mixes]),
@@ -94,7 +94,7 @@ def run_qso(latent, z_centres, layout_ext, d, train, *, t_d, r_index, h_z, kappa
     h, b, t = operator(layout_ext, 'qso')
     ext, hist = fit_extension(big, y, noise, obs, h=h, offset=b, extra=t, t_d=t_d, r_index=r_index,
                               new_labels=EUCLID_BANDS, groups=groups, pooling=pool, kappa_a=kap, kappa_b=np.inf,
-                              kappa_w=np.inf, row_weights=w, blocks=blocks, n_iter=n_iter, tol=1e-4, b_zero=b_zero,
+                              kappa_w=kappa_w, row_weights=w, blocks=blocks, n_iter=n_iter, tol=1e-4, b_zero=b_zero,
                               init=init, log=log)
     per = [Extension(ext.a[g], ext.b[g], ext.w[g], dict(ext.meta, slice=i)) for i, g in enumerate(groups)]
     return per, ext, hist, dict(rows_per_slice=n_slice.tolist())
@@ -117,10 +117,15 @@ def run_bkg(latent, model, layout_ext, d, train, *, t_d, r_index, kappa, b_zero,
               if (rbin == j).any()]
     lw = gate_log_weights(model, d['l'][train], d['b'][train])
     h, b, t = operator(layout_ext, 'stars')
+    # bins without training rows (r < 18 after the VIS bright limit) borrow the nearest populated bin's regression
+    nbin = np.bincount(rbin, minlength=len(EDGES) - 1); pop = np.flatnonzero(nbin >= 200)
+    pool = np.eye(len(EDGES) - 1)
+    for j in np.flatnonzero(nbin < 200):
+        pool[j] = 0.; pool[j, pop[np.argmin(np.abs(pop - j))]] = 1.
     ext, hist = fit_extension(mix, y, noise, obs, h=h, offset=b, extra=t, t_d=t_d, r_index=r_index,
-                              new_labels=EUCLID_BANDS, groups=groups, kappa_a=0., kappa_b=kappa, kappa_w=kappa,
+                              new_labels=EUCLID_BANDS, groups=groups, pooling=pool, kappa_a=1., kappa_b=kappa, kappa_w=kappa,
                               blocks=blocks, row_log_weights=lw, n_iter=n_iter, tol=1e-4, b_zero=b_zero, init=init, log=log)
-    return ext, hist, dict(rows_per_bin=np.bincount(rbin, minlength=len(EDGES) - 1).tolist(),
+    return ext, hist, dict(rows_per_bin=nbin.tolist(), pooling=pool.tolist(),
                            components_per_bin=[len(g) for g in groups])
 
 
@@ -128,6 +133,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--bundle', required=True); ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--n-iter', type=int, default=60)
+    ap.add_argument('--only-qso', action='store_true', help='fit only QSO candidates missing from the report; keep the rest')
     a = ap.parse_args(); a.out.mkdir(parents=True, exist_ok=True)
     settings = json.loads(Path('docs/euclid/settings.json').read_text())
     roles = json.loads(Path('docs/euclid/sky_roles.json').read_text())
@@ -146,8 +152,11 @@ def main():
     log('rows: QSO fit', len(q_train), 'select', len(q_sel), '; background', len(b_train), '; magdep', magdep)
     zc = np.asarray(model.qso.z_centres, float)
     h_q, b_q, t_qop = operator(lay, 'qso')
-    results = {}
+    old = json.loads((a.out/'fit_report.json').read_text())['results'] if (a.out/'fit_report.json').exists() else {}
+    results = dict(old) if a.only_qso else {}
     for name, kw in settings['qso_candidates'].items():
+        if a.only_qso and f'qso:{name}' in old:
+            continue
         per, ext, hist, info = run_qso(latent, zc, lay, q, q_train, t_d=t_q, r_index=r_index, n_iter=a.n_iter, **kw)
         # held-out Euclid marginal density of select-cell QSOs at their slice (interpolation as in the scorer)
         zs = q['zspec'][q_sel]; idx = np.clip(np.searchsorted(zc, zs) - 1, 0, len(zc) - 2)
@@ -163,7 +172,7 @@ def main():
                                       iterations=len(hist), final_train_loglike=hist[-1], **info)
         json.dump(dict(per_slice=[e.to_dict() for e in per]), open(a.out/f'qso_{name}.json', 'w'))
         log('QSO candidate', name, results[f'qso:{name}'])
-    for name, kw in settings['bkg_candidates'].items():
+    for name, kw in ({} if a.only_qso else settings['bkg_candidates']).items():
         ext, hist, info = run_bkg(latent, model, lay, bg, b_train, t_d=t_b, r_index=r_index, n_iter=a.n_iter, **kw)
         results[f'bkg:{name}'] = dict(iterations=len(hist), final_train_loglike=hist[-1], **info)
         json.dump(ext.to_dict(), open(a.out/f'bkg_{name}.json', 'w'))

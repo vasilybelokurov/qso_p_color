@@ -206,11 +206,12 @@ def fit_extension(mix: GaussianMixture, y, noise, observed, *, h, offset, extra,
             wg = (0.5*(wsum + wsum.T) + w_floor*np.eye(m))/(t0 + 1.)
             gmat = sum(o*coef_stats(kk)[0] for o, kk in zip(om, use))/max(t0, 1e-12)
             for kk in comp:
+                a0k = a0_of.get(kk, alpha)             # components outside the pooled set (empty group): group intercept
                 if np.isinf(kappa_b) or b_zero:
-                    coef_k = np.concatenate([a0_of[kk][:, None], bg], axis=1)
+                    coef_k = np.concatenate([a0k[:, None], bg], axis=1)
                 else:
                     # kappa_b pseudo-rows distributed like the group's regressors, centred on the group fit
-                    centre = np.concatenate([a0_of[kk][:, None], bg], axis=1)
+                    centre = np.concatenate([a0k[:, None], bg], axis=1)
                     g1, r1 = coef_stats(kk); lam = kappa_b*gmat
                     coef_k = np.linalg.solve(g1 + lam + 1e-9*np.eye(p + 1), (r1 + centre @ lam).T).T
                 if np.isinf(kappa_w):

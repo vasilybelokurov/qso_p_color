@@ -1,18 +1,82 @@
 {
-  "status": "DRAFT: p_min, bad_bits, vis_bright pending T-D1, T-D3, T-D5 (docs/euclid/DATA_TESTS.md)",
-  "softening": [0.0078, 0.033, 0.031, 0.034],
-  "softening_rule": "median native flux error of matched training rows (background-dominated), as for the parent bands",
-  "p_min": 0.3,
-  "bad_bits": 0,
-  "vis_bright": 17.0,
-  "error_scale": [1.0, 1.0, 1.0, 1.0],
-  "qso_candidates": {
-    "full_h0.15": {"h_z": 0.15, "kappa_a": 10.0, "b_zero": false},
-    "full_h0.4": {"h_z": 0.4, "kappa_a": 10.0, "b_zero": false},
-    "bzero_h0.15": {"h_z": 0.15, "kappa_a": 10.0, "b_zero": true}
+ "status": "Decided from data tests 18 Nov 2026 (docs/euclid/DATA_TESTS.md); p_min to be confirmed against DESI galaxies in select cones",
+ "softening": [
+  0.0078,
+  0.033,
+  0.031,
+  0.034
+ ],
+ "softening_rule": "median native flux error of matched training rows (background-dominated), as for the parent bands",
+ "p_min": 0.1,
+ "bad_bits": 900,
+ "vis_bright": 18.0,
+ "error_scale": [
+  1.0,
+  1.0,
+  1.0,
+  1.0
+ ],
+ "qso_candidates": {
+  "full_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": false
   },
-  "bkg_candidates": {
-    "full_k30": {"kappa": 30.0, "b_zero": false},
-    "bzero_k30": {"kappa": 30.0, "b_zero": true}
+  "full_h0.4": {
+   "h_z": 0.4,
+   "kappa_a": 10.0,
+   "b_zero": false
+  },
+  "bzero_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": true
+  },
+  "compW_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": false,
+   "kappa_w": 30.0
+  },
+  "compW_h0.08": {
+   "h_z": 0.08,
+   "kappa_a": 10.0,
+   "b_zero": false,
+   "kappa_w": 30.0
+  },
+  "compW10_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": false,
+   "kappa_w": 10.0
+  },
+  "compW3_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": false,
+   "kappa_w": 3.0
+  },
+  "compW1_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": false,
+   "kappa_w": 1.0
+  },
+  "compW0.3_h0.15": {
+   "h_z": 0.15,
+   "kappa_a": 10.0,
+   "b_zero": false,
+   "kappa_w": 0.3
   }
+ },
+ "bkg_candidates": {
+  "full_k30": {
+   "kappa": 30.0,
+   "b_zero": false
+  },
+  "bzero_k30": {
+   "kappa": 30.0,
+   "b_zero": true
+  }
+ }
 }
