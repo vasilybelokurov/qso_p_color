@@ -76,6 +76,11 @@ SURVEYS = {
                    extra=tuple(f"{b}pperrbits" for b in ("y", "j", "h", "ks"))),
 }
 
+# Bands that exist only in extended bundles (docs/euclid/PLAN.md 2.1). Kept out of SURVEYS so that the parent
+# preparation and rebuild code, which checks the SURVEYS band order, is unchanged. Euclid DR1 MER, AB, native
+# flux = uJy * 10**((22.5 - 23.9)/2.5); VIS = FLUX_VIS_TO_Y_TEMPLFIT, Y/J/H = FLUX_{Y,J,H}_TEMPLFIT.
+EXTENSION_BANDS = ("euclid:vis", "euclid:y", "euclid:j", "euclid:h")
+
 # AllWISE catalogue DN zero points; IRSA Explanatory Supplement IV.3.a, Table 1.
 WISE_DN_ZEROPOINT = dict(w1=20.5, w2=19.5, w3=18.0, w4=13.0)
 
@@ -114,7 +119,7 @@ class Photometry:
             raise ValueError("flux, variance, and band labels must have matching shapes")
         if len(set(self.bands)) != len(self.bands):
             raise ValueError("duplicate survey-band labels")
-        unknown = set(self.bands) - set(band_labels())
+        unknown = set(self.bands) - set(band_labels()) - set(EXTENSION_BANDS)
         if unknown:
             raise ValueError(f"unknown survey-band labels: {sorted(unknown)}")
 

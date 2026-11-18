@@ -1,0 +1,18 @@
+{
+  "status": "DRAFT: p_min, bad_bits, vis_bright pending T-D1, T-D3, T-D5 (docs/euclid/DATA_TESTS.md)",
+  "softening": [0.0078, 0.033, 0.031, 0.034],
+  "softening_rule": "median native flux error of matched training rows (background-dominated), as for the parent bands",
+  "p_min": 0.3,
+  "bad_bits": 0,
+  "vis_bright": 17.0,
+  "error_scale": [1.0, 1.0, 1.0, 1.0],
+  "qso_candidates": {
+    "full_h0.15": {"h_z": 0.15, "kappa_a": 10.0, "b_zero": false},
+    "full_h0.4": {"h_z": 0.4, "kappa_a": 10.0, "b_zero": false},
+    "bzero_h0.15": {"h_z": 0.15, "kappa_a": 10.0, "b_zero": true}
+  },
+  "bkg_candidates": {
+    "full_k30": {"kappa": 30.0, "b_zero": false},
+    "bzero_k30": {"kappa": 30.0, "b_zero": true}
+  }
+}

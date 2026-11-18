@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+from scipy.special import logsumexp
 
 from .features import FeatureSet
 from .gaussmix import GaussianMixture
@@ -186,13 +187,38 @@ def _background_log_prob(model, marginals, x, cov, observed, anchor):
     return lp
 
 
+def thinning_log_factor(thinning: dict, ref_mag: np.ndarray) -> np.ndarray:
+    """log f_k(r) per row and component: logistic in the reference magnitude (docs/euclid/PLAN.md 2.3).
+
+    ``thinning = dict(alpha=[K], beta=[K], r0=float)``; f_k(r) = 1/(1 + exp(-(alpha_k + beta_k (r - r0)))).
+    """
+    a = np.asarray(thinning["alpha"], float); b = np.asarray(thinning["beta"], float)
+    t = a[None, :] + b[None, :]*(np.asarray(ref_mag, float)[:, None] - float(thinning["r0"]))
+    return -np.logaddexp(0., -t)
+
+
+def thinned_conditional_log_prob(mix: GaussianMixture, x, cov, observed, anchor, log_f) -> np.ndarray:
+    """log sum_k w~_k(r) f_k(r) p_k(other | r): the conditional density of a thinned (selected) population.
+
+    w~_k(r) are the conditional component weights given the reference; the factors f_k are NOT renormalised,
+    so the result integrates to the selected fraction, which multiplies the parent surface density.
+    """
+    from .spatial import component_log_prob
+    ref_obs = np.zeros_like(observed, dtype=bool); ref_obs[:, anchor] = observed[:, anchor]
+    with np.errstate(divide="ignore"):
+        lw = np.log(mix.weights)
+    full = component_log_prob(mix, x, cov, observed)
+    return logsumexp(full + lw[None] + log_f, axis=1) - mix.log_prob(x, cov, observed=ref_obs)
+
+
 class _ConditionalBackground:
     def __init__(self, model: GaussianMixture, system: str, anchor: int, bounds: np.ndarray,
-                 marginals=(), spatial=None):
+                 marginals=(), spatial=None, thinning=None):
         self.model, self.system, self.anchor = model, system, anchor
         self.labels, self.bounds = model.labels, bounds
         self.marginals = marginals
         self.spatial = spatial
+        self.thinning = thinning
 
     def check_system(self, system):
         if system != self.system:
@@ -201,13 +227,20 @@ class _ConditionalBackground:
     def log_prob(self, x, cov, ref_mag, l_deg, b_deg, *, observed=None, return_level=False):
         obs = np.ones_like(x, bool) if observed is None else observed
         if self.spatial is None:
+            if self.thinning is not None:
+                raise NotImplementedError("selection thinning requires the spatial background")
             lp = _background_log_prob(self.model, self.marginals, x, cov, obs, self.anchor)
             share = np.zeros(len(x))
         else:
             lp, share = np.empty(len(x)), np.empty(len(x))
             for rows, mixture, weight in self.spatial.groups(self.model, l_deg, b_deg):
-                lp[rows] = conditional_log_prob(mixture, x[rows],
-                    None if cov is None else cov[rows], obs[rows], self.anchor)
+                if self.thinning is None:
+                    lp[rows] = conditional_log_prob(mixture, x[rows],
+                        None if cov is None else cov[rows], obs[rows], self.anchor)
+                else:
+                    lp[rows] = thinned_conditional_log_prob(mixture, x[rows],
+                        None if cov is None else cov[rows], obs[rows], self.anchor,
+                        thinning_log_factor(self.thinning, x[rows, self.anchor]))
                 share[rows] = weight
         return (lp, share) if return_level else lp
 
@@ -301,8 +334,14 @@ class MultiSurveyModel:
         if self.spatial_background is not None and (l_deg is None or b_deg is None):
             raise ValueError("Galactic coordinates are required by the spatial background")
         return _ConditionalBackground(self.background, self.qso.system, anchor,
-            self.background_bounds, self._field_marginals, self.spatial_background).log_prob(
+            self.background_bounds, self._field_marginals, self.spatial_background,
+            self.selection_thinning).log_prob(
                 x, cov, x[:, anchor], l_deg, b_deg, observed=observed)
+
+    @property
+    def selection_thinning(self):
+        """Per-component selection factors of a non-parent deployment selection (None for the parent)."""
+        return self.meta.get("selection", {}).get("thinning")
 
     @property
     def _field_marginals(self):
@@ -393,7 +432,8 @@ class MultiSurveyModel:
                 background_model=_ConditionalBackground(self.background, self.qso.system,
                                                         int(a), self.background_bounds,
                                                         self._field_marginals,
-                                                        self.spatial_background),
+                                                        self.spatial_background,
+                                                        self.selection_thinning),
                 match=match, min_bands=min_bands, qso_prior=qprior, background_density=density,
                 **local)
             for i, score in zip(rows, scores):

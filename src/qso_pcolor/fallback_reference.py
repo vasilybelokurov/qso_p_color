@@ -64,11 +64,11 @@ def flux_of(l, s):
     return 2*s*np.sinh((22.5 - l)/A - np.log(s))
 
 
-def fallback_status(photometry: Photometry, bands, min_snr: float):
+def fallback_status(photometry: Photometry, bands, min_snr: float, fallback_bands=FALLBACK_BANDS):
     """(needs_fallback, eligible, band index or -1, S/N) for rows without usable Legacy r."""
     p = photometry.align(bands)
     legacy = p.observed[:, [bands.index(b) for b in LEGACY_R]].any(axis=1)
-    order = [bands.index(b) for b in FALLBACK_BANDS]
+    order = [bands.index(b) for b in fallback_bands]
     avail = p.observed[:, order]
     has = avail.any(axis=1)
     band = np.where(has, np.array(order)[np.argmax(avail, axis=1)], -1)
@@ -94,6 +94,34 @@ def legacy_r_grid(centre, sigma_mag, n: int, halfwidth: float | None = None, n_s
     """
     w = (GRID_HALFWIDTH if halfwidth is None else halfwidth) + n_sigma*sigma_mag
     return np.linspace(centre - w, centre + w, n)
+
+
+def colour_window(config: dict, photometry: Photometry, bands, soft, rows, band_index):
+    """Asymmetric Legacy r window for a fallback band with a colour-dependent offset (docs/euclid/PLAN.md 2.4).
+
+    ``config = dict(colour=[b1, b2], coef=[c0, c1, ...], lo, hi, r_max, nisp=dict(bands, min_bands, min_snr))``:
+    centre = m_fallback + sum_j c_j (m_b1 - m_b2)^j (dereddened luptitudes; c_0 the zero point); window
+    [centre - lo - 5 sigma, centre + hi + 5 sigma]. Rows whose window top exceeds ``r_max`` (the training range)
+    or that fail the NISP requirement are not eligible. Returns (lo_edge, hi_edge, eligible, reason).
+    """
+    i1, i2 = bands.index(config['colour'][0]), bands.index(config['colour'][1])
+    f, v = photometry.flux[rows], photometry.variance[rows]
+    obs = np.isfinite(f) & np.isfinite(v) & (v > 0)
+    m = luptitude(f[:, band_index], soft[band_index])
+    sig = A*np.sqrt(v[:, band_index])/np.hypot(f[:, band_index], 2*soft[band_index])
+    col = np.where(obs[:, i1] & obs[:, i2], luptitude(f[:, i1], soft[i1]) - luptitude(f[:, i2], soft[i2]), np.nan)
+    centre = m + np.polyval(np.asarray(config['coef'], float)[::-1], col)
+    lo = centre - config['lo'] - 5*sig; hi = centre + config['hi'] + 5*sig
+    reason = np.full(len(rows), '', dtype='<U32')
+    nisp = config.get('nisp')
+    if nisp is not None:
+        idx = [bands.index(b) for b in nisp['bands']]
+        with np.errstate(invalid='ignore', divide='ignore'):
+            good = (obs[:, idx] & (f[:, idx]/np.sqrt(v[:, idx]) >= nisp['min_snr'])).sum(1)
+        reason[good < nisp['min_bands']] = 'insufficient_nisp'
+    reason[(reason == '') & ~np.isfinite(centre)] = 'no_fallback_colour'
+    reason[(reason == '') & (hi > config['r_max'])] = 'legacy_r_outside_training'
+    return lo, hi, reason == '', reason
 
 
 def _integrate(log_lam, h):
@@ -123,11 +151,13 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
     ``no_fallback_band`` or ``fallback_too_faint``.
     """
     from .unified import galactic_from_equatorial
-    n_grid = N_GRID if n_grid is None else int(n_grid)
     bands = tuple(model.base.model.transform.bands)
+    cfg = model.base.model.meta.get('fallback', {})
+    n_grid = int(cfg.get('n_grid', N_GRID)) if n_grid is None else int(n_grid)
+    fb_bands = tuple(cfg.get('bands', FALLBACK_BANDS)); windows = cfg.get('windows', {})
     p = photometry.align(bands)
     n = len(p.flux)
-    need, ok, band, snr = fallback_status(p, bands, min_snr)
+    need, ok, band, snr = fallback_status(p, bands, min_snr, fb_bands)
     target = np.flatnonzero(need & (decision['reason'] == 'no_faint_limit_band'))
     if not len(target):
         return scores, decision
@@ -153,6 +183,17 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
     fc = corrected.flux[rows, band[rows]]; sc = soft[band[rows]]
     centre = luptitude(fc, sc); sig = A*np.sqrt(corrected.variance[rows, band[rows]])/np.hypot(fc, 2*sc)
     grids = np.array([legacy_r_grid(c, s, n_grid) for c, s in zip(centre, sig)])          # (R, K)
+    for label, wcfg in windows.items():
+        j = bands.index(label); sel = np.flatnonzero(band[rows] == j)
+        if not len(sel):
+            continue
+        lo, hi, good, why = colour_window(wcfg, corrected, bands, soft, rows[sel], j)
+        grids[sel] = np.linspace(lo, hi, n_grid).T
+        decision['reason'][rows[sel[~good]]] = why[~good]
+        keep = np.ones(len(rows), bool); keep[sel[~good]] = False
+        rows, grids, centre, sig = rows[keep], grids[keep], centre[keep], sig[keep]
+    if not len(rows):
+        return scores, decision
     ff = flux_of(grids, soft[ref])/factor[rows, None]                                      # observed flux
     F = np.repeat(p.flux[rows], n_grid, axis=0); V = np.repeat(p.variance[rows], n_grid, axis=0)
     F[:, ref] = ff.ravel(); V[:, ref] = (SYNTHETIC_REL_ERROR*ff.ravel())**2

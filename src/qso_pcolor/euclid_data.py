@@ -113,51 +113,35 @@ def match(ra, dec, cache: Path, *, radius_arcsec: float = 1.0, chunk: int = 100_
 GAIA_NONE = 9223372036854775807     # MER gaia_id sentinel for "no Gaia association" (measured)
 
 
-def match_gaia(gaia_ids, cache: Path, *, log=print) -> dict:
-    """MER source carrying each Gaia DR3 ``source_id`` (MER's own association), from either table.
+ISOLATION_RADIUS_ARCSEC = 1.5
+ISOLATION_DMAG = 2.5
 
-    Proper-motion-safe alternative to a positional match: MER positions are at the Euclid epoch, so stars with
-    tens of mas/yr move by > 0.3" from their Gaia DR3 (2016.0) positions. ``gaia_ids <= 0`` are not looked up.
-    If several MER rows carry one id (tile overlaps), the one with the highest ``gaia_match_quality``, then the
-    lowest object_id, is kept; ``n_gaia_rows`` records the multiplicity.
+
+def isolation_neighbours(table_code, object_id, ra, dec, *, radius_arcsec: float = ISOLATION_RADIUS_ARCSEC,
+                         dmag: float = ISOLATION_DMAG) -> np.ndarray:
+    """Number of isolation neighbours of each MER object (docs/euclid/PLAN.md 2.1).
+
+    A neighbour is another MER source (either table) within ``radius_arcsec`` with vis_det = 1, spurious_flag = 0
+    and a VIS template-fit flux brighter than the object's divided by 10**(0.4 dmag). Chance faint or spurious
+    detections are not neighbours (they removed 15% of quasars under a plain count; review D2.1).
     """
     import sqlutilpy as sqlutil
-    ids = np.asarray(gaia_ids, np.int64)
-    key = hashlib.sha256(ids.tobytes() + json.dumps([TABLES, COLUMNS, 'gaia']).encode()).hexdigest()[:16]
-    root = Path(cache)/key; root.mkdir(parents=True, exist_ok=True); final = root/'match.npz'
-    if final.exists():
-        return dict(np.load(final, allow_pickle=False))
-    u = np.unique(ids[ids > 0])
-    cols = ', '.join(f'e.{c}' for c in COLUMNS)
-    parts = []
-    for code, table in enumerate(TABLES):
-        t = time.monotonic()
-        r = sqlutil.local_join(f"""SELECT m.g, e.right_ascension AS e_ra, e.declination AS e_dec, {cols}
-            FROM mytab m JOIN {table} e ON e.gaia_id = m.g""", 'mytab', (u,), ('g',), asDict=True)
-        r = {k: np.asarray(v) for k, v in r.items()}; r['table'] = np.full(len(r['g']), code)
-        parts.append(r)
-        log(f'gaia-id lookup {table}: {len(r["g"])} MER rows for {len(u)} ids, {time.monotonic()-t:.0f} s')
-    r = {k: np.concatenate([p[k] for p in parts]) for k in parts[0]}
-    q = np.where(np.isfinite(r['gaia_match_quality'].astype(float)), r['gaia_match_quality'], -np.inf)
-    order = np.lexsort((r['object_id'], -q, r['g']))          # best candidate first within each id
-    g_sorted = r['g'][order]
-    first = np.ones(len(order), bool); first[1:] = g_sorted[1:] != g_sorted[:-1]
-    pick = order[first]; counts = np.diff(np.append(np.flatnonzero(first), len(order)))
-    where = np.searchsorted(r['g'][pick], ids)                 # r['g'][pick] is sorted ascending
-    hit = (ids > 0) & (where < len(pick))
-    hit[hit] = r['g'][pick][where[hit]] == ids[hit]
-    out = {}
-    for k in ['e_ra', 'e_dec', *COLUMNS, 'table']:
-        v = r[k][pick]
-        fill = np.nan if v.dtype.kind == 'f' else -1 if k == 'table' else -9999
-        o = np.full(len(ids), fill, dtype=v.dtype if v.dtype.kind == 'f' else np.int64)
-        o[hit] = v[where[hit]]; out[k] = o
-    out['n_gaia_rows'] = np.where(hit, counts[np.minimum(where, len(pick)-1)], 0)
-    out['matched'] = hit
-    np.savez_compressed(final, **out)
-    (root/'provenance.json').write_text(json.dumps(dict(tables=TABLES, rule='MER gaia_id == Gaia DR3 source_id',
-        n=len(ids), n_looked_up=int(len(u)), n_matched=int(hit.sum()),
-        created=time.strftime('%Y-%m-%d %H:%M:%S %Z')), indent=1))
+    code = np.asarray(table_code, int); oid = np.asarray(object_id, np.int64)
+    out = np.zeros(len(oid), int)
+    r = radius_arcsec/3600.; ratio = 10**(-0.4*dmag)
+    for c, table in enumerate(TABLES):
+        sel = np.flatnonzero(code == c)
+        if not len(sel):
+            continue
+        parts = [f"""(SELECT count(*) FROM {t} n
+                 WHERE q3c_join(e.right_ascension, e.declination, n.right_ascension, n.declination, {r})
+                   AND n.object_id <> e.object_id AND n.vis_det = 1 AND n.spurious_flag = 0
+                   AND n.flux_vis_to_y_templfit > {ratio}*e.flux_vis_to_y_templfit)""" for t in TABLES]
+        res = sqlutil.local_join(f"""SELECT m.i, {' + '.join(parts)} AS n
+            FROM mytab m JOIN {table} e ON e.object_id = m.oid""", 'mytab',
+            (np.arange(len(sel)), oid[sel]), ('i', 'oid'), asDict=True,
+            preamb="SET statement_timeout = '1800s'")
+        out[sel[np.asarray(res['i'], int)]] = np.asarray(res['n'], int)
     return out
 
 

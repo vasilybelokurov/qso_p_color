@@ -71,51 +71,71 @@ def extend_mixture(mix: GaussianMixture, ext: Extension, t_d: np.ndarray, r_inde
     return GaussianMixture(mix.weights, means, covs, labels)
 
 
-def _estep(mix_ext: GaussianMixture, y, noise, observed, h, offset, extra, proj, log_weights):
-    """Responsibilities and posterior moments of z = proj @ latent for each row and component.
+def _chunk_stats(mix_ext: GaussianMixture, y, noise, observed, h, offset, extra, proj, p, log_weights, rw):
+    """E-step for one chunk of rows against one set of components, reduced to sufficient statistics.
 
-    y, noise: (N, n_native) observed luptitudes and per-band noise variances (NaN/inf where unobserved);
-    h (n_native, D+m), offset (n_native,), extra (n_native, n_native): observation operator.
-    Returns log-likelihood per row, responsibilities (N, K), E[z] (N, K, q), Cov[z] (N, K, q, q).
+    y, noise: (N, n_native) luptitudes and noise variances (unobserved entries ignored); log_weights (N, K) or (K,).
+    Returns (sum of row-weighted log-likelihoods, total row weight, s0, su, sc, sdd, scd, scc) for the K components,
+    where z = proj @ latent = (d, c) and moments are posterior moments given each row's observed bands.
     """
-    n, kk = len(y), mix_ext.n_components; q = proj.shape[0]
-    ll = np.full(n, np.nan); resp = np.zeros((n, kk)); ez = np.zeros((n, kk, q)); cz = np.zeros((n, kk, q, q))
+    kk = mix_ext.n_components; q = proj.shape[0]; m = q - p
+    s0 = np.zeros(kk); su = np.zeros((kk, p)); sc = np.zeros((kk, m))
+    sdd = np.zeros((kk, p, p)); scd = np.zeros((kk, m, p)); scc = np.zeros((kk, m, m))
+    lw_all = np.broadcast_to(log_weights, (len(y), kk))
+    tot_ll, tot_w = 0., 0.
     keys, inverse = np.unique(observed, axis=0, return_inverse=True)
+    inverse = inverse.ravel()
     pc = proj @ mix_ext.covs                                                   # (K, q, D+m)
     pm = mix_ext.means @ proj.T                                                # (K, q)
+    pcp = pc @ proj.T                                                          # (K, q, q)
     for g, mask in enumerate(keys):
-        rows = np.flatnonzero(inverse.ravel() == g)
-        if not mask.any():
+        rows = np.flatnonzero(inverse == g)
+        if not mask.any() or not len(rows):
             continue
-        ho = h[mask]
-        mean = mix_ext.means @ ho.T + offset[mask]                             # (K, o)
+        cols = np.flatnonzero(mask); ho = h[cols]
+        mean = mix_ext.means @ ho.T + offset[cols]                             # (K, o)
         cross = mix_ext.covs @ ho.T                                            # (K, D+m, o)
-        base = ho @ cross + extra[np.ix_(mask, mask)]                          # (K, o, o)
-        yo = y[np.ix_(rows, np.flatnonzero(mask))]
-        tot = base[None] + np.einsum('no,op->nop', noise[np.ix_(rows, np.flatnonzero(mask))], np.eye(mask.sum()))[:, None]
-        lp = log_gauss_batch(yo[:, None, :], mean[None], tot) + log_weights[None]
-        lse = logsumexp(lp, axis=1); ll[rows] = lse; resp[rows] = np.exp(lp - lse[:, None])
-        pco = proj @ cross                                                     # (K, q, o) = proj C H^T
-        chol = np.linalg.cholesky(tot)                                         # (n, K, o, o)
-        resid = (yo[:, None, :] - mean[None])[..., None]
-        a1 = np.linalg.solve(chol, resid)                                      # L^-1 r
-        a2 = np.linalg.solve(chol, np.broadcast_to(pco.swapaxes(-1, -2)[None], (len(rows),) + pco.swapaxes(-1, -2).shape))
-        ez[rows] = pm[None] + (a2.swapaxes(-1, -2) @ a1)[..., 0]
-        cz[rows] = (pc @ proj.T)[None] - a2.swapaxes(-1, -2) @ a2
-    return ll, resp, ez, cz
+        base = ho @ cross + extra[np.ix_(cols, cols)]                          # (K, o, o)
+        pco_t = (proj @ cross).swapaxes(-1, -2)                                # (K, o, q)
+        yo = y[np.ix_(rows, cols)]; no = noise[np.ix_(rows, cols)]
+        tot = base[None] + no[:, None, :, None]*np.eye(len(cols))[None, None]  # (n, K, o, o)
+        chol = np.linalg.cholesky(tot)
+        resid = yo[:, None, :] - mean[None]
+        a1 = np.linalg.solve(chol, resid[..., None])[..., 0]                   # (n, K, o)
+        maha = np.einsum('nko,nko->nk', a1, a1)
+        logdet = 2*np.log(np.einsum('nkii->nki', chol)).sum(-1)
+        lp = -0.5*(len(cols)*np.log(2*np.pi) + logdet + maha) + lw_all[rows]
+        lse = logsumexp(lp, axis=1); resp = np.exp(lp - lse[:, None])*rw[rows, None]
+        tot_ll += float(np.dot(rw[rows], lse)); tot_w += float(rw[rows].sum())
+        a2 = np.linalg.solve(chol, np.broadcast_to(pco_t[None], (len(rows),) + pco_t.shape))   # (n, K, o, q)
+        ez = pm[None] + np.einsum('nkoq,nko->nkq', a2, a1)
+        cz = pcp[None] - np.einsum('nkoq,nkor->nkqr', a2, a2)
+        ed, ec = ez[..., :p], ez[..., p:]
+        s0 += resp.sum(0)
+        su += np.einsum('nk,nkp->kp', resp, ed); sc += np.einsum('nk,nkm->km', resp, ec)
+        sdd += np.einsum('nk,nkp,nkq->kpq', resp, ed, ed) + np.einsum('nk,nkpq->kpq', resp, cz[..., :p, :p])
+        scd += np.einsum('nk,nkm,nkp->kmp', resp, ec, ed) + np.einsum('nk,nkmp->kmp', resp, cz[..., p:, :p])
+        scc += np.einsum('nk,nkm,nkl->kml', resp, ec, ec) + np.einsum('nk,nkml->kml', resp, cz[..., p:, p:])
+    return tot_ll, tot_w, s0, su, sc, sdd, scd, scc
 
 
 def fit_extension(mix: GaussianMixture, y, noise, observed, *, h, offset, extra, t_d, r_index: int,
                   new_labels: tuple[str, ...], groups: list[np.ndarray], pooling: np.ndarray | None = None,
                   kappa_a: float = 10., kappa_b: float = np.inf, kappa_w: float = np.inf,
                   init: Extension | None = None, w_floor: float = 1e-4, n_iter: int = 100, tol: float = 1e-4,
-                  row_weights=None, log=None) -> tuple[Extension, list[float]]:
+                  row_weights=None, blocks=None, row_log_weights=None, memory: float = 3e8, b_zero: bool = False,
+                  log=None) -> tuple[Extension, list[float]]:
     """EM for the new block with the old block frozen (see module docstring).
 
     groups: component index arrays; each group has one regression (alpha_g, B_g, W_g) fitted on its pooled
     statistics (``pooling[g, h]`` weights the statistics of group h in group g's fit; default identity).
     Per component: a_k = alpha_g + B_g mu_k,d + shrunk offset (kappa_a), B_k -> B_g (kappa_b), W_k -> W_g (kappa_w).
     ``w_floor`` (mag^2) is added to the diagonal of each W as a weak inverse-Wishart prior scale.
+    ``blocks``: list of (row indices, component indices); each row is scored only against its block's components
+    (a row may appear in several blocks, e.g. two neighbouring redshift slices, with ``row_weights`` splitting it).
+    Default: one block, all rows and components. ``row_log_weights`` (N, K) replaces log mixture weights per row
+    (e.g. sky-dependent background weights). ``memory`` bounds the bytes of one E-step chunk. ``b_zero``: B = 0
+    (new colours independent of the regressors within a component; candidate (i) of the plan).
     Returns the extension and the mean log-likelihood per row at each iteration (non-decreasing up to the priors).
     """
     k, d = mix.means.shape; m = len(new_labels); p = t_d.shape[0]
@@ -128,23 +148,28 @@ def fit_extension(mix: GaussianMixture, y, noise, observed, *, h, offset, extra,
     proj[p:, d:] = np.eye(m); proj[p:, r_index] -= 1.
     ng = len(groups); pool = np.eye(ng) if pooling is None else np.asarray(pooling, float)
     history = []
-    logw = np.log(mix.weights)
+    with np.errstate(divide='ignore'):
+        logw = np.log(mix.weights)
+    blocks_ = [(np.arange(len(y)), np.arange(k))] if blocks is None else [(np.asarray(r), np.asarray(c)) for r, c in blocks]
     for it in range(n_iter):
         mx = extend_mixture(mix, ext, t_d, r_index, new_labels)
-        ll, resp, ez, cz = _estep(mx, y, noise, observed, h, offset, extra, proj, logw)
-        good = np.isfinite(ll)
-        history.append(float(np.average(ll[good], weights=rw[good])))
+        s0 = np.zeros(k); su = np.zeros((k, p)); sc = np.zeros((k, m))
+        sdd = np.zeros((k, p, p)); scd = np.zeros((k, m, p)); scc = np.zeros((k, m, m))
+        tot_ll = tot_w = 0.
+        for rows_b, comp_b in blocks_:
+            sub = GaussianMixture(np.full(len(comp_b), 1/len(comp_b)), mx.means[comp_b], mx.covs[comp_b])
+            o = max(int(observed[rows_b].sum(1).max()), 1)
+            step = max(16, int(memory/(8*len(comp_b)*(o*o + 2*o*(p + m) + (p + m)**2))))
+            for lo in range(0, len(rows_b), step):
+                rr = rows_b[lo:lo + step]
+                lw = (logw[comp_b] if row_log_weights is None else row_log_weights[np.ix_(rr, comp_b)])
+                res = _chunk_stats(sub, y[rr], noise[rr], observed[rr], h, offset, extra, proj, p, lw, rw[rr])
+                tot_ll += res[0]; tot_w += res[1]
+                for acc, val in zip((s0, su, sc, sdd, scd, scc), res[2:]):
+                    acc[comp_b] += val
+        history.append(tot_ll/max(tot_w, 1e-300))
         if log:
             log(f'extension EM {it}: mean lnL {history[-1]:.5f}')
-        r = resp*rw[:, None]*good[:, None]
-        # per-component sufficient statistics of the augmented regressor u = (1, d) and target c
-        s0 = r.sum(0)
-        ed, ec = ez[..., :p], ez[..., p:]
-        su = np.einsum('nk,nkp->kp', r, ed)
-        sc = np.einsum('nk,nkm->km', r, ec)
-        sdd = np.einsum('nk,nkp,nkq->kpq', r, ed, ed) + np.einsum('nk,nkpq->kpq', r, cz[..., :p, :p])
-        scd = np.einsum('nk,nkm,nkp->kmp', r, ec, ed) + np.einsum('nk,nkmp->kmp', r, cz[..., p:, :p])
-        scc = np.einsum('nk,nkm,nkl->kml', r, ec, ec) + np.einsum('nk,nkml->kml', r, cz[..., p:, p:])
         grp = np.empty(k, int)
         for gi, comp in enumerate(groups):
             grp[comp] = gi
@@ -163,12 +188,15 @@ def fit_extension(mix: GaussianMixture, y, noise, observed, *, h, offset, extra,
             # pooled components and their weights (kernel over groups)
             om = pool[gi, grp]; use = np.flatnonzero(om > 0); om = om[use]
             bg = ext.b[comp[0]].copy() if it > 0 else np.zeros((m, p))
+            ka = kappa_a[gi] if np.ndim(kappa_a) else kappa_a
             for _ in range(20):                       # coordinate ascent: exact for shared B, per-component a0
                 alpha = (om[:, None]*(sc[use] - np.einsum('mp,kp->km', bg, su[use]))).sum(0)/max((om*s0[use]).sum(), 1e-12)
-                if np.isinf(kappa_a):
+                if np.isinf(ka):
                     a0 = np.tile(alpha, (len(use), 1))
                 else:
-                    a0 = (sc[use] - np.einsum('mp,kp->km', bg, su[use]) + kappa_a*alpha)/(s0[use] + kappa_a)[:, None]
+                    a0 = (sc[use] - np.einsum('mp,kp->km', bg, su[use]) + ka*alpha)/(s0[use] + ka)[:, None]
+                if b_zero:
+                    bg = np.zeros((m, p)); continue
                 num = np.einsum('k,kmp->mp', om, scd[use] - a0[:, :, None]*su[use][:, None, :])
                 den = np.einsum('k,kpq->pq', om, sdd[use]) + 1e-9*np.eye(p)
                 bg = np.linalg.solve(den.T, num.T).T
@@ -178,7 +206,7 @@ def fit_extension(mix: GaussianMixture, y, noise, observed, *, h, offset, extra,
             wg = (0.5*(wsum + wsum.T) + w_floor*np.eye(m))/(t0 + 1.)
             gmat = sum(o*coef_stats(kk)[0] for o, kk in zip(om, use))/max(t0, 1e-12)
             for kk in comp:
-                if np.isinf(kappa_b):
+                if np.isinf(kappa_b) or b_zero:
                     coef_k = np.concatenate([a0_of[kk][:, None], bg], axis=1)
                 else:
                     # kappa_b pseudo-rows distributed like the group's regressors, centred on the group fit
@@ -196,6 +224,6 @@ def fit_extension(mix: GaussianMixture, y, noise, observed, *, h, offset, extra,
         ext = Extension(new_a, new_b, new_w)
         if it > 0 and abs(history[-1] - history[-2]) < tol:
             break
-    ext.meta.update(iterations=len(history), mean_loglike=history[-1], kappa_a=kappa_a, kappa_b=kappa_b,
+    ext.meta.update(b_zero=bool(b_zero), iterations=len(history), mean_loglike=history[-1], kappa_a=np.asarray(kappa_a).tolist(), kappa_b=kappa_b,
                     kappa_w=kappa_w, w_floor=w_floor, n_rows=int(len(y)))
     return ext, history
