@@ -1,0 +1,902 @@
+% Input note supplied by the PI on 30 September 2026. Incorporated through
+% docs/UNIFIED_MODEL_RETRAINING_PLAN_2026-09-30.md ("Incorporating the supplied
+% outlier note"), which records what was adopted (empirical contaminant
+% background, calibrated QSO-support percentile) and what was not (the binary
+% QSO-vs-contaminant score as ranking statistic). Kept for provenance; not a
+% list of open tasks. Body unchanged since 30 September.
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage[round,authoryear]{natbib}
+\usepackage{enumitem}
+
+\title{Robust Probabilistic Quasar Selection with Extreme Deconvolution:\\
+Empirical Contaminant Modelling and Protection Against Gaussian-Tail Extrapolation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We consider probabilistic quasar selection using extreme-deconvolution (XD)
+models of quasars and contaminants in colour or relative-flux space. A
+failure mode arises when an object lies far from both the stellar and quasar
+loci. Because Gaussian mixtures have non-zero support everywhere, both class
+likelihoods can be extremely small while their ratio is nevertheless very
+large. Such an object can therefore receive a high nominal quasar probability
+even though it is not plausibly drawn from the quasar population. This is
+fundamentally a closed-set classification problem rather than a numerical
+pathology of XD. We review how the XD/XDQSO literature, Bayesian quasar
+selection, empirical contaminant modelling, and the broader
+reject-option/open-set literature address the underlying issue. We recommend
+that our classifier replace the narrow ``QSO versus star'' comparison by
+``QSO versus all contaminants'', where the contaminant density is learned
+empirically from a representative sample of the survey catalogue. This should
+be combined with a separately calibrated QSO-support or out-of-distribution
+criterion. The posterior then answers whether an object is more plausibly a
+QSO than an object normally encountered in the survey, while the support
+statistic prevents remote Gaussian tails from being interpreted as positive
+evidence for QSO membership.
+\end{abstract}
+
+\section{The problem}
+
+Let $\bm{x}$ denote the true colour or relative-flux vector of an object,
+$\bm{y}$ its measured value, and $\bm{S}$ the measurement-error covariance
+matrix. For a class $C$, an XD model represents the intrinsic density as a
+Gaussian mixture,
+%
+\begin{equation}
+p_C(\bm{x}\mid m)
+=
+\sum_{k=1}^{K_C}
+\alpha_{Ck}(m)
+\mathcal{N}
+\left(
+\bm{x}\mid
+\bm{\mu}_{Ck}(m),
+\bm{V}_{Ck}(m)
+\right),
+\end{equation}
+%
+where $m$ denotes a reference magnitude, or more generally a variable on
+which the population density is conditioned. XD was introduced specifically
+to infer such latent distributions in the presence of heteroscedastic
+measurement uncertainties and missing data \citep{bovy2011xd}.
+
+For an object with measurement covariance $\bm{S}$, the predictive likelihood
+under the Gaussian-error approximation is
+%
+\begin{equation}
+L_C(\bm{y},\bm{S}\mid m)
+=
+\sum_{k=1}^{K_C}
+\alpha_{Ck}(m)
+\mathcal{N}
+\left(
+\bm{y}\mid
+\bm{\mu}_{Ck}(m),
+\bm{V}_{Ck}(m)+\bm{S}
+\right).
+\label{eq:xdlike}
+\end{equation}
+
+Suppose that the classifier contains only quasars, $Q$, and stars, $S$. A
+natural posterior is then
+%
+\begin{equation}
+P(Q\mid\bm{y},\bm{S},m)
+=
+\frac{
+n_Q(m)L_Q(\bm{y},\bm{S}\mid m)
+}{
+n_Q(m)L_Q(\bm{y},\bm{S}\mid m)
++
+n_S(m)L_S(\bm{y},\bm{S}\mid m)
+},
+\label{eq:closedposterior}
+\end{equation}
+%
+where $n_Q(m)$ and $n_S(m)$ encode the population number densities or prior
+weights.
+
+Equation~(\ref{eq:closedposterior}) contains the failure mode of interest. The
+posterior depends on the \emph{relative} weighted likelihoods, not on whether
+either likelihood is appreciable in absolute terms. For example, let
+%
+\begin{equation}
+n_Q L_Q = \epsilon,
+\qquad
+n_S L_S = \epsilon^2 .
+\end{equation}
+%
+Then
+%
+\begin{equation}
+P(Q\mid\bm{y})
+=
+\frac{1}{1+\epsilon}
+\longrightarrow 1
+\end{equation}
+%
+as $\epsilon\rightarrow 0$, although
+%
+\begin{equation}
+n_Q L_Q+n_S L_S\longrightarrow 0 .
+\end{equation}
+
+Thus an object can receive a QSO posterior arbitrarily close to unity while
+being extremely improbable under both fitted populations. This is not an
+error in Bayes' theorem. It is a consequence of the model assumption that the
+classes appearing in the denominator exhaust the possible populations.
+
+The effect is particularly easy to encounter with Gaussian mixtures because
+a Gaussian has infinite support. An XD mixture therefore extrapolates a
+non-zero density arbitrarily far from the training locus. If the stellar
+mixture happens to decline faster than the QSO mixture in a particular
+direction, the likelihood ratio can become very large even though the QSO
+density itself is negligible.
+
+\section{What the established literature implies}
+
+\subsection{Extreme deconvolution and XDQSO}
+
+Extreme deconvolution is a density-estimation method, not an open-set
+classifier \citep{bovy2011xd}. Its role is to infer a latent population
+density while correctly accounting for heterogeneous measurement errors.
+
+The direct astronomical precedent is XDQSO
+\citep{bovy2011xdqso}. XDQSO models the distributions of quasars and
+contaminants in flux or relative-flux space, reconvolving the inferred latent
+density with the uncertainty of each test object. It also combines the
+density model with realistic population abundances rather than using colour
+density alone.
+
+The important conceptual point for the present problem is that a Bayesian
+posterior has its intended interpretation only when the denominator contains
+the relevant alternatives. A two-class $Q$--$S$ posterior is really a
+probability conditional on the hypothesis that the source is in either the
+QSO population or the population represented by the stellar model. If the
+catalogue also contains compact galaxies, unusual stars, blends, moving
+objects, problematic photometry, peculiar spectral energy distributions, or
+other populations that are not represented by either model, the closed-set
+interpretation is wrong.
+
+A second lesson from XDQSO is that class priors matter. The relevant quantity
+for target selection is closer to a number density in observable space than
+to a unit-normalized colour density. Schematically,
+%
+\begin{equation}
+q_C(\bm{y},\bm{S},m)
+=
+n_C(m)\,L_C(\bm{y},\bm{S}\mid m),
+\end{equation}
+%
+and posterior odds should compare these weighted densities.
+
+\subsection{Bayesian rare-object selection}
+
+The Bayesian high-redshift QSO selection framework of
+\citet{mortlock2012} makes the same general point from a different direction.
+For a rare population, a candidate should be assessed by combining a model
+for the observables with the expected abundance of the target and contaminant
+populations. Quasar-like colours alone are not sufficient because contaminants
+can vastly outnumber the target population.
+
+This reinforces two requirements for our problem:
+
+\begin{enumerate}[label=(\arabic*)]
+\item the denominator should represent the populations that actually occur in
+the input catalogue; and
+\item the different populations should carry realistic prior number densities.
+\end{enumerate}
+
+\subsection{The most direct precedent: an empirical all-inclusive contaminant model}
+
+The strongest direct precedent for the solution required here is the XDHZQSO
+method of \citet{nanni2022}. They use XD to estimate the density of
+high-redshift QSOs and the density of contaminants in multi-band flux space.
+Crucially, the contaminants are not restricted to a narrowly defined stellar
+class. The contaminant distribution is trained empirically from a large sample
+of real survey sources, and the contaminating populations are grouped into a
+single all-inclusive class.
+
+This choice directly addresses the weakness of a QSO-versus-star classifier.
+One does not need to know whether every false candidate is a cool dwarf,
+compact galaxy, blend, or some other population. For classification, one needs
+the denominator to describe the objects that the survey actually presents to
+the target-selection algorithm.
+
+Nanni et al. also emphasize the advantage of learning poorly understood
+contaminants directly from the data, while retaining XD's principled treatment
+of photometric uncertainties \citep{nanni2022}. This is very close to the
+appropriate formulation for our application.
+
+\subsection{Reject options, open-set recognition, and OOD detection}
+
+There is a broader statistical context to the same problem. Classical work on
+classification with a reject option formalizes the idea that a classifier
+should sometimes abstain rather than force an assignment
+\citep{chow1970}. In modern terminology, the presence of test objects outside
+the set of training populations is an open-set recognition problem
+\citep{scheirer2013}.
+
+The connection to our case is straightforward. The current classifier is
+closed-set: it assumes that all relevant objects are represented by its QSO
+and stellar populations. Objects that violate that assumption can nevertheless
+receive extreme posterior probabilities.
+
+Generative likelihoods also require care when used for
+out-of-distribution (OOD) detection. In modern generative-model work,
+likelihood ratios against an explicit background model have been used to
+reduce misleading likelihood behaviour on OOD data
+\citep{ren2019}. The exact machine-learning setting differs from XDQSO, but
+the conceptual lesson is relevant: relative likelihoods are most useful when
+the comparison model represents a meaningful background population.
+
+For our application, the literature therefore motivates two complementary
+operations:
+
+\begin{enumerate}[label=(\arabic*)]
+\item replace the incomplete stellar denominator by a realistic empirical
+contaminant model; and
+\item retain a separate support/rejection test so that objects poorly
+described by the population models are not forced into a known class.
+\end{enumerate}
+
+\section{Recommended primary classifier}
+
+\subsection{QSO versus an empirical contaminant population}
+
+Our preferred formulation is
+%
+\begin{equation}
+P_Q
+=
+P(Q\mid\bm{y},\bm{S},m)
+=
+\frac{
+n_Q(m)L_Q(\bm{y},\bm{S}\mid m)
+}{
+n_Q(m)L_Q(\bm{y},\bm{S}\mid m)
++
+n_C(m)L_C(\bm{y},\bm{S}\mid m)
+},
+\label{eq:qcont}
+\end{equation}
+%
+where $C$ is an \emph{all-inclusive empirical contaminant population}.
+
+Operationally, $C$ should mean:
+
+\begin{quote}
+the distribution of non-QSO objects that can appear in the catalogue to
+which the classifier will actually be applied.
+\end{quote}
+
+This is preferable to interpreting $C$ as a particular physical class. It may
+contain ordinary stars, unusual stars, unresolved galaxies, compact galaxies,
+blends, peculiar objects, and any other real source population that survives
+the parent-sample cuts.
+
+The main score should therefore answer
+%
+\begin{quote}
+Is this object more plausibly drawn from the QSO population than from the
+empirical population of non-QSO sources encountered by the survey?
+\end{quote}
+%
+rather than merely
+%
+\begin{quote}
+Is the extrapolated QSO Gaussian mixture larger than the extrapolated stellar
+Gaussian mixture at this point?
+\end{quote}
+
+\subsection{Why not simply add a random ``other'' class on top of the stars?}
+
+A representative random catalogue contains ordinary stars. If we keep the
+existing stellar population and add an ``other'' model trained on an
+unfiltered random survey sample, the stellar population is represented in both
+terms and is therefore effectively double-counted.
+
+There are two coherent alternatives.
+
+The simpler and recommended option is to use a single all-inclusive
+contaminant model $C$ and compare QSO versus contaminant as in
+equation~(\ref{eq:qcont}).
+
+If separate stellar probabilities are scientifically important, a genuine
+three-class model can instead be written
+%
+\begin{equation}
+P_Q
+=
+\frac{
+n_Q L_Q
+}{
+n_Q L_Q+n_S L_S+n_O L_O
+}.
+\label{eq:threeclass}
+\end{equation}
+%
+However, $S$ and $O$ must then represent distinct population components.
+A raw random catalogue cannot simply be used as $O$ because it already
+contains $S$.
+
+A principled three-class implementation would require either labelled
+partitioning or a semi-supervised mixture in which the QSO and stellar
+components are constrained by their labelled training sets and an additional
+flexible component absorbs the residual survey density. That is a more
+complicated inference problem and is unnecessary if the scientific goal is
+only robust QSO ranking.
+
+\section{How to construct the empirical contaminant model}
+
+\subsection{Match the deployment selection}
+
+The contaminant training sample should be drawn from the same parent
+population to which the classifier will be applied. In practice it should use
+the same:
+
+\begin{itemize}
+\item detection requirements;
+\item magnitude limits;
+\item morphology requirements, if morphology is part of the parent selection;
+\item required photometric coverage;
+\item basic quality cuts; and
+\item any broad pre-selection that defines the population entering the
+classifier.
+\end{itemize}
+
+This point is essential. A generative posterior is only calibrated for the
+population from which its training and prior models are derived. If the
+contaminant sample is cleaner or otherwise differently selected than the
+deployment catalogue, the model can recreate exactly the same missing-class
+problem in a subtler form.
+
+Catastrophic measurements that would never be considered usable targets can
+be removed by reproducible quality cuts. However, it is generally a mistake
+to clean the contaminant sample so aggressively that rare but real survey
+objects disappear. Those sources are precisely part of the background against
+which QSO candidates should be judged.
+
+\subsection{Use a large representative sample}
+
+After applying the parent-sample definition, draw a large random sample of
+survey sources over the magnitude, depth, and sky ranges relevant for
+deployment.
+
+Known high-confidence QSOs should ideally be removed. Because QSOs are rare,
+a small residual QSO fraction may have little effect on the fitted contaminant
+density, but this should be checked rather than assumed.
+
+If the catalogue properties vary strongly with field, depth, or Galactic
+position, either the training set should reproduce those variations or the
+model/prior should be conditioned on the variables responsible for them.
+
+\subsection{Use the same XD noise treatment}
+
+The QSO and contaminant models should be evaluated consistently. If the
+intrinsic contaminant density is
+%
+\begin{equation}
+p_C(\bm{x}\mid m)
+=
+\sum_{k=1}^{K_C}
+\beta_k
+\mathcal{N}
+\left(
+\bm{x}\mid
+\bm{\nu}_k,
+\bm{W}_k
+\right),
+\end{equation}
+%
+then candidate $i$ should have
+%
+\begin{equation}
+L_{C,i}
+=
+\sum_{k=1}^{K_C}
+\beta_k
+\mathcal{N}
+\left(
+\bm{y}_i\mid
+\bm{\nu}_k,
+\bm{W}_k+\bm{S}_i
+\right).
+\end{equation}
+
+The same measurement covariance convention must be used for the QSO model.
+Otherwise the Bayes factor contains a mismatch in the treatment of
+uncertainty.
+
+It is often useful to condition or bin the density model by a reference
+magnitude rather than make one Gaussian mixture fit the entire number-count
+distribution. This follows the general XDQSO strategy
+\citep{bovy2011xdqso}.
+
+\subsection{Use realistic number-count priors}
+
+The classifier should compare weighted population densities, not only
+unit-normalized colour densities:
+%
+\begin{align}
+q_Q &= n_Q(m,\bm{\theta}) L_Q(\bm{y},\bm{S}\mid m),\\
+q_C &= n_C(m,\bm{\theta}) L_C(\bm{y},\bm{S}\mid m),
+\end{align}
+%
+with
+%
+\begin{equation}
+P_Q=\frac{q_Q}{q_Q+q_C}.
+\end{equation}
+
+Here $\bm{\theta}$ denotes additional variables that substantially affect the
+population prior. Examples could include sky position, local source density,
+or survey depth, if those effects are large enough to matter.
+
+For contaminants, $n_C$ can usually be measured directly from the survey
+after the parent-sample selection. The QSO prior can come from a
+selection-corrected QSO training sample, a luminosity function, or another
+population model appropriate for the science case.
+
+A realistic low QSO prior is necessary, but it is not sufficient to solve the
+tail problem. For any finite prior odds, a sufficiently extreme likelihood
+ratio can still dominate. Population priors and support/OOD rejection address
+different issues.
+
+\section{Why the empirical contaminant model is not sufficient by itself}
+
+Replacing ``star'' by ``all contaminants'' should eliminate most pathological
+high scores, because objects that genuinely occur in unusual parts of survey
+colour space will now be represented in the denominator.
+
+It does not, however, eliminate the mathematical problem completely. Any
+finite Gaussian mixture still has non-zero density everywhere. An object can
+lie so far from both the QSO and empirical contaminant populations that both
+likelihoods are negligible, while their ratio is again extreme.
+
+The classifier should therefore be allowed to distinguish
+
+\begin{quote}
+QSO-like relative to the survey background
+\end{quote}
+
+from
+
+\begin{quote}
+actually supported by the QSO population.
+\end{quote}
+
+This motivates a second, independent support statistic.
+
+\section{A practical QSO-support statistic}
+
+For candidate $i$, define
+%
+\begin{equation}
+\ell_{Q,i}
+=
+\log L_Q(\bm{y}_i,\bm{S}_i\mid m_i).
+\end{equation}
+
+A fixed numerical cut on $\ell_Q$ is unattractive because its scale depends on
+dimension, population width, photometric covariance, and the chosen
+coordinates. Instead, calibrate the QSO likelihood against the distribution
+expected for genuine QSOs.
+
+For fixed conditioning variables and measurement covariance, define
+%
+\begin{equation}
+u_Q
+=
+{\rm Pr}_{\widetilde{\bm{y}}\sim Q}
+\left[
+\log L_Q(\widetilde{\bm{y}})
+\leq
+\log L_Q(\bm{y})
+\right].
+\label{eq:support}
+\end{equation}
+
+Thus $u_Q$ is the fraction of genuine-QSO realizations that would have lower
+QSO predictive density than the candidate. Objects deep in an extrapolated
+Gaussian tail have $u_Q$ close to zero.
+
+A practical object-by-object Monte-Carlo procedure is:
+
+\begin{enumerate}[label=(\arabic*)]
+\item select or sample the appropriate intrinsic QSO mixture for the
+candidate's magnitude or other conditioning variables;
+\item draw latent QSO observables from that mixture;
+\item add noise using the candidate covariance $\bm{S}_i$;
+\item evaluate the same convolved QSO likelihood for every simulated
+measurement; and
+\item rank the observed $\ell_{Q,i}$ within this reference distribution.
+\end{enumerate}
+
+An independent held-out spectroscopic QSO sample can be used instead of, or
+in addition to, simulations. Empirical validation is especially valuable
+because a misspecified QSO mixture can make a formally calibrated simulation
+look better than the real population.
+
+The final selection should then use two distinct requirements:
+%
+\begin{equation}
+P_Q > P_{\rm min}
+\end{equation}
+%
+and
+%
+\begin{equation}
+u_Q > u_{\rm min}.
+\end{equation}
+
+The first tests QSO versus survey contaminants. The second tests whether the
+candidate lies in a region of observable space that is actually supported by
+the QSO model.
+
+The thresholds should be selected from held-out data according to the
+scientific loss function: desired QSO completeness, available follow-up
+density, purity, or some combination thereof. They should not be chosen from
+the numerical magnitude of the raw Gaussian-mixture likelihood.
+
+\section{Optional global model-support test}
+
+A complementary quantity is the total fitted population evidence,
+%
+\begin{equation}
+E_i
+=
+n_Q L_{Q,i}+n_C L_{C,i},
+\end{equation}
+%
+or
+%
+\begin{equation}
+\ell_{{\rm all},i}
+=
+\log\left(n_Q L_{Q,i}+n_C L_{C,i}\right).
+\end{equation}
+
+The distribution of this statistic can be calibrated on a held-out random
+survey sample. Very low values indicate objects that are poorly described by
+the entire fitted model rather than merely being poor QSO matches.
+
+Such objects should be flagged as ``unmodelled'' or ``out of distribution''
+instead of being forced into either QSO or contaminant. This global check is
+useful for discovering catalogue artifacts, unusual populations, or failures
+of the contaminant density model.
+
+The QSO-support statistic $u_Q$ and the global-support statistic answer
+different questions. For protecting QSO candidate selection against the
+specific high-ratio/low-density failure mode, $u_Q$ is the more direct test.
+The global support statistic is primarily a model-diagnostic and
+abstention tool.
+
+\section{Useful diagnostics}
+
+Before defining the final selection, the following plots should be examined
+on independent data.
+
+\subsection{$\log L_Q$ versus $\log L_C$}
+
+This is the most direct view of the generative comparison. The original
+failure mode corresponds to objects for which both likelihoods are extremely
+small. The old star-only classifier may have assigned them high QSO scores
+because $\log L_S$ was even smaller.
+
+\subsection{$P_Q$ versus $u_Q$}
+
+This separates relative classification from absolute QSO support. The
+pathological region is
+%
+\begin{equation}
+P_Q\ {\rm high},
+\qquad
+u_Q\ {\rm low}.
+\end{equation}
+
+After a good empirical contaminant model is introduced, this population
+should shrink substantially. The remaining objects are exactly those for
+which an explicit support cut is valuable.
+
+\subsection{Old score versus new score}
+
+Compare the original QSO-versus-star posterior or log-odds with the new
+QSO-versus-contaminant posterior. Objects whose old score was created mainly
+by an extrapolated vanishing stellar likelihood should move strongly downward.
+
+\subsection{Mixture-component responsibilities}
+
+For QSO Gaussian $k$, define the responsibility
+%
+\begin{equation}
+r_{ik}
+=
+\frac{
+\alpha_k
+\mathcal{N}
+(\bm{y}_i\mid\bm{\mu}_k,\bm{V}_k+\bm{S}_i)
+}{
+L_{Q,i}
+}.
+\end{equation}
+
+Inspecting $r_{ik}$ for pathological candidates can reveal whether a single
+broad, low-weight Gaussian is responsible for much of the remote-tail
+likelihood. This is a valuable model diagnostic, particularly for identifying
+QSO-training contaminants or excessive mixture covariances.
+
+It should not, however, replace the contaminant and support treatment. Every
+finite Gaussian mixture has infinite support even when all components are
+well fitted.
+
+\section{Validation strategy}
+
+\subsection{Held-out QSOs}
+
+Use QSOs that were not fitted by the XD model to measure:
+
+\begin{itemize}
+\item the distribution of $P_Q$;
+\item the distribution of $u_Q$;
+\item completeness as a function of magnitude;
+\item completeness as a function of redshift;
+\item completeness as a function of photometric uncertainty; and
+\item whether unusual but genuine parts of the QSO locus receive
+systematically low support.
+\end{itemize}
+
+The last point is critical. A support criterion is only useful if the QSO
+density model itself adequately represents the intrinsic diversity of QSOs.
+
+\subsection{Held-out random survey objects}
+
+Use a random survey sample that was not used to train the empirical
+contaminant XD model. Run the full classifier on it without first selecting
+objects by their QSO score.
+
+This sample directly tests how frequently the deployed classifier generates
+extreme false-positive scores in the real catalogue population.
+
+In particular, inspect the sources satisfying
+%
+\begin{equation}
+P_Q > P_{\rm min}
+\end{equation}
+%
+before the support cut, and determine which of them have very small $u_Q$.
+These are the objects closest to the original failure mode.
+
+Where spectroscopy exists, purity and contamination can be measured directly.
+Where it does not, the held-out survey sample still provides an unbiased
+estimate of the frequency and morphology of extreme scores under the actual
+deployment distribution.
+
+\section{Approaches that should not be the primary solution}
+
+\subsection{A stricter QSO/star posterior threshold}
+
+Increasing the threshold on the original two-class posterior does not solve
+the mathematical problem. If
+%
+\begin{equation}
+L_Q/L_S\rightarrow\infty,
+\end{equation}
+%
+the posterior can approach unity even when $L_Q\rightarrow 0$.
+
+\subsection{A hard floor on the stellar likelihood}
+
+A rule such as
+%
+\begin{equation}
+L_S\rightarrow\max(L_S,L_{\rm floor})
+\end{equation}
+%
+can numerically limit the likelihood ratio, but the floor has no clear
+population interpretation. It effectively introduces an undocumented
+background class.
+
+If such a floor is required for numerical stability, it should not be
+confused with the statistical solution. The scientifically interpretable
+solution is to model the relevant contaminant/background population.
+
+\subsection{Covariance shrinking of the QSO mixture}
+
+Making the QSO Gaussian components narrower can reduce the frequency of
+remote-tail candidates, particularly if an excessively broad component is
+poorly fitted. However, covariance tuning does not solve the conceptual
+problem because every Gaussian still has infinite support.
+
+The mixture structure should be selected by predictive validation, not tuned
+specifically to suppress objects that expose a closed-set assumption.
+
+\subsection{QSO priors alone}
+
+A realistic QSO prior is essential in rare-object selection
+\citep{bovy2011xdqso,mortlock2012}. It does not guarantee protection against
+a pathological likelihood ratio. A finite prior penalty can always be
+overcome if the contaminant likelihood becomes sufficiently smaller than the
+QSO likelihood.
+
+\section{Recommended implementation for our classifier}
+
+We recommend the following concrete workflow.
+
+\begin{enumerate}[label=\arabic*.]
+
+\item Retain the current XD QSO density model, subject to predictive validation
+on QSOs not used in fitting.
+
+\item Define precisely the parent catalogue to which the classifier is
+applied.
+
+\item Draw a large representative random sample from that catalogue using the
+same parent-sample selection, magnitude range, photometric coverage, and
+baseline quality requirements.
+
+\item Remove secure known QSOs where practical.
+
+\item Fit an XD contaminant density to this sample. The contaminant model
+should use the same observables and measurement-error convention as the QSO
+model.
+
+\item Estimate the contaminant number counts $n_C$ directly from the survey
+and adopt a justified QSO prior $n_Q$.
+
+\item Replace the current QSO-versus-star score by
+%
+\begin{equation}
+\boxed{
+P_Q
+=
+\frac{n_Q L_Q}
+{n_Q L_Q+n_C L_C}
+}.
+\end{equation}
+
+\item Retain the old stellar likelihood as a diagnostic if useful, but do not
+let the stellar model alone define the non-QSO denominator.
+
+\item Using held-out QSOs and/or Monte-Carlo realizations, calibrate a
+QSO-support percentile $u_Q$ that accounts for each object's measurement
+covariance.
+
+\item Require both a sufficiently large $P_Q$ and a sufficiently large $u_Q$.
+Choose the thresholds from independent validation data to achieve the desired
+science trade-off between completeness, purity, and target density.
+
+\item Optionally calculate a global model-support statistic based on
+$n_Q L_Q+n_C L_C$ and flag objects that are inconsistent with the full
+population model.
+
+\item Monitor the results with $\log L_Q$--$\log L_C$, $P_Q$--$u_Q$, and
+old-score--new-score diagnostic plots.
+\end{enumerate}
+
+\section{Summary}
+
+The high QSO scores obtained for sources far from the QSO locus are a
+predictable consequence of closed-set generative classification. The statement
+%
+\begin{quote}
+``the extrapolated QSO density is much larger than the extrapolated stellar
+density''
+\end{quote}
+%
+does not imply
+%
+\begin{quote}
+``the source is plausibly drawn from the QSO population.''
+\end{quote}
+
+The most directly relevant astronomical precedent is to model the target
+population against an all-inclusive empirical contaminant population, as done
+in XDHZQSO \citep{nanni2022}, while using realistic population priors as in
+probabilistic QSO-selection work more generally
+\citep{bovy2011xdqso,mortlock2012}.
+
+For our application, the primary classifier should therefore be
+%
+\begin{equation}
+\boxed{
+P_Q
+=
+\frac{n_Q L_Q}
+{n_Q L_Q+n_C L_C}
+}
+\end{equation}
+%
+where $C$ is fitted from representative real survey sources.
+
+Because Gaussian mixtures retain infinite tails, this should be accompanied
+by a separate QSO-support requirement,
+%
+\begin{equation}
+\boxed{
+u_Q > u_{\rm min}
+}.
+\end{equation}
+
+These two quantities answer different questions. $P_Q$ asks whether the
+object is more consistent with QSOs than with the real survey background.
+$u_Q$ asks whether the object is actually located in a region of observable
+space supported by the QSO model. Using both is the principled way to prevent
+objects in remote extrapolated tails from becoming high-priority QSO
+candidates solely because the stellar or contaminant model falls even faster.
+
+\begin{thebibliography}{99}
+
+\bibitem[Bovy, Hogg \& Roweis(2011)]{bovy2011xd}
+Bovy, J., Hogg, D. W., \& Roweis, S. T. 2011,
+``Extreme deconvolution: Inferring complete distribution functions from
+noisy, heterogeneous and incomplete observations,''
+\emph{The Annals of Applied Statistics}, 5, 1657--1677.
+\href{https://doi.org/10.1214/10-AOAS439}{doi:10.1214/10-AOAS439}.
+Preprint: \url{https://arxiv.org/abs/0905.2979}.
+
+\bibitem[Bovy et al.(2011)]{bovy2011xdqso}
+Bovy, J., Hennawi, J. F., Hogg, D. W., Myers, A. D.,
+Kirkpatrick, J. A., Schlegel, D. J., Ross, N. P., Sheldon, E. S.,
+McGreer, I. D., Schneider, D. P., \& Weaver, B. A. 2011,
+``Think Outside the Color Box: Probabilistic Target Selection and the
+SDSS-XDQSO Quasar Targeting Catalog,''
+\emph{The Astrophysical Journal}, 729, 141.
+\href{https://doi.org/10.1088/0004-637X/729/2/141}
+{doi:10.1088/0004-637X/729/2/141}.
+Preprint: \url{https://arxiv.org/abs/1011.6392}.
+
+\bibitem[Chow(1970)]{chow1970}
+Chow, C. K. 1970,
+``On Optimum Recognition Error and Reject Tradeoff,''
+\emph{IEEE Transactions on Information Theory}, 16, 41--46.
+\href{https://doi.org/10.1109/TIT.1970.1054406}
+{doi:10.1109/TIT.1970.1054406}.
+
+\bibitem[Mortlock et al.(2012)]{mortlock2012}
+Mortlock, D. J., Patel, M., Warren, S. J., Hewett, P. C.,
+Venemans, B. P., McMahon, R. G., \& Simpson, C. 2012,
+``Probabilistic Selection of High-Redshift Quasars,''
+\emph{Monthly Notices of the Royal Astronomical Society}, 419, 390--410.
+\href{https://doi.org/10.1111/j.1365-2966.2011.19710.x}
+{doi:10.1111/j.1365-2966.2011.19710.x}.
+Preprint: \url{https://arxiv.org/abs/1101.4965}.
+
+\bibitem[Nanni et al.(2022)]{nanni2022}
+Nanni, R., Hennawi, J. F., Wang, F., Yang, J., Schindler, J.-T.,
+\& Fan, X. 2022,
+``Paving the way for Euclid and JWST via probabilistic selection of
+high-redshift quasars,''
+\emph{Monthly Notices of the Royal Astronomical Society},
+515, 3224--3248.
+\href{https://doi.org/10.1093/mnras/stac1944}
+{doi:10.1093/mnras/stac1944}.
+
+\bibitem[Ren et al.(2019)]{ren2019}
+Ren, J., Liu, P. J., Fertig, E., Snoek, J., Poplin, R.,
+DePristo, M., Dillon, J., \& Lakshminarayanan, B. 2019,
+``Likelihood Ratios for Out-of-Distribution Detection,''
+\emph{Advances in Neural Information Processing Systems}, 32.
+\url{https://proceedings.neurips.cc/paper/9611-likelihood-ratios-for-out-of-distribution-detection}.
+Preprint: \url{https://arxiv.org/abs/1906.02845}.
+
+\bibitem[Scheirer et al.(2013)]{scheirer2013}
+Scheirer, W. J., Rocha, A., Sapkota, A., \& Boult, T. E. 2013,
+``Toward Open Set Recognition,''
+\emph{IEEE Transactions on Pattern Analysis and Machine Intelligence},
+35, 1757--1772.
+\href{https://doi.org/10.1109/TPAMI.2012.256}
+{doi:10.1109/TPAMI.2012.256}.
+
+\end{thebibliography}
+
+\end{document}
