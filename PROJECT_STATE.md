@@ -1,5 +1,13 @@
 # Current project state
 
+**EUCLID-ONLY RESOLVED MODE: IN PROGRESS (PI decisions, 18 November 2026).** Score individual resolved point
+sources from Euclid DR1 MER photometry only (VIS, Y, J, H). Stage 1: frozen extension of both promoted bundles
+(old 36-d latent blocks bit-identical, Euclid block learned conditionally); stage 2: full joint refit with Euclid
+bands in the latent space. Plan and tests: `docs/euclid/PLAN.md` (adversarially reviewed, 2 reviewers x 2 rounds,
+before implementation). Measured: ~20,400 +- 900 spectroscopic QSOs at |b| >= 25 lie in DR1 wide; 33 of the 274
+background cones overlap it (only 2 test, 1 select) -> new Euclid test/select cones needed. Promotion of any
+pointer still needs a PI decision.
+
 **SCORING WITHOUT LEGACY r: ON BY DEFAULT (PI decision, 13 October 2026), with a LegacyRFallbackWarning.**
 Terms (PI, 13 Oct): **resolved mode** = `UnifiedPSFModel` (models A, B); **blend mode** = `BlendModel` (model C).
 Legacy r stays the population reference and is integrated over given a fallback band: PS1 r, else NSC r (added
