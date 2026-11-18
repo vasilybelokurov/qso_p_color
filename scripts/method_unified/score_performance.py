@@ -79,10 +79,13 @@ def task(args):
         if faint is not None:
             _model[model_name].base.model.meta['faint_limit'] = dict(bands=list(FAINT_BANDS), min_snr=float(faint))
     model = _model[model_name]; data = arrays(ROOTS['independent'], kind); bands = model.base.model.transform.bands
-    variance = np.array(data['variance'][rows])
+    variance = np.array(data['variance'][rows]); flux = np.array(data['flux'][rows])
+    if len(bands) > flux.shape[1]:                 # extended (Euclid) bundle: extra bands unobserved on these panels
+        extra = len(bands) - flux.shape[1]
+        flux = np.c_[flux, np.zeros((len(flux), extra))]; variance = np.c_[variance, np.full((len(flux), extra), np.inf)]
     if mask_name is not None:
         keep = np.array([MASKS[mask_name](b) for b in bands]); variance[:, ~keep] = np.inf
-    phot = Photometry(data['flux'][rows], variance, bands)
+    phot = Photometry(flux, variance, bands)
     use = phot.observed.sum(axis=1) >= 1
     if faint is not None:                          # the scorer would flag these, not score them
         has, bright, _ = model.base.model.faint_limit_status(phot); use &= has & bright

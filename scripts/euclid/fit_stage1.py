@@ -143,7 +143,8 @@ def main():
     lay = extend_layout(latent['layout'], settings['softening'])
     labels = latent['layout']['latent_labels']; r_index = labels.index('legacy:r')
     magdep = 'qso_coordinates' not in latent['layout']
-    t_q = regressor_matrix(labels, ('legacy:g', 'legacy:z', 'legacy:w1', 'legacy:w2'), 'legacy:r', include_magnitude=magdep)
+    t_q = regressor_matrix(labels, ('legacy:g', 'legacy:z', 'legacy:w1', 'legacy:w2'), 'legacy:r', include_magnitude=magdep,
+                         colour_coordinates=not magdep)   # model A latent: (magnitude, colour) coordinates
     t_b = regressor_matrix(labels, ('legacy:g', 'legacy:z', 'legacy:w1', 'legacy:w2'), 'legacy:r', include_magnitude=False)
     q = load_rows('qso', settings); bg = load_rows('background', settings)
     qrole = np.array([role_of.get(int(c), 'none') for c in q['euclid_cell']])

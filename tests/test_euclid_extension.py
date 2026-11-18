@@ -83,3 +83,24 @@ def test_em_recovers_truth_with_noise_and_missing_bands(kappa_b):
     assert np.allclose(ext.a, truth.a, atol=0.02)
     assert np.allclose(ext.b, truth.b, atol=0.06)
     assert np.allclose(ext.w, truth.w, atol=0.006)
+
+
+def test_colour_coordinates_keep_euclid_colours_magnitude_free():
+    """Model A stores (colour, magnitude) coordinates; the extension must not subtract the magnitude again.
+
+    With colour_coordinates=True the extended Euclid colour E - m is uncorrelated with the magnitude coordinate m
+    (the magnitude-independent design); with the band-coordinate matrix it would acquire cov = -var(m) * sum(B).
+    """
+    rng = np.random.default_rng(5)
+    labels = ['g', 'r', 'z']                         # slot 'r' holds the magnitude, 'g', 'z' hold g-r, z-r
+    k = 2; mean = np.tile([0.3, 20., -0.2], (k, 1))
+    cov = np.zeros((k, 3, 3)); cov[:, 1, 1] = 100.
+    cov[:, [0, 2], [0, 2]] = 0.04; cov[:, 0, 2] = cov[:, 2, 0] = 0.01
+    mix = GaussianMixture(np.ones(k)/k, mean, cov, tuple(labels))
+    ext = Extension(a=rng.normal(size=(k, 2))*0.2, b=rng.normal(size=(k, 2, 2))*0.5, w=np.tile(np.eye(2)*0.01, (k, 1, 1)))
+    good = extend_mixture(mix, ext, regressor_matrix(labels, ('g', 'z'), 'r', False, colour_coordinates=True), 1, ('e1', 'e2'))
+    bad = extend_mixture(mix, ext, regressor_matrix(labels, ('g', 'z'), 'r', False), 1, ('e1', 'e2'))
+    for big, ok in ((good, True), (bad, False)):
+        u = np.eye(5); u[3:, 1] = -1.                  # E -> E - m
+        c = u @ big.covs @ u.T
+        assert np.allclose(c[:, 1, 3:], 0., atol=1e-9) == ok

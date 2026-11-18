@@ -62,7 +62,8 @@ def main():
     rep = json.loads((st/'fit_report.json').read_text())['results']
     labels = latent['layout']['latent_labels']; r_index = labels.index('legacy:r')
     magdep = 'qso_coordinates' not in latent['layout']
-    t_q = regressor_matrix(labels, ('legacy:g', 'legacy:z', 'legacy:w1', 'legacy:w2'), 'legacy:r', include_magnitude=magdep)
+    t_q = regressor_matrix(labels, ('legacy:g', 'legacy:z', 'legacy:w1', 'legacy:w2'), 'legacy:r', include_magnitude=magdep,
+                         colour_coordinates=not magdep)   # model A latent: (magnitude, colour) coordinates
     t_b = regressor_matrix(labels, ('legacy:g', 'legacy:z', 'legacy:w1', 'legacy:w2'), 'legacy:r', include_magnitude=False)
     qbest = max((k for k in rep if k.startswith('qso:')), key=lambda k: rep[k]['select_mean_logp'])[4:]
     qext = [Extension.from_dict(e) for e in json.loads((st/f'qso_{qbest}.json').read_text())['per_slice']]

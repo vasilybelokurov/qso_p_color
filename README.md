@@ -411,6 +411,39 @@ point, as Riello et al. warn for variable sources, and lets 10–15% of extended
 
 Method: `src/qso_pcolor/fallback_reference.py`; method note, Section "Sources without Legacy r".
 
+## Euclid photometry only (candidate bundles, not promoted)
+
+Resolved mode can score a point source from **Euclid DR1 MER photometry alone** (VIS, Y, J, H) with the candidate
+bundles `models/multisurvey_psf/euclid_stage1_20261005_magdep_qlf` (A) and `..._magindep_qlf` (B). They are the
+promoted bundles extended by a Euclid block (the 41-band part is unchanged; 41-band scores agree with the promoted
+bundles to < 1e-9) and carry the Euclid deployment selection. Plan, reviews and tests: `docs/euclid/`.
+
+```python
+from qso_pcolor.unified import UnifiedPSFModel
+from qso_pcolor.euclid_bundle import photometry      # MER rows (dict of columns) -> Photometry, uJy -> native
+model = UnifiedPSFModel.load("models/multisurvey_psf/euclid_stage1_20261005_magdep_qlf")
+scores, decision = model.score(photometry(mer_rows), ra_deg=ra, dec_deg=dec, z_primary=z0, morphology=["PSF"]*n,
+                               match=..., blend_policy=..., separation_arcsec=..., fracflux=np.zeros(n), ood_flag_sigma=4.)
+```
+
+- **Columns**: `euclid:vis` = `FLUX_VIS_TO_Y_TEMPLFIT` (not `FLUX_VIS_PSF`, which is offset from total flux by
+  0.05-0.18 mag depending on magnitude and source type), `euclid:y|j|h` = `FLUX_{Y,J,H}_TEMPLFIT`, with their errors,
+  in uJy as catalogued (not dereddened; the model corrects SFD98 extinction with R = 1.917, 0.921, 0.629, 0.420).
+- **Selection the scores apply to** (apply it before scoring; pass `morphology="PSF"` for rows that pass):
+  `vis_det = 1`, `spurious_flag = 0`, no `det_quality_flag` bit of 4, 128, 256, 512, VIS >= 18, no other MER source
+  within 1.5" with VIS within 2.5 mag, `point_like_prob >= 0.1` (`point_like_flag` is a shear-star flag; not used).
+- **How**: Legacy r is integrated over given VIS (window from a fit of r - VIS against VIS - Y), as for the PS1/NSC
+  fallback; refused when >= 2 NISP bands lack S/N 5 (`insufficient_nisp`) or when the source's Legacy r lies beyond the
+  training range (`legacy_r_outside_training`: window centre > 23.0, or > 1% posterior mass above r = 23.5).
+- **Performance** (Euclid test sky cells: 2,246 spectroscopic quasars, 24,000 Euclid point sources in 40 new
+  cones; A / B): AUC 0.953 / 0.964 against 0.982 with Legacy g, r, z, W1, W2 on the same cells; quasars with
+  `p_quasar` > 0.5: 50% / 45% (Legacy 89%); 70% at VIS 20-22, 20-26% at VIS 18-20, 16-31% at z > 2.2. Euclid bands
+  added to Legacy raise recall from 92% to 97% at a similar background rate. Background false-positive rates are
+  upper bounds: most test cones lie outside DESI, so their quasars are unlabelled.
+- **Limits**: the Euclid colour densities are broader than the test data (predictive PIT skewed), so probabilities
+  are conservative; 7.5% / 5.3% of test quasars are not ranked; z < 0.8 quasars are often resolved by VIS and fail
+  the point rule (completeness 0.3-0.8).
+
 ---
 
 ## When not to trust the numbers

@@ -40,6 +40,22 @@ def euclid_columns(kind, settings, roles):
     return d['parent_row'][use], d['y'][use, 10:], d['noise'][use, 10:], d['observed'][use, 10:]
 
 
+def euclid_colour_map(n_dim, k, n_euclid=4):
+    """U: identity except the last n_euclid rows, x_E -> x_E - x_k (Euclid magnitude -> colour vs coordinate k)."""
+    u = np.eye(n_dim)
+    u[n_dim - n_euclid:, k] = -1.
+    return u
+
+
+def check_fixed(mix, fixed, name, tol=1e-6):
+    """The warm start must already satisfy the fixed-coordinate rule; otherwise the refit would start elsewhere."""
+    k = fixed['index']; other = np.delete(mix.covs[:, k, :], k, axis=1)
+    bad = (np.abs(mix.means[:, k] - fixed['mean']).max(), np.abs(mix.covs[:, k, k] - fixed['variance']).max(),
+           np.abs(other).max())
+    if max(bad) > tol*max(1., fixed['variance']):
+        raise ValueError(f'{name}: warm start violates the fixed coordinate (mean, var, cross) = {bad}')
+
+
 def batches(y, noise, obs, size=128):
     def source():
         for lo in range(0, len(y), size):
@@ -76,10 +92,15 @@ def fit_one(task):
     best, best_ll = init, mean_log_likelihood(batches(hy, hn, ho), init, op, len(hy)) if len(hy) else np.nan
     trace = [dict(iteration=0, heldout=float(best_ll))]; mix = init; hist = []; it = 0; t0 = time.monotonic()
     while it < MAX_ITER:
-        fit = fit_projected(batches(y, n, o), init=mix, operators=op, expected_rows=len(y), max_iter=BLOCK, tol=1e-6,
+        fit = fit_projected(batches(y, n, o), init=mix, operators=op, expected_rows=len(y), max_iter=it + BLOCK, tol=1e-6,
                             regularization=1e-3, covariance_update='map', prior_strength=1., final_evaluation=False,
                             initial_history=tuple(hist), fixed_coordinate=fixed)
-        mix = fit.mixture; hist = list(fit.history); it = len(hist)
+        mix = fit.mixture; hist = list(fit.history)
+        if len(hist) <= it and fit.converged:
+            break
+        if len(hist) <= it:
+            raise RuntimeError(f"{task['name']}: no progress in a block (history {len(hist)} after {it})")
+        it = len(hist)
         ll = mean_log_likelihood(batches(hy, hn, ho), mix, op, len(hy)) if len(hy) else np.nan
         trace.append(dict(iteration=it, heldout=float(ll)))
         gain = ll - trace[-2]['heldout']
@@ -97,6 +118,7 @@ def main():
     from qso_pcolor.gaussmix import GaussianMixture
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--bundle', required=True); ap.add_argument('--workers', type=int, default=10)
+    ap.add_argument('--tasks', nargs='*', help='only these task names (timing)')
     a = ap.parse_args()
     s = json.loads(Path('docs/euclid/settings.json').read_text())
     roles = {c['cell']: c['role'] for c in json.loads(Path('docs/euclid/sky_roles.json').read_text())['cells']}
@@ -117,10 +139,14 @@ def main():
         rows = np.flatnonzero(near & np.isin(role, [0, 1])); held = np.flatnonzero(near & (role == 1))
         held = held[np.linspace(0, len(held) - 1, min(len(held), 3000)).astype(int)] if len(held) else held
         if qc is not None:
-            T = np.asarray(qc['matrix']); means = mix.means @ T.T; covs = T @ mix.covs @ T.T
-            k = qc['index']; means[:, k] = qc['mean']; covs[:, k, :] = 0; covs[:, :, k] = 0; covs[:, k, k] = qc['variance']
+            # Model A: the stage-1 latent is (magnitude, colour) coordinates for the parent block (the layout's QSO
+            # operator already contains inv(T)) plus Euclid MAGNITUDES. Only the Euclid rows are moved to colours
+            # relative to the magnitude coordinate, so that the fixed-coordinate rule holds for the whole vector.
+            U = euclid_colour_map(mix.n_dim, qc['index'])
+            means = mix.means @ U.T; covs = U @ mix.covs @ U.T; k = qc['index']
             init = GaussianMixture(mix.weights, means, 0.5*(covs + covs.swapaxes(1, 2)), tuple(qc['labels']))
-            opm = hq @ np.linalg.inv(T); fixed = dict(index=k, mean=qc['mean'], variance=qc['variance'])
+            opm = hq @ np.linalg.inv(U); fixed = dict(index=k, mean=qc['mean'], variance=qc['variance'])
+            check_fixed(init, fixed, f'qso_{j:02d}')
         else:
             init, opm, fixed = mix, hq, None
         tasks.append(dict(name=f'qso_{j:02d}', kind='qso', rows=rows.tolist(), held=held.tolist(), init=init.to_dict(),
@@ -146,6 +172,8 @@ def main():
     (out/'tasks.json').write_text(json.dumps([{k: v for k, v in t.items() if k not in ('rows', 'held', 'init', 'operator')}
                                               | dict(n_rows=len(t['rows']), n_held=len(t['held'])) for t in tasks], indent=1))
     print('tasks', len(tasks), 'rows', sum(len(t['rows']) for t in tasks), flush=True)
+    if a.tasks:
+        tasks = [t for t in tasks if t['name'] in a.tasks]
     order = sorted(tasks, key=lambda t: -len(t['rows'])*len(t['init']['weights']))
     with ProcessPoolExecutor(a.workers) as pool:
         futs = {pool.submit(fit_one, t): t['name'] for t in order}

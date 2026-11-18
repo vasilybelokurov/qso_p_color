@@ -30,12 +30,14 @@ A = 2.5/np.log(10.)
 
 def photometry(match: dict) -> Photometry:
     """Native (not dereddened) Euclid fluxes and variances; unusable entries NaN / inf."""
-    f = np.full((len(match['matched']), 4), np.nan); v = np.full_like(f, np.inf)
+    n = len(match[f"flux_{COLUMNS['euclid:vis']}"])
+    matched = np.asarray(match.get('matched', np.ones(n, bool)), bool)       # catalogue rows: all matched
+    f = np.full((n, 4), np.nan); v = np.full_like(f, np.inf)
     for j, band in enumerate(EUCLID_BANDS):
         c = COLUMNS[band]
         flux = np.asarray(match['flux_'+c], float)*UJY_TO_NATIVE
         err = np.asarray(match['fluxerr_'+c], float)*UJY_TO_NATIVE
-        ok = np.asarray(match['matched'], bool) & np.isfinite(flux) & np.isfinite(err) & (err > 0)
+        ok = matched & np.isfinite(flux) & np.isfinite(err) & (err > 0)
         f[ok, j] = flux[ok]; v[ok, j] = err[ok]**2
     return Photometry(f, v, EUCLID_BANDS)
 
@@ -211,5 +213,65 @@ def build_bundle(parent_root, out_root, *, qso_ext: list[Extension], bkg_ext: Ex
                bundle_id=out_root.name, source_bundle=pman['bundle_id'],
                selection=(selection or {}).get('name', 'legacy_psf'),
                status='candidate (Euclid extension, docs/euclid/PLAN.md); not promoted')
+    (out_root/'manifest.json').write_text(json.dumps(man, indent=1))
+    return out_root
+
+
+def build_joint_bundle(stage1_root, out_root, *, qso_latent: list[GaussianMixture], bkg_latent: GaussianMixture,
+                       selection: dict | None, c_q: dict | None = None, meta: dict | None = None):
+    """Stage-2 bundle: refitted 40-d latent mixtures (old blocks changed), everything else from the stage-1 bundle.
+
+    Native views come from the extended observation operator (no copying, since the old blocks were refitted).
+    Kept from stage 1 / the parent: sky-gate weights (component order preserved by the warm start), Sigma_B,
+    Sigma_Q (x c_Q for ``euclid_point``), catch-all fraction and scale rule, support threshold, Euclid fallback.
+    ``selection=None`` builds the parent deployment selection (no thinning, parent priors).
+    """
+    from .multisurvey import MultiSurveyModel, MultiSurveyOutlier
+    from .outlier import mixture_moments
+    from .projected_xd import native_mixture
+    from .qso_model import SlicedColourRedshiftModel
+    st1, out_root = Path(stage1_root), Path(out_root); out_root.mkdir(parents=True, exist_ok=True)
+    lat1 = json.loads((st1/'latent.json').read_text()); lay = lat1['layout']
+    m1 = MultiSurveyModel.load(st1/'model.json')
+    nat = lambda m, kind: native_mixture(m, *[np.asarray(lay['operators'][kind][k]) for k in ('matrix', 'offset', 'covariance')],
+                                         labels=tuple(lay['native_labels']))
+    qso = SlicedColourRedshiftModel(m1.qso.z_centres, [nat(m, 'qso') for m in qso_latent], m1.qso.n_train,
+                                    m1.qso.system, tuple(lay['native_labels']), deepcopy(m1.qso.meta))
+    bnat = nat(bkg_latent, 'stars')
+    meta1 = deepcopy(m1.meta)
+    run_id = meta1['euclid']['parent_run_id'] + '+euclid_joint_' + hashlib.sha256(
+        json.dumps([m.to_dict() for m in qso_latent] + [bkg_latent.to_dict(), selection], default=float).encode()).hexdigest()[:12]
+    meta1['run_id'] = run_id; meta1['euclid'] = dict(meta1['euclid'], stage=2, **(meta or {}))
+    meta1.pop('selection', None)
+    if selection is not None:
+        meta1['selection'] = selection
+    model = MultiSurveyModel(qso, bnat, m1.transform, m1.reference_priority, m1.background_bounds, meta1,
+                             spatial_background=m1.spatial_background)
+    model.save(out_root/'model.json')
+    parent_root = Path(meta1['euclid']['parent_bundle'])
+    pri = json.loads((parent_root/'priors.json').read_text())
+    pri['transform_id'] = model.transform_id; pri['model_run_id'] = run_id
+    for label, e in pri['anchors'].items():
+        for part in ('qso_prior', 'background_density'):
+            e[part]['meta'].update(transform_id=model.transform_id, model_run_id=run_id)
+        if c_q is not None and label in c_q:
+            e['qso_prior']['sigma'] = (np.asarray(e['qso_prior']['sigma'])*np.asarray(c_q[label])).tolist()
+            e['qso_prior']['meta']['selection'] = selection['name']
+    (out_root/'priors.json').write_text(json.dumps(pri))
+    po = json.loads((parent_root/'outlier.json').read_text())
+    mean, cov = mixture_moments([bnat])
+    out = MultiSurveyOutlier(mean, po['kappa']**2*cov, po['kappa'], po['kappa_min'], tuple(lay['native_labels']),
+                             model.transform_id, po['fractions'], meta=dict(po['meta'], model_run_id=run_id,
+                             rule='moments of the stage-2 background; parent kappa and fractions'),
+                             family=po['family'], nu=po['nu'], noise=po['noise'])
+    out.save(out_root/'outlier.json')
+    (out_root/'support.json').write_text((st1/'support.json').read_text())
+    (out_root/'latent.json').write_text(json.dumps(dict(layout=lay, qso=[m.to_dict() for m in qso_latent],
+                                                         background=bkg_latent.to_dict(), stage=2, stage1=str(st1))))
+    pman = json.loads((st1/'manifest.json').read_text())
+    man = dict(pman, files={n: _sha(out_root/n) for n in ('model.json', 'priors.json', 'outlier.json')},
+               unified_files={n: _sha(out_root/n) for n in ('latent.json', 'support.json')}, bundle_id=out_root.name,
+               selection=(selection or {}).get('name', 'legacy_psf'),
+               status='candidate (Euclid stage 2 joint refit, docs/euclid/PLAN.md); not promoted')
     (out_root/'manifest.json').write_text(json.dumps(man, indent=1))
     return out_root

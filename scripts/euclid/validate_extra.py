@@ -53,10 +53,10 @@ def window_variant(src, dst, factor):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--bundle', required=True); ap.add_argument('--workers', type=int, default=6)
+    ap.add_argument('--bundle', required=True); ap.add_argument('--stage', type=int, choices=(1, 2), default=1); ap.add_argument('--workers', type=int, default=6)
     ap.add_argument('--n-z', type=int, default=400); ap.add_argument('--n-window', type=int, default=1500)
     a = ap.parse_args(); rng = np.random.default_rng(7)
-    ext = MODELS/f'euclid_stage1_{a.bundle}'; vdir = MODELS/'work/euclid'/f'validation_{a.bundle}'
+    ext = MODELS/(f'euclid_stage1_{a.bundle}' if a.stage == 1 else f'euclid_stage2_euclid_point_{a.bundle}'); vdir = MODELS/'work/euclid'/(f'validation_{a.bundle}' if a.stage == 1 else f'validation_stage2_{a.bundle}')
     res = np.load(vdir/'scores.npy', allow_pickle=True).item()
     sys.path.insert(0, str(Path(__file__).parent)); from fit_stage1 import load_rows
     s = json.loads(Path('docs/euclid/settings.json').read_text()); qt = load_rows('qso', s)

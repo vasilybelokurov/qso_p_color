@@ -42,12 +42,21 @@ class Extension:
         return cls(np.array(d['a'], float), np.array(d['b'], float), np.array(d['w'], float), d.get('meta', {}))
 
 
-def regressor_matrix(labels, colours: tuple[str, ...], magnitude: str, include_magnitude: bool) -> np.ndarray:
-    """T_d (p x D): rows are colours ``c - magnitude`` for each label c in ``colours`` [+ the magnitude itself]."""
+def regressor_matrix(labels, colours: tuple[str, ...], magnitude: str, include_magnitude: bool,
+                     colour_coordinates: bool = False) -> np.ndarray:
+    """T_d (p x D): rows are colours ``c - magnitude`` for each label c in ``colours`` [+ the magnitude itself].
+
+    ``colour_coordinates=True`` is for mixtures already stored in (magnitude, colour) coordinates (the
+    magnitude-independent QSO model, layout 'qso_coordinates'): slot c then holds ``c - magnitude`` itself, so the
+    row selects it and does not subtract the magnitude again.
+    """
     labels = list(labels); r = labels.index(magnitude)
     rows = []
     for c in colours:
-        t = np.zeros(len(labels)); t[labels.index(c)] = 1.; t[r] -= 1.; rows.append(t)
+        t = np.zeros(len(labels)); t[labels.index(c)] = 1.
+        if not colour_coordinates:
+            t[r] -= 1.
+        rows.append(t)
     if include_magnitude:
         t = np.zeros(len(labels)); t[r] = 1.; rows.append(t)
     return np.array(rows)
