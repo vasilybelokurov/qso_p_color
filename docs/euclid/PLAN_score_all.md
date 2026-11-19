@@ -106,9 +106,17 @@ Tests (in addition to T1-T13):
   upper bound < +0.1 pp; margins set from the measured paired SE first. Reported separately for each newly scored
   stratum (support-flagged, outside-both, weak-r). These panels served as the stage-2 comparator but were not used to
   design these fixes.
-- M3: z-free `p_quasar` identical across supplied z0 (< 1e-9).
-- M4: weak-r paired masking on parent rows with good Legacy r and a good fallback band: degrade Legacy r to
-  S/N 3-10, score, compare with the good-r score: |dp| < 0.02 for 95%, AUC change > -margin.
+- M3: z-free `p_quasar` (no z0) against the pair scorer's total p at z0 = 0.6, 1.5, 3.0, 4.2: max |dp| < 1e-4
+  (the pair scorer adds window nodes around z0 to the same quadrature; 1e-9 was not attainable — changed
+  19 Nov 2026 before any panel run; unit test `tests/test_score_all.py`).
+- M4 (made precise 19 Nov 2026, before running; `scripts/score_all/weak_r_masking.py`): held-out main-panel rows
+  with South r S/N > 30, no North r and a fallback band at S/N >= 10; Legacy r degraded to S/N 5 (noise added).
+  Scored with the weak r kept (weak), with r removed (none), and as measured (good). Pass: lower 95% bound of
+  AUC(weak) - AUC(none) > -0.002 (paired cell bootstrap) and median |logit p - logit p_good| of weak <= that of
+  none. Quantiles of |p_weak - p_good| reported. (The draft's |dp| < 0.02 vs good-r was not a valid criterion:
+  degrading r to S/N 5 legitimately changes p.)
+- Unit tests (`tests/test_score_all.py`): an uninformative weak r reproduces the no-r fallback exactly; fallback
+  band = first passing S/N.
 - Method note and README updated in the same commit as the behaviour change (AGENTS.md); old behaviour kept behind
   a flag (`apply_support=True`, `weak_reference_fallback=False`) for reproduction of earlier results.
 Phase D-main needs no fitting and does not depend on D1-D4; it can start before Phases A-C.
