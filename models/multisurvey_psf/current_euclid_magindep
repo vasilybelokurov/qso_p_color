@@ -1,0 +1,14 @@
+{
+  "bundle": "euclid_stage1_20261005_magindep_qlf",
+  "stage": "stage 1: promoted bundle 20261005_magindep_qlf extended by a Euclid block; 41-band part unchanged",
+  "qso_colours": "magnitude-independent QSO colours (model B)",
+  "companion": "current_euclid (model A); use both",
+  "use": "default for Euclid sources: passed all its acceptance tests",
+  "photometry": "Euclid DR1 MER: euclid:vis = FLUX_VIS_TO_Y_TEMPLFIT, euclid:y|j|h = FLUX_{Y,J,H}_TEMPLFIT, uJy as catalogued (qso_pcolor.euclid_bundle.photometry); the 41 promoted bands as for current. Not dereddened (SFD98 applied by the model).",
+  "selection": "Euclid point-source deployment selection: vis_det = 1, spurious_flag = 0, no det_quality_flag bit of 4/128/256/512, VIS >= 18, no MER neighbour within 1.5\" and 2.5 mag, point_like_prob >= 0.1 (scripts/euclid/cones.py; README 'Euclid photometry only').",
+  "euclid_only": "Legacy r integrated over given VIS; refused as legacy_r_outside_training beyond Legacy r ~ 23.5 and insufficient_nisp with < 2 NISP bands at S/N 5. Fainter sources wait for the VIS-referenced model (docs/euclid/PLAN_score_all.md, Phase E).",
+  "rules": "D5 defaults (19 Nov 2026): support and outside-both are flags; select on p_quasar and quality flags together.",
+  "docs": "docs/euclid/ (plan, data tests, results.json), method note Section 'Euclid photometry only', README",
+  "promoted": "19 November 2026 (PI decision: stage 1 and stage 2 both promoted)",
+  "full_probability_calibration": false
+}

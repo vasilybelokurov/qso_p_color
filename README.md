@@ -25,6 +25,7 @@ blend mode, built on top of either of them.
 | Resolved mode (companion measured separately, PSF) | **A**: magnitude-dependent quasar colours | `UnifiedPSFModel.load("models/multisurvey_psf/current")` |
 | Resolved mode (companion measured separately, PSF) | **B**: magnitude-independent quasar colours (XDQSO assumption) | `UnifiedPSFModel.load("models/multisurvey_psf/current_magindep")` |
 | Blend mode (quasar and one companion measured as one source) | **C**: QQ (same *z*) vs QS | `BlendModel.load(...)` on the `current` or `current_magindep` pointer |
+| Euclid point sources (Euclid MER photometry, alone or with other bands) | **A / B with a Euclid block** | `UnifiedPSFModel.load("models/multisurvey_psf/current_euclid")` and `..._euclid_magindep`; stage-2 `..._euclid_joint*` (see [Euclid photometry](#euclid-photometry-promoted-19-november-2026)) |
 
 **Score every object with both A and B** (for C, load it on both pointers). A and B share the
 background model, the 41 bands, extinction correction, catch-all, support cut and faint limit; they
@@ -431,17 +432,27 @@ point, as Riello et al. warn for variable sources, and lets 10–15% of extended
 
 Method: `src/qso_pcolor/fallback_reference.py`; method note, Section "Sources without Legacy r".
 
-## Euclid photometry only (candidate bundles, not promoted)
+## Euclid photometry (promoted 19 November 2026)
 
-Resolved mode can score a point source from **Euclid DR1 MER photometry alone** (VIS, Y, J, H) with the candidate
-bundles `models/multisurvey_psf/euclid_stage1_20261005_magdep_qlf` (A) and `..._magindep_qlf` (B). They are the
-promoted bundles extended by a Euclid block (the 41-band part is unchanged; 41-band scores agree with the promoted
-bundles to < 1e-9) and carry the Euclid deployment selection. Plan, reviews and tests: `docs/euclid/`.
+Resolved mode can score a point source from **Euclid DR1 MER photometry** (VIS, Y, J, H), alone or with the other
+bands. Four pointers (PI decision, 19 November 2026; all four promoted):
+
+| pointer | bundle | use |
+|---|---|---|
+| `current_euclid` (A), `current_euclid_magindep` (B) | stage 1: promoted bundles extended by a Euclid block | **default for Euclid sources**; passed all acceptance tests |
+| `current_euclid_joint` (A), `current_euclid_joint_magindep` (B) | stage 2: joint refit of all bands | when recall matters more than ranking: +8.5 / +10.2 pp quasars at p > 0.5 at the same background rate, but **failed the pre-declared AUC margin** against stage 1 (-0.0066 / -0.0075 vs -0.002) because the Legacy-r eligibility rule refuses 30 / 37 more faint quasars; promoted despite that |
+
+All four carry the **Euclid point-source selection** (`selection = euclid_point`, below): the quasar colour model is the
+promoted one, while the background density and the abundances are thinned to the sources that selection keeps. Their
+scores therefore differ from `current` / `current_magindep` even for Legacy-only input (by design; e.g. p 0.50 vs
+0.47 for one test source). Use them for Euclid-selected sources, and `current` / `current_magindep` for Legacy-selected
+ones. (The 41-band identity with the promoted bundles, test T-U1, holds for bundles built with selection `legacy_psf`;
+the 41-band stage-2 variant `euclid_stage2_legacy_psf_*` stays a candidate.) Plan, reviews and tests: `docs/euclid/`.
 
 ```python
 from qso_pcolor.unified import UnifiedPSFModel
 from qso_pcolor.euclid_bundle import photometry      # MER rows (dict of columns) -> Photometry, uJy -> native
-model = UnifiedPSFModel.load("models/multisurvey_psf/euclid_stage1_20261005_magdep_qlf")
+model = UnifiedPSFModel.load("models/multisurvey_psf/current_euclid")   # also current_euclid_magindep; *_joint
 scores, decision = model.score(photometry(mer_rows), ra_deg=ra, dec_deg=dec, z_primary=z0, morphology=["PSF"]*n,
                                match=..., blend_policy=..., separation_arcsec=..., fracflux=np.zeros(n), ood_flag_sigma=4.)
 ```
@@ -462,10 +473,12 @@ scores, decision = model.score(photometry(mer_rows), ra_deg=ra, dec_deg=dec, z_p
   same cells; quasars with `p_quasar` > 0.5: 50% / 44% (Legacy 89% / 87%); 68-71% at VIS 20-22, 18-26% at VIS
   18-20, 15-31% at z > 2.2. Legacy + Euclid: recall 93% / 92%. Background false-positive rates are upper bounds:
   most test cones lie outside DESI, so their quasars are unlabelled.
-- **Stage 2** (joint refit, `euclid_stage2_euclid_point_*`; 41-band variant `euclid_stage2_legacy_psf_*`): passes
-  the 41-band non-inferiority test against the promoted bundles; on Euclid test cells raises recall by 8.5 / 10.2 pp
-  at the same background rate but fails the pre-declared AUC margin (-0.0066 / -0.0075) because the Legacy-r
-  eligibility rule refuses 30 / 37 more faint quasars. Stage 1 therefore stays the Euclid-only candidate.
+- **Stage 2** (`current_euclid_joint*`; joint refit, bundles `euclid_stage2_euclid_point_*`): passes the 41-band
+  non-inferiority test against the promoted bundles; on Euclid test cells raises recall by 8.5 / 10.2 pp at the same
+  background rate but fails the pre-declared AUC margin (-0.0066 / -0.0075) because the Legacy-r eligibility rule
+  refuses 30 / 37 more faint quasars (on objects both stages rank, stage 2 ranks better). Promoted with that caveat.
+- **Faint sources**: beyond Legacy r ~ 23.5 Euclid-only scoring is refused (about 80% of Euclid point sources);
+  the VIS-referenced model that removes this limit is planned (`docs/euclid/PLAN_score_all.md`, Phase E).
 - **Limits**: the Euclid colour densities are broader than the test data (predictive PIT skewed), so probabilities
   are conservative; 7.5% / 5.6% of test quasars are not ranked; z < 0.8 quasars are often resolved by VIS and fail
   the point rule (completeness 0.3-0.8).

@@ -1,0 +1,19 @@
+{
+ "kind": "multisurvey_psf_bundle",
+ "files": {
+  "model.json": "6ceafcd3f2a884ff9815bf33145678eba4f1780be295c8cb98a28713f783d19c",
+  "priors.json": "51bc1d05333b2e790dbd15969bebd2cf641c6856e0eb8282f0fd116a9d6f491a",
+  "outlier.json": "6480e44222c891a236c16f01ddc921784d86204c4929d7fc2d2a5e50bf596924"
+ },
+ "bundle_id": "euclid_stage2_euclid_point_20261005_magindep_qlf",
+ "min_abs_b_deg": 25.0,
+ "population": "psf",
+ "status": "candidate (Euclid stage 2 joint refit, docs/euclid/PLAN.md); not promoted",
+ "full_probability_calibration": false,
+ "unified_files": {
+  "latent.json": "a2dfafba24d746f2e5e7f6a169b53c23abf8968ee041403b8121ce4db3446f6a",
+  "support.json": "ffae88ca187d1629463a798bebbc2b8dccc1c4a87fd0d84a6ab406574429b159"
+ },
+ "source_bundle": "20261005_magindep_qlf",
+ "selection": "euclid_point"
+}

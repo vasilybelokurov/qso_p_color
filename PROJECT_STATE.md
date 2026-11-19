@@ -33,7 +33,12 @@ PHASES A+B DONE 19 Nov (docs/score_all/PHASE_AB.md): fetch_cones cache check (al
 Chandra 1,266; census on select cones: 60,701 sources/3.39 deg2, counts peak VIS 25.4, Legacy r S/N>=10 half at
 VIS 23.6, NISP S/N 10 at VIS 24.7-24.9. Next steps (Phase C benchmark, fit-cone download, Phase E) wait on D1-D4.
 
-**EUCLID-ONLY RESOLVED MODE: STAGES 1 AND 2 DONE, CANDIDATES NOT PROMOTED (PI decisions, 18 November 2026).**
+**EUCLID BUNDLES PROMOTED (PI decision, 19 November 2026): stage 1 AND stage 2.** Pointers current_euclid /
+current_euclid_magindep (stage 1, default for Euclid sources) and current_euclid_joint / current_euclid_joint_magindep
+(stage 2, euclid_point; promoted although it failed the AUC margin vs stage 1). All carry selection euclid_point, so
+scores differ from current even for Legacy-only input (background thinned; QSO density identical; checked by
+tests/test_euclid_pointers.py). The README's former '41-band scores agree to < 1e-9' applied only to legacy_psf builds.
+Former heading: EUCLID-ONLY RESOLVED MODE: STAGES 1 AND 2 DONE, CANDIDATES NOT PROMOTED (PI decisions, 18 November 2026).
 Score individual resolved point sources from Euclid DR1 MER VIS, Y, J, H only. Plan/review/tests: `docs/euclid/`;
 numbers: `docs/euclid/results.json`; method note Section "Euclid photometry only". A = magdep (`current`),
 B = magindep (`current_magindep`). Bundles (gitignored): `models/multisurvey_psf/euclid_stage1_20261005_{magdep,magindep}_qlf`,
@@ -46,7 +51,7 @@ B = magindep (`current_magindep`). Bundles (gitignored): `models/multisurvey_psf
   Bug fixed 19 Nov (commit 4393d65): model B's QSO latent is in (magnitude, colour) coordinates; stage 1 had
   subtracted r again from the regressors and stage 2 transformed twice. B stage 1 refitted, revalidated; B stage 2
   refitted. Corrected B fits Euclid select data 0.08-0.13 nat/object worse (it now forbids magnitude dependence).
-OPEN PI DECISIONS (Euclid): (1) promote stage 1, stage 2, or neither; (2) whether to revise the Legacy-r
+OPEN PI DECISIONS (Euclid): (1) DECIDED 19 Nov: both promoted; (2) whether to revise the Legacy-r
 eligibility rule (centre <= 23.0 and <= 1% posterior mass above 23.5; departs from the reviewers' flat-prior form)
 - revising it after seeing test results would need new test cells; (3) sky roles T1; (4) det_quality_flag bit 2
 kept despite the 1.2x rule; (5) catch-all fraction eta and support threshold kept at parent values in stage 2;

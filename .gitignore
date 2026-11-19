@@ -49,6 +49,15 @@ models/multisurvey_psf/*
 !models/multisurvey_psf/20261005_magindep_qlf/
 !models/multisurvey_psf/previous_20261003_magdep
 !models/multisurvey_psf/previous_20261003_magindep
+# Euclid bundles and pointers, promoted 19 Nov 2026 (stage 1 and stage 2)
+!models/multisurvey_psf/current_euclid
+!models/multisurvey_psf/current_euclid_magindep
+!models/multisurvey_psf/current_euclid_joint
+!models/multisurvey_psf/current_euclid_joint_magindep
+!models/multisurvey_psf/euclid_stage1_20261005_magdep_qlf/
+!models/multisurvey_psf/euclid_stage1_20261005_magindep_qlf/
+!models/multisurvey_psf/euclid_stage2_euclid_point_20261005_magdep_qlf/
+!models/multisurvey_psf/euclid_stage2_euclid_point_20261005_magindep_qlf/
 docs/method_unified/*.aux
 docs/method_unified/*.fdb_latexmk
 docs/method_unified/*.fls

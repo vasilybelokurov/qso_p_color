@@ -1226,7 +1226,12 @@ mismatch between the two definitions of a point source is not modelled (\code{do
 \section{Euclid photometry only}\label{sec:euclid}
 %======================================================================
 Resolved mode can score a point source from Euclid DR1 MER photometry alone: VIS, $Y$, $J$ and $H$
-\citep{EuclidQ1MER,EuclidDR1MER}. The bundles are candidates, not promoted; plan, tests and the
+\citep{EuclidQ1MER,EuclidDR1MER}. Stage 1 and stage 2 were both promoted on 19 November 2026 (PI decision) as
+\code{current\_euclid}, \code{current\_euclid\_magindep} (stage 1, the default for Euclid sources) and
+\code{current\_euclid\_joint}, \code{current\_euclid\_joint\_magindep} (stage 2, promoted although it failed
+the pre-declared AUC margin against stage 1; see below). All four carry the Euclid point-source selection: the quasar
+colour model is the promoted one, while the background density and the abundances are thinned to that selection, so
+their scores differ from \code{current} even for input without Euclid bands. Plan, tests and the
 adversarial review are in \code{docs/euclid/PLAN.md} and \code{docs/euclid/REVIEW\_LOG.md}, and every number below is
 in \code{docs/euclid/results.json}.
 
