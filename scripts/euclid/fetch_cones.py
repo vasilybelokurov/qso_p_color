@@ -67,13 +67,21 @@ def fetch(cone):
 
 
 if __name__ == '__main__':
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--roles', type=Path, default=ROLES, help='cone list (default docs/euclid/sky_roles.json; '
+                    'score-all fit/eval cones: docs/score_all/new_cones.json)')
+    ap.add_argument('--limit', type=int, default=None, help='fetch at most this many missing cones (timing test)')
+    a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    roles = json.loads(ROLES.read_text())
+    roles = json.loads(a.roles.read_text()); fetched = 0
     for cone in roles['cones']:
         path = OUT/f"{cone['role']}_{cone['id']:03d}.npz"
         if cached_matches(path, cone):
             continue
-        t = time.monotonic(); d = fetch(cone)
+        if a.limit is not None and fetched >= a.limit:
+            break
+        t = time.monotonic(); d = fetch(cone); fetched += 1
         np.savez_compressed(path, **d, centre=np.array([cone['ra'], cone['dec']]), radius_deg=cone['radius_deg'])
         print(path.name, 'MER', len(d['mer_e_ra']), 'Legacy', len(d['legacy_ra']), 'DESI gal', len(d['desigal_ra']),
               f'{time.monotonic()-t:.0f} s', flush=True)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Phase B census of the Euclid point-source deployment selection (docs/euclid/PLAN_score_all.md, Phase B).
 
-Input: the select-role cones (fit-role cones do not exist locally yet), each r = 0.3 deg, cached by
+Input: the cones of one role (default select; fit and eval cones from docs/score_all/new_cones.json), each r = 0.3 deg, cached by
 scripts/euclid/fetch_cones.py; deployment selection as in scripts/euclid/cones.py (cleaning cuts, isolation,
 point-like). Per VIS bin of 0.25 mag (VIS = 22.5 - 2.5 log10 f, f in nanomaggies, not dereddened):
   density_sel   selected sources per deg^2            density_all  all MER rows (vis_det=1, spurious_flag=0) per deg^2
@@ -12,9 +12,9 @@ Standard errors: bootstrap over cones (1000 resamples), which carries the sky-to
 area pi r^2 per cone (ASSUMED fully covered: sky_roles.py placed cone centres where the whole cone is covered; no
 star-mask correction). The turnover VIS is the bin centre of maximum selected density.
 
-Output: docs/score_all/census_select.json and plots/score_all/census_select.png.
+Output: docs/score_all/census_<role>.json and plots/score_all/census_<role>.png.
 
-    python scripts/score_all/census.py
+    python scripts/score_all/census.py [--role fit]
 """
 import glob
 import json
@@ -26,7 +26,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'scripts/euclid'))
 BASE = Path.home()/'data/qso_p_color/catalogues/euclid_dr1/cones'
-OUT = ROOT/'docs/score_all/census_select.json'
+OUT_TMPL = 'docs/score_all/census_{role}.json'
 EDGES = np.arange(17.0, 27.51, 0.25)
 BANDS = ('vis', 'y', 'j', 'h')
 
@@ -83,8 +83,13 @@ def bin_stats(cones, idx):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--role', default='select', help='cone role prefix: select (default), fit, eval, ...')
+    role = ap.parse_args().role
+    out_path = ROOT/OUT_TMPL.format(role=role)
     settings = json.loads((ROOT/'docs/euclid/settings.json').read_text())
-    paths = sorted(glob.glob(str(BASE/'select_*.npz')))
+    paths = sorted(glob.glob(str(BASE/f'{role}_*.npz')))
     cones = [per_cone(p, settings) for p in paths]
     n = len(cones); full = bin_stats(cones, range(n))
     rng = np.random.default_rng(20261119); boots = [bin_stats(cones, rng.integers(0, n, n)) for _ in range(1000)]
@@ -101,12 +106,12 @@ def main():
         bins=dict(vis_lo=EDGES[:-1].tolist(), vis_hi=EDGES[1:].tolist(),
                   **{k: np.round(v, 5).tolist() for k, v in full.items()},
                   **{f'se_{k}': np.round(v, 5).tolist() for k, v in se.items()}))
-    OUT.write_text(json.dumps(report, indent=1, allow_nan=True))
-    plot(cen, full, se, turn)
+    out_path.write_text(json.dumps(report, indent=1, allow_nan=True))
+    plot(cen, full, se, turn, role)
     print(json.dumps({k: report[k] for k in ('area_deg2', 'n_selected', 'vis_turnover_selected', 'density_selected_by_range')}, indent=1))
 
 
-def plot(cen, full, se, turn):
+def plot(cen, full, se, turn, role='select'):
     sys.path.insert(0, str(ROOT/'scripts/method_unified'))
     import matplotlib.pyplot as plt
     from common import save_figure, use_paper_style
@@ -124,7 +129,7 @@ def plot(cen, full, se, turn):
         ax[2].plot(cen, full[f'snr_{x}'], '.-', color=c, label=x.upper(), ms=3)
     ax[2].axhline(10, ls=':', color='#888'); ax[2].axhline(5, ls=':', color='#888')
     ax[2].set(yscale='log', xlabel='VIS [mag]', ylabel='median S/N'); ax[2].legend(frameon=False, fontsize=7)
-    fig.tight_layout(); print(save_figure(fig, 'score_all/census_select'))
+    fig.tight_layout(); print(save_figure(fig, f'score_all/census_{role}'))
 
 
 if __name__ == '__main__':

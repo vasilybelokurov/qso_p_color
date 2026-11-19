@@ -1,4 +1,4 @@
-# Score-all Phases A and B: results (19 November 2026)
+# Score-all Phases A, B and C: results (19 November 2026)
 
 Plan: `docs/euclid/PLAN_score_all.md`. Nothing fitted, nothing downloaded, no promoted bundle changed. Decisions
 that block the next steps are listed at the end; nothing here pre-empts them.
@@ -83,7 +83,35 @@ fitted on ~5,000 rows needs ~12 deg^2 at the bright end and ~5 deg^2 at the fain
 extinction range argues for more, spread over many cells. The plan's >= 30 deg^2 (~106 cones of r = 0.3 deg, ~1.5 GB
 at the present ~14 MB per cone) is therefore ample; ~15 deg^2 is a defensible minimum.
 
-## Decisions needed before Phase C/E (PI)
+## Phase C — is the low-S/N measurement model calibrated? (T8)
+
+`scripts/score_all/phase_c_lowsnr.py` -> `docs/score_all/phase_c_lowsnr.json`, `plots/score_all/phase_c_lowsnr.png`.
+The scorer treats each band's luptitude as Gaussian with first-order variance. True fluxes are set to S/N 1-20
+against the measured faint-end flux error of the deployment selection (median error at VIS 24-25: 0.0061 nmgy in
+VIS, 0.026-0.027 in Y, J, H; softening/error = 1.2-1.3), Gaussian flux noise is added (20,000 draws per band and
+S/N), and the coverage of the true luptitude by the scorer's interval is measured.
+
+| S/N | 68% coverage (all bands) | 95% coverage | T8 (+-3 pp) |
+|---|---|---|---|
+| 1 | 0.667-0.669 | 0.921-0.923 | fails (95%: -3.2 pp) |
+| 2 | 0.673-0.680 | 0.934-0.937 | pass |
+| 3-20 | 0.676-0.691 | 0.942-0.955 | pass |
+
+No bias (median standardised residual within +-0.01); PIT KS distance 0.025-0.035 at S/N <= 5, 0.01 at S/N 20.
+**Result: the Gaussian-luptitude likelihood is adequate for S/N >= 2; at S/N ~ 1 its 95% tails are 3 pp too narrow.**
+Following the plan (flux-space where they disagree), bands at S/N < 2 should use the flux-space likelihood or be
+treated as non-detections in the faint model; by the census that concerns NISP beyond VIS ~ 26.5.
+Limitation: the test assumes the catalogue's quoted flux errors are right. Checking them needs repeat measurements
+(`euclid_dr1.mer_catalogue_deep_visits` holds per-visit photometry in the deep fields; not yet used).
+
+## Decisions (PI, 19 November 2026)
+
+All five are decided (PROJECT_STATE.md, PLAN_score_all.md): D1 keep the cleaning cuts; D2 VIS-referenced faint model
+(2B); D3 evaluation background from 40 new cones in unused cells + quasars from EDF-North, fit cones ~30 deg^2
+(allocated: `scripts/score_all/allocate_cones.py` -> `docs/score_all/new_cones.json`, 40 eval cones in 32 cells,
+106 fit cones in 54 cells, 30.0 deg^2, no shared cell); D3b recall margin 2 pp; D4 publish p and the likelihood ratio.
+
+## Earlier list of decisions (before 19 November 2026 decisions)
 
 - **D1** target population: keep the cleaning cuts as in `cones.py`, or include removed rows.
 - **D2** 2B (VIS-referenced faint model; the census supports it: usable Legacy r is gone by VIS ~ 24.6) or a 2A pilot.
