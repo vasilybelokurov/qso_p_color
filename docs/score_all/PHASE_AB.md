@@ -237,3 +237,57 @@ Findings:
   against, or tied to, the stage-1 background.
 - The same mismatch affects the present Euclid-only scores at VIS 22-23 (Phase D), which use this background.
 - The bright edge (VIS 18.5-19, +0.2-0.3 mag) is next to the vis_bright = 18 cut; not investigated.
+
+## Phase E step 3: design and tests, fixed before any fit (19 November 2026)
+
+Data (network only, one process, `scripts/score_all/fetch_deep_tiles.py`): hexagonal tiles (spacing 0.5 deg, cone
+radius 0.3 deg, sources owned by the nearest tile centre) over EDF-North deep (142 tiles) and wide (same centres), and
+EDF-South deep and wide (169 tiles); ~/data/qso_p_color/catalogues/euclid_dr1/{deep,wide}_tiles/<field>/.
+Held-out tiles: id mod 5 == 0 in every field, never fitted.
+
+**3a. Wide-selection mimic.** Deep data classify compact galaxies better than wide data, so the deep point-like
+selection is not the wide one. Instead of selecting deep rows by their own `point_like_prob`, each deep row gets
+w = P(selected by the wide deployment selection | deep measurements):
+- Candidate pool: deep rows passing the cleaning without the isolation cut (vis_det, spurious_flag, det_quality bits,
+  VIS > 18), owned by their tile.
+- Label: matched within 0.5" to a wide row that passes the full wide deployment selection (`cones.deployment` on the
+  wide tile: cleaning, isolation, point_like_prob >= 0.1).
+- Classifier: scikit-learn HistGradientBoostingClassifier on deep VIS, point_like_prob, fwhm, mumax_minus_mag, VIS S/N
+  and the deep isolation-neighbour count. No colours, so the mimic does not add a colour selection of its own.
+- Trained on EDF-South training tiles, where wide data cover 132 of 134 deep probes.
+- Tests:
+  - M1 reliability, EDF-South held-out tiles: |observed - predicted| <= 0.03 in each decile of predicted w.
+  - M2 transfer, EDF-North tiles with wide data: per 0.5-mag VIS bin 21.5-26, sum of w within 10% of the wide-selected
+    matched count (or within 3 Poisson sigma where that is larger).
+  - M3 colours, same rows: w-weighted deep colours against the deep colours of wide-selected matched rows, VIS 21.5-25.5:
+    |d median| <= 0.05 mag and |d half-width| <= 20% in VIS-Y, VIS-J, VIS-H.
+- Reported, not tested: the fraction of wide-selected rows with no deep counterpart.
+- Completeness for step 4 follows from the same model: C(V) = mean w of deep rows with point_like_prob > 0.9.
+
+**3b. Background colour model on EDF-North.**
+- Rows: candidate pool in the EDF-North training tiles, weighted by w (rows with w < 0.005 dropped). Known QSOs
+  (DESI DR1, DR16Q within 1") removed (D6).
+- Features: dereddened (VIS-Y, VIS-J, VIS-H) luptitudes, with the noise covariance propagated from the flux variances.
+  VIS errors are correlated across the three colours.
+- VIS bins: 0.25 mag, 21.0-26.5. Bin 21.0-21.5 overlaps stage 1 and is used for the check against it.
+- Unidentified QSOs held fixed:
+  - Component: the stage-1 QSO slice mixtures (model B) marginalised over z and r at the bin's VIS.
+  - Weight: residual fraction f_Q(V) = [Sigma_Q(V) C(V) A - sum of w over removed known QSOs] / sum of w, floored at 0.
+    Sigma_Q is from step 1 (flat c_Q); A is the EDF-North owned area from occupied HEALPix nside 2048 pixels.
+  - Fit: 4 outer iterations, each refitting the background with weights w (1 - q_Q).
+  - Model A is run as a sensitivity check.
+- XD (`qso_pcolor.xd.fit_xd`), K chosen per bin by 4-fold held-out log density over tiles from {2, 3, 4, 6, 8};
+  regularization 1e-4 mag^2.
+- Tests:
+  - H1 (as T10), EDF-North held-out tiles, per bin with >= 500 rows: Mahalanobis 68/95% coverage within +-3 pp.
+  - H2 continuity: median model colour changes by <= 0.05 mag between adjacent bins.
+  - H3 overlap, VIS 21.0-21.5: model median colours within 0.05 mag of the stage-1 background at the same VIS
+    (step-2 method).
+  - H4 independent check (D6), EDF-South held-out and training tiles, VIS 21.5-25: step-2 acceptance with EDF-South
+    noise and w.
+  - H5 wide fit cones, VIS 21.5-24: step-2 acceptance.
+- H4 and H5 can fail because EDF-North (b = +30) and other fields differ in their star/galaxy mix, not in the colours
+  of each population. In that case 3c follows, specified before it runs: component shapes fixed from EDF-North,
+  amplitudes refitted per wide fit cone and modelled as a smooth function of (l, b).
+
+Compute: the classifier and the XD bins are small (minutes; workers <= 4, peak RSS measured on one bin first).
