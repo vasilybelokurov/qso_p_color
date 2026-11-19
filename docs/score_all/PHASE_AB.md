@@ -185,3 +185,28 @@ Findings:
 
 **D6 (PI, 19 November 2026): option (a).** Faint-galaxy colours are fitted on all of EDF-North deep MER, with every known QSO (DESI DR1, DR16Q; same removal rule in every training field) removed. Tests unchanged: QSOs = EDF-N DESI QSOs degraded to wide depth (never in training); background = the 40 wide eval cones. Added: EDF-South at VIS < 25 as an independent check of the galaxy model (never fitted), which also bounds the same-field optimism of the EDF-N QSO test; faint checks with Chandra X-ray point sources and the Euclid slitless QSO class (checks, not labels).
 Rejected: (b) split EDF-N (faint QSO labels 576 -> ~290, below the power the 2 pp margin needs); (c) EDF-S only (patchy, S/N 5-10 at VIS 25-26).
+
+## Phase E step 1: quasar abundance per unit VIS (19 November 2026)
+
+Script `scripts/score_all/phase_e1_qso_vis_prior.py` -> `docs/score_all/phase_e1_qso_vis_prior.json`; arrays in
+`~/data/qso_p_color/score_all/phase_e/sigma_q_vis_{A,B}.npz`. Sigma_Q(z, V) = int Sigma_Q(z, r) c_Q(z, r) p_Q(V | r, z) dr,
+with the parent (unthinned) eBOSS-QLF prior, the stage-1 QSO slice mixtures for p_Q(V | r, z) and three c_Q scenarios
+beyond r = 23 (flat = primary; bundle = the promoted bundle's quadratic extrapolation; none = 1). One process, 5 s, 0.3 GB.
+
+- C1 (conservation) PASS: max error 6e-16 (after widening the V range; first run 5e-3).
+- C2 (bright-end reality check) PASS: DESI DR1 QSOs in EDF-N, clean + point-like, VIS 19-21.5, in the part of the
+  deep area with full DESI coverage (35% of it, 9.75 deg^2, decided from all DESI targets, not the QSOs;
+  `scripts/score_all/edfn_desi_coverage.py`): known/model = 0.85 (B), 0.88 (A), n = 800. Two earlier versions were
+  wrong and are recorded: wide fit cones (0.09: mostly outside the DESI footprint) and the whole EDF-N deep area (0.33:
+  DESI covers only 35% of it).
+- The promoted Euclid bundles' faint QSO abundance falls after r ~ 23 (4 per deg^2 per 0.5 mag at r 25.7, against 281
+  in the parent) because c_Q, a logistic quadratic in r fitted on QSOs at r < 23, is extrapolated. This affects every
+  Euclid-bundle score of faint sources; Phase E carries c_Q beyond r = 23 as a scenario instead.
+- Prior QSO fraction (flat c_Q, model B; selected density from census_fit): 1.4% at VIS 19-19.5, 4.5% at 21-21.5,
+  6.4% at 22.5-23, 8.8% at 24-24.5, 6.4% at 25-25.5.
+- Extrapolation: at VIS >= 23.5 more than 80% of the QSO abundance comes from r > 23.5 (beyond the colour training
+  set); at VIS >= 25.5 more than 70% from r beyond the QLF grid (r > 25.7).
+- OPEN, blocks use beyond VIS ~ 25: the detection/selection completeness of the wide point-source selection.
+  Sigma_B is counted from selected rows (incomplete beyond the turnover, VIS 25.4) but Sigma_Q is not, so the prior
+  QSO fraction exceeds 1 at VIS > 26.5. Sigma_Q needs the same completeness. EDF-South has wide-survey coverage over
+  132 of its 134 deep probes, so completeness can be measured there directly (step 4).

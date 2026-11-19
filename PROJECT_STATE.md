@@ -32,6 +32,10 @@ PHASE E STEP 0 DONE 19 Nov (docs/score_all/PHASE_AB.md): deep MER S/N>=10 in Y,J
 EDF-S 25.1 (uneven, 24.6-25.9 per cone), EDF-F 24.6 (= wide). Acceptance (VIS >= 25.5) passed by EDF-N only.
 DECIDED 19 Nov (PI, D6): option (a). Faint-galaxy colours are fitted on all of EDF-North deep MER, with every known QSO (DESI DR1, DR16Q; same removal rule in every training field) removed. Tests unchanged: QSOs = EDF-N DESI QSOs degraded to wide depth (never in training); background = the 40 wide eval cones. Added: EDF-South at VIS < 25 as an independent check of the galaxy model (never fitted), which also bounds the same-field optimism of the EDF-N QSO test; faint checks with Chandra X-ray point sources and the Euclid slitless QSO class (checks, not labels).
 Heavy fitting on hold: PI asked not to load the cores (19 Nov).
+PHASE E STEP 1 DONE 19 Nov: Sigma_Q(z, VIS) from the parent QLF x c_Q x p_Q(VIS|r,z); bookkeeping and bright-end
+checks PASS (EDF-N DESI known/model 0.85/0.88 in the fully DESI-covered 35%). Found: promoted Euclid bundles' faint QSO
+prior collapses beyond r ~ 23 (extrapolated quadratic c_Q). OPEN: wide-selection completeness beyond VIS ~ 25 must
+multiply Sigma_Q (measure in EDF-S, which has wide coverage).
 PHASES A+B DONE 19 Nov (docs/score_all/PHASE_AB.md): fetch_cones cache check (all 64 caches match); manifest
 (109 cells unused, 67 with coverage >= 0.5 = pool for D3); EDF-North has 2,661 DESI QSOs in deep MER (574 at r>22.5),
 Chandra 1,266; census on select cones: 60,701 sources/3.39 deg2, counts peak VIS 25.4, Legacy r S/N>=10 half at
