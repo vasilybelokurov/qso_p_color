@@ -1,5 +1,15 @@
 # Current project state
 
+**SCORING EVERY EUCLID POINT SOURCE: PLAN v2 REVIEWED (19 November 2026), NOTHING FITTED.**
+Plan `docs/euclid/PLAN_score_all.md` (two review rounds, Codex + Fable). Euclid-only refusals: 82% of selected
+background point sources (66% at VIS >= 23), 7.5% of test QSOs. Faint model to be referenced in VIS (latent-r design
+not identifiable under Legacy censoring). No fit-role cones exist locally.
+DECIDED 19 Nov (PI, D5): the three no-refit fixes (support/outside-both refusals -> flags; z-free p_quasar; weak
+Legacy r no longer blocks the fallback) are tested and switched ON in the main scorer too (Phase D-main, tests M1-M4).
+OPEN PI DECISIONS (score-all): D1 target population (cleaning cuts in/out); D2 VIS-referenced faint model (2B) vs a
+2A pilot with forced Legacy photometry; D3 new untouched evaluation cells + fit-cone download; D4 at VIS > 24 publish
+prior-dominated p_quasar with flags, or a likelihood ratio only.
+
 **EUCLID-ONLY RESOLVED MODE: STAGES 1 AND 2 DONE, CANDIDATES NOT PROMOTED (PI decisions, 18 November 2026).**
 Score individual resolved point sources from Euclid DR1 MER VIS, Y, J, H only. Plan/review/tests: `docs/euclid/`;
 numbers: `docs/euclid/results.json`; method note Section "Euclid photometry only". A = magdep (`current`),

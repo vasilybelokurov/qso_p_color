@@ -1,6 +1,6 @@
 # Scoring every Euclid point source — plan (v2, 2026-11-19)
 
-Status: REVIEWED PLAN, nothing fitted or implemented. Two rounds with two independent reviewers (Codex via the
+Status: REVIEWED PLAN, nothing fitted or implemented. D5 decided 2026-11-19 (Phase D-main, section 3). Two rounds with two independent reviewers (Codex via the
 ChatGPT CLI, and a Fable agent; both read the repository). v1 -> v2 changes are listed in section 9. Every factual
 claim below was checked in the code or in the stage-1/2 outputs unless marked ASSUMED or UNVERIFIED.
 
@@ -90,11 +90,33 @@ error-magnitude relation, S/N 1-20. Luptitude-Gaussian vs flux-space likelihood;
 4. Sensitivity scenarios Sigma_Q x 0.5, x 2 (a uniform +-0.69 shift in logit p, described as such, not an interval).
 Released only as a diagnostic export: about 80% of the target population is still unscored after it.
 
+**Phase D-main — the same three fixes in the main (Legacy) scorer. PI decision D5, 2026-11-19: test and switch on.**
+The three no-refit fixes act in code shared with the main scorer, so they are implemented once and switched on for
+both scorers:
+1. support and outside-both refusals become flags (`unified.py:253-260`, `multisurvey_baseline.py:125`);
+2. the z-free `p_quasar` entry point;
+3. weak measured Legacy r no longer blocks the fallback (PS1/NSC/SkyMapper r for the main scorer, VIS for Euclid):
+   the integral keeps the measured weak-r likelihood instead of overwriting the South-r column
+   (`fallback_reference.py:79, 162, 198-200`), and the first fallback band that passes S/N is used.
+Tests (in addition to T1-T13):
+- M1: rows eligible before the change: every numeric field and flag unchanged, max abs diff < 1e-9 (fixes 1 and 3
+  only touch previously refused rows; fix 2 adds fields). This replaces T2's "parent unchanged".
+- M2: parent held-out main panels (`performance_qlf`, S/N >= 10), identical all-rows cohort with old refusals at
+  p = 0, paired bootstrap by sky cell: AUC lower 95% bound > -margin, recall > -1 pp, unflagged background p > 0.5
+  upper bound < +0.1 pp; margins set from the measured paired SE first. Reported separately for each newly scored
+  stratum (support-flagged, outside-both, weak-r). These panels served as the stage-2 comparator but were not used to
+  design these fixes.
+- M3: z-free `p_quasar` identical across supplied z0 (< 1e-9).
+- M4: weak-r paired masking on parent rows with good Legacy r and a good fallback band: degrade Legacy r to
+  S/N 3-10, score, compare with the good-r score: |dp| < 0.02 for 95%, AUC change > -margin.
+- Method note and README updated in the same commit as the behaviour change (AGENTS.md); old behaviour kept behind
+  a flag (`apply_support=True`, `weak_reference_fallback=False`) for reproduction of earlier results.
+Phase D-main needs no fitting and does not depend on D1-D4; it can start before Phases A-C.
+
 **Phase E — faint model (2B) and the weak-r integral.**
 - Fit as in section 2 on fit cones, after Phase C.
 - Euclid-only path: VIS-referenced, no VIS-Y window, no centre or tail-mass cut; numerical convergence (T3).
-- Weak Legacy r: integral that keeps the measured South/North r likelihood; select the first fallback band that
-  passes S/N; opt-in until T6 passes.
+- Weak Legacy r for Euclid rows: the Phase D-main integral, with VIS as the fallback reference.
 - Information measure I = logit p - logit p_prior(VIS, l, b), with the prior from the same selection and spatial
   model; flag `prior_dominated` when |I| < 1; `extrapolated` when > 1% posterior mass lies beyond trained ranges.
 - Throughput and peak-memory benchmark on 10^6 rows before deployment.
@@ -143,9 +165,11 @@ prevalence; sum p vs Sigma_Q is tautological where |I| < 1. c_Q and the censorin
 - D2 2B as the faint design (reviewers agree), or fund a 2A pilot with forced Legacy photometry.
 - D3 new untouched evaluation cells and fit-cone download (size from Phase B).
 - D4 at VIS > 24: publish prior-dominated p_quasar with flags, or a likelihood ratio only.
+- D5 DECIDED 2026-11-19: the three no-refit fixes are tested and switched on in the main scorer too (Phase D-main).
 
 ## 8. First steps
-Phase A manifest + availability checks; Phase B census on select cones; Phase C benchmark. No fitting before D2 and D3.
+Phase D-main (no fitting, independent of D1-D4); Phase A manifest + availability checks; Phase B census on select
+cones; Phase C benchmark. No fitting before D2 and D3. Every step journalled, committed and pushed.
 
 ## 9. Changes v1 -> v2 (review round 2)
 - 2A -> 2B as the default (non-identifiable under censoring; no trainer for it). Both reviewers.
