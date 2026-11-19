@@ -13,7 +13,10 @@ Pass (fixed before running): lower 95% bound of AUC(weak) - AUC(none) > -0.002 (
 nside-4 cell for QSOs and stellar cone for background, 1000 resamples), and the median |logit p - logit p_good| of
 weak is not above that of none. |p_weak - p_good| quantiles are reported.
 
-    python scripts/score_all/weak_r_masking.py --n 3000 --workers 10
+    python scripts/score_all/weak_r_masking.py --n 3000 --workers 6
+
+Memory: one worker peaks at ~2.3 GB physical footprint with --chunk 150 (measured 19 Nov 2026, after the fallback
+grid was scored in blocks). The script refuses to start if workers x PEAK_GB_PER_WORKER exceeds half the RAM.
 """
 import os
 for _k in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
@@ -35,6 +38,7 @@ RUN = ROOT/'models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059'
 POINTERS = {'independent': 'models/multisurvey_psf/current_magindep', 'dependent': 'models/multisurvey_psf/current'}
 OUT = ROOT/'models/multisurvey_psf/work/score_all/weak_r_masking'
 FALLBACK = ('ps1:r', 'nsc:r', 'skymapper:r')
+PEAK_GB_PER_WORKER = 2.5    # measured 2.3 GB at --chunk 150; scales weakly with chunk
 
 
 def task(args):
@@ -78,9 +82,14 @@ def auc(sq, sb):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--n', type=int, default=3000, help='rows per class per model')
-    ap.add_argument('--workers', type=int, default=10); ap.add_argument('--chunk', type=int, default=150)
+    ap.add_argument('--workers', type=int, default=6); ap.add_argument('--chunk', type=int, default=150)
     ap.add_argument('--n-boot', type=int, default=1000)
-    a = ap.parse_args(); OUT.mkdir(parents=True, exist_ok=True)
+    a = ap.parse_args()
+    ram_gb = os.sysconf('SC_PAGE_SIZE')*os.sysconf('SC_PHYS_PAGES')/1e9
+    if a.workers*PEAK_GB_PER_WORKER > 0.5*ram_gb or a.chunk > 300:
+        sys.exit(f'refusing: {a.workers} workers x {PEAK_GB_PER_WORKER} GB > half of {ram_gb:.0f} GB RAM '
+                 f'(or --chunk {a.chunk} > 300). This run crashed the laptop on 19 Nov 2026; lower --workers/--chunk.')
+    OUT.mkdir(parents=True, exist_ok=True)
     from run_unified_pilot import arrays
     from qso_pcolor import Photometry
     import healpy as hp

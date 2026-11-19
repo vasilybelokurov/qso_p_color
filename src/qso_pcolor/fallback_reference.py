@@ -41,6 +41,7 @@ A = 2.5/np.log(10.)
 SYNTHETIC_REL_ERROR = 1e-6                   # noise-free synthetic Legacy r (relative flux error)
 GRID_HALFWIDTH = 1.2                         # mag, plus 5 sigma of the fallback band (legacy_r_grid)
 N_GRID = 41                                  # grid points (trapezoid)
+GRID_BLOCK = 400                             # replicated grid rows per scorer call (memory bound, ~2 GB)
 
 
 class LegacyRFallbackWarning(UserWarning):
@@ -217,8 +218,16 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
     rep = lambda x: np.repeat(np.asarray(x)[rows], n_grid)
     grid_kw = {k: (rep(v) if isinstance(v, np.ndarray) and v.shape[:1] == (n,) else v) for k, v in kwargs.items()}
     grid_kw.pop('ood_calibration', None); grid_kw.pop('apply_support', None)
-    gs, _ = model.base.score(Photometry(F, V, bands), morphology=rep(morph), z_primary=rep(z), l_deg=rep(l),
-                             b_deg=rep(b), ood_calibration=None, **grid_kw)
+    # Score the replicated grid in blocks: memory grows ~5 MB per grid row, so one call on R*K rows exhausted RAM
+    # (19 Nov 2026: 150 rows x 41 grid points per worker, kernel panic). Scoring is per object; blocks change nothing.
+    M = len(F); gm, gz, gl, gb = rep(morph), rep(z), rep(l), rep(b)
+    gs = []
+    for s0 in range(0, M, GRID_BLOCK):
+        sl = slice(s0, s0 + GRID_BLOCK)
+        kw_b = {k: (v[sl] if isinstance(v, np.ndarray) and v.shape[:1] == (M,) else v) for k, v in grid_kw.items()}
+        part, _ = model.base.score(Photometry(F[sl], V[sl], bands), morphology=gm[sl], z_primary=gz[sl],
+                                   l_deg=gl[sl], b_deg=gb[sl], ood_calibration=None, **kw_b)
+        gs.extend(part)
     get = lambda k: np.array([np.nan if s is None else getattr(s, k) for s in gs], float).reshape(len(rows), n_grid)
     lam = {k: get('log_lambda_'+k) for k in ('sameq', 'fieldq', 'bkg', 'out')}
     # Grid values outside the tabulated priors (scorer status e.g. qso_prior_empty_at_this_magnitude) carry no
