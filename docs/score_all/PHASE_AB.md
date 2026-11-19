@@ -158,3 +158,27 @@ All five are decided (PROJECT_STATE.md, PLAN_score_all.md): D1 keep the cleaning
 - **D3b** (new) the Euclid-only recall margin of 1 pp is unresolvable at the present cohort size: double the
   evaluation cohort or widen the margin, decided before any fit.
 - **D4** what to publish at VIS > 24.
+
+## Phase E step 0: are the deep fields deep enough? (19 November 2026)
+
+Script `scripts/score_all/phase_e0_deep_depth.py` -> `docs/score_all/phase_e0_deep_depth.json`; data in
+`~/data/qso_p_color/catalogues/euclid_dr1/cones/deep{N,F,S}_00{0,1,2}.npz` (3 cones of r = 0.2 deg per field, deep
+MER table, same columns as the wide cones) and `.../deep_coverage/probes.json` (coverage probes,
+`scripts/score_all/deep_coverage_probes.py`). Selection: the wide deployment selection (cleaning, isolation,
+point-like). Pre-stated acceptance: median S/N >= 10 in all of Y, J, H at VIS >= 25.5 (wide selected turnover 25.4).
+
+| Field | Area in DR1 (coarse) | Faintest VIS with median S/N >= 10 in Y, J, H | Per-cone (H) | Pass |
+|---|---|---|---|---|
+| EDF-N | ~28 deg^2 | 26.4 (S/N ~3x wide at fixed VIS) | 26.1, 26.4, 26.4 | yes |
+| EDF-S | ~33.5 deg^2 | 25.1 (S/N ~1.5-2x wide; uneven) | 25.9, 24.9, 24.6 | no |
+| EDF-F | ~13.5 deg^2 | 24.6 (same as wide) | 24.9, 24.9, 24.6 | no |
+| wide fit cones | - | 24.6 | - | - |
+
+Findings:
+- Only EDF-North reaches the required depth in DR1. Fornax is at wide depth; South is uneven (one cone to 25.9,
+  two at wide-like 24.6-24.9).
+- EDF-North is also the D3 quasar evaluation field. Using its background for the faint colour fit needs a PI
+  decision (D6 in PROJECT_STATE).
+- Risk for step 3: deeper data classify compact galaxies better, so the deep point-like selection may hold fewer
+  compact galaxies than the wide selection at the same VIS. The training selection must mimic wide-depth
+  classification (to be designed in step 3).

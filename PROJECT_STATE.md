@@ -28,6 +28,13 @@ short at S/N 1. Phase D on eval cones + EDF-N QSOs (VIS<23): combined mode T5 PA
 Euclid-only T5 FAIL (AUC -0.006/-0.012) only because 133 QSOs stay unranked (legacy_r_outside_training; -0.0013
 without them); T6 FAIL in all modes = newly scored FLAGGED background (+0.1-0.25 pp), zero if flags are used in the
 selection; T1b FAIL (80%/98% finite). NEXT: Phase E (VIS-referenced faint model) - needs a design/plan step.
+PHASE E STEP 0 DONE 19 Nov (docs/score_all/PHASE_AB.md): deep MER S/N>=10 in Y,J,H reaches VIS 26.4 in EDF-N only;
+EDF-S 25.1 (uneven, 24.6-25.9 per cone), EDF-F 24.6 (= wide). Acceptance (VIS >= 25.5) passed by EDF-N only.
+OPEN PI DECISION D6: EDF-N is both the only deep-enough galaxy field and the D3 QSO evaluation field. Options:
+(a) use all of EDF-N background for the faint colour fit, removing every known QSO (DESI, DR16Q) from training;
+(b) split EDF-N on the sky, fit on one half, evaluate QSOs on the other (halves the faint QSO labels, 576 -> ~290);
+(c) EDF-S only, accepting S/N 5-10 at VIS 25-26 (XD deconvolution handles it, but weaker constraint).
+Heavy fitting on hold: PI asked not to load the cores (19 Nov).
 PHASES A+B DONE 19 Nov (docs/score_all/PHASE_AB.md): fetch_cones cache check (all 64 caches match); manifest
 (109 cells unused, 67 with coverage >= 0.5 = pool for D3); EDF-North has 2,661 DESI QSOs in deep MER (574 at r>22.5),
 Chandra 1,266; census on select cones: 60,701 sources/3.39 deg2, counts peak VIS 25.4, Legacy r S/N>=10 half at
