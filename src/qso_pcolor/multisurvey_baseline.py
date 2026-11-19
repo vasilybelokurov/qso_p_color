@@ -63,7 +63,7 @@ class PSFMultiSurveyBaseline:
     def score(self, photometry: Photometry, *, morphology: np.ndarray,
               z_primary: np.ndarray | float, l_deg: np.ndarray, b_deg: np.ndarray,
               match: RedshiftMatch, blend_policy: BlendPolicy, ood_flag_sigma: float,
-              flux_covariance: np.ndarray | None = None, refuse_flagged: bool = True,
+              flux_covariance: np.ndarray | None = None, refuse_flagged: bool = False,
               **kwargs) -> tuple[list, dict]:
         """Score a chosen band subset, returning rows and explicit eligibility.
 
@@ -71,9 +71,9 @@ class PSFMultiSurveyBaseline:
         independent of which bands the caller supplies. Unknown morphology,
         blends and unsupported positions are not scored.
 
-        Objects outside both density models (``outside_both_models``) lose their pair posteriors and are not
-        eligible by default; ``refuse_flagged=False`` scores them and keeps only the quality flag (PI decision
-        D5, 19 Nov 2026; docs/euclid/PLAN_score_all.md; opt-in until its acceptance tests pass).
+        Objects outside both density models (``outside_both_models``) are scored and carry that quality flag
+        (PI decision D5, 19 Nov 2026; docs/euclid/PLAN_score_all.md). ``refuse_flagged=True`` restores the earlier
+        behaviour: such rows lose their pair posteriors and are not eligible.
 
         A NaN ``z_primary`` scores that row without a primary redshift (score_candidates): it is eligible when
         its total quasar intensity is finite; log R and the other z0-dependent fields are NaN.

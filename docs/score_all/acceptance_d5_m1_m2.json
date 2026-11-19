@@ -1,0 +1,216 @@
+{
+ "independent": {
+  "M1": {
+   "rows": {
+    "qso": {
+     "n": 38659,
+     "lost": 0,
+     "max_abs_dlogr": 0.0,
+     "max_abs_dp": 0.0
+    },
+    "stars": {
+     "n": 5743,
+     "lost": 0,
+     "max_abs_dlogr": 0.0,
+     "max_abs_dp": 0.0
+    }
+   },
+   "pass_": true
+  },
+  "new_strata": {
+   "qso": {
+    "support": {
+     "n": 190,
+     "frac_p_gt_half": 0.6421052631578947
+    },
+    "outside_both": {
+     "n": 69,
+     "frac_p_gt_half": 0.855072463768116
+    },
+    "weak_r": {
+     "n": 132,
+     "frac_p_gt_half": 0.7575757575757576
+    },
+    "all_new": {
+     "n": 348,
+     "frac_p_gt_half": 0.7183908045977011
+    }
+   },
+   "stars": {
+    "support": {
+     "n": 8463,
+     "frac_p_gt_half": 0.0007089684509039348
+    },
+    "outside_both": {
+     "n": 82,
+     "frac_p_gt_half": 0.0
+    },
+    "weak_r": {
+     "n": 175,
+     "frac_p_gt_half": 0.005714285714285714
+    },
+    "all_new": {
+     "n": 8552,
+     "frac_p_gt_half": 0.0008185219831618335
+    }
+   }
+  },
+  "M2": {
+   "n_qso": 39988,
+   "n_bkg": 40000,
+   "comparator": {
+    "auc": 0.9800911726642992,
+    "recall": 0.8871161348404522,
+    "bkg": 0.001179121685357929
+   },
+   "candidate": {
+    "auc": 0.9823243888791637,
+    "recall": 0.893368010403121,
+    "bkg": 0.0012577297977151242
+   },
+   "differences": {
+    "auc": {
+     "difference": 0.0022332162148644974,
+     "ci95": [
+      0.0013436633075767173,
+      0.0031540669261856114
+     ],
+     "se": 0.0004734583556881429,
+     "margin": 0.002,
+     "resolvable": true,
+     "pass_": true
+    },
+    "recall": {
+     "difference": 0.006251875562668818,
+     "ci95": [
+      0.005157378896544979,
+      0.00731227974155304
+     ],
+     "se": 0.0005558558421227919,
+     "margin": 0.01,
+     "resolvable": true,
+     "pass_": true
+    },
+    "bkg": {
+     "difference": 7.860811235719514e-05,
+     "ci95": [
+      0.0,
+      0.000172089685130631
+     ],
+     "se": 4.189850013093956e-05,
+     "margin": 0.001,
+     "resolvable": true,
+     "pass_": true
+    }
+   },
+   "pass_": true
+  }
+ },
+ "dependent": {
+  "M1": {
+   "rows": {
+    "qso": {
+     "n": 38643,
+     "lost": 0,
+     "max_abs_dlogr": 0.0,
+     "max_abs_dp": 0.0
+    },
+    "stars": {
+     "n": 4401,
+     "lost": 0,
+     "max_abs_dlogr": 0.0,
+     "max_abs_dp": 0.0
+    }
+   },
+   "pass_": true
+  },
+  "new_strata": {
+   "qso": {
+    "support": {
+     "n": 209,
+     "frac_p_gt_half": 0.7607655502392344
+    },
+    "outside_both": {
+     "n": 57,
+     "frac_p_gt_half": 0.7894736842105263
+    },
+    "weak_r": {
+     "n": 132,
+     "frac_p_gt_half": 0.8636363636363636
+    },
+    "all_new": {
+     "n": 364,
+     "frac_p_gt_half": 0.8076923076923077
+    }
+   },
+   "stars": {
+    "support": {
+     "n": 9808,
+     "frac_p_gt_half": 0.0011215334420880913
+    },
+    "outside_both": {
+     "n": 80,
+     "frac_p_gt_half": 0.0
+    },
+    "weak_r": {
+     "n": 175,
+     "frac_p_gt_half": 0.022857142857142857
+    },
+    "all_new": {
+     "n": 9894,
+     "frac_p_gt_half": 0.0014149989892864362
+    }
+   }
+  },
+  "M2": {
+   "n_qso": 39988,
+   "n_bkg": 40000,
+   "comparator": {
+    "auc": 0.9806148366384916,
+    "recall": 0.9137241172351706,
+    "bkg": 0.0015721622471439052
+   },
+   "candidate": {
+    "auc": 0.9825131211238372,
+    "recall": 0.921076322896869,
+    "bkg": 0.001755581175977361
+   },
+   "differences": {
+    "auc": {
+     "difference": 0.0018982844853455694,
+     "ci95": [
+      0.0007303792409427384,
+      0.0028422305370489594
+     ],
+     "se": 0.0005388797217323013,
+     "margin": 0.002,
+     "resolvable": true,
+     "pass_": true
+    },
+    "recall": {
+     "difference": 0.007352205661698474,
+     "ci95": [
+      0.006116179081772155,
+      0.008366042085509683
+     ],
+     "se": 0.0005797029348794513,
+     "margin": 0.01,
+     "resolvable": true,
+     "pass_": true
+    },
+    "bkg": {
+     "difference": 0.00018341892883345576,
+     "ci95": [
+      7.839656005981135e-05,
+      0.0002981902617006643
+     ],
+     "se": 5.8243905642503656e-05,
+     "margin": 0.001,
+     "resolvable": true,
+     "pass_": true
+    }
+   },
+   "pass_": true
+  }
+ }
+}

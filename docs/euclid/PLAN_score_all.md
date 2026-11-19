@@ -1,6 +1,6 @@
 # Scoring every Euclid point source — plan (v2, 2026-11-19)
 
-Status: REVIEWED PLAN, nothing fitted or implemented. D5 decided 2026-11-19 (Phase D-main, section 3). Two rounds with two independent reviewers (Codex via the
+Status: REVIEWED PLAN; Phase D-main done (19 Nov 2026), nothing fitted. D5 decided 2026-11-19 (Phase D-main, section 3). Two rounds with two independent reviewers (Codex via the
 ChatGPT CLI, and a Fable agent; both read the repository). v1 -> v2 changes are listed in section 9. Every factual
 claim below was checked in the code or in the stage-1/2 outputs unless marked ASSUMED or UNVERIFIED.
 
@@ -91,6 +91,8 @@ error-magnitude relation, S/N 1-20. Luptitude-Gaussian vs flux-space likelihood;
 Released only as a diagnostic export: about 80% of the target population is still unscored after it.
 
 **Phase D-main — the same three fixes in the main (Legacy) scorer. PI decision D5, 2026-11-19: test and switch on.**
+**DONE 2026-11-19: M1-M4 PASS for both bundles; defaults switched on** (results `docs/score_all/`, method note
+Section "Flags instead of refusals"). M4 first crashed the laptop (memory); fixed in commit 521fd0d.
 The three no-refit fixes act in code shared with the main scorer, so they are implemented once and switched on for
 both scorers:
 1. support and outside-both refusals become flags (`unified.py:253-260`, `multisurvey_baseline.py:125`);

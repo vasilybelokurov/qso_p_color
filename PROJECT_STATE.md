@@ -6,6 +6,10 @@ background point sources (66% at VIS >= 23), 7.5% of test QSOs. Faint model to b
 not identifiable under Legacy censoring). No fit-role cones exist locally.
 DECIDED 19 Nov (PI, D5): the three no-refit fixes (support/outside-both refusals -> flags; z-free p_quasar; weak
 Legacy r no longer blocks the fallback) are tested and switched ON in the main scorer too (Phase D-main, tests M1-M4).
+  DONE 19 Nov: M1-M4 PASS (docs/score_all/), defaults ON (refuse_flagged=False, weak_reference_fallback=True).
+  M2 (A/B magdep/magindep, all-rows cohort): AUC +0.0019/+0.0022, recall +0.74/+0.63 pp, unflagged bkg p>0.5
+  +0.018/+0.008 pp. M4: weak r kept vs dropped dAUC +3.4e-5 (lower bound > 0), closer to good-r score.
+  FOLLOW-UP: note Sections perf/calib and README validation numbers still use the pre-D5 refusal rules.
 OPEN PI DECISIONS (score-all): D1 target population (cleaning cuts in/out); D2 VIS-referenced faint model (2B) vs a
 2A pilot with forced Legacy photometry; D3 new untouched evaluation cells + fit-cone download; D4 at VIS > 24 publish
 prior-dominated p_quasar with flags, or a likelihood ratio only.

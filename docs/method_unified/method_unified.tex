@@ -59,7 +59,7 @@ with AUC 0.993--0.994, and 0.6\% of quasars are left unranked.
   North $g,r,z,W1,W2$; AllWISE $W1$--$W4$; Pan-STARRS1 $grizy$; NSC $ugrizY{+}VR$; SkyMapper
   $uvgriz$; VHS $YJHK_s$) that contains Legacy $r$ at $S/N\geq10$, as catalogued fluxes or magnitudes
   with errors; candidate RA and Dec; the primary's redshift $z_0$; morphology and blend information.
-  Fainter sources are flagged and not scored (Section~\ref{sec:faint}); sources without Legacy $r$ are scored,
+  Fainter sources are flagged and not scored unless a fallback band passes (Section~\ref{sec:faint},~\ref{sec:flags}); sources without Legacy $r$ are scored,
   by default and with a warning, by integrating over Legacy $r$ given a fallback band (Section~\ref{sec:nolegacy}).
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
@@ -72,7 +72,8 @@ with AUC 0.993--0.994, and 0.6\% of quasars are left unranked.
   core receives $p_{\rm quasar}>0.5$. Among ranked objects $p_{\rm quasar}$ agrees with the observed quasar
   fraction where the labels are complete; its faint end cannot be tested with the available labels, and above 0.97
   it exceeds the known-quasar fraction mostly because the background sample holds unlabelled quasars.
-  1.0--1.2\% of known quasars in a natural sample are not ranked.
+  1.0--1.2\% of known quasars in a natural sample are not ranked. (These numbers use the refusal rules in force
+  before 19 November 2026; support-cut and outside-both objects are now scored and flagged, Section~\ref{sec:flags}.)
 \end{itemize}
 
 %======================================================================
@@ -707,6 +708,49 @@ dashed: $\alpha$).}
 \label{fig:ood}
 \end{figure}
 
+\subsection{Flags instead of refusals (default since 19 November 2026)}\label{sec:flags}
+PI decision D5 (19 November 2026; \code{docs/euclid/PLAN\_score\_all.md}, Phase D-main) changed three rules
+without refitting any model:
+\begin{enumerate}
+\item Objects below the support cut and objects outside both models are scored. They keep $\log\R$ and
+  $p_{\rm quasar}$, stay eligible, and carry the quality flag \code{qso\_support\_rejected} or
+  \code{outside\_both\_models}. \code{refuse\_flagged=True} restores the refusal.
+\item A missing $z_0$ (NaN, or \code{UnifiedPSFModel.score\_sources}) gives redshift-free scores: $p_{\rm quasar}$
+  and the evidences, with the $z_0$-dependent fields NaN.
+\item A Legacy $r$ measured below the faint limit no longer blocks the fallback of Section~\ref{sec:nolegacy}.
+  When a fallback band passes $S/N\geq10$, the integral over $m$ is used. A weak South $r$ (the latent band)
+  then enters as its own Gaussian flux likelihood $N(f_{\rm obs};f(m),\sigma_{\rm obs}^2)$ at each grid value,
+  rather than being discarded; a weak North $r$ stays in the photometry as an ordinary band.
+  \code{weak\_reference\_fallback=False} restores \code{too\_faint}.
+\end{enumerate}
+The flags remain in every output; downstream selections that want the earlier behaviour can cut on them.
+The tests and their pass criteria were fixed before running (\code{docs/score\_all/}; first number for the
+magnitude-independent model, second for the magnitude-dependent one):
+\begin{itemize}
+\item \textbf{M1, previously eligible rows unchanged.} On the held-out main panels of Section~\ref{sec:perf}
+  ($S/N\geq10$), 38,659 and 38,643 quasars and 5,743 and 4,401 background objects that were eligible before keep
+  $\log\R$ and $p_{\rm quasar}$ exactly (maximum difference 0).
+\item \textbf{M2, all-rows cohort.} 39,988 quasars and 40,000 background objects, rows refused under either rule
+  ranked last; paired bootstrap by sky cell (1000 resamples). AUC of $\log\R$ $+0.0022$ $[+0.0013,+0.0032]$ and
+  $+0.0019$ $[+0.0007,+0.0028]$; recall at $p_{\rm quasar}>0.5$ $+0.63$ and $+0.74$ percentage points; unflagged
+  background with $p_{\rm quasar}>0.5$ $+0.008$ and $+0.018$ points (upper bounds $0.017$ and $0.030$, limit
+  $0.1$). Newly scored quasars: 190 and 209 below the support cut (64\% and 76\% with $p_{\rm quasar}>0.5$), 69
+  and 57 outside both models (86\% and 79\%), 132 with weak $r$ (76\% and 86\%). Newly scored background
+  objects: 8,463 and 9,808 below the support cut (0.07\% and 0.11\% with $p_{\rm quasar}>0.5$), 82 and 80
+  outside both (none), 175 with weak $r$ (0.6\% and 2.3\%).
+\item \textbf{M3, redshift-free $p_{\rm quasar}$} equals the pair scorer's total $p_{\rm quasar}$ at
+  $z_0=0.6$, 1.5, 3.0 and 4.2 to $|\Delta p|<10^{-4}$ (unit test; the pair scorer adds quadrature nodes around $z_0$).
+\item \textbf{M4, the weak-$r$ likelihood.} 3,000 quasars and 3,000 background objects with South $r$ at $S/N>30$,
+  no North $r$ and a fallback band at $S/N\geq10$; South $r$ degraded to $S/N=5$ by added noise. Keeping the weak
+  $r$ against dropping it: $\Delta{\rm AUC}=+3.4\times10^{-5}$, 95\% interval $[+3.0\times10^{-6},
+  +7.8\times10^{-5}]$ and $[+8.1\times10^{-7},+8.1\times10^{-5}]$ (pass: lower bound $>-0.002$). The median
+  $|\Delta\,{\rm logit}\,p_{\rm quasar}|$ from the undegraded score is 0.58 and 0.61 with the weak $r$ kept, 0.63
+  and 0.66 without it (pass: kept $\leq$ dropped). A weak $r$ at $S/N=5$ carries little information, but it
+  moves the score towards the well-measured value, never away.
+\end{itemize}
+The performance numbers of Sections~\ref{sec:perf}--\ref{sec:calib} and the summary were computed under the
+earlier rules (refusals); M2 gives the change on the same panels.
+
 %======================================================================
 \section{Validation}\label{sec:validation}
 %======================================================================
@@ -1256,13 +1300,14 @@ the rule set before fitting, stage 2 fails and stage 1 remains the Euclid-only d
 \item \textbf{Background purity.} Faint unidentified quasars not detected by WISE remain in the background
   training sample and counts. The test background sets carry the same contamination, which lowers the
   measured AUC slightly.
-\item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$ are not scored. Sources without Legacy $r$ are
+\item \textbf{Faint limit.} Sources below Legacy $r$ $S/N=10$ are not scored unless a fallback band passes
+  $S/N\geq10$ (Section~\ref{sec:flags}). Sources without Legacy $r$ are
   scored through a fallback band, less precisely, and weakly where only SkyMapper $r$ is available
   (Section~\ref{sec:nolegacy}).
 \item \textbf{Galactic latitude.} All training samples are at $|b|\geq25^\circ$, and both modes refuse sources below
   it (Section~\ref{sec:data}); lowering the limit needs training cones at lower latitude.
-\item \textbf{Unranked quasars.} 0.6\% of test quasars above the faint limit are not ranked, mostly at the support
-  cut. The earlier 3\% came from the fixed $4\sigma$ outside-both test, now replaced (Section~\ref{sec:ood}).
+\item \textbf{Flagged quasars.} 0.6\% of test quasars above the faint limit fall below the support cut or outside both
+  models; since 19 November 2026 they are scored with a quality flag (Section~\ref{sec:flags}). The earlier 3\% came from the fixed $4\sigma$ outside-both test, now replaced (Section~\ref{sec:ood}).
   Variability between surveys observed years apart is not modelled; it makes some quasars' photometry
   inconsistent across surveys (\code{docs/pquasar\_diagnostics}).
 \item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the benefit

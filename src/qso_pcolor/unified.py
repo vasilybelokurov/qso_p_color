@@ -227,7 +227,7 @@ class UnifiedPSFModel:
 
     def score(self, photometry: Photometry, *, ra_deg, dec_deg, z_primary,
               apply_support: bool = True, flux_covariance=None, ood_calibration=DEFAULT_OOD_CALIBRATION,
-              legacy_r_fallback: bool = True, refuse_flagged: bool = True, weak_reference_fallback: bool = False,
+              legacy_r_fallback: bool = True, refuse_flagged: bool = False, weak_reference_fallback: bool = True,
               **kwargs):
         """Use candidate ICRS degrees and primary-QSO redshift; return support separately.
 
@@ -237,13 +237,13 @@ class UnifiedPSFModel:
         fallback band at S/N >= 10 (qso_pcolor.fallback_reference), and warns (LegacyRFallbackWarning) when it
         does; ``False`` flags them ``no_faint_limit_band`` and does not score them.
 
-        Flags instead of refusals (PI decision D5, 19 Nov 2026; docs/euclid/PLAN_score_all.md; opt-in until its
-        acceptance tests pass): with ``refuse_flagged=False`` sources below the QSO-support threshold get the
-        quality flag ``qso_support_rejected`` and sources outside both density models ``outside_both_models``;
-        both keep their scores and stay eligible. The default ``True`` refuses them (pair posteriors cleared, not
-        eligible). ``weak_reference_fallback=True`` also sends sources whose Legacy r is measured below the faint
-        limit to the fallback integral, with the measured weak Legacy r kept in the likelihood; the default
-        ``False`` refuses them (``too_faint``).
+        Flags instead of refusals (PI decision D5, 19 Nov 2026; on by default since its acceptance tests passed,
+        docs/euclid/PLAN_score_all.md and method note Section "Flags instead of refusals"): sources below the
+        QSO-support threshold get the quality flag ``qso_support_rejected`` and sources outside both density
+        models ``outside_both_models``; both keep their scores and stay eligible. ``refuse_flagged=True``
+        restores the earlier refusal (pair posteriors cleared, not eligible). ``weak_reference_fallback`` (default
+        True) also sends sources whose Legacy r is measured below the faint limit to the fallback integral, with
+        the measured weak Legacy r kept in the likelihood; ``False`` refuses them (``too_faint``).
         A NaN ``z_primary`` gives redshift-free scores; see :meth:`score_sources`.
 
         Explicit survey-labelled bands identify actual native provenance even

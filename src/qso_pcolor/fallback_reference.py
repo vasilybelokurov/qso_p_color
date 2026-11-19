@@ -51,7 +51,8 @@ class LegacyRFallbackWarning(UserWarning):
 def alert(n: int, bands, mode: str):
     """Tell the caller that ``n`` sources were scored by the Legacy r fallback."""
     used = ', '.join(sorted(set(bands)))
-    warnings.warn(f'{n} source(s) without Legacy r were scored in {mode} by integrating over Legacy r given {used} '
+    warnings.warn(f'{n} source(s) without usable Legacy r (absent, or below the faint limit) were scored in {mode} '
+                  f'by integrating over Legacy r given {used} '
                   f'(quality flag / note "legacy_r_marginalised:<band>"). These scores are less certain than with Legacy r; '
                   f'see README "Sources without Legacy r". Pass legacy_r_fallback=False to refuse them instead.',
                   LegacyRFallbackWarning, stacklevel=4)

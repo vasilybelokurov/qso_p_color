@@ -208,7 +208,7 @@ objects.
 | `ood_flag_sigma` | required by the interface; used for the outside-both-models decision only when `ood_calibration=None` (earlier rule, 4 recommended) |
 
 **`decision`**: `eligible` (bool) and `reason` per object; `qso_support` (the QSO-support percentile).
-Only eligible rows are science-grade. Rows refused before scoring have `scores[i] = None`.
+Only eligible rows are science-grade; check `quality_flags` on them too. Rows refused before scoring have `scores[i] = None`.
 
 | `reason` / `status` | Meaning |
 |---|---|
@@ -217,13 +217,13 @@ Only eligible rows are science-grade. Rows refused before scoring have `scores[i
 | `no_faint_limit_band` | no Legacy r, with `legacy_r_fallback=False` |
 | `no_fallback_band` | no Legacy r and no fallback band (PS1 r, NSC r, SkyMapper r) |
 | `fallback_too_faint` | no Legacy r, and the fallback band has S/N < 10 |
-| `too_faint` | Legacy r S/N < 10 |
+| `too_faint` | Legacy r S/N < 10 and no fallback band at S/N ≥ 10 (with one, the source is scored: see [Flags instead of refusals](#flags-instead-of-refusals-default-since-19-november-2026)) |
 | `blended_not_scored` | fails the `BlendPolicy` |
 | `insufficient_photometry` | too few usable bands |
 | `primary_z_outside_model_support` | *z*₀ outside the quasar model's range (0.15–4.35) |
-| `outside_both_models` | colours unlike both quasars and background: calibrated tail probabilities `qso_ood_p` and `bkg_ood_p` both below 2/256 (see below) |
+| `outside_both_models` | **quality flag, scored and eligible** (refusal only with `refuse_flagged=True`): colours unlike both quasars and background, calibrated tail probabilities `qso_ood_p` and `bkg_ood_p` both below 2/256 (see below) |
 | `background_out_of_mag_range` | reference magnitude outside the background model's magnitude range |
-| `qso_support_rejected` | colours far outside the quasar distribution at *z*₀ (support percentile below the calibrated 2/256) |
+| `qso_support_rejected` | **quality flag, scored and eligible** (refusal only with `refuse_flagged=True`): colours far outside the quasar distribution at *z*₀ (support percentile below the calibrated 2/256) |
 | `no_prior_posterior_unavailable` | no population prior for the reference band: evidence is returned, `p_sameq` and `log_r_per_unit_z` are NaN |
 
 **Score fields** (eligible rows):
@@ -281,6 +281,24 @@ number of bands, and about 0.15% of test quasars and 0.5% of background objects 
 13 ms per object. The method note (Section 9.2) and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`
 give the derivation and validation. Pass `ood_calibration=None` to reproduce scores made before
 5 October 2026.
+
+### Flags instead of refusals (default since 19 November 2026)
+
+PI decision D5. Three rules changed; no model was refitted:
+
+1. Objects below the support cut or outside both models are **scored**, stay eligible, and carry the quality flag
+   `qso_support_rejected` or `outside_both_models`. `refuse_flagged=True` restores the refusal.
+2. `z_primary = NaN` (or `model.score_sources(photometry, ra_deg=..., dec_deg=..., ...)`) gives redshift-free
+   scores: `p_quasar` and evidences; `log_r_per_unit_z`, `p_sameq` and other *z*₀ fields are NaN.
+3. A Legacy r measured below S/N 10 no longer blocks the fallback ([Sources without Legacy r](#sources-without-legacy-r)):
+   with a fallback band at S/N ≥ 10 the source is scored by the integral, and a weak South r is kept in the
+   likelihood. `weak_reference_fallback=False` restores `too_faint`.
+
+Tests, fixed before running (`docs/score_all/`; magnitude-independent / -dependent): previously eligible rows are
+unchanged exactly; on the held-out main panels (all rows, refused ones ranked last) AUC +0.0022 / +0.0019, recall
+at p > 0.5 +0.6 / +0.7 pp, unflagged background p > 0.5 +0.01 / +0.02 pp; keeping a weak (S/N 5) r is no worse
+than dropping it (ΔAUC +3e-5, closer to the well-measured score). Method note Section "Flags instead of
+refusals". Validation numbers elsewhere in this README predate the change.
 
 ---
 
