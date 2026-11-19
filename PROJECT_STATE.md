@@ -22,6 +22,12 @@ faint model). DECIDED 19 Nov (PI): D3 evaluation = background from new cones in 
 quasars from EDF-North deep MER (DESI QSOs, degraded to wide depth); fit cones ~30 deg2. D3b recall margin widened
 to 2 pp, fixed before any fit (plus the deep-field QSOs). D4 publish both p_quasar (flag 'prior_dominated' when
 the colours carry little information) and the likelihood ratio. All five score-all decisions made.
+PHASES C+D DONE 19 Nov (docs/score_all/PHASE_AB.md): 106 fit + 40 eval cones downloaded (new_cones.json); EDF-N QSO
+labels fetched (2,675 with deep MER). Phase C: Gaussian-luptitude errors calibrated for S/N >= 2, 95% tails 3 pp
+short at S/N 1. Phase D on eval cones + EDF-N QSOs (VIS<23): combined mode T5 PASS (AUC +0.02, recall +4 pp);
+Euclid-only T5 FAIL (AUC -0.006/-0.012) only because 133 QSOs stay unranked (legacy_r_outside_training; -0.0013
+without them); T6 FAIL in all modes = newly scored FLAGGED background (+0.1-0.25 pp), zero if flags are used in the
+selection; T1b FAIL (80%/98% finite). NEXT: Phase E (VIS-referenced faint model) - needs a design/plan step.
 PHASES A+B DONE 19 Nov (docs/score_all/PHASE_AB.md): fetch_cones cache check (all 64 caches match); manifest
 (109 cells unused, 67 with coverage >= 0.5 = pool for D3); EDF-North has 2,661 DESI QSOs in deep MER (574 at r>22.5),
 Chandra 1,266; census on select cones: 60,701 sources/3.39 deg2, counts peak VIS 25.4, Legacy r S/N>=10 half at

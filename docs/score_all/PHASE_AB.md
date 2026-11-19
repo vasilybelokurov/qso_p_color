@@ -1,4 +1,4 @@
-# Score-all Phases A, B and C: results (19 November 2026)
+# Score-all Phases A-D: results (19 November 2026)
 
 Plan: `docs/euclid/PLAN_score_all.md`. Nothing fitted, nothing downloaded, no promoted bundle changed. Decisions
 that block the next steps are listed at the end; nothing here pre-empts them.
@@ -103,6 +103,44 @@ Following the plan (flux-space where they disagree), bands at S/N < 2 should use
 treated as non-detections in the faint model; by the census that concerns NISP beyond VIS ~ 26.5.
 Limitation: the test assumes the catalogue's quoted flux errors are right. Checking them needs repeat measurements
 (`euclid_dr1.mer_catalogue_deep_visits` holds per-visit photometry in the deep fields; not yet used).
+
+## Phase D — the D5 rules on untouched sky (T1b, T5, T6)
+
+`scripts/score_all/phase_d_eval.py` -> `docs/score_all/phase_d_eval.json` (scores in models/.../phase_d_eval/).
+Background: 24,000 deployment rows of the 40 new eval cones (600 per cone, known QSOs removed). QSOs: 1,921 DESI QSOs
+of EDF-North (deep MER, cleaning + point-like cuts, 0.15 <= z <= 4.35; isolation not applied), degraded to wide depth
+with var = a + c f fitted on the eval cones. Stage-1 bundles A and B, D5 rules; old rules = flagged rows refused
+(valid by M1). Cohort VIS < 23: 1,768 QSOs, 7,832 background. Paired bootstrap (cones; nside-64 cells for QSOs).
+Census of the eval cones (`census_eval.json`): 245,622 selected over 11.3 deg^2, peak VIS 25.4, densities 10-35%
+above the select cones.
+Census of the 106 fit cones (`census_fit.json`, downloaded 19 Nov, 30.0 deg^2): 528,438 selected, peak VIS 25.4,
+densities within 2% of the select cones (18-22: 4,138; 22-23: 1,860; 23-24: 2,177; 24-25: 3,367; 25-27.5: 6,090 per deg^2).
+EDF-North QSO labels: `scripts/score_all/fetch_edfn_qsos.py` (4,124 DESI QSOs, 2,675 with deep MER within 1", 576 at
+r > 22.5); `qso_pcolor.euclid_data.match` takes a `tables` argument (default unchanged, cache key verified).
+
+| bundle, mode | AUC old -> new (95% CI of change) | recall p>0.5 change | unflagged bkg p>0.5 change (CI) | T5 | T6 |
+|---|---|---|---|---|---|
+| A, Euclid only | 0.933 -> 0.921 [-0.013, -0.010] | 0 | +0.08 pp [+0.01, +0.17] | fail | fail |
+| B, Euclid only | 0.956 -> 0.950 [-0.007, -0.005] | 0 | +0.09 pp [+0.03, +0.17] | fail | fail |
+| A, combined | 0.962 -> 0.981 [+0.012, +0.024] | +3.9 pp [+3.2, +4.6] | +0.25 pp [+0.14, +0.38] | pass | fail |
+| B, combined | 0.961 -> 0.984 [+0.018, +0.027] | +3.6 pp [+2.8, +4.4] | +0.24 pp [+0.13, +0.37] | pass | fail |
+
+T1b fails in every mode: 80-81% (Euclid only) and 98% (combined) of VIS < 23 background rows get a finite p (target 99.5%).
+
+What the failures are (checked):
+- **Euclid-only AUC drop**: 133 of the 1,768 QSOs stay unranked (`legacy_r_outside_training`, no population model
+  beyond Legacy r ~ 23.5) and rank last; newly scored background objects, even at tiny p, now rank above them.
+  Without those QSOs the change is -0.0013 (A) and -0.0015 (B), inside the 0.002 margin. The fix is Phase E
+  (VIS-referenced model), not a D5 rule.
+- **Background increase (T6)**: entirely newly scored *flagged* objects (7 and 8 Euclid-only, 49 and 41 combined; mostly
+  `qso_support_rejected`). Selecting on p_quasar and the flags together gives exactly the old rate.
+  On the Legacy main panels (M2) the same increase was +0.01-0.02 pp; the Euclid deployment population (more faint,
+  compact galaxies) is where flagged objects with high p become numerous.
+- **T1b**: the unscored rows are `legacy_r_outside_training` (Euclid only) and `window_outside_model_support`;
+  again Phase E's job.
+
+Consequence for the catalogue: Phase D output is a diagnostic export (as planned); any candidate list from it must
+exclude `qso_support_rejected` and `outside_both_models` rows, or the background rate rises by 0.1-0.4 pp.
 
 ## Decisions (PI, 19 November 2026)
 

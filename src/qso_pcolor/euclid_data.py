@@ -60,17 +60,20 @@ def _query(table: str, radius_arcsec: float) -> str:
                        LIMIT 1) e ON true"""
 
 
-def match(ra, dec, cache: Path, *, radius_arcsec: float = 1.0, chunk: int = 100_000, log=print) -> dict:
-    """Nearest MER source within ``radius_arcsec`` (either table) for every position; resumable chunks.
+def match(ra, dec, cache: Path, *, radius_arcsec: float = 1.0, chunk: int = 100_000, log=print,
+          tables: tuple = TABLES) -> dict:
+    """Nearest MER source within ``radius_arcsec`` (any of ``tables``) for every position; resumable chunks.
 
-    Returns a dict of arrays aligned with the input (``matched`` boolean; ``table`` 0 = wide_survey,
-    1 = wide_mode, -1 = none). ``n_within`` counts MER sources of both tables inside the radius.
+    Returns a dict of arrays aligned with the input (``matched`` boolean; ``table`` = index into ``tables``
+    (default 0 = wide_survey, 1 = wide_mode), -1 = none). ``n_within`` counts MER sources of all tables inside the
+    radius. ``tables`` may name other MER tables with the same columns, e.g. ``('euclid_dr1.mer_catalogue_deep_survey',)``;
+    the default keeps the cache key of earlier runs.
     """
     import sqlutilpy as sqlutil
     ra = np.asarray(ra, float); dec = np.asarray(dec, float)
     if ra.shape != dec.shape or ra.ndim != 1 or not np.isfinite(ra + dec).all():
         raise ValueError('finite 1-d ra/dec required')
-    key = hashlib.sha256(ra.tobytes() + dec.tobytes() + json.dumps([TABLES, COLUMNS, radius_arcsec]).encode()).hexdigest()[:16]
+    key = hashlib.sha256(ra.tobytes() + dec.tobytes() + json.dumps([list(tables) if tuple(tables) != TABLES else TABLES, COLUMNS, radius_arcsec]).encode()).hexdigest()[:16]
     root = Path(cache)/key; root.mkdir(parents=True, exist_ok=True)
     final = root/'match.npz'
     if final.exists():
@@ -81,18 +84,18 @@ def match(ra, dec, cache: Path, *, radius_arcsec: float = 1.0, chunk: int = 100_
         path = root/f'chunk_{lo:09d}.npz'
         if not path.exists():
             ii = order[lo:lo+chunk]; t = time.monotonic(); res = []
-            for code, table in enumerate(TABLES):
+            for code, table in enumerate(tables):
                 r = sqlutil.local_join(_query(table, radius_arcsec), 'mytab', (ii, ra[ii], dec[ii]),
                                        ('i', 'ra', 'dec'), asDict=True)
                 r['table'] = np.where(np.isfinite(np.asarray(r['sep_arcsec'], float)), code, -1)
                 res.append(r)
-            a, b = res
-            ia = np.argsort(a['i']); ib = np.argsort(b['i'])
-            a = {k: np.asarray(v)[ia] for k, v in a.items()}; b = {k: np.asarray(v)[ib] for k, v in b.items()}
-            sa = np.where(a['table'] >= 0, a['sep_arcsec'], np.inf); sb = np.where(b['table'] >= 0, b['sep_arcsec'], np.inf)
-            take_b = sb < sa
-            out = {k: np.where(take_b, b[k], a[k]) for k in a if k not in ('n_within',)}
-            out['n_within'] = np.asarray(a['n_within'], int) + np.asarray(b['n_within'], int)
+            res = [{k: np.asarray(v)[np.argsort(r['i'])] for k, v in r.items()} for r in res]
+            out = {k: v for k, v in res[0].items() if k != 'n_within'}
+            best = np.where(out['table'] >= 0, out['sep_arcsec'], np.inf)
+            for b in res[1:]:                       # nearest wins; ties keep the earlier table (as before)
+                sb = np.where(b['table'] >= 0, b['sep_arcsec'], np.inf); take_b = sb < best
+                out = {k: np.where(take_b, b[k], out[k]) for k in out}; best = np.where(take_b, sb, best)
+            out['n_within'] = sum(np.asarray(r['n_within'], int) for r in res)
             np.savez_compressed(path, **out)
             log(f'euclid match chunk {lo}: {len(ii)} rows, {int((out["table"] >= 0).sum())} matched, '
                 f'{time.monotonic()-t:.0f} s')
@@ -102,7 +105,7 @@ def match(ra, dec, cache: Path, *, radius_arcsec: float = 1.0, chunk: int = 100_
     result = {k: v[back] for k, v in merged.items() if k != 'i'}
     result['matched'] = result['table'] >= 0
     np.savez_compressed(final, **result)
-    (root/'provenance.json').write_text(json.dumps(dict(tables=TABLES, columns=COLUMNS, radius_arcsec=radius_arcsec,
+    (root/'provenance.json').write_text(json.dumps(dict(tables=list(tables), columns=COLUMNS, radius_arcsec=radius_arcsec,
         n=len(ra), n_matched=int(result['matched'].sum()), created=time.strftime('%Y-%m-%d %H:%M:%S %Z'),
         rule='nearest MER source within radius from either table; ties broken by object_id'), indent=1))
     for p in root.glob('chunk_*.npz'):
