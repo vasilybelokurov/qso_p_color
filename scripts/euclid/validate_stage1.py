@@ -99,11 +99,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--bundle', required=True); ap.add_argument('--stage', type=int, choices=(1, 2), default=1); ap.add_argument('--workers', type=int, default=6)
     ap.add_argument('--per-cone', type=int, default=600); ap.add_argument('--seed', type=int, default=20261118)
+    ap.add_argument('--tag', default='', help='output-directory prefix, e.g. d5_ (scorer-policy reruns)')
     a = ap.parse_args(); rng = np.random.default_rng(a.seed)
     s = json.loads(Path('docs/euclid/settings.json').read_text())
     roles = {c['cell']: c['role'] for c in json.loads(Path('docs/euclid/sky_roles.json').read_text())['cells']}
     ext = MODELS/(f'euclid_stage1_{a.bundle}' if a.stage == 1 else f'euclid_stage2_euclid_point_{a.bundle}'); par = MODELS/a.bundle
-    out_dir = MODELS/'work/euclid'/(f'validation_{a.bundle}' if a.stage == 1 else f'validation_stage2_{a.bundle}'); out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = MODELS/'work/euclid'/(a.tag + (f'validation_{a.bundle}' if a.stage == 1 else f'validation_stage2_{a.bundle}')); out_dir.mkdir(parents=True, exist_ok=True)
     # QSOs (test and calib cells)
     sys.path.insert(0, str(Path(__file__).parent)); from fit_stage1 import load_rows
     qt = load_rows('qso', s); qrole = np.array([roles.get(int(c), '') for c in qt['euclid_cell']])

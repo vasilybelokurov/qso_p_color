@@ -23,9 +23,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--bundle', required=True); ap.add_argument('--n-boot', type=int, default=1000)
     ap.add_argument('--mode', default='euclid', choices=('euclid', 'combined'))
+    ap.add_argument('--tag', default='', help='validation-directory prefix, e.g. d5_')
     a = ap.parse_args()
-    s1 = np.load(WORK/f'validation_{a.bundle}'/'scores.npy', allow_pickle=True).item()
-    s2 = np.load(WORK/f'validation_stage2_{a.bundle}'/'scores.npy', allow_pickle=True).item()
+    s1 = np.load(WORK/f'{a.tag}validation_{a.bundle}'/'scores.npy', allow_pickle=True).item()
+    s2 = np.load(WORK/f'{a.tag}validation_stage2_{a.bundle}'/'scores.npy', allow_pickle=True).item()
     q1, q2, b1, b2 = s1['qso_test'], s2['qso_test'], s1['bkg'], s2['bkg']
     if not (np.array_equal(q1['idx'], q2['idx']) and np.array_equal(b1['cone'], b2['cone'])
             and np.allclose(b1['vis'], b2['vis']) and np.allclose(b1['z'], b2['z'])):
@@ -42,7 +43,7 @@ def main():
         diffs.append({k: x2[k] - x1[k] for k in x1})
     out = {k: dict(stage1=v1[k], stage2=v2[k], difference=v2[k] - v1[k],
                    ci95=[float(np.percentile([d[k] for d in diffs], q)) for q in (2.5, 97.5)]) for k in v1}
-    (WORK/f'compare_stages_{m}_{a.bundle}.json').write_text(json.dumps(out, indent=1))
+    (WORK/f'{a.tag}compare_stages_{m}_{a.bundle}.json').write_text(json.dumps(out, indent=1))
     for k, v in out.items():
         print(f"{k:18s} {v['stage1']:.4f} -> {v['stage2']:.4f}  diff {v['difference']:+.4f}  [{v['ci95'][0]:+.4f}, {v['ci95'][1]:+.4f}]")
 
