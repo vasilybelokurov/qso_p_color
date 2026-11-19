@@ -17,6 +17,8 @@ OPEN PI DECISIONS (score-all): D1 target population (cleaning cuts in/out); D2 V
 2A pilot with forced Legacy photometry; D3 new untouched evaluation cells + fit-cone download; D4 at VIS > 24 publish
 prior-dominated p_quasar with flags, or a likelihood ratio only.
   D3b (new, Phase B): Euclid-only recall margin 1 pp < 2 paired SE (1.2-1.4 pp): double the cohort or widen margin.
+DECIDED 19 Nov (PI): D1 keep the cleaning cuts (target = cones.py deployment selection); D2 design 2B (VIS-referenced
+faint model). Still open: D3, D3b, D4.
 PHASES A+B DONE 19 Nov (docs/score_all/PHASE_AB.md): fetch_cones cache check (all 64 caches match); manifest
 (109 cells unused, 67 with coverage >= 0.5 = pool for D3); EDF-North has 2,661 DESI QSOs in deep MER (574 at r>22.5),
 Chandra 1,266; census on select cones: 60,701 sources/3.39 deg2, counts peak VIS 25.4, Legacy r S/N>=10 half at

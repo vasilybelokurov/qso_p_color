@@ -173,8 +173,8 @@ prevalence; sum p vs Sigma_Q is tautological where |I| < 1. c_Q and the censorin
 - 2B adds a reference system; a constrained 2A that predicts the Euclid marginal well would avoid it.
 
 ## 7. PI decisions
-- D1 target population (cleaning cuts in or out).
-- D2 2B as the faint design (reviewers agree), or fund a 2A pilot with forced Legacy photometry.
+- D1 DECIDED 2026-11-19: keep the cleaning cuts (target = the cones.py deployment selection).
+- D2 DECIDED 2026-11-19: 2B, the VIS-referenced faint model.
 - D3 new untouched evaluation cells and fit-cone download (size from Phase B).
 - D4 at VIS > 24: publish prior-dominated p_quasar with flags, or a likelihood ratio only.
 - D3b (from Phase B, 19 Nov 2026): the Euclid-only recall margin (1 pp) is below 2 paired SE (1.2-1.4 pp) at the
