@@ -210,3 +210,30 @@ beyond r = 23 (flat = primary; bundle = the promoted bundle's quadratic extrapol
   Sigma_B is counted from selected rows (incomplete beyond the turnover, VIS 25.4) but Sigma_Q is not, so the prior
   QSO fraction exceeds 1 at VIS > 26.5. Sigma_Q needs the same completeness. EDF-South has wide-survey coverage over
   132 of its 134 deep probes, so completeness can be measured there directly (step 4).
+
+## Phase E step 2: does the existing background model reproduce bright Euclid colours? (19 November 2026)
+
+Script `scripts/score_all/phase_e2_background_check.py` -> `docs/score_all/phase_e2_background_check.json`, figure
+`plots/score_all/phase_e2_background_check.png`. In design 2B there is no separate star model: the background
+colour model is fitted on all selected sources per VIS bin (step 3). Step 2 therefore tests whether the stage-1
+background (`current_euclid`: spatial weights, euclid_point thinning, conditioned on r drawn from Sigma_B(r)) already
+reproduces the observed VIS-Y, VIS-J, VIS-H of the deployment selection in the 106 fit cones (never fitted;
+522k rows at VIS 18.5-24, dereddened with MER gal_ebv). One process, ~3 min, 0.4 GB.
+Acceptance per 0.5-mag VIS bin: |d median| <= 0.05 mag, |d half-width| <= 20%, outside-95% in 3-8%, all colours.
+
+| VIS | d median (VIS-Y, J, H; obs - model) | outside 95% | pass |
+|---|---|---|---|
+| 18.5-19.0 | +0.22, +0.27, +0.32 | 3.3-3.5% | no |
+| 19.0-20.5 | within +-0.05 | 3.8-6.0% | yes |
+| 20.5-21.5 | -0.04 to -0.01 | 2.2-3.0% | no (model slightly too wide) |
+| 21.5-22.0 | -0.09, -0.08, -0.08 | 2.5-2.7% | no |
+| 22.0-24.0 | -0.19 to -0.44 | 5.4-8.2% | no |
+
+Findings:
+- The stage-1 background is adequate at VIS 19-21.5 (medians within 0.05 mag; at 20.5-21.5 only the 95% coverage
+  misses, 2.2-3% outside instead of >= 3%). Beyond VIS ~21.5 it is too red by 0.1-0.4 mag: it was fitted on the
+  Legacy-PSF population and lacks the faint blue compact sources the Euclid point selection contains.
+- So the VIS-referenced background fit (step 3) is needed from VIS ~21.5, not 23. Below 21.5 it can be checked
+  against, or tied to, the stage-1 background.
+- The same mismatch affects the present Euclid-only scores at VIS 22-23 (Phase D), which use this background.
+- The bright edge (VIS 18.5-19, +0.2-0.3 mag) is next to the vis_bright = 18 cut; not investigated.
