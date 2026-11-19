@@ -67,7 +67,8 @@ def calibration(root,base,data,cfg,masks):
     write_json(path,record);return record
 
 
-def run_unified(model,phot,ra,dec,z,cfg,path):
+def run_unified(model,phot,ra,dec,z,cfg,path,**score_kw):
+    # score_kw: scorer policy switches, e.g. refuse_flagged=True, weak_reference_fallback=False (pre-D5 behaviour)
     if path.exists():return dict(np.load(path))
     records=[];eligible=[];supports=[];rejected=[];raw=[]
     for lo in range(0,len(phot.flux),cfg['batch_size']):
@@ -75,11 +76,13 @@ def run_unified(model,phot,ra,dec,z,cfg,path):
         scores,decision=model.score(phot.subset(ii),ra_deg=ra[ii],dec_deg=dec[ii],z_primary=z[ii],
             morphology=['PSF']*len(ii),match=RedshiftMatch(half_width_kms=cfg['window_kms']),
             blend_policy=BlendPolicy(**cfg['blend_policy']),ood_flag_sigma=cfg['ood_flag_sigma'],
-            separation_arcsec=cfg['fixture_separation_arcsec'],fracflux=cfg['fixture_fracflux'])
+            separation_arcsec=cfg['fixture_separation_arcsec'],fracflux=cfg['fixture_fracflux'],**score_kw)
         records.extend(scores);eligible.extend(decision['eligible']);supports.extend(decision['qso_support']['percentile']);rejected.extend(decision['support_rejected'])
-    r={k:np.array([getattr(s,k) for s in records]) for k in FIELDS}
-    r.update(eligible=np.array(eligible,bool),status=np.array([s.status for s in records]),
-        flags=np.array([','.join(s.quality_flags) for s in records]),reference=np.array([s.reference_band for s in records]),
+    # Rows the scorer did not score at all (e.g. too_faint with no fallback band) have no record: NaN, status ''.
+    r={k:np.array([np.nan if s is None else getattr(s,k) for s in records],float) for k in FIELDS}
+    r.update(eligible=np.array(eligible,bool),status=np.array(['' if s is None else s.status for s in records]),
+        flags=np.array(['' if s is None else ','.join(s.quality_flags) for s in records]),
+        reference=np.array(['' if s is None else s.reference_band for s in records]),
         support=np.array(supports),support_rejected=np.array(rejected,bool))
     q=np.logaddexp(r['log_lambda_sameq'],r['log_lambda_fieldq'])
     r['p_quasar']=np.exp(q-logsumexp(np.stack([q,r['log_lambda_bkg'],r['log_lambda_out']]),axis=0))

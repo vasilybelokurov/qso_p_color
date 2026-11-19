@@ -21,6 +21,10 @@ South then North, S/N >= S; that band also becomes the reference). Objects below
 as in the scorer, and are left out of the output; the saved bundles are not changed.
 ``--panels main`` restricts the run to the listed panels; row selection is unchanged.
 ``--bundles independent=DIR dependent=DIR`` scores other bundles (e.g. test bundles) on the same rows.
+``--keep-weak`` (with ``--faint-limit``) also scores rows whose Legacy r is measured below the limit: the scorer
+sends them to the fallback integral with the weak r in the likelihood (PI decision D5, 19 Nov 2026), or refuses
+them (``too_faint``) when no fallback band passes; it needs ``--d5``. ``--d5`` scores with the D5 rules
+(``refuse_flagged=False, weak_reference_fallback=True``) instead of the scorer defaults.
 """
 import os
 for _k in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
@@ -71,7 +75,7 @@ def select(data, n, seed, excluded, z_range=None):
 
 
 def task(args):
-    model_name, kind, rows, z, mask_name, path, faint, pointers = args
+    model_name, kind, rows, z, mask_name, path, faint, pointers, keep_weak, d5 = args
     from validate_unified_pilot import run_unified
     from qso_pcolor.unified import UnifiedPSFModel
     if model_name not in _model:
@@ -88,9 +92,11 @@ def task(args):
     phot = Photometry(flux, variance, bands)
     use = phot.observed.sum(axis=1) >= 1
     if faint is not None:                          # the scorer would flag these, not score them
-        has, bright, _ = model.base.model.faint_limit_status(phot); use &= has & bright
+        has, bright, _ = model.base.model.faint_limit_status(phot); use &= has & (bright | keep_weak)
     cfg = json.loads(Path('configs/full_sample_release.json').read_text()); cfg['batch_size'] = 32
-    run_unified(model, phot.subset(use), data['ra'][rows][use], data['dec'][rows][use], np.asarray(z)[use], cfg, Path(path))
+    policy = dict(refuse_flagged=False, weak_reference_fallback=True) if d5 else {}
+    run_unified(model, phot.subset(use), data['ra'][rows][use], data['dec'][rows][use], np.asarray(z)[use], cfg, Path(path),
+                **policy)
     # Prepared-array row index and redshift of every scored object, in output order.
     np.savez(Path(path).with_suffix('.rows.npz'), rows=np.asarray(rows)[use], z=np.asarray(z)[use])
     return path, int(use.sum())
@@ -104,6 +110,8 @@ def main():
     parser.add_argument('--faint-limit', type=float, help='Legacy r S/N limit applied at run time')
     parser.add_argument('--panels', nargs='*', default=['main', 'zgrid', 'masks'])
     parser.add_argument('--bundles', nargs='*', default=[], help='name=bundle_dir overrides of the promoted pointers')
+    parser.add_argument('--keep-weak', action='store_true', help='also score rows below the faint limit (weak Legacy r)')
+    parser.add_argument('--d5', action='store_true', help='D5 rules: flags instead of refusals, weak-r fallback')
     args = parser.parse_args(); out = args.out; out.mkdir(parents=True, exist_ok=True)
     global CHUNK
     if args.smoke:
@@ -146,7 +154,8 @@ def main():
                             else:
                                 z = np.resize(qz, len(rr))[c:c+CHUNK]
                             name = f'{model_name}_{kind}_{panel}_{h}' + (f'_z{zval}' if zval else '') + (f'_{mask}' if mask else '') + f'_{c:06d}.npz'
-                            jobs.append((model_name, kind, part, z, mask, str(out/name), args.faint_limit, pointers))
+                            jobs.append((model_name, kind, part, z, mask, str(out/name), args.faint_limit, pointers,
+                                         args.keep_weak, args.d5))
     np.save(out/'job_count.npy', len(jobs))
     print('JOBS', len(jobs), flush=True)
     with ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('spawn')) as pool:
@@ -155,7 +164,8 @@ def main():
             path, n = future.result(); done += 1
             print('DONE', done, Path(path).name, n, flush=True)
     (out/'complete.json').write_text(json.dumps(dict(jobs=len(jobs), support_threshold=support['threshold'],
-        faint_limit=args.faint_limit, panels=args.panels, bundles=pointers,
+        faint_limit=args.faint_limit, panels=args.panels, bundles=pointers, keep_weak=args.keep_weak,
+        d5=args.d5,
         excluded={k: int(len(v)) for k, v in excluded.items()}, z_grid=Z_GRID, masks=list(MASKS))))
     print('ALL COMPLETE', flush=True)
 

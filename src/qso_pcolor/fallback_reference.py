@@ -65,17 +65,23 @@ def flux_of(l, s):
 
 
 def fallback_status(photometry: Photometry, bands, min_snr: float, fallback_bands=FALLBACK_BANDS):
-    """(needs_fallback, eligible, band index or -1, S/N) for rows without usable Legacy r."""
+    """(needs_fallback, eligible, band index or -1, S/N) for rows without usable Legacy r.
+
+    The band is the first fallback band in priority order that passes ``min_snr``; when none passes, the first
+    observed one (so the reason can say ``fallback_too_faint``). Before 19 Nov 2026 the first observed band was
+    taken even when a later one passed, which refused e.g. a faint PS1 r with a good NSC r.
+    """
     p = photometry.align(bands)
     legacy = p.observed[:, [bands.index(b) for b in LEGACY_R]].any(axis=1)
-    order = [bands.index(b) for b in fallback_bands]
+    order = np.array([bands.index(b) for b in fallback_bands])
     avail = p.observed[:, order]
-    has = avail.any(axis=1)
-    band = np.where(has, np.array(order)[np.argmax(avail, axis=1)], -1)
-    snr = np.full(len(has), np.nan)
-    rows = np.flatnonzero(has)
     with np.errstate(invalid='ignore', divide='ignore'):
-        snr[rows] = p.flux[rows, band[rows]]/np.sqrt(p.variance[rows, band[rows]])
+        snr_all = np.where(avail, p.flux[:, order]/np.sqrt(p.variance[:, order]), np.nan)
+    passes = avail & (snr_all >= min_snr)
+    has = avail.any(axis=1)
+    pick = np.where(passes.any(axis=1), np.argmax(passes, axis=1), np.argmax(avail, axis=1))
+    band = np.where(has, order[pick], -1)
+    snr = np.where(has, snr_all[np.arange(len(has)), pick], np.nan)
     need = ~legacy
     return need, need & has & (snr >= min_snr), band, snr
 
@@ -144,12 +150,18 @@ def _posteriors(ls, lf, lb, lo, dz_eff):
 
 def score_with_fallback(model, photometry: Photometry, scores: list, decision: dict, *, ra_deg, dec_deg,
                         z_primary, morphology, min_snr: float = 10., n_grid: int | None = None, flux_covariance=None,
-                        **kwargs):
+                        weak_reference: bool = False, **kwargs):
     """Rescore rows flagged ``no_faint_limit_band`` by integrating over Legacy r (see module docstring).
 
     ``model`` is a :class:`qso_pcolor.unified.UnifiedPSFModel`; ``scores``/``decision`` its normal output for the
     same rows, updated in place and returned. Rows without an eligible fallback band get reason
     ``no_fallback_band`` or ``fallback_too_faint``.
+
+    ``weak_reference=True`` also rescores rows flagged ``too_faint`` (Legacy r measured below the faint limit)
+    that have an eligible fallback band. Their measured Legacy r is kept: a weak South r (the latent band itself)
+    enters as the Gaussian flux likelihood N(f_obs; f(m), var_obs) multiplying every intensity on the grid; a weak
+    North r stays in the photometry as an ordinary measured band. Rows without an eligible fallback band keep
+    ``too_faint``.
     """
     from .unified import galactic_from_equatorial
     bands = tuple(model.base.model.transform.bands)
@@ -159,7 +171,11 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
     p = photometry.align(bands)
     n = len(p.flux)
     need, ok, band, snr = fallback_status(p, bands, min_snr, fb_bands)
-    target = np.flatnonzero(need & (decision['reason'] == 'no_faint_limit_band'))
+    weak = np.zeros(n, bool)
+    if weak_reference:
+        weak = (decision['reason'] == 'too_faint') & (band >= 0) & (snr >= min_snr)
+        ok = ok | weak
+    target = np.flatnonzero((need & (decision['reason'] == 'no_faint_limit_band')) | weak)
     if not len(target):
         return scores, decision
     if flux_covariance is not None:
@@ -210,6 +226,15 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
     no_prior = np.isnan(lam['sameq']) | np.isnan(lam['bkg'])
     for k in lam:
         lam[k] = np.where(no_prior | ~np.isfinite(lam[k]), -np.inf, lam[k])
+    # A weak measured South r (the latent band itself, overwritten on the grid above) enters as its own flux
+    # likelihood at each grid value; the same factor multiplies every hypothesis.
+    weak_south = weak[rows] & p.observed[rows, ref]
+    if weak_south.any():
+        fo, vo = p.flux[rows, ref][:, None], p.variance[rows, ref][:, None]
+        with np.errstate(invalid='ignore', divide='ignore'):
+            ll = -.5*(fo - ff)**2/vo - .5*np.log(2*np.pi*vo)
+        for k in lam:
+            lam[k] = np.where(weak_south[:, None], lam[k] + ll, lam[k])
     h = grids[:, 1] - grids[:, 0]
     with np.errstate(invalid='ignore'):
         total = logsumexp(np.stack([lam[k] for k in lam]), axis=0)                         # (R, K)
@@ -239,14 +264,20 @@ def score_with_fallback(model, photometry: Photometry, scores: list, decision: d
         edge = float(post[j, 0] + post[j, -1])
         flags = tuple(rec.quality_flags) + (f'legacy_r_marginalised:{bands[band[i]]}',) + \
             (('legacy_r_grid_truncated',) if edge > 1e-3 else ()) + \
-            (('legacy_r_grid_outside_prior',) if no_prior[j].any() else ())
+            (('legacy_r_grid_outside_prior',) if no_prior[j].any() else ()) + \
+            (('weak_legacy_r_in_likelihood',) if weak[i] else ())
         new = replace(rec, ref_mag=float((post[j]*grids[j]).sum()), quality_flags=flags,
                       log_lambda_sameq=integ['sameq'], log_lambda_fieldq=integ['fieldq'],
                       log_lambda_bkg=integ['bkg'], log_lambda_out=integ['out'] if np.isfinite(integ['out']) else np.nan)
+        zfree = not np.isfinite(z[i])
         if rec.status == 'ok' and md['eligible'][j]:
-            new = replace(new, **_posteriors(integ['sameq'], integ['fieldq'], integ['bkg'], integ['out'], rec.dz_match_eff))
+            post_fields = _posteriors(integ['sameq'], integ['fieldq'], integ['bkg'], integ['out'], rec.dz_match_eff)
+            if zfree:                                  # no primary redshift: only p_outlier is defined
+                post_fields.update(p_sameq=np.nan, p_sameq_vs_bkg=np.nan, log_r_per_unit_z=np.nan)
+            new = replace(new, **post_fields)
         scores[i] = new
-        decision['eligible'][i] = bool(md['eligible'][j]) and np.isfinite(new.log_r_per_unit_z)
+        decision['eligible'][i] = bool(md['eligible'][j]) and bool(np.isfinite(
+            new.log_lambda_fieldq if zfree else new.log_r_per_unit_z))
         decision['accepted'][i] = bool(md['accepted'][j])
         decision['reason'][i] = '' if decision['eligible'][i] else md['reason'][j]
         for key in ('percentile', 'log_density'):

@@ -227,7 +227,8 @@ class UnifiedPSFModel:
 
     def score(self, photometry: Photometry, *, ra_deg, dec_deg, z_primary,
               apply_support: bool = True, flux_covariance=None, ood_calibration=DEFAULT_OOD_CALIBRATION,
-              legacy_r_fallback: bool = True, **kwargs):
+              legacy_r_fallback: bool = True, refuse_flagged: bool = True, weak_reference_fallback: bool = False,
+              **kwargs):
         """Use candidate ICRS degrees and primary-QSO redshift; return support separately.
 
         ``ood_calibration`` (default DEFAULT_OOD_CALIBRATION) decides 'outside both models' from calibrated
@@ -235,6 +236,15 @@ class UnifiedPSFModel:
         ``legacy_r_fallback`` (default True) scores sources without Legacy r by integrating over it, given a
         fallback band at S/N >= 10 (qso_pcolor.fallback_reference), and warns (LegacyRFallbackWarning) when it
         does; ``False`` flags them ``no_faint_limit_band`` and does not score them.
+
+        Flags instead of refusals (PI decision D5, 19 Nov 2026; docs/euclid/PLAN_score_all.md; opt-in until its
+        acceptance tests pass): with ``refuse_flagged=False`` sources below the QSO-support threshold get the
+        quality flag ``qso_support_rejected`` and sources outside both density models ``outside_both_models``;
+        both keep their scores and stay eligible. The default ``True`` refuses them (pair posteriors cleared, not
+        eligible). ``weak_reference_fallback=True`` also sends sources whose Legacy r is measured below the faint
+        limit to the fallback integral, with the measured weak Legacy r kept in the likelihood; the default
+        ``False`` refuses them (``too_faint``).
+        A NaN ``z_primary`` gives redshift-free scores; see :meth:`score_sources`.
 
         Explicit survey-labelled bands identify actual native provenance even
         in overlap fields. The coordinate hemisphere is an informational default.
@@ -246,12 +256,16 @@ class UnifiedPSFModel:
             raise ValueError('finite ICRS coordinates with valid declination required')
         l, b = galactic_from_equatorial(ra, dec)
         scores, decision = self.base.score(photometry, z_primary=z_primary,
-            l_deg=l, b_deg=b, flux_covariance=flux_covariance, ood_calibration=ood_calibration, **kwargs)
+            l_deg=l, b_deg=b, flux_covariance=flux_covariance, ood_calibration=ood_calibration,
+            refuse_flagged=refuse_flagged, **kwargs)
         support = qso_support(self.base.model, photometry, z_primary,
             draws=self.support['draws'], seed=self.support['seed'], flux_covariance=flux_covariance,
             l_deg=l, b_deg=b)
         rejected = np.isfinite(support['percentile']) & (support['percentile'] < self.support['threshold'])
-        if apply_support:
+        if apply_support and not refuse_flagged:
+            for i in np.flatnonzero(rejected & decision['eligible']):
+                scores[i] = replace(scores[i], quality_flags=tuple(scores[i].quality_flags)+('qso_support_rejected',))
+        elif apply_support:
             for i in np.flatnonzero(rejected & decision['eligible']):
                 scores[i] = replace(scores[i], status='qso_support_rejected',
                     quality_flags=tuple(scores[i].quality_flags)+('qso_support_rejected',),
@@ -264,7 +278,23 @@ class UnifiedPSFModel:
             from .fallback_reference import score_with_fallback
             scores, decision = score_with_fallback(self, photometry, scores, decision, ra_deg=ra, dec_deg=dec,
                 z_primary=z_primary, flux_covariance=flux_covariance, ood_calibration=ood_calibration,
-                apply_support=apply_support, **kwargs)
+                apply_support=apply_support, refuse_flagged=refuse_flagged,
+                weak_reference=weak_reference_fallback, **kwargs)
+        return scores, decision
+
+    def score_sources(self, photometry: Photometry, *, ra_deg, dec_deg, **kwargs):
+        """Redshift-free catalogue scoring: p(quasar) summed over every modelled redshift, no primary needed.
+
+        Same as :meth:`score` with ``z_primary = NaN`` for every row. Returns (scores, decision) with
+        ``decision['p_quasar']`` (calibrated when the bundle declares a calibration; NaN where not eligible).
+        log R and the other primary-redshift fields are NaN; the QSO-support test needs a redshift and is not
+        applied.
+        """
+        n = len(photometry.flux)
+        scores, decision = self.score(photometry, ra_deg=ra_deg, dec_deg=dec_deg, z_primary=np.full(n, np.nan),
+                                      **kwargs)
+        p = self.quasar_probability(scores)
+        decision['p_quasar'] = np.where(decision['eligible'], p, np.nan)
         return scores, decision
 
     def score_catalogue(self, values, errors, bands, *, ra_deg, dec_deg,

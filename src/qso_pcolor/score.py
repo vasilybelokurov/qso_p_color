@@ -256,7 +256,11 @@ def score_candidates(
     features : FeatureSet
         Output of a :class:`~qso_pcolor.features.FeatureTransform`.
     z_primary : ndarray, shape (n,)
-        Spectroscopic redshift of each candidate's primary.
+        Spectroscopic redshift of each candidate's primary. NaN selects the redshift-free mode for that row:
+        no match window, the quasar intensity is integrated over the whole supported redshift range (stored in
+        ``log_lambda_fieldq``; ``log_lambda_sameq`` = -inf), and every z0-dependent field (log R, p_sameq,
+        p_sameq_vs_bkg, p_zmatch_given_qso, the z0 likelihood and Bayes factor, qso_ood_sigma) is NaN. The
+        total p(quasar) from the four intensities is then defined without a primary redshift.
     l_deg, b_deg : ndarray, shape (n,)
         Galactic coordinates of the candidate.
     qso_model, background_model
@@ -431,10 +435,11 @@ def score_candidates(
             )
             continue
 
+        zfree = not np.isfinite(z_primary[i])
         # -- prior-independent evidence -----------------------------------
         # Reuse the slice densities computed above rather than re-evaluating
         # every slice mixture for this one object.
-        log_lq = float(
+        log_lq = np.nan if zfree else float(
             qso_model.log_p_colour_given_z(
                 features.x[i : i + 1],
                 features.cov[i : i + 1],
@@ -445,10 +450,10 @@ def score_candidates(
         )
         log_bf = log_lq - float(log_field[i])
 
-        z_sub = _window_subgrid(
+        z_sub = np.empty(0) if zfree else _window_subgrid(
             match, float(z_primary[i]), qso_model.support, n_window_sub
         )
-        if z_sub.size == 0:
+        if z_sub.size == 0 and not zfree:
             out.append(
                 _null_score(
                     cid[i], pid[i], z_primary[i], features, sysname, i,
@@ -457,8 +462,11 @@ def score_candidates(
                 )
             )
             continue
-        w_sub = match.weight(z_sub, float(z_primary[i]))
-        dz_eff = float(_trapz(w_sub, z_sub))      # window area actually usable
+        if zfree:
+            dz_eff = np.nan
+        else:
+            w_sub = match.weight(z_sub, float(z_primary[i]))
+            dz_eff = float(_trapz(w_sub, z_sub))      # window area actually usable
         # One supported grid for the total and the window: a narrow prior
         # peak resolved by the numerator must also enter the denominator.
         support = qso_model.support
@@ -493,8 +501,8 @@ def score_candidates(
         shift = float(lp[np.isfinite(lp)].max())
         post = np.exp(lp - shift)
         norm = float(_trapz(post, nodes))
-        same = float(_window_integral(post, nodes, z_sub, match, float(z_primary[i])))
-        p_zmatch = same / norm
+        same = 0.0 if zfree else float(_window_integral(post, nodes, z_sub, match, float(z_primary[i])))
+        p_zmatch = np.nan if zfree else same / norm
         z_mode = float(nodes[int(np.argmax(post))])
 
         # Diagnostic only: how much mass would edge-clamping invent on the
@@ -521,7 +529,7 @@ def score_candidates(
         supported = norm * np.exp(shift - raw_shift)
         frac_out = outside / (supported + outside)
 
-        ood = float(
+        ood = np.nan if zfree else float(
             qso_model.ood_score(
                 features.x[i : i + 1],
                 features.cov[i : i + 1],
@@ -583,7 +591,9 @@ def score_candidates(
                 log_lam_s = float(np.log(s_rel) + scale)
                 log_lam_f = float(np.log(f_rel) + scale)
                 log_lam_b = float(np.log(b_rel) + scale)
-            if not qso_model.in_support(np.array([z_primary[i]]))[0]:
+            if zfree:
+                log_r = p_vs_bkg = p_full = np.nan
+            elif not qso_model.in_support(np.array([z_primary[i]]))[0]:
                 status = "primary_z_outside_model_support"
 
         out.append(

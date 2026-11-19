@@ -399,13 +399,15 @@ class MultiSurveyModel:
             if reference_snr is not None:
                 fs.flags["weak_reference"] = fs.ref_snr < reference_snr
             primary=np.broadcast_to(np.asarray(z_primary),(n,))[rows]
-            fs.flags["primary_z_outside_model_support"]=~self.qso.in_support(primary)
+            # NaN z_primary = redshift-free scoring (score_candidates): no primary to test.
+            known_z=np.isfinite(primary)
+            fs.flags["primary_z_outside_model_support"]=known_z&~self.qso.in_support(primary)
             per_slice=self.qso.meta.get("per_slice",[])
             minimum=self.meta.get("settings",{}).get("config",{}).get("min_band_training")
             if minimum is not None and per_slice and "band_counts" in per_slice[0]:
                 counts=np.array([s["band_counts"] for s in per_slice])
                 nearest=np.argmin(abs(primary[:,None]-self.qso.z_centres),axis=1)
-                fs.flags["sparse_qso_training_bands"]=np.any((counts[nearest]<minimum)&fs.observed,axis=1)
+                fs.flags["sparse_qso_training_bands"]=known_z&np.any((counts[nearest]<minimum)&fs.observed,axis=1)
             qprior, density = (None, None) if priors is None else priors.get(label, (None, None))
             if qprior is not None and qprior.meta.get("sparse_population_prior", False):
                 fs.flags["sparse_population_prior"] = np.ones(len(rows), bool)

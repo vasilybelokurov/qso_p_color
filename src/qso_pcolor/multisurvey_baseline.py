@@ -63,13 +63,20 @@ class PSFMultiSurveyBaseline:
     def score(self, photometry: Photometry, *, morphology: np.ndarray,
               z_primary: np.ndarray | float, l_deg: np.ndarray, b_deg: np.ndarray,
               match: RedshiftMatch, blend_policy: BlendPolicy, ood_flag_sigma: float,
-              flux_covariance: np.ndarray | None = None, **kwargs) -> tuple[list, dict]:
+              flux_covariance: np.ndarray | None = None, refuse_flagged: bool = True,
+              **kwargs) -> tuple[list, dict]:
         """Score a chosen band subset, returning rows and explicit eligibility.
 
         ``morphology`` contains Tractor-compatible type labels (PSF, EXP, ...),
         independent of which bands the caller supplies. Unknown morphology,
-        blends, unsupported positions and objects outside both density models
-        cannot enter science ranking. Retained likelihoods remain diagnostics.
+        blends and unsupported positions are not scored.
+
+        Objects outside both density models (``outside_both_models``) lose their pair posteriors and are not
+        eligible by default; ``refuse_flagged=False`` scores them and keeps only the quality flag (PI decision
+        D5, 19 Nov 2026; docs/euclid/PLAN_score_all.md; opt-in until its acceptance tests pass).
+
+        A NaN ``z_primary`` scores that row without a primary redshift (score_candidates): it is eligible when
+        its total quasar intensity is finite; log R and the other z0-dependent fields are NaN.
         """
         if (blend_policy is None or blend_policy.action != "exclude" or
                 blend_policy.min_separation_arcsec is None or blend_policy.max_fracflux is None or
@@ -112,6 +119,7 @@ class PSFMultiSurveyBaseline:
         local.setdefault("primary_id", np.array([f"prim{i}" for i in indices]))
         config = json.dumps(dict(match=match.__dict__, blend=blend_policy.describe(),
             ood_flag_sigma=float(ood_flag_sigma), ood_calibration=kwargs.get("ood_calibration"),
+            refuse_flagged=bool(refuse_flagged),
             band_policy="any nonempty subset; exact marginalisation",
             extinction=self.model.meta["extinction"]["map"] if "extinction" in self.model.meta else "none"),
             sort_keys=True)
@@ -122,8 +130,9 @@ class PSFMultiSurveyBaseline:
             l_deg=l[indices], b_deg=b[indices], match=match,
             priors=self.priors, outlier=self.outlier, blend_policy=blend_policy,
             ood_flag_sigma=ood_flag_sigma, manifest_id=self.manifest["bundle_id"], **local)
+        zfree = ~np.isfinite(np.broadcast_to(np.asarray(z_primary, float), (n,)))
         for i, score in zip(indices, scores):
-            rejected = ("outside_both_models" if "outside_both_models" in score.quality_flags else
+            rejected = ("outside_both_models" if refuse_flagged and "outside_both_models" in score.quality_flags else
                         "background_out_of_mag_range" if "background_out_of_mag_range" in score.quality_flags else "")
             if rejected:
                 score = replace(score, status=rejected, log_r_per_unit_z=np.nan,
@@ -131,7 +140,8 @@ class PSFMultiSurveyBaseline:
                     p_zmatch_given_qso=np.nan)
             score = replace(score, scoring_config_json=config, config_hash=config_hash)
             output[i] = score
-            eligible[i] = score.status == "ok" and np.isfinite(score.log_r_per_unit_z)
+            eligible[i] = score.status == "ok" and bool(np.isfinite(
+                score.log_lambda_fieldq if zfree[i] else score.log_r_per_unit_z))
             if not eligible[i]:
                 reason[i] = score.status
         return output, dict(accepted=accepted, eligible=eligible, reason=reason, morphology=morph)
