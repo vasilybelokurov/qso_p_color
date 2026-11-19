@@ -22,6 +22,28 @@ MARGIN = 2/3600.
 LEGACY_COLS = ('ra, dec, release, brickid, objid, type, maskbits, fracflux_r, ref_cat, ref_id, ref_epoch, pmra, pmdec, '
                + ', '.join(f'flux_{b}, flux_ivar_{b}, nobs_{b}' for b in ('g', 'r', 'z', 'w1', 'w2')))
 PRE = "SET statement_timeout = '1800s'"
+TOL_DEG = 1e-9
+
+
+class CacheMismatch(RuntimeError):
+    """A cached cone file exists under the requested name but holds a different cone."""
+
+
+def cached_matches(path: Path, cone: dict) -> bool:
+    """True if ``path`` holds exactly ``cone`` (centre and radius); False if absent.
+
+    Raises CacheMismatch when the file exists for a different cone: role/id filenames are not unique across
+    sky_roles.json versions, so a name hit alone must never be trusted (PLAN_score_all.md, Phase A).
+    """
+    if not path.exists():
+        return False
+    with np.load(path) as d:
+        c, r = np.asarray(d['centre'], float), float(d['radius_deg'])
+    want = np.array([cone['ra'], cone['dec']], float)
+    if np.all(np.abs(c - want) < TOL_DEG) and abs(r - cone['radius_deg']) < TOL_DEG:
+        return True
+    raise CacheMismatch(f'{path} holds cone centre {c.tolist()} radius {r}, requested {want.tolist()} radius '
+                        f'{cone["radius_deg"]}; move the file aside or use a new cone id')
 
 
 def fetch(cone):
@@ -49,7 +71,7 @@ if __name__ == '__main__':
     roles = json.loads(ROLES.read_text())
     for cone in roles['cones']:
         path = OUT/f"{cone['role']}_{cone['id']:03d}.npz"
-        if path.exists():
+        if cached_matches(path, cone):
             continue
         t = time.monotonic(); d = fetch(cone)
         np.savez_compressed(path, **d, centre=np.array([cone['ra'], cone['dec']]), radius_deg=cone['radius_deg'])

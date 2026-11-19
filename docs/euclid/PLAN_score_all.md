@@ -66,6 +66,8 @@ an explicit Legacy detection model) and a demonstrated insensitivity to it.
 ## 3. Phases (in order)
 
 **Phase A — data and roles.**
+**DONE 2026-11-19 except the fit-cone download (blocked on D3):** cache check, manifest, availability; results in
+`docs/score_all/PHASE_AB.md`.
 - An immutable experiment manifest: cells used so far for fitting or decisions (incl. the current Euclid test
   cells, spent by the stage-2 diagnosis), and newly allocated untouched evaluation cells (D3). Caches keyed by
   coordinates and manifest hash; `fetch_cones.py:49` currently skips any existing filename without checking
@@ -74,7 +76,7 @@ an explicit Legacy detection model) and a demonstrated insensitivity to it.
   roles). Size from Phase B's requirement; target >= 30 deg^2 of fit cones (ASSUMED adequate; to be set by B).
 - Check whether Euclid deep fields and faint spectroscopic or X-ray AGN samples are available (UNVERIFIED).
 
-**Phase B — census** (select cones until fit cones exist): area-normalised counts by VIS (0.25 mag), S/N per band,
+**Phase B — census** (DONE 2026-11-19 on select cones, `docs/score_all/PHASE_AB.md`; repeat on fit cones) (select cones until fit cones exist): area-normalised counts by VIS (0.25 mag), S/N per band,
 Legacy detection fraction and Legacy r S/N by VIS, `point_like_prob`, usable area and the VIS where counts turn
 over. Paired standard errors of each planned metric for the exact cohorts, used to set the margins in section 4.
 
@@ -175,6 +177,8 @@ prevalence; sum p vs Sigma_Q is tautological where |I| < 1. c_Q and the censorin
 - D2 2B as the faint design (reviewers agree), or fund a 2A pilot with forced Legacy photometry.
 - D3 new untouched evaluation cells and fit-cone download (size from Phase B).
 - D4 at VIS > 24: publish prior-dominated p_quasar with flags, or a likelihood ratio only.
+- D3b (from Phase B, 19 Nov 2026): the Euclid-only recall margin (1 pp) is below 2 paired SE (1.2-1.4 pp) at the
+  present cohort size: double the evaluation cohort or widen the margin, before any fit.
 - D5 DECIDED 2026-11-19: the three no-refit fixes are tested and switched on in the main scorer too (Phase D-main).
 
 ## 8. First steps
