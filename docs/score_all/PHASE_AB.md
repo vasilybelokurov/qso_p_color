@@ -344,3 +344,38 @@ Point-source completeness of the wide deployment selection, EDF-N (model / obser
 - 1.5-2.1 at VIS 21-22; 1.2-1.5 at 22-23; 1.0-1.2 at 23-24; 0.90-1.08 at VIS >= 24.
 - The quoted errors miss a floor of order 0.02 mag at the bright end. This touches every Euclid colour likelihood in
   the project (stage 1 included), not only Phase E.
+
+## Phase E step 3b: first full-data bin fails H1; diagnostics (20 November 2026)
+
+Single bin VIS 24.00-24.25, EDF-North, model B: 48k fitted rows, f_Q = 5.2%, K = 16 (top of the extended grid),
+730 s, 3.6 GB peak. **H1 fails:** held-out 68% coverage 0.749 (needs 0.65-0.71); 95% coverage 0.962 (passes).
+The full 21-bin fit was not run.
+
+Diagnostics (diagnostic scripts, not results; K fitted directly, 4,000 held-out rows):
+
+| Change | held-out mean log density | cov68 | cov95 |
+|---|---|---|---|
+| K = 16 | 1.696 | 0.743 | 0.952 |
+| K = 24 | 1.714 | 0.738 | 0.952 |
+| K = 32 | 1.718 | 0.737 | 0.953 |
+| K = 16, deep noise x 0.7 (in sd) | **1.723** | 0.721 | 0.951 |
+| K = 16, deep noise x 0.5 | 1.703 | 0.702 | 0.946 |
+| K = 16, deep noise x 0.35 | 1.672 | 0.699 | 0.944 |
+
+- **Not overfitting.** Training rows show the same over-coverage (0.735).
+- **Not under-resolution.** More components do not move the coverage.
+- **Coverage depends on the row:**
+  - by weight: point-like rows (w > 0.5) 0.77, extended rows (w < 0.1) 0.29;
+  - by noise tercile: low noise 0.83, high noise 0.58.
+- **Deep quoted errors look too large at VIS 24, by about 1.4x.** Held-out likelihood prefers a noise scale of 0.7.
+  The wide-deep repeat test cannot check this, because the combined error is dominated by the wide error
+  (sigma_deep/sigma_wide = 0.38).
+- **A further 2-4 pp of over-coverage remains at any noise scale.** Candidate cause: at fixed VIS a row's NISP noise
+  depends on its true colour (redder VIS-J -> brighter J -> smaller sigma_J). XD assumes noise independent of the true
+  value. UNVERIFIED.
+- Open, for a PI decision before the full fit:
+  - (i) Add a deep error scale per bin, chosen by held-out likelihood (not by H1), and state the remaining H1 miss as
+    a limitation.
+  - (ii) First calibrate the deep errors with repeat photometry (`euclid_dr1.mer_catalogue_deep_visits`), then refit.
+  - (iii) Replace H1 by a check at wide depth, the deployment regime (H4/H5 already test that). H1 at deep noise tests
+    the deep noise model as much as the colour model.

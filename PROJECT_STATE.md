@@ -1,5 +1,10 @@
 # Current project state
 
+- **OPEN (PI), 20 Nov 2026: Phase E step 3b noise model.** H1 (deep held-out coverage) fails on the first full bin
+  (68%: 0.75). Deep quoted errors look ~1.4x too large at VIS 24; a further 2-4 pp remains. Options (i) per-bin deep
+  error scale by held-out likelihood, (ii) calibrate with deep per-visit photometry first, (iii) judge at wide depth
+  (H4/H5) instead. Details: docs/score_all/PHASE_AB.md, "step 3b: first full-data bin fails H1".
+
 **SCORING EVERY EUCLID POINT SOURCE: PLAN v2 REVIEWED (19 November 2026), NOTHING FITTED.**
 Plan `docs/euclid/PLAN_score_all.md` (two review rounds, Codex + Fable). Euclid-only refusals: 82% of selected
 background point sources (66% at VIS >= 23), 7.5% of test QSOs. Faint model to be referenced in VIS (latent-r design
@@ -31,7 +36,7 @@ selection; T1b FAIL (80%/98% finite). NEXT: Phase E (VIS-referenced faint model)
 PHASE E STEP 0 DONE 19 Nov (docs/score_all/PHASE_AB.md): deep MER S/N>=10 in Y,J,H reaches VIS 26.4 in EDF-N only;
 EDF-S 25.1 (uneven, 24.6-25.9 per cone), EDF-F 24.6 (= wide). Acceptance (VIS >= 25.5) passed by EDF-N only.
 DECIDED 19 Nov (PI, D6): option (a). Faint-galaxy colours are fitted on all of EDF-North deep MER, with every known QSO (DESI DR1, DR16Q; same removal rule in every training field) removed. Tests unchanged: QSOs = EDF-N DESI QSOs degraded to wide depth (never in training); background = the 40 wide eval cones. Added: EDF-South at VIS < 25 as an independent check of the galaxy model (never fitted), which also bounds the same-field optimism of the EDF-N QSO test; faint checks with Chandra X-ray point sources and the Euclid slitless QSO class (checks, not labels).
-Heavy fitting on hold: PI asked not to load the cores (19 Nov).
+Step 3 started 19 Nov evening with PI go-ahead (cores free): 3a mimic DONE (M1-M3 pass); 3b stopped at the H1 decision above.
 PHASE E STEP 1 DONE 19 Nov: Sigma_Q(z, VIS) from the parent QLF x c_Q x p_Q(VIS|r,z); bookkeeping and bright-end
 checks PASS (EDF-N DESI known/model 0.85/0.88 in the fully DESI-covered 35%). Found: promoted Euclid bundles' faint QSO
 prior collapses beyond r ~ 23 (extrapolated quadratic c_Q). OPEN: wide-selection completeness beyond VIS ~ 25 must
