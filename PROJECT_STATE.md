@@ -9,7 +9,10 @@ Legacy r no longer blocks the fallback) are tested and switched ON in the main s
   DONE 19 Nov: M1-M4 PASS (docs/score_all/), defaults ON (refuse_flagged=False, weak_reference_fallback=True).
   M2 (A/B magdep/magindep, all-rows cohort): AUC +0.0019/+0.0022, recall +0.74/+0.63 pp, unflagged bkg p>0.5
   +0.018/+0.008 pp. M4: weak r kept vs dropped dAUC +3.4e-5 (lower bound > 0), closer to good-r score.
-  FOLLOW-UP: note Sections perf/calib and README validation numbers still use the pre-D5 refusal rules.
+  Note + README numbers redone under D5 (19 Nov): AUC 0.9969/0.9975 (B/A; was 0.9934/0.9939), recall 91.6/94.4%,
+  clean bkg p>0.5 0.34/0.48%, unranked 0.02%. Model difference now only at r>=21 (+0.0015); the old B advantage
+  at 18<=r<21 was a refusal artefact. Grids: 23/4 stray points off the core, ALL flagged (21/3 outside both) ->
+  selections must use flags. Calibration figure = unflagged objects (unchanged by M1). Pre-D5 JSONs kept *_pre_d5.
 OPEN PI DECISIONS (score-all): D1 target population (cleaning cuts in/out); D2 VIS-referenced faint model (2B) vs a
 2A pilot with forced Legacy photometry; D3 new untouched evaluation cells + fit-cone download; D4 at VIS > 24 publish
 prior-dominated p_quasar with flags, or a likelihood ratio only.

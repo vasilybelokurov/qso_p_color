@@ -23,7 +23,7 @@ from run_unified_pilot import arrays
 
 ROOT = Path('models/multisurvey_psf/work/unified_full/20261001/13866e45ef794059')
 POINTERS = {'independent': 'models/multisurvey_psf/current_magindep', 'dependent': 'models/multisurvey_psf/current'}
-PERF = Path('models/multisurvey_psf/work/method_unified/performance_qlf')   # promoted bundles of 5 Oct 2026 (QLF abundance prior, calibrated outside-both test)
+PERF = Path('models/multisurvey_psf/work/score_all/performance_d5')   # promoted bundles, D5 rules (19 Nov 2026: flags instead of refusals, weak-r fallback); pre-D5 scores: work/method_unified/performance_qlf
 QSO_FLAG = ROOT/'stars'/'qso_flag.npy'
 FAINT_BANDS = ('decals_dr9_south:r', 'decals_dr9_north:r')
 COLOURS = {'independent': SERIES['same_z'], 'dependent': SERIES['field_q'], 'background': SERIES['background']}

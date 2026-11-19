@@ -2,12 +2,13 @@
 """F12-F14: performance of both promoted models across sky, magnitude, redshift and band coverage.
 
 Input: scores written by score_performance.py (clean role-3 rows outside every development
-exclusion and outside the release-check rows; support cut at 99.5% calibration retention).
+exclusion and outside the release-check rows), with the D5 rules since 19 Nov 2026: support-cut and
+outside-both objects are scored and flagged; rows refused for faintness are left out.
 Metrics (defined in the note):
   AUC        P(random test QSO ranks above random test background object on log R);
              unranked objects at the bottom.
   density    mean ln p(colours | Q, z_true, m_ref) of test QSOs [nat/object].
-  retention  fraction of test QSOs not rejected by the support cut.
+  retention  fraction of test QSOs not flagged by the support cut (qso_support_rejected).
   incidence  fraction of background test objects ranked with p_quasar > 0.5.
 Writes figures and docs/method_unified/performance.json (also the independent check of the cut).
 """
@@ -38,7 +39,11 @@ def load(model, kind, panel, suffix=''):
         if suffix == '' and ('_z' in tag or any(tag.endswith(m) for m in ('grz', 'all', 'sdss', 'ps1'))):
             continue
         d = dict(np.load(p)); r = dict(np.load(p[:-4] + '.rows.npz')); d.update(rows=r['rows'], z=r['z'])
-        d['hemi'] = np.full(len(r['rows']), 'north' if '_north' in p else 'south'); parts.append(d)
+        d['hemi'] = np.full(len(r['rows']), 'north' if '_north' in p else 'south')
+        # D5 panels (--keep-weak) also hold rows the scorer refuses for faintness (Legacy r S/N < 10 and no
+        # fallback band; empty status). The note's cohort is the rows the scorer handles, as before D5.
+        keep = np.asarray(d['status']).astype(str) != ''
+        parts.append({k: (v[keep] if np.ndim(v) and len(v) == len(keep) else v) for k, v in d.items()})
     if not parts:
         return None
     return {k: np.concatenate([q[k] for q in parts]) for k in parts[0] if k not in ('flags', 'reference')}

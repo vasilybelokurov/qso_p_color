@@ -1,0 +1,170 @@
+[
+ {
+  "kind": "qso",
+  "prepared_row": 852829,
+  "source_row": 852829,
+  "title": "bright QSO",
+  "ra": 10.93006709344047,
+  "dec": 1.5802120361087184,
+  "scores": {
+   "independent": {
+    "z": 1.4800753593444824,
+    "logR": 1.568783450051051,
+    "pq": 1.0,
+    "support": 1.0,
+    "eligible": true,
+    "reference": "decals_dr9_south:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 1.4800753593444824,
+    "logR": 1.6553966391681854,
+    "pq": 1.0,
+    "support": 0.98046875,
+    "eligible": true,
+    "reference": "decals_dr9_south:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 674525,
+  "source_row": 674525,
+  "title": "QSO at z~3",
+  "ra": 189.18155196486794,
+  "dec": 62.02482467638207,
+  "scores": {
+   "independent": {
+    "z": 2.9642741954516887,
+    "logR": -2.689026509204837,
+    "pq": 0.4379796906403222,
+    "support": 0.79296875,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 2.9642741954516887,
+    "logR": -1.422701419769837,
+    "pq": 0.32592623369379947,
+    "support": 0.9375,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 683221,
+  "source_row": 683221,
+  "title": "low-redshift QSO",
+  "ra": 235.87894122985165,
+  "dec": 51.71647294381618,
+  "scores": {
+   "independent": {
+    "z": 0.6270244717597961,
+    "logR": 1.1667199728619535,
+    "pq": 0.9933844385541202,
+    "support": 0.91796875,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 0.6270244717597961,
+    "logR": 1.158614488280375,
+    "pq": 0.9963614435612681,
+    "support": 0.9375,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "qso",
+  "prepared_row": 713830,
+  "source_row": 713830,
+  "title": "QSO rejected by support cut",
+  "ra": 319.1849028196349,
+  "dec": 7.931938139375474,
+  "scores": {
+   "independent": {
+    "z": 2.2620667842891935,
+    "logR": NaN,
+    "pq": 8.746428247000153e-07,
+    "support": 0.00390625,
+    "eligible": false,
+    "reference": "decals_dr9_south:r",
+    "rejected": true
+   },
+   "dependent": {
+    "z": 2.2620667842891935,
+    "logR": NaN,
+    "pq": 5.194038556321014e-05,
+    "support": 0.00390625,
+    "eligible": false,
+    "reference": "decals_dr9_south:r",
+    "rejected": true
+   }
+  }
+ },
+ {
+  "kind": "stars",
+  "prepared_row": 312383,
+  "source_row": 312383,
+  "title": "background star",
+  "ra": 233.30748569100248,
+  "dec": 23.13440456328287,
+  "scores": {
+   "independent": {
+    "z": 1.7572541231639232,
+    "logR": -23.658375165003974,
+    "pq": 5.312174358756663e-07,
+    "support": 0.0078125,
+    "eligible": true,
+    "reference": "decals_dr9_south:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 1.7572541231639232,
+    "logR": -20.023832508308814,
+    "pq": 8.524258543118161e-08,
+    "support": 0.015625,
+    "eligible": true,
+    "reference": "decals_dr9_south:r",
+    "rejected": false
+   }
+  }
+ },
+ {
+  "kind": "stars",
+  "prepared_row": 537254,
+  "source_row": 537254,
+  "title": "background object with $p_Q>0.5$",
+  "ra": 186.07632757932888,
+  "dec": 60.05552315747681,
+  "scores": {
+   "independent": {
+    "z": 1.539395945210683,
+    "logR": 0.4813759811790095,
+    "pq": 0.9685082687473894,
+    "support": 0.11328125,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   },
+   "dependent": {
+    "z": 1.539395945210683,
+    "logR": 0.49751548098609977,
+    "pq": 0.9929889217571384,
+    "support": 0.2734375,
+    "eligible": true,
+    "reference": "decals_dr9_north:r",
+    "rejected": false
+   }
+  }
+ }
+]

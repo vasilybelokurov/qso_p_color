@@ -36,7 +36,18 @@ def scored(kind, model_name):
     return out
 
 
-def pick(kind, s, rule):
+# Examples pinned to the objects chosen on 5 Oct 2026 by the rules below, so the note describes the same objects
+# when the scoring rules change (D5, 19 Nov 2026, enlarged the panel and shifted the median pick). Rules still
+# apply when a pinned row is absent from the panel.
+PINNED = {('qso', 'bright QSO'): 852829, ('qso', 'QSO at z~3'): 674525, ('qso', 'low-redshift QSO'): 683221,
+          ('qso', 'QSO flagged by support cut'): 713830, ('stars', 'background star'): 312383,
+          ('stars', 'background object with $p_Q>0.5$'): 537254}
+
+
+def pick(kind, s, rule, title=None):
+    pinned = PINNED.get((kind, title))
+    if pinned is not None and pinned in s:
+        return pinned
     rows = np.array(sorted(s)); keep = [r for r in rows if rule(r, s[r])]
     return keep[len(keep)//2] if keep else None
 
@@ -78,12 +89,12 @@ def main():
     common_b = {r: {n: sb[n][r] for n in sb} for r in set(sb['independent']) & set(sb['dependent'])}
     nobs = lambda kind, r: int(np.asarray(data(kind)['observed'][r]).sum())
     rmag = lambda kind, r: float(data(kind)['y'][r][idx('decals_dr9_south:r')])
-    cases = [('qso', pick('qso', common_q, lambda r, s: abs(s['independent']['z'] - 1.5) < .05 and s['independent']['eligible'] and nobs('qso', r) >= 14 and rmag('qso', r) < 19.5), 'bright QSO'),
-             ('qso', pick('qso', common_q, lambda r, s: abs(s['independent']['z'] - 3.0) < .05 and s['independent']['eligible'] and nobs('qso', r) >= 10), 'QSO at z~3'),
-             ('qso', pick('qso', common_q, lambda r, s: abs(s['independent']['z'] - .6) < .05 and s['independent']['eligible'] and nobs('qso', r) >= 10), 'low-redshift QSO'),
-             ('qso', pick('qso', common_q, lambda r, s: s['independent']['rejected'] and nobs('qso', r) >= 8), 'QSO rejected by support cut'),
-             ('stars', pick('stars', common_b, lambda r, s: s['independent']['eligible'] and s['independent']['pq'] < .01 and nobs('stars', r) >= 10 and rmag('stars', r) < 20), 'background star'),
-             ('stars', pick('stars', common_b, lambda r, s: s['independent']['eligible'] and s['independent']['pq'] > .5), 'background object with $p_Q>0.5$')]
+    cases = [('qso', pick('qso', common_q, lambda r, s: abs(s['independent']['z'] - 1.5) < .05 and s['independent']['eligible'] and nobs('qso', r) >= 14 and rmag('qso', r) < 19.5, 'bright QSO'), 'bright QSO'),
+             ('qso', pick('qso', common_q, lambda r, s: abs(s['independent']['z'] - 3.0) < .05 and s['independent']['eligible'] and nobs('qso', r) >= 10, 'QSO at z~3'), 'QSO at z~3'),
+             ('qso', pick('qso', common_q, lambda r, s: abs(s['independent']['z'] - .6) < .05 and s['independent']['eligible'] and nobs('qso', r) >= 10, 'low-redshift QSO'), 'low-redshift QSO'),
+             ('qso', pick('qso', common_q, lambda r, s: s['independent']['rejected'] and nobs('qso', r) >= 8, 'QSO flagged by support cut'), 'QSO flagged by support cut'),
+             ('stars', pick('stars', common_b, lambda r, s: s['independent']['eligible'] and s['independent']['pq'] < .01 and nobs('stars', r) >= 10 and rmag('stars', r) < 20, 'background star'), 'background star'),
+             ('stars', pick('stars', common_b, lambda r, s: s['independent']['eligible'] and s['independent']['pq'] > .5, 'background object with $p_Q>0.5$'), 'background object with $p_Q>0.5$')]
     fig, axes = plt.subplots(2, 3, figsize=(12, 7.4)); chosen = []
     for ax, (kind, row, title) in zip(axes.ravel(), cases):
         if row is None:

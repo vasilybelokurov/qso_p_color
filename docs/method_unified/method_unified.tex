@@ -64,16 +64,16 @@ with AUC 0.993--0.994, and 0.6\% of quasars are left unranked.
 \item \textbf{Output.} A ranking statistic $\log\R$ (Section~\ref{sec:question}), evidence and posterior
   quantities, a quasar-support percentile, and explicit eligibility and quality flags.
 \item \textbf{Main results} (Section~\ref{sec:validation}; first number for the magnitude-independent model,
-  second for the magnitude-dependent one). AUC 0.993 and 0.994 on held-out quasars and
-  background objects; 91\% and 94\% of quasars receive $p_{\rm quasar}>0.5$ (at $23<r<24$, 30\% and 54\%);
-  0.33\% and 0.44\% of background objects that are not flagged as likely quasars do, most plausibly
-  unlabelled faint quasars (Section~\ref{sec:qsoprior}). 0.6\% of quasars are not ranked, with no dependence on the number
-  of observed bands (Section~\ref{sec:ood}). No artificial colour-grid point outside the models' dense
-  core receives $p_{\rm quasar}>0.5$. Among ranked objects $p_{\rm quasar}$ agrees with the observed quasar
+  second for the magnitude-dependent one; flags instead of refusals, Section~\ref{sec:flags}). AUC 0.997 for
+  both on held-out quasars and background objects; 92\% and 94\% of quasars receive $p_{\rm quasar}>0.5$ (at
+  $23<r<24$, 35\% and 58\%); 0.34\% and 0.48\% of background objects that are not flagged as likely quasars do,
+  most plausibly unlabelled faint quasars (Section~\ref{sec:qsoprior}). 0.7\% of quasars carry a support or
+  outside-both flag, with no dependence on the number of observed bands (Section~\ref{sec:ood}); 0.02\% are not
+  ranked. Artificial colour-grid points outside the models' dense core that receive $p_{\rm quasar}>0.5$ all carry
+  a flag. Among ranked objects $p_{\rm quasar}$ agrees with the observed quasar
   fraction where the labels are complete; its faint end cannot be tested with the available labels, and above 0.97
   it exceeds the known-quasar fraction mostly because the background sample holds unlabelled quasars.
-  1.0--1.2\% of known quasars in a natural sample are not ranked. (These numbers use the refusal rules in force
-  before 19 November 2026; support-cut and outside-both objects are now scored and flagged, Section~\ref{sec:flags}.)
+  1.0--1.2\% of known quasars in a natural sample carry a support or outside-both flag.
 \end{itemize}
 
 %======================================================================
@@ -389,7 +389,7 @@ bright quasars and too narrow for faint ones (Section~\ref{sec:cc}). Our test qu
 selection, so the tests measure the cost of the magnitude-independent assumption on selected quasars,
 not its benefit for quasars outside the selection.
 
-\paragraph{Measured differences} (Section~\ref{sec:validation}; held-out rows, faint limit applied; density
+\paragraph{Measured differences} (Section~\ref{sec:validation}; held-out rows the scorer handles, D5 rules; density
 of the magnitude-dependent model relative to the magnitude-independent one):
 
 \begin{center}\small
@@ -400,26 +400,28 @@ quantity & mag.-independent & mag.-dependent \\
 held-out quasar density, per slice & --- & $+0.67$\,nat (0.38--0.88) \\
 quasars inside the 50\%/90\% contours, $17\le r<19$ & 0.62/0.94 & 0.51/0.90 \\
 quasars inside the 50\%/90\% contours, $21.5\le r<22.5$ & 0.41/0.86 & 0.49/0.89 \\
-AUC, all magnitudes & 0.9934 & 0.9939 \\
-AUC, $r<18$ & 0.986 & 0.982 \\
-AUC, $18\le r<19$ & 0.998 & 0.995 \\
-AUC, $r>21$ & 0.977--0.994 & 0.987--0.994 \\
-AUC at $z_0=3.45$ & 0.996 & 0.998 \\
-quasars with $p_{\rm quasar}>0.5$ & 91.2\% & 94.0\% \\
-unflagged background with $p_{\rm quasar}>0.5$ & 0.33\% & 0.44\% \\
-quasars not ranked & 0.57\% & 0.61\% \\
-grid points with $p_{\rm quasar}>0.5$, no support cut & 2 & 1 \\
+AUC, all magnitudes & 0.9969 & 0.9975 \\
+AUC, $r<18$ & 0.980 & 0.980 \\
+AUC, $18\le r<19$ & 0.9998 & 0.9998 \\
+AUC, $r>21$ & 0.986--0.997 & 0.992--0.997 \\
+AUC at $z_0=3.45$ & 0.996 & 0.997 \\
+quasars with $p_{\rm quasar}>0.5$ & 91.6\% & 94.4\% \\
+background, likely quasars removed, $p_{\rm quasar}>0.5$ & 0.34\% & 0.48\% \\
+quasars flagged (support, outside both) & 0.67\% & 0.69\% \\
+quasars not ranked & 0.02\% & 0.02\% \\
+grid points off the core, $p_{\rm quasar}>0.5$ (all flagged) & 23 & 4 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-With the calibrated outside-both-models test (Section~\ref{sec:ood}) the two models rank quasars against
-background objects equally well overall. A paired bootstrap over sky regions gives
-$\Delta{\rm AUC}=+0.0005$ (95\% interval $0.0000$ to $+0.0015$, marginal); the magnitude-independent model
-is slightly better at $18\le r<21$ ($-0.003$, interval $-0.005$ to $-0.001$, at $18\le r<19$; $-0.001$ at
-$19\le r<21$) and the magnitude-dependent one at $r\ge21$ ($+0.003$, $+0.002$ to $+0.004$). The magnitude-dependent
-model gives $p_{\rm quasar}>0.5$ to $+2.7$ (2.3--3.5) percentage points more test quasars, and to $+0.11$
-(0.01--0.21) percentage points more unflagged background objects. Under the earlier fixed $4\sigma$ test the magnitude-dependent model appeared much
+The two models rank quasars against background objects almost equally well. A paired bootstrap over sky
+regions gives $\Delta{\rm AUC}=+0.0005$ (95\% interval $+0.0004$ to $+0.0008$) for the magnitude-dependent model;
+the difference comes entirely from $r\ge21$ ($+0.0015$, $+0.0011$ to $+0.0021$), and at $r<21$ the two agree to
+$|\Delta{\rm AUC}|<0.0002$. The magnitude-dependent model gives $p_{\rm quasar}>0.5$ to $+2.8$ (2.4--3.5) percentage
+points more test quasars, and to $+0.14$ (0.05--0.24) percentage points more background objects not flagged as
+likely quasars. Before the D5 rules (Section~\ref{sec:flags}) the magnitude-independent model appeared better at
+$18\le r<21$ ($\Delta{\rm AUC}=-0.003$ at $18\le r<19$); that came from the quasars each model refused at the support
+cut, which were ranked last, not from the ranking. Under the earlier fixed $4\sigma$ test the magnitude-dependent model appeared much
 better for bright quasars ($\Delta{\rm AUC}=+0.020$ at $r<18$); most of that difference came from the
 magnitude-independent model refusing more bright quasars under that test, not from its ranking.
 
@@ -629,14 +631,14 @@ above the faint limit with likely quasars removed. The global share is 0.14\%.
 
 \paragraph{Support cut.} For a candidate, $z_0$ and the observed bands, the scorer draws 255 simulated
 quasars from the conditional model at $z_0$, adds the candidate's errors, and ranks the candidate's
-conditional density among them. Candidates below a threshold are not ranked; their likelihoods are
-kept as diagnostics. The percentile depends on the reference band, so the threshold was recalibrated
+conditional density among them. Candidates below a threshold carry the flag \code{qso\_support\_rejected};
+since 19 November 2026 they keep their scores (Section~\ref{sec:flags}), before that they were not ranked. The percentile depends on the reference band, so the threshold was recalibrated
 under the faint limit on 2,000 calibration quasars (all bands and Legacy $g,r,z$ only; 3,890
 evaluations). At the 99.5\% target it is $2/256=0.0078$, retaining 99.64\% and 99.59\% of
 calibration evaluations. Fig.~\ref{fig:supportcut} shows the trade-off on held-out rows: the cut at
 $2/256$ removes the 2 (magnitude-independent) and 1 (magnitude-dependent) high-quasar points that the artificial
-grids place outside the models' dense core, at a cost of 0.5\% of test quasars and of 0.002 in the AUC of
-$p_{\rm quasar}$ (0.992 to 0.990);
+grids place outside the models' dense core, at a cost of 0.5\% of test quasars and of 0.003 in the AUC of
+$p_{\rm quasar}$ (0.993 to 0.990), for a user who cuts on the flag;
 stricter cuts lose quasars faster. (Under the earlier fixed $4\sigma$ outside-both test the same cut removed 12
 and 4 stray points and raised the AUC, because that test let more extrapolated objects through at few bands.)
 
@@ -645,8 +647,9 @@ and 4 stray points and raised the AUC, because that test let more extrapolated o
 \caption{Support-cut threshold (percentile; dotted: the calibrated $2/256$) on the held-out main panels of
 Section~\ref{sec:perf} and the artificial grids of Section~\ref{sec:grids}: AUC of $p_{\rm quasar}$ (the
 scorer does not compute $\log\R$ for rejected objects, so $p_{\rm quasar}$ ranks all thresholds alike;
-unranked objects at the bottom), fraction of test quasars kept, fraction of background objects with
-$p_{\rm quasar}>0.5$, and grid points with $p_{\rm quasar}>0.5$ in the low-density mask.}
+objects below the threshold at the bottom), fraction of test quasars kept, fraction of background objects with
+$p_{\rm quasar}>0.5$, and grid points with $p_{\rm quasar}>0.5$ in the low-density mask (points outside both
+models excluded). The sweep shows what cutting on the support flag would do; the scorer itself only flags.}
 \label{fig:supportcut}
 \end{figure}
 
@@ -711,7 +714,7 @@ dashed: $\alpha$).}
 \subsection{Flags instead of refusals (default since 19 November 2026)}\label{sec:flags}
 PI decision D5 (19 November 2026; \code{docs/euclid/PLAN\_score\_all.md}, Phase D-main) changed three rules
 without refitting any model:
-\begin{enumerate}
+\begin{enumerate}\sloppy
 \item Objects below the support cut and objects outside both models are scored. They keep $\log\R$ and
   $p_{\rm quasar}$, stay eligible, and carry the quality flag \code{qso\_support\_rejected} or
   \code{outside\_both\_models}. \code{refuse\_flagged=True} restores the refusal.
@@ -748,8 +751,8 @@ magnitude-independent model, second for the magnitude-dependent one):
   and 0.66 without it (pass: kept $\leq$ dropped). A weak $r$ at $S/N=5$ carries little information, but it
   moves the score towards the well-measured value, never away.
 \end{itemize}
-The performance numbers of Sections~\ref{sec:perf}--\ref{sec:calib} and the summary were computed under the
-earlier rules (refusals); M2 gives the change on the same panels.
+The performance numbers of Sections~\ref{sec:variants}, \ref{sec:perf}--\ref{sec:grids} and the summary use the D5
+rules; Section~\ref{sec:calib} tests unflagged objects, whose scores the rules do not change.
 
 %======================================================================
 \section{Validation}\label{sec:validation}
@@ -808,20 +811,25 @@ magnitude constraint in density (Section~\ref{sec:variants}). The background's f
 \subsection{Performance across sky, magnitude, redshift and band coverage}\label{sec:perf}
 These tests use 20,000 quasars and 20,000 background objects per hemisphere, drawn before the faint limit
 from test-role rows outside every development exclusion and outside the rows used to choose
-support thresholds; 38,881 quasars (97.2\%) and 14,247 background objects (35.6\%) pass the faint limit.
+support thresholds; 39,013 quasars (97.5\%) and 14,422 background objects (36.1\%) are scored: they pass the
+faint limit, or have a fallback band with a weak Legacy $r$ (Section~\ref{sec:flags}). Scores use the D5 rules.
 Background objects are scored at redshifts drawn from the test quasars' redshifts. The four metrics are
 those of Section~\ref{sec:notation}: AUC, held-out density, support retention, and high-QSO incidence,
 the fraction of background objects ranked with $p_{\rm quasar}>0.5$. The background test objects include
 unidentified quasars, so incidence is not a contamination rate.
 
-\paragraph{Overall.} The AUC is 0.9934 (magnitude-independent) and 0.9939 (magnitude-dependent); South
-0.992 and 0.993, North 0.995 for both. The support cut keeps 99.53\% and 99.47\% of test quasars, in
-agreement with the 99.5\% calibration target on rows that did not choose it. In total 0.57\% and 0.61\% of test
-quasars are not ranked: 0.38\% and 0.45\% at the support cut, 0.17\% and 0.14\% outside both models
-(Section~\ref{sec:ood}), and 0.02\% with no quasar prior at their magnitude. Of the test quasars, 91.2\% and
-94.0\% receive $p_{\rm quasar}>0.5$. High-QSO incidence is 1.35\% and 1.52\% (South 0.76\% and 0.90\%, North
-2.04\% and 2.24\%). Among background objects that are not flagged as likely quasars it is 0.33\% and 0.44\%,
-and the AUC against them is 0.995 for both. Compared with the earlier abundance prior (spectroscopic counts),
+\paragraph{Overall.} The AUC is 0.9969 (magnitude-independent) and 0.9975 (magnitude-dependent); South
+0.997 and 0.998, North 0.997 for both. The support test flags 0.49\% and 0.54\% of test quasars (retention
+99.51\% and 99.46\%, in agreement with the 99.5\% calibration target on rows that did not choose it), the
+outside-both test 0.18\% and 0.15\% (Section~\ref{sec:ood}), and 0.34\% are scored through the weak-$r$ fallback.
+Only 0.02\% (six quasars with no quasar prior at their magnitude) are not ranked. Of the test quasars, 91.6\% and
+94.4\% receive $p_{\rm quasar}>0.5$ (90.9\% and 93.7\% counting unflagged ones only). High-QSO incidence is 1.38\%
+and 1.59\% (South 0.77\% and 0.94\%, North 2.10\% and 2.37\%). Among background objects that are not flagged as
+likely quasars it is 0.34\% and 0.48\% (0.32\% and 0.43\% without a scorer flag), and the AUC against them is
+0.998 and 0.999. Under the earlier refusal rules the same panels gave AUC 0.9934 and 0.9939, 91.2\% and 94.0\% of
+quasars at $p_{\rm quasar}>0.5$, and 0.57\% and 0.61\% of quasars not ranked; the AUC rises mainly because flagged
+quasars are now ranked instead of placed last. The following comparisons were made under the earlier rules.
+Compared with the earlier abundance prior (spectroscopic counts),
 the luminosity-function prior leaves everything at $r<21.5$ unchanged and raises the recall at $22.5\le r<23$
 from 0.42 to 0.65 (magnitude-independent) and from 0.58 to 0.77 (magnitude-dependent), and at $23\le r<24$ from
 0.10 to 0.30 and from 0.25 to 0.54. The faint background objects it calls quasars (1.3--1.8\% at $22<r<24$) are
@@ -831,23 +839,23 @@ Section~\ref{sec:qsoprior}); the AUC changes by $-0.0004$. With the earlier fixe
 every ranked background object, so recovering 2.3--2.6\% of quasars raises the AUC by 0.014--0.018.
 
 \paragraph{Sky position and magnitude} (Fig.~\ref{fig:perfsky}). Per-cell AUC is uniform across the
-footprint to within a few thousandths. Against $|b|$, AUC is 0.990--0.995 (magnitude-independent) and
-0.991--0.995 (magnitude-dependent). Against reference magnitude it is 0.995--0.998 at $18\le r<21$ and falls
-towards the faint end, to 0.977 (magnitude-independent) and 0.987 (magnitude-dependent) at $22.5\le r<23.5$;
-at $r<18$ (274 quasars) it is 0.986 and 0.982.
+footprint to within a few thousandths. Against $|b|$, AUC is 0.996--0.998 for both models. Against reference
+magnitude it is 0.999--1.000 at $18\le r<21$ and falls towards the faint end, to 0.986 (magnitude-independent) and
+0.992 (magnitude-dependent) at $22.5\le r<23.5$; at $r<18$ (274 quasars) it is 0.980 for both.
 
-\paragraph{Redshift} (Fig.~\ref{fig:perfz}). AUC is 0.992--0.994 for both models for $0.5\le z_0\le3$ and
-0.996--0.998 at $z_0=3.45$. (Under the earlier fixed test it fell to 0.948 and 0.956 at $z_0=3.45$, where 8--15\% of
+\paragraph{Redshift} (Fig.~\ref{fig:perfz}). AUC is 0.996--0.999 for both models for $0.5\le z_0\le3$ and
+0.996--0.997 at $z_0=3.45$. (Under the earlier fixed test it fell to 0.948 and 0.956 at $z_0=3.45$, where 8--15\% of
 quasars were refused.) Held-out density falls with redshift as quasars become fainter, and the
-magnitude-dependent model stays higher at every redshift. Support retention is above 99\% everywhere.
+magnitude-dependent model stays higher at every redshift. Support retention (quasars without the support
+flag) is above 99\% everywhere.
 
 \paragraph{Band coverage} (Fig.~\ref{fig:perfcov}). Grouping objects by the surveys that observed them mixes
 coverage with brightness and redshift, and several groups have fewer than 150 background objects. The
-artificial masks score the same objects with fewer bands: Legacy $g,r,z$ only gives AUC 0.974 and 0.975,
-all Legacy bands 0.993 and 0.994, all optical bands 0.989 for both. SDSS-only and PS1-only photometry
+artificial masks score the same objects with fewer bands: Legacy $g,r,z$ only gives AUC 0.976 and 0.978,
+all Legacy bands 0.995 and 0.996, all optical bands 0.993 and 0.994. SDSS-only and PS1-only photometry
 has no Legacy $r$ and was not scored here; Section~\ref{sec:nolegacy} tests sources without Legacy $r$. The weakest coverage group with at least 100 quasars and 30 background
-objects is Legacy North+AllWISE+PS1 for the magnitude-independent model (AUC 0.985, 1,641 quasars) and Legacy
-South+AllWISE+PS1 for the magnitude-dependent one (0.982, 2,451 quasars).
+objects is Legacy North+AllWISE+PS1 for the magnitude-independent model (AUC 0.987, 1,650 quasars) and Legacy
+South+AllWISE+PS1 for the magnitude-dependent one (0.985, 2,452 quasars).
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F12_performance_sky_magnitude.png}
@@ -861,7 +869,7 @@ reference-band magnitude.}
 \includegraphics[width=\textwidth]{F13_performance_redshift.png}
 \caption{Performance against redshift. Left: AUC of quasars at $z_0\pm0.1$ against background objects
 scored at $z_0$. Middle: mean held-out log density of quasars, in bins of their redshift. Right:
-support retention.}
+support retention (quasars without the support flag).}
 \label{fig:perfz}
 \end{figure}
 
@@ -876,17 +884,20 @@ objects have no Legacy $r$ and were not scored in this test (see Section~\ref{se
 \subsection{Artificial colour grids}\label{sec:grids}
 A colour grid places synthetic sources on a $15\times15$ lattice in $(g-r,r-z)$ from $-6$ to $8$\,mag at
 fixed $r$ (18.5 and 21; South and North; $(\ell,b)=(180^\circ,45^\circ)$; 0.03\,mag errors). These are
-stress tests of extrapolation into empty colour space, not contamination rates. Outside the models' dense
-core, where both the quasar and the background intensity are below 1\% of their grid maximum, no grid point
-receives $p_{\rm quasar}>0.5$ with the support cut (Fig.~\ref{fig:grids}); without it, 2 (magnitude-independent) and
-1 (magnitude-dependent) would. Most of the grid is not ranked: points outside
-both models, or rejected by the support cut, are set aside.
+stress tests of extrapolation into empty colour space, not contamination rates. Most of the grid lies outside
+both models or below the support cut; since 19 November 2026 those points are scored and flagged
+(Section~\ref{sec:flags}). Outside the models' dense core, where both the quasar and the background intensity are
+below 1\% of their grid maximum, 23 (magnitude-independent) and 4 (magnitude-dependent) grid points receive
+$p_{\rm quasar}>0.5$, all of them flagged: 21 and 3 outside both models, the rest below the support cut
+(Fig.~\ref{fig:grids}). No unflagged grid point outside the core does. The flags are therefore part of the result:
+a catalogue selection on $p_{\rm quasar}$ alone admits these extrapolated colours.
 
 \begin{figure}[!htbp]\centering
 \includegraphics[width=\textwidth]{F15_colour_grids.png}
-\caption{Total quasar probability on artificial Legacy colour grids, South and North, $r=18.5$ and 21.
-Grey cells are not ranked. Black outline: the models' dense core; outside it both the quasar and the
-background intensity are below 1\% of their grid maximum.}
+\caption{Total quasar probability on artificial Legacy colour grids, South and North, $r=18.5$ and 21, D5 rules.
+Every point is scored; $\times$: support flag, dot: outside both models. Black outline: the models' dense core;
+outside it both the quasar and the background intensity are below 1\% of their grid maximum. Titles: grid points
+with $p_{\rm quasar}>0.5$ outside the core (``stray''), all and unflagged.}
 \label{fig:grids}
 \end{figure}
 
@@ -898,8 +909,8 @@ $p_{\rm quasar}=1.00$ and 0.99--1.00 ($\log\R=1.6$--1.7 and 1.2). A $z=2.96$ qua
 but where quasars at that redshift overlap the stellar locus; it is ranked with $p_{\rm quasar}=0.44$ and 0.33
 ($\log\R=-2.7$ and $-1.4$). One test quasar at
 $z=2.26$ has a Legacy $r$ 2--3\,mag fainter than all its other optical bands, a faulty or variable reference
-measurement; relative to it the colours are impossible for a quasar, and both models decline to rank it
-(support percentile 0.004). A background star has $\log\R=-24$ and $-20$ and $p_{\rm quasar}=0.00$; its
+measurement; relative to it the colours are impossible for a quasar. Both models flag it (support percentile
+0.004) and, now that flagged objects are scored, give it $\log\R=-13.7$ and $-11.4$ and $p_{\rm quasar}=0.00$. A background star has $\log\R=-24$ and $-20$ and $p_{\rm quasar}=0.00$; its
 ultraviolet and infrared colours are far from the quasar prediction. The last panel is a background object that
 both models call a quasar ($p_{\rm quasar}=0.97$ and 0.99, $\log\R=0.5$ at $z_0=1.54$): its colours follow the quasar
 prediction in every band but one, and it is probably an unidentified quasar. Legacy and AllWISE $W1,W2$
@@ -913,13 +924,15 @@ background objects, weighted by 2.75 to restore their natural share (1.47\% quas
 sample still holds unidentified quasars, so the observed quasar fraction is bracketed by two labellings:
 known quasars only (a lower bound), and known quasars plus flagged likely quasars (an upper bound).
 
-We separate two questions. The first is abstention. The scorer declines to rank 1.0\% and 1.2\% of the
-known quasars (magnitude-independent and magnitude-dependent model), 53\% and 62\% of the background objects, and
-33\% and 40\% of the flagged likely quasars. Background objects are set aside almost entirely by the
-support cut (99\%); of the 17 and 20 unranked known quasars, 11 and 15 fail the support cut and 6 and 5 lie
-outside both models. (With the earlier fixed $4\sigma$ outside-both test, 3.5\% and 3.8\% of the known quasars
+We separate two questions. The first is flagging (abstention before 19 November 2026). The support and
+outside-both tests flag 1.0\% and 1.2\% of the known quasars (magnitude-independent and magnitude-dependent model),
+53\% and 62\% of the background objects, and 33\% and 40\% of the flagged likely quasars. Background objects are
+flagged almost entirely by the support cut (99\%); of the 17 and 20 flagged known quasars, 11 and 15 fail the
+support cut and 6 and 5 lie outside both models. (With the earlier fixed $4\sigma$ outside-both test, 3.5\% and 3.8\% of the known quasars
 were not ranked, 85\% of them outside both models.)
-The second is the reliability of the returned probability, among ranked objects only (Fig.~\ref{fig:calib}).
+The second is the reliability of the returned probability, among unflagged objects (Fig.~\ref{fig:calib}; their
+scores are identical under the D5 rules, test M1 of Section~\ref{sec:flags}). The probabilities of flagged objects
+were not tested for calibration.
 Ranked objects at $p<0.01$ contain no known quasars and 1.9--2.2\% flagged ones. In the mid range the prediction
 now lies between the bounds or slightly above the upper one: for example 0.19--0.48 observed at $p\approx0.57$ and
 0.41--0.75 at $p\approx0.85$ (magnitude-independent; 0.20--0.54 and 0.29--0.74 magnitude-dependent). At the top,
@@ -1306,8 +1319,9 @@ the rule set before fitting, stage 2 fails and stage 1 remains the Euclid-only d
   (Section~\ref{sec:nolegacy}).
 \item \textbf{Galactic latitude.} All training samples are at $|b|\geq25^\circ$, and both modes refuse sources below
   it (Section~\ref{sec:data}); lowering the limit needs training cones at lower latitude.
-\item \textbf{Flagged quasars.} 0.6\% of test quasars above the faint limit fall below the support cut or outside both
-  models; since 19 November 2026 they are scored with a quality flag (Section~\ref{sec:flags}). The earlier 3\% came from the fixed $4\sigma$ outside-both test, now replaced (Section~\ref{sec:ood}).
+\item \textbf{Flagged quasars.} 0.7\% of test quasars above the faint limit fall below the support cut or outside both
+  models; since 19 November 2026 they are scored with a quality flag (Section~\ref{sec:flags}). Flagged objects
+  include extrapolated colours with high $p_{\rm quasar}$ (Section~\ref{sec:grids}); selections should use the flags. The earlier 3\% came from the fixed $4\sigma$ outside-both test, now replaced (Section~\ref{sec:ood}).
   Variability between surveys observed years apart is not modelled; it makes some quasars' photometry
   inconsistent across surveys (\code{docs/pquasar\_diagnostics}).
 \item \textbf{Selection.} Test quasars share the training selection. Our tests cannot measure the benefit

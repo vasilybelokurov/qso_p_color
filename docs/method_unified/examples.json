@@ -87,25 +87,25 @@
   "kind": "qso",
   "prepared_row": 713830,
   "source_row": 713830,
-  "title": "QSO rejected by support cut",
+  "title": "QSO flagged by support cut",
   "ra": 319.1849028196349,
   "dec": 7.931938139375474,
   "scores": {
    "independent": {
     "z": 2.2620667842891935,
-    "logR": NaN,
+    "logR": -13.701751595916452,
     "pq": 8.746428247000153e-07,
     "support": 0.00390625,
-    "eligible": false,
+    "eligible": true,
     "reference": "decals_dr9_south:r",
     "rejected": true
    },
    "dependent": {
     "z": 2.2620667842891935,
-    "logR": NaN,
+    "logR": -11.420178576910745,
     "pq": 5.194038556321014e-05,
     "support": 0.00390625,
-    "eligible": false,
+    "eligible": true,
     "reference": "decals_dr9_south:r",
     "rejected": true
    }

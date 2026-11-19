@@ -30,10 +30,10 @@ blend mode, built on top of either of them.
 background model, the 41 bands, extinction correction, catch-all, support cut and faint limit; they
 differ only in the quasar colour model.
 
-- On our DESI/SDSS-selected test quasars the two rank almost equally well: AUC 0.9939 for A and 0.9934 for B,
-  a marginal difference in a paired sky bootstrap. A gives `p_quasar` > 0.5 to 2.7 percentage points more test
-  quasars (94.0% against 91.2%), and to 0.11 points more unflagged background objects. B ranks slightly better
-  at 18 ≤ *r* < 21 and A at *r* ≥ 21 (method note, Section 6.2).
+- On our DESI/SDSS-selected test quasars the two rank almost equally well: AUC 0.9975 for A and 0.9969 for B
+  (paired sky bootstrap +0.0005, all of it from *r* ≥ 21; at *r* < 21 they agree to 0.0002). A gives
+  `p_quasar` > 0.5 to 2.8 percentage points more test quasars (94.4% against 91.6%), and to 0.14 points more
+  background objects not flagged as likely quasars (method note, Section 6.2).
 - B cannot absorb the spectroscopic selection of the training quasars into its colour model. That risk
   is real for quasars unlike the DESI/SDSS targets, and our tests cannot measure it.
 - If A and B agree, the result does not depend on that assumption. If they disagree strongly, the
@@ -98,8 +98,9 @@ for name in ("current", "current_magindep"):
               round(p[i], 3), s.log_r_per_unit_z, s.p_sameq, s.dz_match_eff)
 ```
 
-Output: the first object is eligible with `p_quasar` 0.866 (A) and 0.832 (B); the second is refused
-with `qso_support_rejected` (its colours are not quasar-like at *z* = 1.8).
+Output: the first object is eligible with `p_quasar` 0.866 (A) and 0.832 (B). The second is scored with
+`p_quasar` 0.000 and log R = −15.7 (A) and −13.8 (B), and carries the quality flag `qso_support_rejected` in
+`scores[1].quality_flags` (its colours are not quasar-like at *z* = 1.8).
 
 ### Blend mode (model C)
 
@@ -276,8 +277,9 @@ more.
 The default test calibrates the same distance for each object. It draws 256 members of each population in
 the object's own bands, with its own noise and Legacy r, and computes the same distance for them. The tail
 fractions are reported as `qso_ood_p` and `bkg_ood_p`: the probability that a real member lies at least as
-far away. The object is outside both models when both are below 2/256. Refusals then no longer depend on the
-number of bands, and about 0.15% of test quasars and 0.5% of background objects are refused. It adds about
+far away. The object is outside both models when both are below 2/256. The flag then no longer depends on the
+number of bands, and about 0.15% of test quasars and 0.5% of background objects carry it (scored, since
+19 November 2026; before that they were refused). It adds about
 13 ms per object. The method note (Section 9.2) and `docs/pquasar_diagnostics/pquasar_diagnostics.pdf`
 give the derivation and validation. Pass `ood_calibration=None` to reproduce scores made before
 5 October 2026.
@@ -298,7 +300,7 @@ Tests, fixed before running (`docs/score_all/`; magnitude-independent / -depende
 unchanged exactly; on the held-out main panels (all rows, refused ones ranked last) AUC +0.0022 / +0.0019, recall
 at p > 0.5 +0.6 / +0.7 pp, unflagged background p > 0.5 +0.01 / +0.02 pp; keeping a weak (S/N 5) r is no worse
 than dropping it (ΔAUC +3e-5, closer to the well-measured score). Method note Section "Flags instead of
-refusals". Validation numbers elsewhere in this README predate the change.
+refusals". The validation numbers in this README use the D5 rules.
 
 ---
 
@@ -480,11 +482,12 @@ Sources: method note Sections 9--11 and `docs/pquasar_diagnostics/pquasar_diagno
   spectra. At r ≳ 22.5 the labels miss most real quasars (no spectrum, no WISE detection), so the
   calibration of faint `p_quasar` cannot be measured.
 - **Quasar abundance beyond r ≈ 22.3 and below z = 0.68** is the eBOSS luminosity function extrapolated,
-  and its redshift shape inside each Δz = 1 bin is interpolated. The scorer declines to
-  rank 1.0% (B) and 1.2% (A) of known quasars in a natural sample, mostly at the QSO-support cut: treat an
-  unranked object as "not a candidate", not as "not a quasar".
+  and its redshift shape inside each Δz = 1 bin is interpolated. The scorer flags 1.0% (B) and 1.2% (A) of
+  known quasars in a natural sample, mostly at the QSO-support cut. Flagged objects are scored, but their
+  `p_quasar` was not tested for calibration, and on artificial colour grids every extrapolated point with
+  `p_quasar` > 0.5 is flagged (23 for B, 4 for A): **select on `p_quasar` and the flags together**.
 - **Variability between surveys** observed years apart is not modelled. A quasar whose SDSS or PS1
-  magnitudes disagree with Legacy can look unusual; if it is refused, rescoring with Legacy bands only is a
+  magnitudes disagree with Legacy can look unusual; if it is flagged, rescoring with Legacy bands only is a
   valid check.
 - **`p_sameq` in narrow windows** has not been tested for reliability on the current models.
 - **Selection.** Test quasars share the training selection (DESI, SDSS), so the risk that A has learned
@@ -503,16 +506,18 @@ Sources: method note Sections 9--11 and `docs/pquasar_diagnostics/pquasar_diagno
 
 | Test (held out) | A | B |
 |---|---|---|
-| Quasars vs background objects, AUC (log R; unranked at the bottom) | 0.9939 | 0.9934 |
-| same, *r* < 18 | 0.982 | 0.986 |
-| Test quasars with `p_quasar` > 0.5 | 94.0% | 91.2% |
-| same, 23 < *r* < 24 | 54% | 30% |
-| Background objects not flagged as likely quasars, with `p_quasar` > 0.5 | 0.44% | 0.33% |
-| Test quasars not ranked | 0.61% | 0.57% |
+| Quasars vs background objects, AUC (log R; unranked at the bottom) | 0.9975 | 0.9969 |
+| same, *r* < 18 | 0.980 | 0.980 |
+| Test quasars with `p_quasar` > 0.5 | 94.4% | 91.6% |
+| same, 23 < *r* < 24 | 58% | 35% |
+| Background objects not flagged as likely quasars, with `p_quasar` > 0.5 | 0.48% | 0.34% |
+| Test quasars with a support or outside-both flag (scored) | 0.69% | 0.67% |
+| Test quasars not ranked | 0.02% | 0.02% |
 | Blend mode, QQ vs QS, AUC (synthetic blends of test objects) | 0.947 | 0.927 |
 | Blend mode: fraction of true QQ / true QS blends given P(QQ) > 0.9 (prior odds 1) | 75% / 7.2% | 63% / 6.9% |
 
-Details: method note; `docs/method_unified/*.json` (`model_difference_bootstrap.json`,
+Resolved-mode rows use the D5 rules (flags instead of refusals, since 19 November 2026; pre-D5 values in
+`docs/method_unified/*_pre_d5.json`). Details: method note; `docs/method_unified/*.json` (`model_difference_bootstrap.json`,
 `blend_validation.json`, `blend_illustrations.json`).
 
 ---

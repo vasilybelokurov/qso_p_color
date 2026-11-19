@@ -4,8 +4,9 @@
 F1 is illustrative only: synthetic two-dimensional Gaussians, not fitted models.
 F15: 15 x 15 grids in Legacy (g-r, r-z) from -6 to 8 mag at fixed r (18.5, 21), placed at
 (l, b) = (180, 45) deg with 0.03 mag luptitude errors. Colour: total QSO probability
-p_quasar for scorable points; grey: not scorable (outside both models, or rejected by the
-support cut, threshold 2/256). Black outline: low-density region, where both models put both the quasar and
+p_quasar for every point. Since 19 November 2026 (PI decision D5) points below the support cut (threshold
+2/256) and outside both models are scored and flagged: marked x (support) and . (outside both). Titles count
+points with p_quasar > 0.5 inside the low-density region, all and unflagged. Black outline: low-density region, where both models put both the quasar and
 the background intensity below 1% of their grid maximum.
 """
 import json
@@ -60,17 +61,20 @@ def f15():
         mask = low_mask(h, mag).reshape(15, 15)
         for i, name in enumerate(models):
             raw = np.load(RUNS[name]/f'grid_{h}_{mag}_raw.npz'); uni = np.load(RUNS[name]/f'grid_{h}_{mag}_unified.npz')
-            # eligibility of the promoted scorer (calibrated outside-both test), before the support cut
-            r = raw; ok = (uni['eligible'] | (uni['status'] == 'qso_support_rejected')) & ~(np.isfinite(uni['support']) & (uni['support'] < THRESHOLD))
-            p = np.where(ok, r['p_quasar'], np.nan).reshape(15, 15); ax = axes[i, j]
-            ax.pcolormesh(axes_vals, axes_vals, np.where(np.isnan(p), 1, np.nan), cmap='Greys', vmin=0, vmax=4, shading='nearest')
+            # D5 scorer: every point is scored; p_quasar is the same with or without the flags
+            st = uni['status']; supp = (st == 'qso_support_rejected') | (np.isfinite(uni['support']) & (uni['support'] < THRESHOLD))
+            ood = st == 'outside_both_models'
+            p = raw['p_quasar'].reshape(15, 15); ax = axes[i, j]
             im = ax.pcolormesh(axes_vals, axes_vals, p, cmap='viridis', vmin=0, vmax=1, shading='nearest')
+            gx, gy = np.meshgrid(axes_vals, axes_vals)
+            sm, om = supp.reshape(15, 15) & ~ood.reshape(15, 15), ood.reshape(15, 15)
+            ax.plot(gx[sm], gy[sm], 'x', color='w', ms=2.5, mew=.6); ax.plot(gx[om], gy[om], '.', color='w', ms=1.5)
             ax.contour(axes_vals, axes_vals, mask.astype(float), levels=[.5], colors='k', linewidths=.8)
-            n = int(np.nansum((p > .5) & mask))
-            ax.set_title(f'{name}\n{h}, $r$={mag}: {n} in mask', fontsize=7.5)
-            if j == 0: ax.set_ylabel('$r-z$ [mag]')
+            hi = (p > .5) & mask; n = int(hi.sum()); nu = int((hi & ~sm & ~om).sum())
+            ax.set_title(f'{h}, $r$={mag}\nstray: {n} ({nu} unflagged)', fontsize=7.5)
+            if j == 0: ax.set_ylabel(f'{name}\n$r-z$ [mag]')
             if i == len(models) - 1: ax.set_xlabel('$g-r$ [mag]')
-    fig.colorbar(im, ax=axes, shrink=.6, label='$p_\\mathrm{quasar}$ (grey: not scorable)')
+    fig.colorbar(im, ax=axes, shrink=.6, label='$p_\\mathrm{quasar}$ (x: support-flagged; dot: outside both)')
     return fig
 
 
