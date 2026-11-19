@@ -1,12 +1,23 @@
 # Current project state
 
-**EUCLID-ONLY RESOLVED MODE: IN PROGRESS (PI decisions, 18 November 2026).** Score individual resolved point
-sources from Euclid DR1 MER photometry only (VIS, Y, J, H). Stage 1: frozen extension of both promoted bundles
-(old 36-d latent blocks bit-identical, Euclid block learned conditionally); stage 2: full joint refit with Euclid
-bands in the latent space. Plan and tests: `docs/euclid/PLAN.md` (adversarially reviewed, 2 reviewers x 2 rounds,
-before implementation). Measured: ~20,400 +- 900 spectroscopic QSOs at |b| >= 25 lie in DR1 wide; 33 of the 274
-background cones overlap it (only 2 test, 1 select) -> new Euclid test/select cones needed. Promotion of any
-pointer still needs a PI decision.
+**EUCLID-ONLY RESOLVED MODE: STAGES 1 AND 2 DONE, CANDIDATES NOT PROMOTED (PI decisions, 18 November 2026).**
+Score individual resolved point sources from Euclid DR1 MER VIS, Y, J, H only. Plan/review/tests: `docs/euclid/`;
+numbers: `docs/euclid/results.json`; method note Section "Euclid photometry only". A = magdep (`current`),
+B = magindep (`current_magindep`). Bundles (gitignored): `models/multisurvey_psf/euclid_stage1_20261005_{magdep,magindep}_qlf`,
+`euclid_stage2_{euclid_point,legacy_psf}_20261005_*`.
+  Stage 1 (Euclid test cells, A/B): Euclid-only AUC_p 0.953/0.962 (Legacy 0.982), recall p>0.5 49.5/43.5%,
+  unflagged bkg 0.25/0.30%, QSO unranked 7.5/5.6%; Legacy+Euclid recall 93/92%.
+  Stage 2: 41-band non-inferiority vs promoted bundles PASS (both). Euclid cells vs stage 1: recall +8.5/+10.2 pp,
+  bkg unchanged, AUC -0.0066/-0.0075 -> FAILS the 0.002 margin; cause = 30/37 more faint QSOs (VIS~22.6) refused by
+  the Legacy-r eligibility rule; on commonly-ranked objects AUC rises. Per plan, stage 1 stays the deliverable.
+  Bug fixed 19 Nov (commit 4393d65): model B's QSO latent is in (magnitude, colour) coordinates; stage 1 had
+  subtracted r again from the regressors and stage 2 transformed twice. B stage 1 refitted, revalidated; B stage 2
+  refitted. Corrected B fits Euclid select data 0.08-0.13 nat/object worse (it now forbids magnitude dependence).
+OPEN PI DECISIONS (Euclid): (1) promote stage 1, stage 2, or neither; (2) whether to revise the Legacy-r
+eligibility rule (centre <= 23.0 and <= 1% posterior mass above 23.5; departs from the reviewers' flat-prior form)
+- revising it after seeing test results would need new test cells; (3) sky roles T1; (4) det_quality_flag bit 2
+kept despite the 1.2x rule; (5) catch-all fraction eta and support threshold kept at parent values in stage 2;
+(6) support retention 0.987-0.995 vs 0.995 target; (7) blend-mode comparison of stage 2 (plan M2.3) not run.
 
 **SCORING WITHOUT LEGACY r: ON BY DEFAULT (PI decision, 13 October 2026), with a LegacyRFallbackWarning.**
 Terms (PI, 13 Oct): **resolved mode** = `UnifiedPSFModel` (models A, B); **blend mode** = `BlendModel` (model C).

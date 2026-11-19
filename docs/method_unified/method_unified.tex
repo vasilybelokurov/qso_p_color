@@ -1166,6 +1166,86 @@ is therefore used first. The background model still describes Legacy \code{type=
 mismatch between the two definitions of a point source is not modelled (\code{docs/point\_source/validation.json}).
 
 %======================================================================
+\section{Euclid photometry only}\label{sec:euclid}
+%======================================================================
+Resolved mode can score a point source from Euclid DR1 MER photometry alone: VIS, $Y$, $J$ and $H$
+\citep{EuclidQ1MER,EuclidDR1MER}. The bundles are candidates, not promoted; plan, tests and the
+adversarial review are in \code{docs/euclid/PLAN.md} and \code{docs/euclid/REVIEW\_LOG.md}, and every number below is
+in \code{docs/euclid/results.json}.
+
+\paragraph{Photometry.} VIS is \code{FLUX\_VIS\_TO\_Y\_TEMPLFIT} (\code{FLUX\_VIS\_PSF} is biased for these
+sources); $Y,J,H$ are template-fit fluxes. Fluxes in $\mu$Jy are multiplied by 0.275423 to the native
+nanomaggy scale and converted to luptitudes with per-band softening. MER fluxes are not dereddened; we
+deredden with $R={}$1.917, 0.921, 0.629, 0.420 for VIS, $Y$, $J$, $H$, from the \citet{SF11} recipe
+(\citet{Fitzpatrick1999} curve, $R_V=3.1$, 7000\,K source, scale 0.8787) integrated over the SVO filter curves
+(\code{qso\_pcolor.band\_extinction}). Deployment selection (\code{docs/euclid/settings.json}): \code{vis\_det}$=1$,
+not spurious, no \code{DET\_QUALITY\_FLAG} bit in 4, 128, 256, 512, VIS$\,\geq18$, no other clean MER source with
+$\Delta$VIS$\,<2.5$ within 1.5$^{\prime\prime}$, and \code{POINT\_LIKE\_PROB}$\,\geq0.1$. Of DESI spectroscopic galaxies in the
+footprint, 1.1\% pass it.
+
+\paragraph{Stage 1: frozen extension.} The 36-d latent blocks of both promoted bundles are kept bit-identical, and
+a Euclid block is added conditionally on Legacy colours $\vect d=(g-r,z-r,W1-r,W2-r)$ (plus $r$ for the
+magnitude-dependent model):
+\begin{equation}
+\vect x_E-x_r\,\vect 1\;\big|\;\vect d,k\;\sim\;\mathcal N\!\left(\vect a_k+B_k(\vect d-\vect\mu_{k,d}),\,W_k\right),
+\end{equation}
+fitted by EM with the old block frozen, on QSOs and background objects in Euclid \emph{fit} sky cells (HEALPix
+nside 16, Galactic; 55/15/10/20\% fit/select/calibration/test, stratified). For the magnitude-independent model the
+latent coordinates are already colours relative to the magnitude coordinate, so $\vect d$ selects them directly
+and the Euclid colours are independent of magnitude, as the design requires. Scoring on the 41 parent bands is
+unchanged (test T-U1). The Euclid selection enters as a thinning of the background,
+$\lambda_{B,E}=\sum_k\tilde w_k(r)\,f_k(r)\,p_k$, with $f_k$ a per-component logistic in Legacy $r$, and as a factor
+$c_Q(z,r)$ on the quasar abundance; selected fractions are 0.80--0.90 at $19<r<22$, 0.52 at $22<r<23$ and 0.14 at
+$23<r<24.5$.
+
+\paragraph{No Legacy $r$.} Legacy $r$ stays the population reference and is integrated over given VIS
+(Section~\ref{sec:nolegacy}): window $r-{\rm VIS}=c_0+c_1({\rm VIS}-Y)+c_2({\rm VIS}-Y)^2$, with the source eligible if the
+window centre is at $r\leq23.0$, the posterior mass at $r>23.5$ (beyond training) is at most 1\%, and at least two
+NISP bands have $S/N\geq5$.
+
+\paragraph{Stage 2: joint refit.} All mixtures are refitted in the 40-d latent space from the stage-1 warm start
+with the parent trainer and MAP update, on the parent training rows with Euclid columns attached where matched in
+fit cells; blocks of 10 updates, at most 40, keeping the best held-out mixture. Most fits reached 40 updates
+still gaining more than 0.002\,nat per object on the held-out panel. Thinning and $c_Q$ are recomputed for the
+refitted mixtures; the support threshold (a percentile of each model's own draws) and the catch-all fraction are
+the parent's.
+
+\begin{table}[!htbp]\centering\small
+\caption{Euclid test cells: 2246 quasars, 23,543 unflagged background point sources in 40 new cones. First number
+magnitude-dependent model (\code{current}), second magnitude-independent (\code{current\_magindep}). Unranked
+objects count as missed and sit at the bottom of the AUC. Background rates are upper limits: the test cones lie
+mostly outside DESI, so their quasars are unlabelled.}\label{tab:euclid}
+\begin{tabular}{lcccc}
+\toprule
+ & AUC$_p$ & recall $p>0.5$ & bkg $p>0.5$ & QSO unranked \\
+\midrule
+Legacy $grzW1W2$ (parent) & 0.982 / 0.982 & 88.6 / 87.2\% & 0.28 / 0.28\% & 3.2 / 3.3\% \\
+Euclid only, stage 1 & 0.953 / 0.962 & 49.5 / 43.5\% & 0.25 / 0.30\% & 7.5 / 5.6\% \\
+Euclid only, stage 2 & 0.946 / 0.954 & 58.0 / 53.7\% & 0.23 / 0.32\% & 8.8 / 7.2\% \\
+Legacy + Euclid, stage 1 & 0.974 / 0.974 & 92.9 / 92.2\% & 0.57 / 0.79\% & 4.6 / 4.4\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Results (Table~\ref{tab:euclid}).} Euclid-only scores rank well but are cautious: recall at $p>0.5$
+is 70--78\% at $20<{\rm VIS}<22$ and falls to 18--40\% at $18<{\rm VIS}<20$ and 17--35\% at $22<{\rm VIS}<23$, and to
+15--23\% at $z>3$. Four bands without $u$ or $g$ do not separate $z>2.2$ quasars from stars as Legacy does. The
+quasar densities are too broad: in the calibration cells 45--50\% of quasars fall in the top quartile of the
+support percentile, and the redshift PIT is non-uniform (KS $p<0.02$; 68\% intervals cover 72--75\%). Support
+retention on calibration-cell quasars is 0.987--0.995, against the parent's 0.995 target.
+
+\paragraph{Stage 2 against stage 1.} Decided before fitting: stage 2 is accepted if, in a paired bootstrap over sky
+cells, the lower 95\% bound of the change exceeds $-0.002$ in AUC and $-1$\,pp in recall, and the upper bound of
+the background-rate change is below $+0.1$\,pp, against the promoted bundles on the parent's 41-band test panels
+and against stage 1 on the Euclid test cells. On the parent panels both models pass (38,881 quasars, 14,247
+background; AUC $+0.0005$ [$+0.0001$, $+0.0008$] and $-0.0001$ [$-0.0004$, $+0.0003$]; recall $+0.3$ and $+0.6$\,pp).
+On the Euclid test cells recall rises by 8.5 [7.2, 10.0] and 10.2 [8.9, 11.3]\,pp at an unchanged unflagged
+background rate, but AUC falls by 0.0066 [0.0053, 0.0079] and 0.0075 [0.0055, 0.0097], beyond the margin. The fall
+comes entirely from 30 and 37 faint quasars (median VIS 22.6) that the Legacy-$r$ eligibility rule now refuses; on
+the quasars and background ranked by both stages, AUC$_p$ rises from 0.977 to 0.979 and from 0.969 to 0.972. Under
+the rule set before fitting, stage 2 fails and stage 1 remains the Euclid-only deliverable.
+
+%======================================================================
 \section{Limitations and open items}\label{sec:limits}
 %======================================================================
 \begin{itemize}
@@ -1195,6 +1275,10 @@ mismatch between the two definitions of a point source is not modelled (\code{do
 \item \textbf{Background in the faintest bins} ($r>21.5$) is broader than the data in $W1-W2$ and slightly
   narrower in $r-z$ against $z-W1$ (Fig.~\ref{fig:stellarcc}); these panels hold few WISE-detected stars.
 
+\item \textbf{Euclid only} (Section~\ref{sec:euclid}): candidate bundles, not promoted. Recall is low at
+  ${\rm VIS}<20$, ${\rm VIS}>22$ and $z>2.2$; quasar densities are too broad; the stage-2 refit fails its
+  pre-declared AUC margin on the Euclid test cells through the Legacy-$r$ eligibility rule.
+
 \item \textbf{Out of scope.} Blends below the separation floor, and a physical-pair clustering prior,
   are deferred.
 \end{itemize}
@@ -1223,7 +1307,7 @@ magnitude term, constant in the free parameters, and a colour term. Maximising t
 the MAP prior on $V_c$ gives the usual updates applied to the colour block alone. The prior on the full
 covariance differs from the prior on $V_c$ by a constant. The constrained update is therefore exact.
 
-\begin{thebibliography}{15}\small
+\begin{thebibliography}{18}\small
 \bibitem[Bovy et al.(2011a)]{Bovy2011XD} Bovy J., Hogg D.~W., Roweis S.~T., 2011, Ann. Appl. Stat., 5, 1657,
   ``Extreme deconvolution'', \href{https://arxiv.org/abs/0905.2979}{arXiv:0905.2979}.
 \bibitem[Bovy et al.(2011b)]{Bovy2011XDQSO} Bovy J. et al., 2011, ApJ, 729, 141, ``Think outside the color box'' (XDQSO),
@@ -1253,6 +1337,13 @@ covariance differs from the prior on $V_c$ by a constant. The constrained update
   \url{https://doi.org/10.1088/1538-3873/aae3d9}
 \bibitem[Wolf et al.(2018)]{Wolf2018} Wolf C. et al., 2018, PASA, 35, e010, SkyMapper DR1,
   \href{https://doi.org/10.1017/pasa.2018.5}{doi:10.1017/pasa.2018.5}.
+\bibitem[Euclid Collaboration: Romelli et al.(2026)]{EuclidQ1MER} Euclid Collaboration: Romelli E., K\"ummel M. et al., 2026,
+  A\&A, 711, A4, Euclid Q1 IV: the MERge processing function,
+  \href{https://doi.org/10.1051/0004-6361/202554586}{doi:10.1051/0004-6361/202554586}.
+\bibitem[Euclid Collaboration: K\"ummel et al.(2026)]{EuclidDR1MER} Euclid Collaboration: K\"ummel M., Romelli E. et al., 2026,
+  Euclid DR1: the MERge processing, \href{https://arxiv.org/abs/2611.17832}{arXiv:2611.17832}.
+\bibitem[Fitzpatrick(1999)]{Fitzpatrick1999} Fitzpatrick E.~L., 1999, PASP, 111, 63,
+  \href{https://doi.org/10.1086/316293}{doi:10.1086/316293}.
 \bibitem[Legacy Surveys(2020)]{LSDR9} Legacy Surveys DR9 catalogue documentation, Galactic extinction coefficients,
   \url{https://www.legacysurvey.org/dr9/catalogs/}.
 \end{thebibliography}

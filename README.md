@@ -435,13 +435,19 @@ scores, decision = model.score(photometry(mer_rows), ra_deg=ra, dec_deg=dec, z_p
 - **How**: Legacy r is integrated over given VIS (window from a fit of r - VIS against VIS - Y), as for the PS1/NSC
   fallback; refused when >= 2 NISP bands lack S/N 5 (`insufficient_nisp`) or when the source's Legacy r lies beyond the
   training range (`legacy_r_outside_training`: window centre > 23.0, or > 1% posterior mass above r = 23.5).
-- **Performance** (Euclid test sky cells: 2,246 spectroscopic quasars, 24,000 Euclid point sources in 40 new
-  cones; A / B): AUC 0.953 / 0.964 against 0.982 with Legacy g, r, z, W1, W2 on the same cells; quasars with
-  `p_quasar` > 0.5: 50% / 45% (Legacy 89%); 70% at VIS 20-22, 20-26% at VIS 18-20, 16-31% at z > 2.2. Euclid bands
-  added to Legacy raise recall from 92% to 97% at a similar background rate. Background false-positive rates are
-  upper bounds: most test cones lie outside DESI, so their quasars are unlabelled.
+- **Model labels**: A = magnitude-dependent (`..._magdep_qlf`, `current`), B = magnitude-independent
+  (`..._magindep_qlf`, `current_magindep`).
+- **Performance** (Euclid test sky cells: 2,246 spectroscopic quasars, 23,543 unflagged Euclid point sources in 40
+  new cones; A / B; `docs/euclid/results.json`): AUC 0.953 / 0.962 against 0.982 with Legacy g, r, z, W1, W2 on the
+  same cells; quasars with `p_quasar` > 0.5: 50% / 44% (Legacy 89% / 87%); 68-71% at VIS 20-22, 18-26% at VIS
+  18-20, 15-31% at z > 2.2. Legacy + Euclid: recall 93% / 92%. Background false-positive rates are upper bounds:
+  most test cones lie outside DESI, so their quasars are unlabelled.
+- **Stage 2** (joint refit, `euclid_stage2_euclid_point_*`; 41-band variant `euclid_stage2_legacy_psf_*`): passes
+  the 41-band non-inferiority test against the promoted bundles; on Euclid test cells raises recall by 8.5 / 10.2 pp
+  at the same background rate but fails the pre-declared AUC margin (-0.0066 / -0.0075) because the Legacy-r
+  eligibility rule refuses 30 / 37 more faint quasars. Stage 1 therefore stays the Euclid-only candidate.
 - **Limits**: the Euclid colour densities are broader than the test data (predictive PIT skewed), so probabilities
-  are conservative; 7.5% / 5.3% of test quasars are not ranked; z < 0.8 quasars are often resolved by VIS and fail
+  are conservative; 7.5% / 5.6% of test quasars are not ranked; z < 0.8 quasars are often resolved by VIS and fail
   the point rule (completeness 0.3-0.8).
 
 ---
