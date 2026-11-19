@@ -178,7 +178,10 @@ Findings:
 - Only EDF-North reaches the required depth in DR1. Fornax is at wide depth; South is uneven (one cone to 25.9,
   two at wide-like 24.6-24.9).
 - EDF-North is also the D3 quasar evaluation field. Using its background for the faint colour fit needs a PI
-  decision (D6 in PROJECT_STATE).
+  decision: D6, decided below.
 - Risk for step 3: deeper data classify compact galaxies better, so the deep point-like selection may hold fewer
   compact galaxies than the wide selection at the same VIS. The training selection must mimic wide-depth
   classification (to be designed in step 3).
+
+**D6 (PI, 19 November 2026): option (a).** Faint-galaxy colours are fitted on all of EDF-North deep MER, with every known QSO (DESI DR1, DR16Q; same removal rule in every training field) removed. Tests unchanged: QSOs = EDF-N DESI QSOs degraded to wide depth (never in training); background = the 40 wide eval cones. Added: EDF-South at VIS < 25 as an independent check of the galaxy model (never fitted), which also bounds the same-field optimism of the EDF-N QSO test; faint checks with Chandra X-ray point sources and the Euclid slitless QSO class (checks, not labels).
+Rejected: (b) split EDF-N (faint QSO labels 576 -> ~290, below the power the 2 pp margin needs); (c) EDF-S only (patchy, S/N 5-10 at VIS 25-26).

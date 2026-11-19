@@ -179,6 +179,7 @@ prevalence; sum p vs Sigma_Q is tautological where |I| < 1. c_Q and the censorin
   evaluated on EDF-North deep-MER DESI QSOs degraded to wide depth; fit cones ~30 deg^2 in other fit-role cells.
 - D4 DECIDED 2026-11-19: publish both p_quasar (flagged prior_dominated where colours carry little information)
   and the likelihood ratio.
+- D6 DECIDED 2026-11-19 (after Phase E step 0, docs/score_all/PHASE_AB.md): option (a). Faint-galaxy colours are fitted on all of EDF-North deep MER, with every known QSO (DESI DR1, DR16Q; same removal rule in every training field) removed. Tests unchanged: QSOs = EDF-N DESI QSOs degraded to wide depth (never in training); background = the 40 wide eval cones. Added: EDF-South at VIS < 25 as an independent check of the galaxy model (never fitted), which also bounds the same-field optimism of the EDF-N QSO test; faint checks with Chandra X-ray point sources and the Euclid slitless QSO class (checks, not labels).
 - D3b (from Phase B, 19 Nov 2026): the Euclid-only recall margin (1 pp) is below 2 paired SE (1.2-1.4 pp) at the
   present cohort size. DECIDED 2026-11-19: recall margin 2 pp for all score-all tests (T5, T9), fixed now.
 - D5 DECIDED 2026-11-19: the three no-refit fixes are tested and switched on in the main scorer too (Phase D-main).

@@ -30,10 +30,7 @@ without them); T6 FAIL in all modes = newly scored FLAGGED background (+0.1-0.25
 selection; T1b FAIL (80%/98% finite). NEXT: Phase E (VIS-referenced faint model) - needs a design/plan step.
 PHASE E STEP 0 DONE 19 Nov (docs/score_all/PHASE_AB.md): deep MER S/N>=10 in Y,J,H reaches VIS 26.4 in EDF-N only;
 EDF-S 25.1 (uneven, 24.6-25.9 per cone), EDF-F 24.6 (= wide). Acceptance (VIS >= 25.5) passed by EDF-N only.
-OPEN PI DECISION D6: EDF-N is both the only deep-enough galaxy field and the D3 QSO evaluation field. Options:
-(a) use all of EDF-N background for the faint colour fit, removing every known QSO (DESI, DR16Q) from training;
-(b) split EDF-N on the sky, fit on one half, evaluate QSOs on the other (halves the faint QSO labels, 576 -> ~290);
-(c) EDF-S only, accepting S/N 5-10 at VIS 25-26 (XD deconvolution handles it, but weaker constraint).
+DECIDED 19 Nov (PI, D6): option (a). Faint-galaxy colours are fitted on all of EDF-North deep MER, with every known QSO (DESI DR1, DR16Q; same removal rule in every training field) removed. Tests unchanged: QSOs = EDF-N DESI QSOs degraded to wide depth (never in training); background = the 40 wide eval cones. Added: EDF-South at VIS < 25 as an independent check of the galaxy model (never fitted), which also bounds the same-field optimism of the EDF-N QSO test; faint checks with Chandra X-ray point sources and the Euclid slitless QSO class (checks, not labels).
 Heavy fitting on hold: PI asked not to load the cores (19 Nov).
 PHASES A+B DONE 19 Nov (docs/score_all/PHASE_AB.md): fetch_cones cache check (all 64 caches match); manifest
 (109 cells unused, 67 with coverage >= 0.5 = pool for D3); EDF-North has 2,661 DESI QSOs in deep MER (574 at r>22.5),
