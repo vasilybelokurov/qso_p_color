@@ -144,11 +144,11 @@ declared unresolvable and widened before any fit)
 | T2 | Promoted and stage-1 bundles: every numeric field, flag and eligibility unchanged on the parent panels | max abs diff < 1e-9 |
 | T3 | Numerics: doubled grid, widened bounds; each integrated intensity, boundary mass and p | log-intensity diff < 0.01 and |dp| < 0.005 for 99%; every failure listed and flagged |
 | T4 | z-free entry point: p_quasar identical across supplied z0 | < 1e-9 |
-| T5 | Phase D on new cells, VIS < 23: old vs new on the identical all-rows cohort, old refusals at p = 0; paired cell bootstrap | AUC lower 95% bound > -margin; recall > -1 pp |
+| T5 | Phase D on new cells, VIS < 23: old vs new on the identical all-rows cohort, old refusals at p = 0; paired cell bootstrap | AUC lower 95% bound > -margin; recall > -2 pp (D3b) |
 | T6 | Background p > 0.5 rate, unflagged rows (known/likely-QSO exclusions as `validate_stage1.py:129`), combined and Euclid-only modes | upper 95% bound of the change < +0.1 pp |
 | T7 | Weak-r integral: paired masking (drop Legacy r from rows that have good r, then degrade it) | |dp| < 0.02 for 95%; AUC change > -margin |
 | T8 | Phase C: PIT and 68/95% coverage of degraded vs true flux, S/N 1-20 | coverage within +-3 pp per S/N bin |
-| T9 | Overlap VIS 21-23, rows with usable Legacy r: Phase E Euclid-only vs stage-1 Legacy path, identical cohort | AUC > -margin; recall > -1 pp; bkg < +0.1 pp |
+| T9 | Overlap VIS 21-23, rows with usable Legacy r: Phase E Euclid-only vs stage-1 Legacy path, identical cohort | AUC > -margin; recall > -2 pp (D3b); bkg < +0.1 pp |
 | T10 | Background colour model: per VIS bin, predictive distribution of the Mahalanobis distance and 68/95% coverage of the 3-colour regions, select cones, all S/N, minimum 500 rows per bin | within +-3 pp |
 | T11 | Counts per VIS bin on untouched cells vs model, cone-to-cone scatter and area uncertainty as the error | within 99% predictive interval |
 | T12 | Sum p per deg^2 vs stellar density across cones, after depth/extinction adjustment; minimum detectable slope stated first | slope bounded by the pre-stated value |
@@ -175,10 +175,12 @@ prevalence; sum p vs Sigma_Q is tautological where |I| < 1. c_Q and the censorin
 ## 7. PI decisions
 - D1 DECIDED 2026-11-19: keep the cleaning cuts (target = the cones.py deployment selection).
 - D2 DECIDED 2026-11-19: 2B, the VIS-referenced faint model.
-- D3 new untouched evaluation cells and fit-cone download (size from Phase B).
-- D4 at VIS > 24: publish prior-dominated p_quasar with flags, or a likelihood ratio only.
+- D3 DECIDED 2026-11-19: background evaluated on new cones in the 67 unused well-covered cells (manifest); quasars
+  evaluated on EDF-North deep-MER DESI QSOs degraded to wide depth; fit cones ~30 deg^2 in other fit-role cells.
+- D4 DECIDED 2026-11-19: publish both p_quasar (flagged prior_dominated where colours carry little information)
+  and the likelihood ratio.
 - D3b (from Phase B, 19 Nov 2026): the Euclid-only recall margin (1 pp) is below 2 paired SE (1.2-1.4 pp) at the
-  present cohort size: double the evaluation cohort or widen the margin, before any fit.
+  present cohort size. DECIDED 2026-11-19: recall margin 2 pp for all score-all tests (T5, T9), fixed now.
 - D5 DECIDED 2026-11-19: the three no-refit fixes are tested and switched on in the main scorer too (Phase D-main).
 
 ## 8. First steps
