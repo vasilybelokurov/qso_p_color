@@ -9,7 +9,7 @@ valid luptitude is unobserved (XD handles it exactly).
 
 Fixed QSO term per bin: f_Q p_Q(c), p_Q from phase_e3_qso_colours.py (model B primary, A sensitivity), convolved with
 each row's noise; f_Q = max(0, Sigma_Q A C_rel - W_known) / W, A = owned deep area of the training tiles, C_rel = the
-mimic completeness of point sources (mean w at point_like_prob > 0.9) relative to its VIS 21-22 value (c_Q in Sigma_Q
+mimic completeness of point sources (mean w on the deep stellar locus, mumax_minus_mag < -2.8) relative to its VIS 21-22 value (c_Q in Sigma_Q
 already carries the bright-end selection losses), W_known = sum of w over removed known QSOs, W = sum of w over the
 fitted rows.
 Fit: K from {2,3,4,6,8} by 4-fold held-out log density over tiles (background only, weights w, <= N_KSEL rows); then
@@ -74,6 +74,22 @@ def conv_logpdf(w, mu, C, x, S, obs):
     return out
 
 
+def hpd_levels(ww, mm, CC, x, S, obs, rng, chunk=500):
+    """Per row, the fraction of M_PRED draws from its own predictive (mixture convolved with the row's noise) whose
+    density exceeds the row's: u < 0.68 means the row lies inside its 68% highest-density region. Vectorised."""
+    n = len(x); u = np.empty(n)
+    for a in range(0, n, chunk):
+        b = min(n, a + chunk); m = b - a
+        k = rng.choice(len(ww), (m, M_PRED), p=ww)
+        T_ = CC[k] + S[a:b, None]                                         # [m, M, 3, 3]
+        y = mm[k] + np.einsum('imjk,imk->imj', np.linalg.cholesky(T_), rng.standard_normal((m, M_PRED, 3)))
+        o = np.repeat(obs[a:b, None], M_PRED, 1).reshape(-1, 3)
+        ly = conv_logpdf(ww, mm, CC, np.where(o, y.reshape(-1, 3), 0), np.repeat(S[a:b], M_PRED, 0), o).reshape(m, M_PRED)
+        l0 = conv_logpdf(ww, mm, CC, x[a:b], S[a:b], obs[a:b])
+        u[a:b] = np.mean(ly > l0[:, None], 1)
+    return u
+
+
 def features(d):
     lup, var = d['lup'].astype(float), d['lupvar'].astype(float)
     x = lup[:, :1] - lup[:, 1:]
@@ -90,7 +106,7 @@ def prepare(qso, provisional, limit):
     else:
         m = pickle.loads((T.OUT/'mimic.pkl').read_bytes())
         w = m['model'].predict_proba(np.column_stack([np.asarray(d[f], float) for f in m['features']]))[:, 1]
-        pt = d['point_like_prob'] > 0.9
+        pt = d['mumax_minus_mag'] < -2.8                        # deep stellar locus (phase_e3a_mimic.LOCUS_MAX)
         c = np.array([w[pt & (d['vis'] >= lo) & (d['vis'] < lo + 0.25)].mean() for lo in BINS[:-1]])
         ref = w[pt & (d['vis'] >= 21) & (d['vis'] < 22)].mean(); crel = np.minimum(c/ref, 1.0)
     d['w'] = w
@@ -131,6 +147,8 @@ def fit_bin(args):
         k2, s2 = select_n_components(x[ks], S[ks], list(K_EXTEND), observed=obs[ks], weights=w[ks],
                                      groups=d['tile'][fitr][ks], n_folds=4, seed=SEED, regularization=REG, max_iter=300)
         kscores.update(s2); kbest = max(kscores, key=kscores.get)
+    tk = time.monotonic() - t0
+    print(f'bin {ib}: n_fit {len(fitr)}, K {kbest} chosen in {tk:.0f} s', flush=True)
     qw, qm, qC = qc['weights'][ib], qc['means'][ib], qc['covs'][ib]
     mix = None; hist = []
     lq = np.log(max(fq, 1e-300)) + conv_logpdf(qw, qm, qC, x, S, obs)
@@ -143,6 +161,7 @@ def fit_bin(args):
         qq = np.exp(lq - np.logaddexp(lq, lb)) if fq > 0 else np.zeros(len(x))
         hist.append(dict(it=it, mean_loglike=round(float(r.mean_loglike), 5), mean_qQ=round(float(np.average(qq, weights=w)), 5),
                          converged=bool(r.converged), n_iter=int(r.n_iter)))
+    print(f'bin {ib}: outer iterations done at {time.monotonic() - t0:.0f} s', flush=True)
     # H1: HPD coverage on held-out tiles (w-weighted), Monte Carlo per row
     hr = np.flatnonzero(hold)
     if len(hr) > N_H1:
@@ -152,14 +171,7 @@ def fit_bin(args):
         xh, Sh, oh = features({k: d[k][hr] for k in ('lup', 'lupvar')}); wh = d['w'][hr].astype(float)
         ww = np.concatenate([fq*qw, (1 - fq)*mix.weights]); mm = np.concatenate([qm, mix.means]); CC = np.concatenate([qC, mix.covs])
         ww = ww/ww.sum()
-        u = np.empty(len(hr))
-        for i in range(len(hr)):
-            k = rng.choice(len(ww), M_PRED, p=ww)
-            y = np.array([rng.multivariate_normal(mm[kk], CC[kk] + Sh[i]) for kk in k])
-            oi = np.repeat(oh[i][None], M_PRED, 0)
-            ly = conv_logpdf(ww, mm, CC, np.where(oi, y, 0), np.repeat(Sh[i][None], M_PRED, 0), oi)
-            l0 = conv_logpdf(ww, mm, CC, xh[i][None], Sh[i][None], oh[i][None])[0]
-            u[i] = np.mean(ly > l0)
+        u = hpd_levels(ww, mm, CC, xh, Sh, oh, rng)
         h1 = dict(n=int(len(hr)), cov68=round(float(np.average(u < 0.68, weights=wh)), 4),
                   cov95=round(float(np.average(u < 0.95, weights=wh)), 4))
         h1['pass_'] = bool(len(hr) < 500 or (abs(h1['cov68'] - 0.68) <= 0.03 and abs(h1['cov95'] - 0.95) <= 0.03))

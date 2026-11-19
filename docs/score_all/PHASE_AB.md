@@ -297,3 +297,50 @@ Compute: the classifier and the XD bins are small (minutes; workers <= 4, peak R
     {10, 12, 16} are also tried and the best of all is kept.
   - Sigma_Q is per unit z. The first QSO-colour build omitted dz, which made f_Q 10x too large. Fixed; it now matches
     the step-1 prior fraction (8.8% at VIS 24-24.5).
+
+## Phase E step 3a: wide-selection mimic, results (19-20 November 2026)
+
+Script `scripts/score_all/phase_e3a_mimic.py` -> `docs/score_all/phase_e3a_mimic.json`; classifier
+`~/data/qso_p_color/score_all/phase_e/mimic.pkl`. Data: 142 EDF-N and 169 EDF-S deep and wide tiles (11.6 GB,
+`fetch_deep_tiles.py`). One process, 6 min, 6.7 GB peak.
+
+**Data findings, before the tests:**
+- **EDF-North `mer_catalogue_wide_mode` is not a wide catalogue.** It stacks many wide-depth catalogues of the same sky:
+  - 2.35 deg^2, 17.7M rows, 13x the deep density;
+  - more than 95% of its rows have a twin within 0.3".
+  - Every source then has an isolation neighbour, so almost nothing passes the deployment selection.
+  - Only `wide_survey` rows are used (EDF-N 4.54 deg^2, EDF-S 37.3 deg^2; the two tables never overlap in EDF-N).
+  - The first run, with both tables, failed M2 by a constant factor of 1.75 at all VIS. This is how it was found.
+- **Fit cone `fit_017` is the same kind of stacked cone** (1.38M wide_mode rows, 98% with a twin within 0.3").
+  - It was in the Phase B fit-cone census and the step-2 check, where it shows almost no selected rows while its area
+    counts: about 1/106 of the fit-cone area.
+  - It is excluded from now on. The other 8 cones with wide_mode rows have no twins.
+- **Deep `point_like_prob` behaves as a posterior with a faint-galaxy prior.** Even the top 1% of objects at VIS 24.5
+  reach only 0.58, and no row exceeds 0.9 beyond VIS 23.6, so the pre-stated completeness definition is empty.
+  - Amendment: point sources are the deep stellar locus, mumax_minus_mag < -2.8 (95th percentile of
+    point_like_prob > 0.9 rows at VIS 20-22.5; the locus stays at -3.0 at all VIS).
+  - `fwhm` is 0.9" for every row (the local PSF, not the source size). It is kept as a feature but carries no
+    information.
+
+**Tests (all pass):**
+
+| Test | Result |
+|---|---|
+| M1 reliability, EDF-S held-out tiles (2.8M rows) | every decile within 0.008 (all rows), within 0.015 (w > 0.05) |
+| M2 counts, EDF-N wide-covered part (2.55 deg^2, 71k wide-selected) | sum w / n = 0.99-1.12 at VIS 21.5-26.5; all within tolerance |
+| M3 colours, same rows, VIS 21.5-25.5 | \|d median\| <= 0.028 mag, \|d half-width\| <= 4.6% |
+
+Wide-selected rows with no deep candidate within 0.5": 7.3% (EDF-S), 8.5% (EDF-N).
+
+Point-source completeness of the wide deployment selection, EDF-N (model / observed; step 4 input):
+
+| VIS | 21.1 | 22.1 | 23.1 | 24.1 | 25.1 | 25.6 | 25.9 | 26.1 | 26.4 |
+|---|---|---|---|---|---|---|---|---|---|
+| C | 0.93/0.93 | 0.91/0.91 | 0.89/0.88 | 0.86/0.85 | 0.84/0.85 | 0.74/0.75 | 0.48/0.46 | 0.15/0.14 | 0.02/0.02 |
+
+**Quoted-error check** (not pre-stated; diagnostic):
+- Data: 1.06M deep-wide matches in 21 EDF-S tiles. Statistic: robust std of (wide - deep colour) / sqrt(sum of quoted
+  variances).
+- 1.5-2.1 at VIS 21-22; 1.2-1.5 at 22-23; 1.0-1.2 at 23-24; 0.90-1.08 at VIS >= 24.
+- The quoted errors miss a floor of order 0.02 mag at the bright end. This touches every Euclid colour likelihood in
+  the project (stage 1 included), not only Phase E.

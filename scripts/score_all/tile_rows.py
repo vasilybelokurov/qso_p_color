@@ -76,10 +76,28 @@ def deep_candidates(path, settings, centres):
     return out
 
 
+WIDE_TABLE = 0          # fetch_cones TABLES order: 0 = mer_catalogue_wide_survey, 1 = mer_catalogue_wide_mode
+
+
+def _wide_survey_only(path):
+    """Copy of a wide tile with only wide_survey MER rows. In EDF-North the wide_mode table stacks many wide-depth
+    catalogues of the same sky (13x the deep density, >95% of rows with a twin within 0.3"), so isolation fails
+    everywhere there; it is not a wide catalogue (checked 19 Nov 2026)."""
+    c = dict(np.load(path, allow_pickle=False)); keep = np.asarray(c['mer_table']) == WIDE_TABLE
+    c.update({k: v[keep] for k, v in c.items() if k.startswith('mer_')})
+    tmp = OUT/'tmp'/f'{path.parent.name}_{path.name}'; tmp.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(tmp, **c)
+    return tmp
+
+
 def wide_selected(path, settings, centres):
     from cones import deployment
-    rows, _ = deployment(path, settings)
-    c = np.load(path); own = _owner(rows['e_ra'], rows['e_dec'], c['centre'], centres) if len(rows['e_ra']) else []
+    with np.load(path) as c:
+        centre = np.asarray(c['centre'])
+    tmp = _wide_survey_only(path)
+    rows, _ = deployment(tmp, settings)
+    tmp.unlink()
+    own = _owner(rows['e_ra'], rows['e_dec'], centre, centres) if len(rows['e_ra']) else []
     return dict(ra=np.asarray(rows['e_ra'], float)[own], dec=np.asarray(rows['e_dec'], float)[own],
                 vis_flux=np.asarray(rows['flux_vis_to_y_templfit'], float)[own])
 
@@ -89,7 +107,7 @@ def field_table(survey, field, settings, limit=None):
     tdir = DATA/f'{survey}_tiles'/field
     t = json.loads((tdir/'tiles.json').read_text()); centres = np.asarray(t['centres'])
     paths = sorted(tdir.glob('tile_*.npz'))[:limit]
-    key = hashlib.sha256(json.dumps([survey, field, [p.name for p in paths], t, VIS_MAX, settings['bad_bits'],
+    key = hashlib.sha256(json.dumps([survey, field, [p.name for p in paths], t, VIS_MAX, WIDE_TABLE, settings['bad_bits'],
                                      settings['vis_bright'], settings['p_min'], settings['softening']]).encode()).hexdigest()[:12]
     cache = OUT/f'rows_{survey}{field}_{key}.npz'
     if cache.exists():
@@ -116,7 +134,7 @@ def coverage(survey, field, limit=None):
     import healpy as hp
     tdir = DATA/f'{survey}_tiles'/field
     paths = sorted(tdir.glob('tile_*.npz'))[:limit]
-    key = hashlib.sha256(json.dumps([survey, field, [p.name for p in paths], NSIDE]).encode()).hexdigest()[:12]
+    key = hashlib.sha256(json.dumps([survey, field, [p.name for p in paths], NSIDE, WIDE_TABLE]).encode()).hexdigest()[:12]
     cache = OUT/f'coverage_{survey}{field}_{key}.npz'
     if cache.exists():
         d = np.load(cache); return d['pix'], float(d['area'])
@@ -124,6 +142,8 @@ def coverage(survey, field, limit=None):
     for p in paths:
         with np.load(p) as c:
             ra, dec = c['mer_e_ra'], c['mer_e_dec']
+            if survey == 'wide':
+                k = np.asarray(c['mer_table']) == WIDE_TABLE; ra, dec = ra[k], dec[k]
         if not len(ra):
             continue
         u, n = np.unique(hp.ang2pix(NSIDE, ra, dec, lonlat=True, nest=True), return_counts=True)

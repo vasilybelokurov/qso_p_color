@@ -34,6 +34,7 @@ N_TRAIN = 3_000_000
 MATCH_ARCSEC = 0.5
 SEED = 20261119
 V_EDGES = np.arange(21.0, 26.51, 0.5)
+LOCUS_MAX = -2.8        # 95th percentile of mumax_minus_mag of deep point_like_prob > 0.9 rows at VIS 20-22.5 (EDF-N)
 
 
 def labelled(field, settings, limit):
@@ -116,7 +117,7 @@ def main():
     for lo, hi in zip(q5[:-1], q5[1:]):
         s = s5 & (ph >= lo) & (ph <= hi)
         m1b.append(dict(pred=round(float(ph[s].mean()), 4), obs=round(float(yh[s].mean()), 4), n=int(s.sum())))
-    rep['M1'] = dict(all_deciles=m1, deciles_w_gt_0.05=m1b,
+    rep['M1'] = dict(all_deciles=m1, deciles_w_gt_005=m1b,
                      pass_=bool(all(abs(r['pred'] - r['obs']) <= 0.03 for r in m1 + m1b)))
     # M2
     wN = clf.predict_proba(X(N))[:, 1]; m2 = []
@@ -133,7 +134,9 @@ def main():
     # completeness of point sources (step 4 input)
     rep['completeness_point'] = {}
     for f, d in (('S', S), ('N', N)):
-        w = clf.predict_proba(X(d))[:, 1]; pt = d['point_like_prob'] > 0.9; cc = []
+        # point sources = the deep stellar locus in mumax_minus_mag (amendment: deep point_like_prob > 0.9 holds no
+        # rows beyond VIS 23.6, it acts as a posterior with a faint-galaxy prior)
+        w = clf.predict_proba(X(d))[:, 1]; pt = d['mumax_minus_mag'] < LOCUS_MAX; cc = []
         for lo in np.arange(21.0, 26.51, 0.25)[:-1]:
             s = pt & (d['vis'] >= lo) & (d['vis'] < lo + 0.25)
             cc.append(dict(vis=round(lo + 0.125, 3), n=int(s.sum()), C_model=round(float(w[s].mean()), 4) if s.any() else None,
@@ -146,7 +149,7 @@ def main():
     print('M3', ok3)
     for r in m3:
         print('  ', r['vis'], r['n_selected'], r['sum_w'], {k: (v['d_median'], v['d_halfwidth_frac']) for k, v in r['colours'].items()})
-    print('completeness (N, point_like_prob > 0.9):', [(r['vis'], r['C_model'], r['C_observed']) for r in rep['completeness_point']['N']])
+    print('completeness (N, stellar locus):', [(r['vis'], r['C_model'], r['C_observed']) for r in rep['completeness_point']['N']])
 
 
 if __name__ == '__main__':
