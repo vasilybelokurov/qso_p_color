@@ -291,3 +291,9 @@ w = P(selected by the wide deployment selection | deep measurements):
   amplitudes refitted per wide fit cone and modelled as a smooth function of (l, b).
 
 Compute: the classifier and the XD bins are small (minutes; workers <= 4, peak RSS measured on one bin first).
+- Amendments before any reported fit (smoke run on 10 tiles with a placeholder weight w = 1[point_like_prob >= 0.1],
+  not reported):
+  - The best K was 8, the top of the grid, in all three bins tried. If the best K is the largest of {2, 3, 4, 6, 8},
+    {10, 12, 16} are also tried and the best of all is kept.
+  - Sigma_Q is per unit z. The first QSO-colour build omitted dz, which made f_Q 10x too large. Fixed; it now matches
+    the step-1 prior fraction (8.8% at VIS 24-24.5).
